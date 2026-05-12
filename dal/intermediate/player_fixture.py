@@ -158,7 +158,7 @@ def _validate_and_log_team_id_resolution(df: pd.DataFrame, true_team_id: pd.Seri
         raise DALContractViolation(
             f"team_id resolution failed for {n_rows} row(s) across fixture_id(s) {fixture_ids}."
             f" These rows have no matching fixture and cannot be used downstream.",
-            layer="integrated",
+            layer="intermediate",
             validation="_resolve_player_side_context",
             n_violations=n_rows,
             error_code="JOIN_ROW_LOSS",

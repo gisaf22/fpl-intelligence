@@ -1,0 +1,1 @@
+"""Runnable registry build workflow."""

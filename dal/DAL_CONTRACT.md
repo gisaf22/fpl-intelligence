@@ -196,6 +196,12 @@ Forbidden:
 - Business logic of any kind
 - Grain assumptions
 
+**Opponent context is an intermediate-layer output (A-3):**
+`dal/intermediate/opponent_context.py` operates on `player_fixture_base` (intermediate grain)
+and produces rolling opponent defensive metrics at (player_id, gw) grain. It was previously
+misclassified under `dal/state/` but correctly belongs to the intermediate layer as it does
+not derive from the curated spine.
+
 ### Concern 2 — Enrichment (integrated)
 
 Joining staging outputs to produce wider records.

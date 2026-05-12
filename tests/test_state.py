@@ -8,7 +8,7 @@ import pytest
 from dal.curated.player_gameweek_spine import build_player_gameweek_spine
 from dal.curated.contracts import SPINE_COLS
 from dal.state.player_gameweek_state import build_player_gameweek_state
-from dal.exceptions import GrainViolationError
+from dal.exceptions import DALContractViolation
 from dal.validation import validate_grain_uniqueness
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"

@@ -124,11 +124,14 @@ def test_invariants_module_has_no_curated_imports():
     import dal.validation.invariants as inv_mod
     importlib.reload(inv_mod)
     source = inspect.getsource(inv_mod)
-    assert "dal.curated" not in source, (
-        "dal.validation.invariants contains a dal.curated import. "
-        "V-3: the validation layer must not import from the curated layer. "
-        "Fix: remove 'from dal.curated.contracts import PERFORMANCE_COLS' and "
-        "accept performance_cols as a parameter instead."
+    # Check for actual import statements, not comments or docstrings
+    import_lines = [
+        line.strip() for line in source.splitlines()
+        if line.strip().startswith(("import ", "from ")) and "dal.curated" in line
+    ]
+    assert import_lines == [], (
+        f"dal.validation.invariants contains dal.curated import statement(s): {import_lines}. "
+        "V-3: the validation layer must not import from the curated layer."
     )
 
 

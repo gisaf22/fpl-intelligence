@@ -20,6 +20,8 @@ from dal.curated.contracts import (
 )
 from dal.validation import (
     validate_grain_uniqueness,
+    validate_row_completeness,
+    validate_column_contract,
     validate_row_count_invariant,
     validate_no_future_data,
     validate_time_continuity,
@@ -171,13 +173,18 @@ def _cast_and_validate(
     for col, dtype in DTYPES.items():
         result[col] = result[col].astype(dtype)
     result = result.reset_index(drop=True)
-    validate_grain_uniqueness(result, ["player_id", "gw"], "curated")
+
+    validate_column_contract(result, SPINE_COLS, DTYPES)
+    validate_grain_uniqueness(result, "player_gameweek_spine")
+    validate_row_completeness(result,
+        result["player_id"].unique(), sorted(result["gw"].unique()))
     validate_row_count_invariant(result, n_players=n_players, n_gws=n_gws)
     validate_time_continuity(result)
+    validate_no_future_data(result, reference_gw=max_gw, performance_cols=PERFORMANCE_COLS)
     validate_bgw_correctness(result)
     validate_dgw_correctness(result)
     validate_null_semantics(result, NULL_RULES)
-    validate_no_future_data(result, reference_gw=max_gw)
+
     return result
 
 

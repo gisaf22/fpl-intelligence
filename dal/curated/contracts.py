@@ -69,6 +69,25 @@ SPINE_COLS = [
     "transfers_made",
 ]
 
+# Semantic classification for every FIRST_COLS entry.
+# invariant_per_gw: value is identical across all fixtures in the GW — taking first is safe;
+#   an assertion enforces this before aggregation.
+# canonical_first_fixture: intentionally takes value from the earliest fixture; semantically significant.
+# temporally_first: takes value from the fixture with the lowest kickoff time.
+# representative_arbitrary: no analytical semantics; any fixture's value is acceptable.
+FIRST_COL_SEMANTICS: dict[str, str] = {
+    "player_name":        "invariant_per_gw",
+    "position_code":      "invariant_per_gw",
+    "position_label":     "invariant_per_gw",
+    "team_id":            "invariant_per_gw",   # enforced by fixture join; transfers handled separately
+    "purchase_price":     "invariant_per_gw",   # FPL uses one price per GW deadline
+    "ownership_count":    "invariant_per_gw",
+    "transfers_in":       "invariant_per_gw",
+    "transfers_out":      "invariant_per_gw",
+    "transfers_balance":  "invariant_per_gw",
+    "was_home":           "canonical_first_fixture",  # NULL for DGW by contract
+}
+
 # Columns aggregated by taking the first value per (player_id, gw)
 FIRST_COLS = [
     "player_name",

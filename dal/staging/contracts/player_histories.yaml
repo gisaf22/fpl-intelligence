@@ -1,0 +1,198 @@
+source_table: player_histories
+pk_columns: [element_id, fixture]
+columns:
+  - source: element_id
+    canonical: player_id
+    dtype: int64
+    nullable: false
+    description: FPL player identifier
+  - source: round
+    canonical: gw
+    dtype: int64
+    nullable: false
+    description: Gameweek number
+  - source: fixture
+    canonical: fixture_id
+    dtype: int64
+    nullable: false
+    description: FPL fixture identifier
+  - source: minutes
+    canonical: minutes
+    dtype: int64
+    nullable: false
+    description: Minutes played in this fixture
+  - source: goals_scored
+    canonical: goals_scored
+    dtype: int64
+    nullable: false
+    description: Goals scored in this fixture
+  - source: assists
+    canonical: assists
+    dtype: int64
+    nullable: false
+    description: Assists in this fixture
+  - source: clean_sheets
+    canonical: clean_sheets
+    dtype: int64
+    nullable: false
+    description: Clean sheets in this fixture (1/0)
+  - source: goals_conceded
+    canonical: goals_conceded
+    dtype: int64
+    nullable: false
+    description: Goals conceded in this fixture
+  - source: own_goals
+    canonical: own_goals
+    dtype: int64
+    nullable: false
+    description: Own goals in this fixture
+  - source: penalties_saved
+    canonical: penalties_saved
+    dtype: int64
+    nullable: false
+    description: Penalties saved in this fixture
+  - source: penalties_missed
+    canonical: penalties_missed
+    dtype: int64
+    nullable: false
+    description: Penalties missed in this fixture
+  - source: yellow_cards
+    canonical: yellow_cards
+    dtype: int64
+    nullable: false
+    description: Yellow cards in this fixture
+  - source: red_cards
+    canonical: red_cards
+    dtype: int64
+    nullable: false
+    description: Red cards in this fixture
+  - source: saves
+    canonical: saves
+    dtype: int64
+    nullable: false
+    description: Saves made in this fixture
+  - source: bonus
+    canonical: bonus
+    dtype: int64
+    nullable: false
+    description: Bonus points awarded in this fixture
+  - source: bps
+    canonical: bps
+    dtype: int64
+    nullable: false
+    description: Bonus point system score for this fixture
+  - source: total_points
+    canonical: total_points
+    dtype: int64
+    nullable: false
+    description: Total FPL points scored in this fixture
+  - source: influence
+    canonical: influence
+    dtype: float64
+    nullable: false
+    description: FPL influence score for this fixture
+  - source: creativity
+    canonical: creativity
+    dtype: float64
+    nullable: false
+    description: FPL creativity score for this fixture
+  - source: threat
+    canonical: threat
+    dtype: float64
+    nullable: false
+    description: FPL threat score for this fixture
+  - source: ict_index
+    canonical: ict_index
+    dtype: float64
+    nullable: false
+    description: FPL ICT index for this fixture
+  - source: expected_goals
+    canonical: expected_goals
+    dtype: float64
+    nullable: false
+    description: Expected goals (xG) in this fixture
+  - source: expected_assists
+    canonical: expected_assists
+    dtype: float64
+    nullable: false
+    description: Expected assists (xA) in this fixture
+  - source: expected_goal_involvements
+    canonical: expected_goal_involvements
+    dtype: float64
+    nullable: false
+    description: Expected goal involvements (xGI) in this fixture
+  - source: expected_goals_conceded
+    canonical: expected_goals_conceded
+    dtype: float64
+    nullable: false
+    description: Expected goals conceded (xGC) in this fixture
+  - source: starts
+    canonical: starts
+    dtype: int64
+    nullable: false
+    description: Whether the player started (1) or did not (0)
+  - source: in_dreamteam
+    canonical: in_dreamteam
+    dtype: int64
+    nullable: false
+    description: Whether the player was in the FPL dreamteam (0/1)
+  - source: opponent_team
+    canonical: opponent_team_id
+    dtype: int64
+    nullable: false
+    description: FPL identifier of the opponent team
+  - source: was_home
+    canonical: was_home
+    dtype: int64
+    nullable: false
+    description: Whether the player's team was at home (1) or away (0)
+  - source: kickoff_time
+    canonical: kickoff_time
+    dtype: str
+    nullable: false
+    description: Fixture kickoff timestamp ISO 8601
+  - source: team_h_score
+    canonical: home_team_score
+    dtype: Int64
+    nullable: true
+    description: Home team goals scored
+  - source: team_a_score
+    canonical: away_team_score
+    dtype: Int64
+    nullable: true
+    description: Away team goals scored
+  - source: value
+    canonical: purchase_price
+    dtype: float64
+    nullable: false
+    description: Player price at time of fixture in £ (raw integer divided by 10)
+    transform: divide_by_10
+  - source: selected
+    canonical: ownership_count
+    dtype: int64
+    nullable: false
+    description: Number of FPL managers who owned this player at fixture time
+  - source: transfers_in
+    canonical: transfers_in
+    dtype: int64
+    nullable: false
+    description: Transfers into this player in the gameweek
+  - source: transfers_out
+    canonical: transfers_out
+    dtype: int64
+    nullable: false
+    description: Transfers out of this player in the gameweek
+  - source: transfers_balance
+    canonical: transfers_balance
+    dtype: int64
+    nullable: false
+    description: Net transfers (in minus out) in the gameweek
+
+# team_id is not a source column in player_histories; it is joined from players.team
+# during get_player_gw_analytics() enrichment.
+# Raw value from players.team is current-state snapshot only.
+# Staged value reflects the team this player was actually playing
+# for in this GW — derived from fixture_id join to fixtures table.
+# was_home=True → home_team_id, was_home=False → away_team_id.
+# Null where fixture_id has no matching fixtures row (postponed
+# fixture edge case) — excluded from analysis by minutes >= 45 filter.

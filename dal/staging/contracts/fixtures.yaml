@@ -1,0 +1,73 @@
+source_table: fixtures
+pk_columns: [id]
+columns:
+  - source: id
+    canonical: fixture_id
+    dtype: int64
+    nullable: false
+    description: Unique fixture identifier
+  - source: code
+    canonical: code
+    dtype: int64
+    nullable: false
+    description: FPL fixture code
+  - source: event
+    canonical: gw
+    dtype: Int64
+    nullable: true
+    description: Gameweek number (null for one unassigned fixture)
+  - source: team_h
+    canonical: home_team_id
+    dtype: int64
+    nullable: false
+    description: Home team FPL identifier
+  - source: team_a
+    canonical: away_team_id
+    dtype: int64
+    nullable: false
+    description: Away team FPL identifier
+  - source: team_h_score
+    canonical: home_team_score
+    dtype: Int64
+    nullable: true
+    description: Home team goals scored (null for future fixtures)
+  - source: team_a_score
+    canonical: away_team_score
+    dtype: Int64
+    nullable: true
+    description: Away team goals scored (null for future fixtures)
+  - source: team_h_difficulty
+    canonical: home_team_difficulty
+    dtype: int64
+    nullable: false
+    description: FPL difficulty rating for the home team
+  - source: team_a_difficulty
+    canonical: away_team_difficulty
+    dtype: int64
+    nullable: false
+    description: FPL difficulty rating for the away team
+  - source: kickoff_time
+    canonical: kickoff_time
+    dtype: str
+    nullable: true
+    description: Kickoff timestamp ISO 8601 (null for one fixture)
+  - source: minutes
+    canonical: minutes
+    dtype: int64
+    nullable: false
+    description: Minutes played in fixture
+  - source: started
+    canonical: started
+    dtype: Int64
+    nullable: true
+    description: Whether the fixture has started (null for one fixture)
+  - source: finished
+    canonical: finished
+    dtype: int64
+    nullable: false
+    description: Whether the fixture has finished (0/1)
+  - source: finished_provisional
+    canonical: finished_provisional
+    dtype: int64
+    nullable: false
+    description: Whether the fixture is provisionally finished (0/1)

@@ -1,0 +1,93 @@
+source_table: teams
+pk_columns: [id]
+columns:
+  - source: id
+    canonical: team_id
+    dtype: int64
+    nullable: false
+    description: FPL team identifier
+  - source: name
+    canonical: name
+    dtype: str
+    nullable: false
+    description: Full team name
+  - source: short_name
+    canonical: short_name
+    dtype: str
+    nullable: false
+    description: Three-letter team abbreviation
+  - source: code
+    canonical: code
+    dtype: int64
+    nullable: false
+    description: FPL team code
+  - source: strength
+    canonical: team_strength
+    dtype: int64
+    nullable: false
+    description: FPL overall strength rating (1–5)
+  - source: strength_overall_home
+    canonical: team_strength_overall_home
+    dtype: int64
+    nullable: false
+    description: FPL overall home strength rating
+  - source: strength_overall_away
+    canonical: team_strength_overall_away
+    dtype: int64
+    nullable: false
+    description: FPL overall away strength rating
+  - source: strength_attack_home
+    canonical: team_strength_attack_home
+    dtype: int64
+    nullable: false
+    description: FPL attack home strength rating
+  - source: strength_attack_away
+    canonical: team_strength_attack_away
+    dtype: int64
+    nullable: false
+    description: FPL attack away strength rating
+  - source: strength_defence_home
+    canonical: team_strength_defence_home
+    dtype: int64
+    nullable: false
+    description: FPL defence home strength rating
+  - source: strength_defence_away
+    canonical: team_strength_defence_away
+    dtype: int64
+    nullable: false
+    description: FPL defence away strength rating
+  - source: played
+    canonical: played
+    dtype: int64
+    nullable: false
+    description: Matches played (always 0 — not populated by ingest)
+  - source: win
+    canonical: win
+    dtype: int64
+    nullable: false
+    description: Matches won (always 0 — not populated by ingest)
+  - source: draw
+    canonical: draw
+    dtype: int64
+    nullable: false
+    description: Matches drawn (always 0 — not populated by ingest)
+  - source: loss
+    canonical: loss
+    dtype: int64
+    nullable: false
+    description: Matches lost (always 0 — not populated by ingest)
+  - source: points
+    canonical: points
+    dtype: int64
+    nullable: false
+    description: League points (always 0 — not populated by ingest)
+  - source: position
+    canonical: position
+    dtype: int64
+    nullable: false
+    description: Current league table position
+  - source: unavailable
+    canonical: unavailable
+    dtype: int64
+    nullable: false
+    description: Whether team is unavailable (0/1)

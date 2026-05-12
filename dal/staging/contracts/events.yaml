@@ -1,0 +1,93 @@
+source_table: events
+pk_columns: [id]
+columns:
+  - source: id
+    canonical: gw
+    dtype: int64
+    nullable: false
+    description: Gameweek number
+  - source: name
+    canonical: name
+    dtype: str
+    nullable: false
+    description: Gameweek display name (e.g. Gameweek 1)
+  - source: deadline_time
+    canonical: deadline_time
+    dtype: str
+    nullable: false
+    description: Deadline timestamp (ISO 8601)
+  - source: deadline_time_epoch
+    canonical: deadline_time_epoch
+    dtype: int64
+    nullable: false
+    description: Deadline as Unix epoch
+  - source: finished
+    canonical: finished
+    dtype: int64
+    nullable: false
+    description: Whether the gameweek is finished (0/1)
+  - source: data_checked
+    canonical: data_checked
+    dtype: int64
+    nullable: false
+    description: Whether data has been checked (0/1)
+  - source: is_previous
+    canonical: is_previous
+    dtype: int64
+    nullable: false
+    description: Whether this is the previous gameweek (0/1)
+  - source: is_current
+    canonical: is_live
+    dtype: int64
+    nullable: false
+    description: Whether this gameweek is actively in progress (0/1)
+  - source: is_next
+    canonical: is_next
+    dtype: int64
+    nullable: false
+    description: Whether this is the next gameweek (0/1)
+  - source: average_entry_score
+    canonical: average_entry_score
+    dtype: Int64
+    nullable: true
+    description: Average manager score for this gameweek (null for future GWs)
+  - source: highest_score
+    canonical: highest_score
+    dtype: Int64
+    nullable: true
+    description: Highest score achieved this gameweek (null for future GWs)
+  - source: transfers_made
+    canonical: transfers_made
+    dtype: int64
+    nullable: false
+    description: Total transfers made in this gameweek
+  - source: most_selected
+    canonical: most_selected
+    dtype: Int64
+    nullable: true
+    description: Most selected player id this gameweek (null for future GWs)
+  - source: most_transferred_in
+    canonical: most_transferred_in
+    dtype: Int64
+    nullable: true
+    description: Most transferred-in player id (null for future GWs)
+  - source: most_captained
+    canonical: most_captained
+    dtype: Int64
+    nullable: true
+    description: Most captained player id (null for future GWs)
+  - source: most_vice_captained
+    canonical: most_vice_captained
+    dtype: Int64
+    nullable: true
+    description: Most vice-captained player id (null for future GWs)
+  - source: top_element
+    canonical: top_element
+    dtype: Int64
+    nullable: true
+    description: Top scoring player id (null for future GWs)
+  - source: top_element_points
+    canonical: top_element_points
+    dtype: Int64
+    nullable: true
+    description: Points scored by top element (null for future GWs)

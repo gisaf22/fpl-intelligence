@@ -1,0 +1,48 @@
+source_table: element_types
+pk_columns: [id]
+columns:
+  - source: id
+    canonical: position_code
+    dtype: int64
+    nullable: false
+    description: FPL position type identifier (1=GKP, 2=DEF, 3=MID, 4=FWD)
+  - source: singular_name
+    canonical: singular_name
+    dtype: str
+    nullable: false
+    description: Full position name (e.g. Goalkeeper)
+  - source: singular_name_short
+    canonical: position_label
+    dtype: str
+    nullable: false
+    description: Short position label (e.g. GKP)
+  - source: plural_name
+    canonical: plural_name
+    dtype: str
+    nullable: false
+    description: Plural position name (e.g. Goalkeepers)
+  - source: plural_name_short
+    canonical: plural_name_short
+    dtype: str
+    nullable: false
+    description: Short plural label (e.g. GKPs)
+  - source: squad_select
+    canonical: squad_select
+    dtype: int64
+    nullable: false
+    description: Number of players of this type in a squad
+  - source: squad_min_play
+    canonical: squad_min_play
+    dtype: int64
+    nullable: false
+    description: Minimum players of this type that must play
+  - source: squad_max_play
+    canonical: squad_max_play
+    dtype: int64
+    nullable: false
+    description: Maximum players of this type that can play
+  - source: element_count
+    canonical: element_count
+    dtype: int64
+    nullable: false
+    description: Total number of players of this position type

@@ -1,0 +1,241 @@
+source_table: players
+pk_columns: [id]
+columns:
+  - source: id
+    canonical: player_id
+    dtype: int64
+    nullable: false
+    description: FPL player identifier
+  - source: first_name
+    canonical: first_name
+    dtype: str
+    nullable: false
+    description: Player first name
+  - source: second_name
+    canonical: second_name
+    dtype: str
+    nullable: false
+    description: Player surname
+  - source: web_name
+    canonical: player_name
+    dtype: str
+    nullable: false
+    description: FPL display name (usually surname)
+  - source: code
+    canonical: code
+    dtype: int64
+    nullable: false
+    description: FPL player code (stable identifier across seasons)
+  - source: team
+    canonical: team_id
+    dtype: int64
+    nullable: false
+    description: FPL team identifier
+    # Current-state snapshot from FPL API at ingest time.
+    # Reflects player's team when the DB was last updated — not historically stable.
+    # For transferred and loaned players this value reflects their current club,
+    # not the club they were playing for in each historical GW.
+    # Never use players.team_id for GW-level team assignment in historical analysis.
+    # Use player_histories.team_id which is GW-resolved via fixture_id join.
+  - source: element_type
+    canonical: position_code
+    dtype: int64
+    nullable: false
+    description: FPL position type identifier (1=GKP, 2=DEF, 3=MID, 4=FWD)
+  - source: now_cost
+    canonical: purchase_price
+    dtype: float64
+    nullable: false
+    description: Current purchase price in £ (raw integer divided by 10)
+    transform: divide_by_10
+  - source: status
+    canonical: status
+    dtype: str
+    nullable: false
+    description: Player availability status (a=available, d=doubt, i=injured, u=unavailable, s=suspended, n=not in squad)
+  - source: total_points
+    canonical: total_points
+    dtype: int64
+    nullable: false
+    description: Total FPL points scored this season
+  - source: event_points
+    canonical: event_points
+    dtype: int64
+    nullable: false
+    description: Points scored in the most recent gameweek
+  - source: minutes
+    canonical: minutes
+    dtype: int64
+    nullable: false
+    description: Total minutes played this season
+  - source: goals_scored
+    canonical: goals_scored
+    dtype: int64
+    nullable: false
+    description: Total goals scored this season
+  - source: assists
+    canonical: assists
+    dtype: int64
+    nullable: false
+    description: Total assists this season
+  - source: clean_sheets
+    canonical: clean_sheets
+    dtype: int64
+    nullable: false
+    description: Total clean sheets this season
+  - source: goals_conceded
+    canonical: goals_conceded
+    dtype: int64
+    nullable: false
+    description: Total goals conceded this season
+  - source: own_goals
+    canonical: own_goals
+    dtype: int64
+    nullable: false
+    description: Total own goals this season
+  - source: penalties_saved
+    canonical: penalties_saved
+    dtype: int64
+    nullable: false
+    description: Total penalties saved this season
+  - source: penalties_missed
+    canonical: penalties_missed
+    dtype: int64
+    nullable: false
+    description: Total penalties missed this season
+  - source: yellow_cards
+    canonical: yellow_cards
+    dtype: int64
+    nullable: false
+    description: Total yellow cards this season
+  - source: red_cards
+    canonical: red_cards
+    dtype: int64
+    nullable: false
+    description: Total red cards this season
+  - source: saves
+    canonical: saves
+    dtype: int64
+    nullable: false
+    description: Total saves this season
+  - source: bonus
+    canonical: bonus
+    dtype: int64
+    nullable: false
+    description: Total bonus points this season
+  - source: bps
+    canonical: bps
+    dtype: int64
+    nullable: false
+    description: Total bonus point system score this season
+  - source: starts
+    canonical: starts
+    dtype: int64
+    nullable: false
+    description: Total starts this season
+  - source: influence
+    canonical: influence
+    dtype: float64
+    nullable: false
+    description: FPL influence score
+  - source: creativity
+    canonical: creativity
+    dtype: float64
+    nullable: false
+    description: FPL creativity score
+  - source: threat
+    canonical: threat
+    dtype: float64
+    nullable: false
+    description: FPL threat score
+  - source: ict_index
+    canonical: ict_index
+    dtype: float64
+    nullable: false
+    description: FPL ICT index composite score
+  - source: expected_goals
+    canonical: expected_goals
+    dtype: float64
+    nullable: false
+    description: Expected goals (xG) this season
+  - source: expected_assists
+    canonical: expected_assists
+    dtype: float64
+    nullable: false
+    description: Expected assists (xA) this season
+  - source: expected_goal_involvements
+    canonical: expected_goal_involvements
+    dtype: float64
+    nullable: false
+    description: Expected goal involvements (xGI) this season
+  - source: expected_goals_conceded
+    canonical: expected_goals_conceded
+    dtype: float64
+    nullable: false
+    description: Expected goals conceded (xGC) this season
+  - source: form
+    canonical: form
+    dtype: float64
+    nullable: false
+    description: FPL form score (rolling average points)
+  - source: points_per_game
+    canonical: points_per_game
+    dtype: float64
+    nullable: false
+    description: Average FPL points per game
+  - source: selected_by_percent
+    canonical: selected_by_percent
+    dtype: float64
+    nullable: false
+    description: Percentage of FPL managers who own this player
+  - source: transfers_in
+    canonical: transfers_in
+    dtype: int64
+    nullable: false
+    description: Total transfers in this season
+  - source: transfers_out
+    canonical: transfers_out
+    dtype: int64
+    nullable: false
+    description: Total transfers out this season
+  - source: transfers_in_event
+    canonical: transfers_in_event
+    dtype: int64
+    nullable: false
+    description: Transfers in during current gameweek
+  - source: transfers_out_event
+    canonical: transfers_out_event
+    dtype: int64
+    nullable: false
+    description: Transfers out during current gameweek
+  - source: cost_change_event
+    canonical: cost_change_event
+    dtype: int64
+    nullable: false
+    description: Price change in current gameweek (tenths of £)
+  - source: cost_change_start
+    canonical: cost_change_start
+    dtype: int64
+    nullable: false
+    description: Price change since season start (tenths of £)
+  - source: chance_of_playing_next_round
+    canonical: chance_of_playing_next_round
+    dtype: Int64
+    nullable: true
+    description: Percentage chance of playing next gameweek (null if no injury)
+  - source: chance_of_playing_this_round
+    canonical: chance_of_playing_this_round
+    dtype: Int64
+    nullable: true
+    description: Percentage chance of playing this gameweek (null if no injury)
+  - source: news
+    canonical: news
+    dtype: str
+    nullable: true
+    description: Latest injury or availability news
+  - source: team_join_date
+    canonical: team_join_date
+    dtype: datetime64[ns]
+    nullable: true
+    description: Date the player joined their current team (ISO date string in raw DB; null if not recorded)
+    transform: parse_datetime

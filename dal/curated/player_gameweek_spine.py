@@ -13,6 +13,7 @@ from dal.exceptions import DALContractViolation
 from dal.curated.contracts import (
     DTYPES,
     FIRST_COLS,
+    FIRST_COL_SEMANTICS,
     NULL_RULES,
     PERFORMANCE_COLS,
     SPINE_COLS,
@@ -34,8 +35,42 @@ from dal.validation import (
 logger = logging.getLogger(__name__)
 
 
+def _assert_invariant_per_gw_columns(df: pd.DataFrame) -> None:
+    """Assert that invariant_per_gw columns have exactly one distinct value per (player_id, gw).
+
+    Runs before aggregation. Raises DALContractViolation if any invariant_per_gw column
+    has more than one distinct value within a (player_id, gw) group, which would indicate
+    an upstream API change or join error.
+    """
+    invariant_cols = [
+        c for c, s in FIRST_COL_SEMANTICS.items()
+        if s == "invariant_per_gw" and c in df.columns
+    ]
+    for col in invariant_cols:
+        max_unique = df.groupby(["player_id", "gw"])[col].nunique().max()
+        if max_unique > 1:
+            violators = df.groupby(["player_id", "gw"])[col].nunique()
+            violators = violators[violators > 1].reset_index()
+            raise DALContractViolation(
+                f"invariant_per_gw violated for column '{col}': "
+                f"{len(violators)} (player_id, gw) groups have >1 distinct value. "
+                f"First violators:\n{violators.head(5)}",
+                layer="curated",
+                validation="_assert_invariant_per_gw_columns",
+                n_violations=len(violators),
+                error_code="GRAIN_DUPLICATE",
+            )
+
+
 def _aggregate_to_gw_grain(df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate fixture-grain frame to (player_id, gw) grain in a single groupby pass."""
+    """Aggregate fixture-grain frame to (player_id, gw) grain in a single groupby pass.
+
+    Asserts invariant_per_gw columns before aggregation and sorts by canonical PK first
+    to ensure deterministic FIRST_COLS selection regardless of staging row order (SC-9).
+    """
+    _assert_invariant_per_gw_columns(df)
+    # SC-9: explicit sort ensures FIRST_COLS take-first is deterministic
+    df = df.sort_values(["player_id", "gw", "fixture_id"]).reset_index(drop=True)
     grouped = df.groupby(["player_id", "gw"])
 
     base = grouped.agg(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from dal.validation.grain import validate_grain_uniqueness
@@ -61,8 +62,12 @@ def build_player_gameweek_state(spine: pd.DataFrame) -> pd.DataFrame:
             .transform(lambda x: x.shift(1).rolling(5, min_periods=1).mean())
         )
 
-    # Step 3 — fixture_context
-    df["fixture_context"] = df["is_dgw"].map({True: "DGW", False: "SGW"})
+    # Step 3 — fixture_context: three-way label (BGW rows were previously mapped to "SGW")
+    df["fixture_context"] = np.select(
+        [df["is_bgw"], df["is_dgw"]],
+        ["BGW", "DGW"],
+        default="SGW",
+    )
 
     # Step 4 — minutes_trend
     df["minutes_trend"] = (

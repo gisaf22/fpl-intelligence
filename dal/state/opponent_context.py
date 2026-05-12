@@ -40,7 +40,7 @@ def validate_xgc_001(analytics_90: pd.DataFrame) -> None:
 
 def _validate_contracts(analytics: pd.DataFrame, analytics_90: pd.DataFrame) -> None:
     """Run hard contract checks and coverage diagnostics for opponent context inputs."""
-    validate_xgc_001(analytics_90[analytics_90["position_code"] == 1])
+    validate_xgc_001(analytics_90)  # SC-14: check all positions, not only GK
 
     all_team_gws = set(map(tuple, analytics[["team_id", "gw"]].drop_duplicates().to_numpy()))
     covered = set(map(tuple, analytics_90[["team_id", "gw"]].drop_duplicates().to_numpy()))

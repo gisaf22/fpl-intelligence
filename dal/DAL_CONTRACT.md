@@ -837,7 +837,7 @@ A player with 5 tackles in fixture 1 and 3 in fixture 2 has tackles=8 for the GW
 This is the true cumulative defensive contribution for that week. Analytical layers can 
 normalize (per match, per minute) as needed.
 
-**FPL metrics (influence, creativity, threat, ict_index) in DGW**
+**FPL metrics (influence, creativity, threat, ict_index) in DGW — SC-7 declared intent**
 These are summed across fixtures. A player with influence=50 and creativity=40 (90 total ICT)
 in fixture 1, and influence=35, creativity=45 (80 total ICT) in fixture 2, has:
 - influence = 85
@@ -846,6 +846,17 @@ in fixture 1, and influence=35, creativity=45 (80 total ICT) in fixture 2, has:
 - ict_index = 170 (sum of both fixtures' ict_index values)
 This preserves the full FPL signal contribution for the GW. Note: ict_index is composite, so
 summing makes sense (it's already the sum of influence+creativity+threat per fixture).
+
+Normalization convention for DGW comparisons: consumers comparing influence, creativity,
+threat, or ict_index across SGW and DGW rows must normalize by fixture_count:
+  normalized_influence = influence / fixture_count
+Failure to normalize creates a systematic DGW inflation bias in signal studies.
+
+**TGW (triple gameweek) non-support**
+The pipeline assumes fixture_count ∈ {0, 1, 2}. Triple gameweeks are not supported.
+If a triple gameweek is announced, the pipeline requires a contract amendment before
+the affected GW data is ingested. validate_dgw_correctness will raise DALContractViolation
+for any row with fixture_count not in {0, 1, 2} with an explicit TGW error message.
 
 ---
 

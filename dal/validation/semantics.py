@@ -71,8 +71,9 @@ def validate_dgw_correctness(df: pd.DataFrame) -> None:
         if not bad_bounds.empty:
             raise DALContractViolation(
                 message=(
-                    f"DGW correctness violation: {len(bad_bounds)} rows have "
-                    f"fixture_count not in {{0, 1, 2}}"
+                    f"fixture_count not in {{0, 1, 2}} for {len(bad_bounds)} rows. "
+                    f"Triple gameweeks are not supported by the current contract. "
+                    f"Update DAL_CONTRACT.md before ingesting TGW data."
                 ),
                 layer='curated',
                 validation='validate_dgw_correctness',

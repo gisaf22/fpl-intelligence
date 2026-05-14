@@ -10,4 +10,7 @@ __pycache__/
 .aider*
 .venv
 .pytest_cachedata/
+.pytest_cache/
+.claude/
+.claude/settings.local.json
 outputs/

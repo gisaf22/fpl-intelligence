@@ -3,22 +3,32 @@ returns a canonical normalised DataFrame."""
 
 from __future__ import annotations
 
+import logging
 import sqlite3
+import time
 from pathlib import Path
 
 import pandas as pd
 
 from dal.staging.schema import ColumnMapping, Schema
 
+logger = logging.getLogger(__name__)
+
 
 def stage(db_path: Path, schema: Schema) -> pd.DataFrame:
     """Read one source table from SQLite and return a canonical staged frame."""
+    t0 = time.perf_counter()
     query = _build_query(schema)
     with sqlite3.connect(db_path) as conn:
         df = pd.read_sql_query(query, conn)
     staged = _rename_source_columns(df, schema)
     staged = _normalize_canonical_columns(staged, schema)
     _validate_non_nullable_columns(staged, schema)
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+    logger.info(
+        "[DAL:staging:%s] staged | rows=%d cols=%d elapsed_ms=%.0f",
+        schema.source_table, len(staged), len(staged.columns), elapsed_ms,
+    )
     return staged
 
 

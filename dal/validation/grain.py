@@ -16,6 +16,7 @@ def validate_grain_uniqueness(
     df: pd.DataFrame,
     dataset_name_or_cols,
     layer_name: str | None = None,
+    layer: str | None = None,
 ) -> None:
     """Assert no duplicate rows for the declared grain.
 
@@ -25,6 +26,7 @@ def validate_grain_uniqueness(
             or a list of grain column names (legacy — prefer dataset_name).
         layer_name: Optional descriptive name for error messages (used when grain_cols
             are passed directly; ignored when dataset_name is passed).
+        layer: DAL layer for error context ("staging", "intermediate", "curated", "state").
     """
     if isinstance(dataset_name_or_cols, str):
         from dal.contracts import GRAIN_CONTRACTS
@@ -53,6 +55,7 @@ def validate_grain_uniqueness(
                 f"{len(dupes)} duplicate ({', '.join(grain_cols)}) pairs\n"
                 f"{dupes.head(10)}"
             ),
+            layer=layer,
             validation='validate_grain_uniqueness',
             n_violations=len(dupes),
             error_code='GRAIN_DUPLICATE',

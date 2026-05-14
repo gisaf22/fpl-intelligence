@@ -17,7 +17,8 @@ def validate_join_safety(
                     f"Join safety violation [{description}]: left join expected {left_n} rows, "
                     f"got {result_n}"
                 ),
-                validation='validate_join_safety',
+                validation="validate_join_safety",
+                layer=None,
                 n_violations=left_n - result_n,
                 error_code='JOIN_ROW_LOSS',
             )
@@ -27,7 +28,8 @@ def validate_join_safety(
                     f"Join safety violation [{description}]: left join expected {left_n} rows, "
                     f"got {result_n}"
                 ),
-                validation='validate_join_safety',
+                validation="validate_join_safety",
+                layer=None,
                 n_violations=result_n - left_n,
                 error_code='JOIN_FANOUT',
             )
@@ -43,7 +45,8 @@ def validate_join_safety(
                     f"Join safety violation [{description}]: inner join expected <= "
                     f"{expected_max} rows, got {result_n}"
                 ),
-                validation='validate_join_safety',
+                validation="validate_join_safety",
+                layer=None,
                 n_violations=result_n - expected_max,
                 error_code='JOIN_FANOUT',
             )
@@ -56,7 +59,8 @@ def validate_join_safety(
                     f"Join safety violation [{description}]: cross join expected {expected} rows "
                     f"({left_n} × {right_n}), got {result_n}"
                 ),
-                validation='validate_join_safety',
+                validation="validate_join_safety",
+                layer=None,
                 n_violations=expected - result_n,
                 error_code='JOIN_ROW_LOSS',
             )
@@ -66,7 +70,8 @@ def validate_join_safety(
                     f"Join safety violation [{description}]: cross join expected {expected} rows "
                     f"({left_n} × {right_n}), got {result_n}"
                 ),
-                validation='validate_join_safety',
+                validation="validate_join_safety",
+                layer=None,
                 n_violations=result_n - expected,
                 error_code='JOIN_FANOUT',
             )

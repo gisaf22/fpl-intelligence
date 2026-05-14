@@ -15,6 +15,7 @@ def validate_column_contract(df: pd.DataFrame, expected_cols: list, dtypes: dict
     if extra:
         raise DALContractViolation(
             message=f"Extra columns: {sorted(extra)}",
+            layer='curated',
             validation='validate_column_contract',
             n_violations=len(extra),
             error_code='COLUMN_EXTRA',
@@ -23,6 +24,7 @@ def validate_column_contract(df: pd.DataFrame, expected_cols: list, dtypes: dict
     if missing:
         raise DALContractViolation(
             message=f"Missing columns: {sorted(missing)}",
+            layer='curated',
             validation='validate_column_contract',
             n_violations=len(missing),
             error_code='COLUMN_MISSING',
@@ -41,6 +43,7 @@ def validate_column_contract(df: pd.DataFrame, expected_cols: list, dtypes: dict
     if dtype_mismatches:
         raise DALContractViolation(
             message="Dtype mismatches:\n" + "\n".join(dtype_mismatches),
+            layer='curated',
             validation='validate_column_contract',
             n_violations=len(dtype_mismatches),
             error_code='DTYPE_MISMATCH',

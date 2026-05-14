@@ -15,6 +15,7 @@ def validate_row_completeness(df: pd.DataFrame, player_ids, gw_range) -> None:
                 f"Row completeness violation: {len(missing)} missing (player_id, gw) pairs\n"
                 f"{sorted(missing)[:20]}"
             ),
+            layer='curated',
             validation='validate_row_completeness',
             n_violations=len(missing),
             error_code='ROW_COUNT',

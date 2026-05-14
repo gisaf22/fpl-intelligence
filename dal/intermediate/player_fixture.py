@@ -169,7 +169,7 @@ def _validate_and_log_team_id_resolution(df: pd.DataFrame, true_team_id: pd.Seri
         n_rows = int(discrepancy_mask.sum())
         n_players = df.loc[discrepancy_mask, "player_name"].nunique()
         logger.info(
-            "[team_id resolution] corrected %d row(s) across %d player(s)"
+            "[AUDIT] team_id corrected for %d row(s) across %d player(s)"
             " — fixture data used over player record (mid-season transfer correction)",
             n_rows,
             n_players,

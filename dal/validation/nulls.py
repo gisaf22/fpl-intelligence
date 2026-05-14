@@ -48,6 +48,7 @@ def validate_null_semantics(df: pd.DataFrame, rules: dict) -> None:
     if errors:
         raise DALContractViolation(
             message="Null semantics violation:\n" + "\n".join(errors),
+            layer='curated',
             validation='validate_null_semantics',
             n_violations=total_violations,
             error_code='NULL_SEMANTICS',

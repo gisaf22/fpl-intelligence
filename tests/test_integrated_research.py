@@ -306,8 +306,8 @@ def test_team_id_resolution_discrepancy_logging(caplog):
     with caplog.at_level("INFO", logger="dal.intermediate.player_fixture"):
         get_player_fixture_base(DB_PATH)
 
-    assert any("[team_id resolution]" in message for message in caplog.messages), (
-        "Expected at least one [team_id resolution] log message"
+    assert any("[AUDIT]" in message and "team_id" in message for message in caplog.messages), (
+        "Expected at least one [AUDIT] team_id correction log message"
     )
 
 

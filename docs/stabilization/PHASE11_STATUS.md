@@ -13,8 +13,8 @@
 | S1 | CONTEXT.md truth alignment | doc-only | ✅ DONE | `a8c2a5a` | Sections 3/5/6 corrected; section 2 path fixed (signals/eda → studies/eda) |
 | S2 | ROADMAP correction + 3-command fix | doc-only | ✅ DONE | `4ca425b` | IMPLEMENTATION_ROADMAP archived; EXECUTION_GUIDE.md created |
 | S3 | Governance test real-directory fix | test-only | ✅ DONE | `be952fd` | Scans intelligence/, studies/; staging violation in reporting/db.py fixed |
-| S4 | pyproject.toml dependency hygiene | metadata-only | ⬜ NEXT | — | Remove mlflow, pipeline package ref |
-| S5 | Integration test marking | test-only | ⬜ TODO | — | 13 files need pytestmark |
+| S4 | pyproject.toml dependency hygiene | metadata-only | ✅ DONE | — | mlflow removed; pipeline block replaced with dev-mode-dirs=[.]; pandas declared |
+| S5 | Integration test marking | test-only | ⬜ NEXT | — | 13 files need pytestmark |
 | S7 | Makefile execution targets | operational | ⬜ TODO | — | Depends on nothing |
 | S9 | Rho weights + methodology callout | explainability | ⬜ TODO | — | renderer.py only |
 | S8 | Bootstrap registry artifact | artifact | ⬜ TODO | — | APPROVE required; needs S7 |
@@ -31,6 +31,7 @@
 | S1 | Section 2 path also fixed (signals/eda → studies/eda) | Path was factually wrong; signals/eda/ does not exist |
 | S2 | IMPLEMENTATION_ROADMAP archived rather than annotated | User decision; EXECUTION_GUIDE.md created as replacement |
 | S3 | dal/access.py + intelligence/reporting/db.py also touched | Pre-flight found real staging violation; fixed per plan rule (no allowlist expansion) |
+| S4 | `packages = ["pipeline"]` replaced by `dev-mode-dirs = ["."]`; pandas declared | Removing the entire `[tool.hatch.build.targets.wheel]` block breaks hatchling editable builds; `dev-mode-dirs` is the minimal fix. Pandas was undeclared (pip-installed outside lockfile); declared it explicitly. |
 
 ---
 

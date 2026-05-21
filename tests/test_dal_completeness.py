@@ -2,9 +2,12 @@
 
 from pathlib import Path
 
+import pytest
 from dal.curated.player_gameweek_spine import build_player_gameweek_spine
 from dal.validation import validate_row_count_invariant, validate_time_continuity
 from dal.exceptions import DALContractViolation
+
+pytestmark = pytest.mark.integration
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 

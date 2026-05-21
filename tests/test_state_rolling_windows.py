@@ -16,6 +16,8 @@ import pytest
 from dal.curated.player_gameweek_spine import build_player_gameweek_spine
 from dal.state.player_gameweek_state import build_player_gameweek_state
 
+pytestmark = pytest.mark.integration
+
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 
 

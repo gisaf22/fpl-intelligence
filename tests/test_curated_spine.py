@@ -11,6 +11,8 @@ from dal.curated.contracts import SPINE_COLS
 from dal.intermediate.player_fixture import get_player_fixture_base
 from dal.exceptions import DALContractViolation
 
+pytestmark = pytest.mark.integration
+
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 
 

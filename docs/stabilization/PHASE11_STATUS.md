@@ -14,8 +14,8 @@
 | S2 | ROADMAP correction + 3-command fix | doc-only | ✅ DONE | `4ca425b` | IMPLEMENTATION_ROADMAP archived; EXECUTION_GUIDE.md created |
 | S3 | Governance test real-directory fix | test-only | ✅ DONE | `be952fd` | Scans intelligence/, studies/; staging violation in reporting/db.py fixed |
 | S4 | pyproject.toml dependency hygiene | metadata-only | ✅ DONE | — | mlflow removed; pipeline block replaced with dev-mode-dirs=[.]; pandas declared |
-| S5 | Integration test marking | test-only | ⬜ NEXT | — | 13 files need pytestmark |
-| S7 | Makefile execution targets | operational | ⬜ TODO | — | Depends on nothing |
+| S5 | Integration test marking | test-only | ✅ DONE | — | 13 files marked; 655 non-integration / 84 integration |
+| S7 | Makefile execution targets | operational | ⬜ NEXT | — | Depends on nothing |
 | S9 | Rho weights + methodology callout | explainability | ⬜ TODO | — | renderer.py only |
 | S8 | Bootstrap registry artifact | artifact | ⬜ TODO | — | APPROVE required; needs S7 |
 | S6 | conftest.py + db_path fixture | test-only | ⬜ TODO | — | APPROVE required; needs S5 |

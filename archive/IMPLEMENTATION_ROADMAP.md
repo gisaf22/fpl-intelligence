@@ -40,14 +40,27 @@ Complete the analytical characterization of the current signal set, operationali
 This milestone is complete when the 3-command sequence below runs without notebook intervention and produces outputs with real analytical content:
 
 ```bash
-python -m dal.prepared.analytical_dataset --gw 33 --output-path data/prepared_gw33.csv
-python -m registry_build.runner --gw 36 --mode computed --prepared-data-path data/prepared_gw33.csv
-python -m weekly.runner --gw 36 --registry-path outputs/registry/gw36/registry.csv
+# Step 1: Build analytical dataset (requires live DB)
+python -m dal.prepared.analytical_dataset \
+  --gw 36 --output-path outputs/prepared_gw36.csv
+
+# Step 2: Build governed registry artifact
+python -m signals.registry.runner \
+  --gw 36 \
+  --source-registry-path studies/eda/findings/eda_03_joint_registry.csv \
+  --output-dir outputs/registry/gw36
+
+# Step 3: Generate weekly signal intelligence outputs
+python -m intelligence.reporting.runner \
+  --gw 36 \
+  --registry-path outputs/registry/gw36/registry.csv
 ```
 
 ---
 
 ## 4. Layer Ownership
+
+> **Archived reference** — layer names below reflect the pre-migration architecture. Current layer names: dal/, signals/, studies/, intelligence/.
 
 ### Research (`research/eda/notebooks/`)
 - Owns: orchestration, visualization, interpretation, checkpoint writing, EDA narrative
@@ -87,7 +100,8 @@ Sprints are ordered by dependency. Each sprint produces tested, shippable artifa
 
 ---
 
-### Sprint A — Complete Signal Characterization Modules
+### [COMPLETE] Sprint A — Complete Signal Characterization Modules
+> Current implementation: `studies/kernels/stability.py`, `studies/kernels/redundancy.py`
 
 **Prerequisite:** `core/signals/population.py` and `core/governance/promotion.py` exist (done).
 
@@ -117,7 +131,8 @@ Sprints are ordered by dependency. Each sprint produces tested, shippable artifa
 
 ---
 
-### Sprint B — EDA-4 and EDA-5 Execution
+### [COMPLETE] Sprint B — EDA-4 and EDA-5 Execution
+> Current implementation: `studies/eda/notebooks/`
 
 **Prerequisite:** Sprint A complete.
 
@@ -138,7 +153,8 @@ Sprints are ordered by dependency. Each sprint produces tested, shippable artifa
 
 ---
 
-### Sprint C — EDA-6 and EDA-7 Execution + Promotion Class Wiring
+### [COMPLETE] Sprint C — EDA-6 and EDA-7 Execution + Promotion Class Wiring
+> Current implementation: `studies/eda/notebooks/`, `signals/lifecycle/promotion.py`
 
 **Prerequisite:** Sprint B complete.
 
@@ -174,7 +190,8 @@ In `core/governance/schema.py`:
 
 ---
 
-### Sprint D — Computed Registry Authority + Parity Test
+### [COMPLETE] Sprint D — Computed Registry Authority + Parity Test
+> Current implementation: `dal/prepared/analytical_dataset.py`, `signals/registry/runner.py`
 
 **Prerequisite:** Sprint C complete.
 

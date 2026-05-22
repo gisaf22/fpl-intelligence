@@ -17,7 +17,7 @@
 | S5 | Integration test marking | test-only | ✅ DONE | — | 13 files marked; 655 non-integration / 84 integration |
 | S7 | Makefile execution targets | operational | ✅ DONE | — | 7 targets added; make help/test-unit/build-registry/score all pass |
 | S9 | Rho weights + methodology callout | explainability | ✅ DONE | — | 35 signal-meta spans; methodology callout present; renderer.py only |
-| S8 | Bootstrap registry artifact | artifact | ⬜ NEXT | — | APPROVE required; artifact produced during S7 validation |
+| S8 | Bootstrap registry artifact | artifact | ✅ DONE | — | outputs/registry/gw36/ committed; assert_operational_safe passes; .gitignore exception added |
 | S6 | conftest.py + db_path fixture | test-only | ⬜ TODO | — | APPROVE required; needs S5 |
 | S10 | Stale doc archival + dir cleanup | doc-only | ✅ DONE | — | 2 docs archived; tasks/ removed; decisions/.gitkeep removed; signals/runs/README added |
 | S11 | tests/integration/ → tests/helpers/ | test-only | ⬜ TODO | — | APPROVE required; needs S5 |

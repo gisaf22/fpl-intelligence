@@ -24,6 +24,8 @@ The system separates three concerns that must remain independent:
 Keeping these concerns separate prevents analytical assumptions from polluting the data
 contract, and prevents operational pressure from shortcutting research rigour.
 
+For the full conceptual model — including the Control Plane (registry and scoring configuration), Execution Plane (DAL + intelligence), and the partially-implemented Measurement Plane — see [docs/architecture/system-model.md](architecture/system-model.md).
+
 ## Trusted data assumptions
 
 All downstream analytics operate on a set of guarantees provided by the DAL:

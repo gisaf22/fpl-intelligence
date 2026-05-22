@@ -16,12 +16,13 @@ signals/      → signal lifecycle governance and registry build pipeline
 intelligence/ → player scoring and weekly reporting
 ```
 
-**Three documents give you 80% of the picture:**
+**Four documents give you 80% of the picture:**
 
 | Document | Answers |
 |----------|---------|
 | [docs/system-purpose.md](system-purpose.md) | What is this system for? What does it not do? |
-| [docs/architecture/operational-flow.md](architecture/operational-flow.md) | How do I run it end to end? |
+| [docs/architecture/system-model.md](architecture/system-model.md) | What is each part of the system responsible for? (3-plane model) |
+| [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) | How does a decision get made, end to end? |
 | [docs/architecture/DAL_CONTRACT.md](architecture/DAL_CONTRACT.md) | What guarantees does the data layer provide? |
 
 ---
@@ -31,10 +32,12 @@ intelligence/ → player scoring and weekly reporting
 ### New contributor (start here)
 
 1. [docs/system-purpose.md](system-purpose.md) — mission, architectural intent, non-goals
-2. [docs/architecture/operational-flow.md](architecture/operational-flow.md) — 3-command execution sequence, entry points
-3. [docs/research-lifecycle.md](research-lifecycle.md) — signal lifecycle: how a signal travels from EDA to scorer
-4. [docs/registry-governance.md](registry-governance.md) — exploratory vs operational registries, lifecycle gate enforcement
-5. [CONTEXT.md](../CONTEXT.md) — current project state, rules, and session orientation
+2. [docs/architecture/system-model.md](architecture/system-model.md) — 3-plane model: what each component is for and what is missing
+3. [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) — full decision flow with failure modes
+4. [docs/architecture/operational-flow.md](architecture/operational-flow.md) — 3-command execution sequence, entry points
+5. [docs/research-lifecycle.md](research-lifecycle.md) — signal lifecycle: how a signal travels from EDA to scorer
+6. [docs/registry-governance.md](registry-governance.md) — exploratory vs operational registries, lifecycle gate enforcement
+7. [CONTEXT.md](../CONTEXT.md) — current project state, rules, and session orientation
 
 ### DAL contributor
 
@@ -89,6 +92,8 @@ intelligence/ → player scoring and weekly reporting
 | Document | Use for |
 |----------|---------|
 | [docs/system-purpose.md](system-purpose.md) | Orienting new contributors; scoping new research |
+| [docs/architecture/system-model.md](architecture/system-model.md) | 3-plane conceptual model: Control · Execution · Measurement; component classification table |
+| [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) | Full decision flow: DAL → registry → intelligence → output → (future measurement) |
 | [docs/architecture/operational-flow.md](architecture/operational-flow.md) | Running the system end to end |
 | [docs/architecture/intelligence-layer.md](architecture/intelligence-layer.md) | Scorer pipeline, registry consumption, rho weighting, explainability, weekly artifact lineage |
 | [docs/architecture/explainability-model.md](architecture/explainability-model.md) | Scoring formula, signal selection rationale, rho weighting, independent verification steps |

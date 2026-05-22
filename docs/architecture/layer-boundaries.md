@@ -3,6 +3,8 @@
 **Authoritative for:** component ownership, dependency direction, cross-cutting concerns.  
 **Supersedes:** `docs/architecture-boundaries.md`, `docs/architecture/SYSTEM_CONTEXT.md`.
 
+> **Note on planes vs. layers.** This document describes the 4-layer import hierarchy (DAL → studies → signals → intelligence), which governs dependency direction and import rules. The import hierarchy is not the same as the conceptual role of each component. For the question "what is each part of the system *for*?", see [system-model.md](system-model.md). The registry, for instance, is part of the Control Plane in the conceptual model — not a pipeline step. Tests are structural validation — not the Measurement Plane.
+
 ---
 
 ## System architecture
@@ -73,7 +75,7 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 |---|---|
 | `signals/lifecycle/` | Lifecycle enforcement: `assert_operational_safe()`, promotion rules, schema validation |
 | `signals/registry/` | Registry build pipeline — assembles the governed artifact from confirmed signals |
-| `signals/evaluation/` | Locked evaluation framework (`EVAL_DESIGN.md`) — success criteria and failure conditions |
+| `signals/evaluation/` | Measurement Plane design specification (`EVAL_DESIGN.md`) — locked success criteria and failure conditions. This is not an evaluation *layer*; it is the contract the future Measurement Plane must satisfy. |
 
 **Does not own:** Statistical computation on raw data (owned by `studies/`), DAL transformations, operational scoring.
 

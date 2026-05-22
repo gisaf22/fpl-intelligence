@@ -8,6 +8,8 @@ See also: [research-lifecycle.md](research-lifecycle.md) · [architecture/layer-
 
 The signal registry is the single machine-readable contract between the research layer and the operational intelligence layer. It characterises each signal's statistical properties, lifecycle state, and eligibility for operational use.
 
+**Plane classification:** The registry is part of the **Control Plane** — it configures intelligence behavior; it is not a runtime processing stage and it is not a peer of the intelligence layer. See [system-model.md](architecture/system-model.md) for the full 3-plane classification.
+
 The registry lives in two forms:
 
 | Form | Path | Role |

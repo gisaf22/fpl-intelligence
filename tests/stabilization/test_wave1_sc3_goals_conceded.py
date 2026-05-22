@@ -23,7 +23,7 @@ from pathlib import Path
 from dal.intermediate.opponent_context import _build_team_defensive_records
 
 
-TEST_DB_PATH = Path(__file__).parent / "fixtures" / "test.db"
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 
 def _make_dgw_analytics() -> pd.DataFrame:

@@ -1,12 +1,21 @@
-"""BGW and DGW semantic correctness validation."""
+"""BGW and DGW semantic correctness validation.
+
+Validation layer: this module must not import from dal.curated/. Layer-specific constants
+(e.g. PERFORMANCE_COLS) are passed as parameters by the caller (V-3 contract).
+"""
 
 import pandas as pd
 
-from dal.curated.contracts import PERFORMANCE_COLS
 from dal.exceptions import DALContractViolation
 
 
-def validate_bgw_correctness(df: pd.DataFrame) -> None:
+def validate_bgw_correctness(df: pd.DataFrame, performance_cols=None) -> None:
+    """Assert BGW rows conform to the BGW semantic contract.
+
+    performance_cols: iterable of column names that must be NULL for BGW rows.
+    Callers pass their layer's PERFORMANCE_COLS constant. If None, the performance
+    column check is skipped — only fixture_count, fdr, and was_home are checked.
+    """
     bgw = df[df['is_bgw'] == True]
     if bgw.empty:
         return
@@ -24,7 +33,7 @@ def validate_bgw_correctness(df: pd.DataFrame) -> None:
 
     # performance columns must be null (pd.NA) — any non-null value is a violation.
     # Using .notna() instead of != 0: non-null 0.0 (Float64) would silently pass != 0.
-    for col in PERFORMANCE_COLS:
+    for col in (performance_cols or ()):
         if col not in bgw.columns:
             continue
         bad = bgw[bgw[col].notna()]

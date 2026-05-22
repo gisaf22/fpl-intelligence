@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 from pathlib import Path
 
-TEST_DB_PATH = Path(__file__).parent / "fixtures" / "test.db"
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +137,39 @@ def test_state_col_contracts_covers_minutes_trend():
     entry = STATE_COL_CONTRACTS["minutes_trend"]
     assert entry["causality"] == "lagged"
     assert entry["warmup_gws"] == 4
+
+
+def test_state_col_contracts_covers_all_roll_cols():
+    """Every column in _ROLL_COLS must produce both roll3 and roll5 entries in STATE_COL_CONTRACTS.
+
+    STATE_COL_CONTRACTS is the causality declaration for every derived state column.
+    A missing entry means a downstream consumer cannot know whether a column is safe
+    to use as a pre-GW feature (lagged) or contemporaneous. All rolling window columns
+    must be declared. Contract Section: FIRST_COLS Semantic Registry / State Layer
+    Causality Contract.
+    """
+    from dal.state.contracts import STATE_COL_CONTRACTS
+    from dal.state.player_gameweek_state import _ROLL_COLS
+
+    required_fields = {"causality", "warmup_gws", "min_obs_for_reliability", "null_if_no_obs"}
+
+    for col in _ROLL_COLS:
+        col_short = "points" if col == "total_points" else col
+        for suffix in ("roll3", "roll5"):
+            key = f"{col_short}_{suffix}"
+            assert key in STATE_COL_CONTRACTS, (
+                f"STATE_COL_CONTRACTS missing entry for '{key}'. "
+                f"Every _ROLL_COLS column must have roll3 and roll5 entries declared."
+            )
+            entry = STATE_COL_CONTRACTS[key]
+            for field in required_fields:
+                assert field in entry, (
+                    f"STATE_COL_CONTRACTS['{key}'] missing required field '{field}'."
+                )
+            assert entry["causality"] == "lagged", (
+                f"STATE_COL_CONTRACTS['{key}'] must have causality='lagged' — "
+                f"rolling windows use shift(1) and are safe as pre-GW features."
+            )
 
 
 # ---------------------------------------------------------------------------

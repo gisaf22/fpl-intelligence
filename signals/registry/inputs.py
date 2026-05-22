@@ -7,7 +7,7 @@ from typing import Iterable
 
 import pandas as pd
 
-from core.governance.schema import POPULATION_SCOPE_VALUES, POSITION_VALUES
+from signals.lifecycle.schema import POPULATION_SCOPE_VALUES, POSITION_VALUES
 
 
 @dataclass(frozen=True)

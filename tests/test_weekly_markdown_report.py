@@ -1,8 +1,8 @@
 import pandas as pd
 
-from core.governance import load_registry
-from weekly.insights import build_insight_cards
-from weekly.reports import (
+from signals.lifecycle import load_registry
+from intelligence.reporting.insights import build_insight_cards
+from intelligence.reporting.reports import (
     build_signal_summary,
     build_stable_performance_signals,
     build_summary_by_layer,

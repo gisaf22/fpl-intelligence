@@ -6,7 +6,7 @@ from typing import Any
 
 import pandas as pd
 
-from registry.geometry import (
+from signals.registry.geometry import (
     HAUL_DROP_MATERIAL,
     MONOTONIC_GEOMETRIES,
     UPPER_TAIL_GEOMETRIES,

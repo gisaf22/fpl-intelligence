@@ -6,13 +6,17 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from core.signals.redundancy import (
-    ALGEBRAIC_DECOMPOSITIONS,
+from studies.kernels.redundancy import (
     DEFAULT_REDUNDANCY_THRESHOLD,
     MIN_N_FOR_RHO,
     compute_pairwise_rho,
     compute_partial_rho,
     identify_redundant_pairs,
+)
+
+ALGEBRAIC_DECOMPOSITIONS: tuple[tuple[str, str, str], ...] = (
+    ("xgi", "xg", "xa"),
+    ("ict_index", "influence", "creativity"),
 )
 
 
@@ -295,7 +299,7 @@ class TestAlgebraicDecompositions:
             assert isinstance(comp_b, str)
 
     def test_referenced_signals_exist_in_governed_set(self):
-        from build.population import GOVERNED_SIGNAL_COLUMNS
+        from signals.registry.population import GOVERNED_SIGNAL_COLUMNS
         governed = set(GOVERNED_SIGNAL_COLUMNS)
         for derived, comp_a, comp_b in ALGEBRAIC_DECOMPOSITIONS:
             assert derived in governed, f"{derived!r} not in GOVERNED_SIGNAL_COLUMNS"

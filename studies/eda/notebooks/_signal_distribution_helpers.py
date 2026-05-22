@@ -12,7 +12,7 @@ from typing import Any
 
 import pandas as pd
 
-from core.signals.profiling import (
+from studies.eda.profiling import (
     BINARY_SIGNALS,
     BLOCK_ORDER,
     CATEGORICAL_NEAR_CONSTANT_THRESHOLD,
@@ -34,7 +34,7 @@ from core.signals.profiling import (
     split_candidate_signals,
     summarize_signals,
 )
-from core.signals.scoping import (
+from studies.eda.scoping import (
     EXPOSURE_SENSITIVITY_VALUES,
     PREFERRED_POPULATION_VALUES,
     RANK_STABILITY_ROBUST_THRESHOLD,

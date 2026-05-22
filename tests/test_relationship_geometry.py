@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from core.relationships.geometry import (
+from studies.eda.geometry import (
     FDR_ORDINAL_BINS,
     FDR_ORDINAL_LABELS,
     bin_analysis,
@@ -9,7 +9,7 @@ from core.relationships.geometry import (
     select_bucketing_scheme,
     stability_classify,
 )
-from research.eda.notebooks import _joint_helpers
+from studies.eda.notebooks import _joint_helpers
 
 
 def _bin_stats(means: list[float]) -> pd.DataFrame:
@@ -83,7 +83,10 @@ def test_stability_classify_gap_patterns():
 
 
 def test_notebook_helper_imports_shared_geometry_functions():
-    from core.relationships import association, geometry, panel, tail
+    import studies.eda.geometry as geometry
+    import studies.eda.association as association
+    import studies.kernels.correlation.panel as panel
+    import studies.kernels.correlation.tail as tail
 
     assert _joint_helpers.select_bucketing_scheme is geometry.select_bucketing_scheme
     assert _joint_helpers.bin_analysis is geometry.bin_analysis

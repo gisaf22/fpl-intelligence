@@ -20,6 +20,32 @@ def get_gameweek_context(db_path: Path) -> pd.DataFrame:
     return events
 
 
+def resolve_target_gw(db_path: Path) -> int:
+    """Resolve the target GW from the events table.
+
+    Resolution order:
+    1. Row where is_live == True → return its gw
+    2. Row where is_next == True → return its gw
+    3. Minimum gw where finished == False → return it
+    4. Raise ValueError if none of the above apply.
+    """
+    df = get_gameweek_context(db_path)
+
+    current = df[df["is_live"] == 1]
+    if not current.empty:
+        return int(current.iloc[0]["gw"])
+
+    nxt = df[df["is_next"] == 1]
+    if not nxt.empty:
+        return int(nxt.iloc[0]["gw"])
+
+    unfinished = df[df["finished"] == 0]
+    if not unfinished.empty:
+        return int(unfinished["gw"].min())
+
+    raise ValueError("Cannot resolve target GW — all events finished or no events found")
+
+
 def _validate_gw_sequence(events: pd.DataFrame) -> None:
     """Assert no gaps in the GW sequence within the events frame."""
     gws = sorted(events["gw"].tolist())

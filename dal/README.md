@@ -15,12 +15,13 @@ Data Access Layer for fpl-intelligence. Produces the canonical `(player_id, gw)`
 ## Entry points
 
 ```python
-from dal.curated.player_gameweek_spine import build_player_gameweek_spine
-spine = build_player_gameweek_spine(db_path)   # canonical (player_id, gw) spine
+from dal.access import get_curated_spine, get_state_features
 
-from dal.state.player_gameweek_state import build_player_gameweek_state
-state = build_player_gameweek_state(spine)     # spine + rolling/lag features
+spine = get_curated_spine(db_path)        # canonical (player_id, gw) spine
+state = get_state_features(db_path)       # spine + rolling/lag features
 ```
+
+> **Internal/test use only:** `build_player_gameweek_spine` and `build_player_gameweek_state` are valid constructors but are not the recommended consumer path. Prefer `dal.access` for all application and notebook code.
 
 ## Contract
 

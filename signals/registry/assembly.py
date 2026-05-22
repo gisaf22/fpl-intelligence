@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pandas as pd
 
-from core.governance.promotion import enrich_promotion_class
-from core.governance.schema import REQUIRED_COLUMNS
-from core.governance.semantics import enrich_signal_layers
-from core.relationships import assign_association_class, consolidate_flags
+from signals.lifecycle.promotion import enrich_promotion_class
+from signals.lifecycle.schema import REQUIRED_COLUMNS
+from signals.lifecycle.semantics import enrich_signal_layers
+from signals.registry.association import assign_association_class, consolidate_flags
 
 
 SECTION_KEY_COLUMNS: tuple[str, ...] = ("signal", "position")

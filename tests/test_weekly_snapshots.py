@@ -1,7 +1,7 @@
 import pandas as pd
 
-from core.governance import load_registry
-from weekly.snapshots import (
+from signals.lifecycle import load_registry
+from intelligence.reporting.snapshots import (
     SNAPSHOT_CHANGE_COLUMNS,
     build_snapshot_changes,
     default_previous_snapshot_path,

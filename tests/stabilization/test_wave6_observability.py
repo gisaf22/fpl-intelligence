@@ -19,7 +19,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-TEST_DB_PATH = Path(__file__).parent / "fixtures" / "test.db"
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 
 # ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from registry.population import (
+from signals.registry.population import (
     GOVERNED_SIGNAL_COLUMNS,
     MINUTES_THRESHOLD,
     OUTPUT_COLUMNS,

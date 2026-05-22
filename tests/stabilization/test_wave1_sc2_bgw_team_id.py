@@ -24,7 +24,7 @@ from pathlib import Path
 
 from dal.curated.player_gameweek_spine import build_player_gameweek_spine
 
-TEST_DB_PATH = Path(__file__).parent / "fixtures" / "test.db"
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 P3_ID = 103
 BGW_GW = 3

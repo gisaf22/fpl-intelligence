@@ -25,7 +25,7 @@ from unittest.mock import patch
 from dal.curated.player_gameweek_spine import build_player_gameweek_spine
 from dal.exceptions import DALContractViolation
 
-TEST_DB_PATH = Path(__file__).parent / "fixtures" / "test.db"
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 
 def _make_minimal_player_fixture_base() -> pd.DataFrame:

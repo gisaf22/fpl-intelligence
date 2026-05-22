@@ -32,7 +32,7 @@ from typing import Any
 
 import pandas as pd
 
-from core.relationships import (
+from studies.eda.geometry import (
     ASSOCIATION_CLASS_TAXONOMY,
     BLOCK_ORDER,
     DISCRETE_BINS,
@@ -61,18 +61,17 @@ from core.relationships import (
     SUPPORT_TYPE_TAXONOMY,
     TWO_STAGE_NZ_LABELS,
     UPPER_TAIL_GEOMETRIES,
-    assign_association_class,
     bin_analysis,
     classify_geometry,
-    consolidate_flags,
-    decompose_rho,
     get_bin_direction,
-    haul_concentration,
     monotonicity_confidence,
     select_bucketing_scheme,
     stability_classify,
 )
-from core.governance.semantics import (
+from studies.eda.association import assign_association_class, consolidate_flags
+from studies.kernels.correlation.panel import decompose_rho
+from studies.kernels.correlation.tail import haul_concentration
+from studies.eda.semantics import (
     SIGNAL_LAYER_MAPPING,
     SIGNAL_LAYER_VALUES,
     enrich_signal_layers,

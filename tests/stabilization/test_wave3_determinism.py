@@ -13,7 +13,7 @@ import pandas as pd
 import pytest
 from pathlib import Path
 
-TEST_DB_PATH = Path(__file__).parent / "fixtures" / "test.db"
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 
 # ---------------------------------------------------------------------------

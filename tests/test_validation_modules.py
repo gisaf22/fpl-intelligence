@@ -1,9 +1,10 @@
-"""Unit tests for pipeline/dal/validation/* modules."""
+"""Unit tests for dal/validation/* modules."""
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from dal.curated.contracts import PERFORMANCE_COLS
 from dal.exceptions import DALContractViolation
 from dal.validation import (
     validate_grain_uniqueness,
@@ -177,7 +178,7 @@ class TestValidateBgwCorrectness:
     def test_bgw_row_with_total_points_nonzero_fails(self):
         df = pd.DataFrame([_make_bgw_row(total_points=5)])
         with pytest.raises(DALContractViolation) as exc_info:
-            validate_bgw_correctness(df)
+            validate_bgw_correctness(df, performance_cols=PERFORMANCE_COLS)
         assert 'total_points' in str(exc_info.value)
         exc = exc_info.value
         assert exc.error_code == 'BGW_NONZERO'

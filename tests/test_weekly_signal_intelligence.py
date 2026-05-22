@@ -13,8 +13,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from core.governance import load_registry
-from weekly.signal_intelligence import (
+from signals.lifecycle import load_registry
+from intelligence.reporting.signal_intelligence import (
     CONTEXT_NOTE_COLUMNS,
     CONTEXT_CONDITION_LAYERS,
     POSITIONAL_SUMMARY_COLUMNS,

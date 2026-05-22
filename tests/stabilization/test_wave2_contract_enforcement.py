@@ -18,12 +18,12 @@ from unittest.mock import patch, MagicMock
 import pandas as pd
 import pytest
 
-from dal.curated.contracts import SPINE_COLS, DTYPES, NULL_RULES
+from dal.curated.contracts import SPINE_COLS, DTYPES, NULL_RULES, PERFORMANCE_COLS
 from dal.validation.semantics import validate_bgw_correctness
 from dal.validation.invariants import validate_no_future_data
 from dal.exceptions import DALContractViolation
 
-TEST_DB_PATH = Path(__file__).parent / "fixtures" / "test.db"
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +181,7 @@ def test_bgw_validator_catches_float64_zero():
         "was_home": pd.array([None], dtype="boolean"),
     })
     with pytest.raises(DALContractViolation, match="xg"):
-        validate_bgw_correctness(df)
+        validate_bgw_correctness(df, performance_cols=PERFORMANCE_COLS)
 
 
 def test_bgw_validator_passes_for_pd_na():
@@ -221,7 +221,7 @@ def test_bgw_validator_passes_for_pd_na():
         "fdr_max": pd.array([None], dtype="Float64"),
         "was_home": pd.array([None], dtype="boolean"),
     })
-    validate_bgw_correctness(df)  # must not raise
+    validate_bgw_correctness(df, performance_cols=PERFORMANCE_COLS)  # must not raise
 
 
 # ---------------------------------------------------------------------------

@@ -9,17 +9,16 @@ from pathlib import Path
 
 import pandas as pd
 
-from core.governance import load_registry, validate_registry_contract
-from build.assembly import assemble_registry_from_sections
-from build.comparison import compare_registries
-from build.config import (
+from signals.lifecycle import load_registry, validate_registry_contract
+from signals.registry.assembly import assemble_registry_from_sections
+from signals.registry.comparison import compare_registries
+from signals.registry.config import (
     DEFAULT_SOURCE_REGISTRY_PATH,
     assign_gw_block,
     default_registry_output_dir,
 )
-from build.inputs import validate_prepared_dataset
-from build.metadata import build_registry_metadata
-from build.sections import SectionBuildConfig, compute_relationship_sections
+from signals.registry.inputs import validate_prepared_dataset
+from signals.registry.metadata import build_registry_metadata
 
 
 BUILD_MODES: tuple[str, ...] = ("packaged", "computed")
@@ -72,6 +71,11 @@ def _build_computed_registry(
     signal_metadata_path: str | Path | None = None,
     n_bootstrap: int = 200,
 ) -> pd.DataFrame:
+    import importlib
+    _study = importlib.import_module("studies.experiments.registry_sections_study")
+    SectionBuildConfig = _study.SectionBuildConfig
+    compute_relationship_sections = _study.compute_relationship_sections
+
     data = _load_tabular(prepared_data_path)
     signal_metadata = (
         pd.read_csv(signal_metadata_path) if signal_metadata_path is not None else None

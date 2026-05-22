@@ -82,8 +82,7 @@ intelligence/ → player scoring and weekly reporting
 | [docs/research-lifecycle.md](research-lifecycle.md) | Signal lifecycle state definitions and promotion rules |
 | [docs/registry-governance.md](registry-governance.md) | Exploratory vs operational registry semantics; lifecycle gate enforcement |
 | [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) | Allowed and forbidden import patterns for downstream modules |
-| [docs/adr/](adr/) | All immutable architectural decisions (append-only; ADR-001 through ADR-010) |
-| [docs/decisions/008_migration_phases.md](decisions/008_migration_phases.md) | Active architecture migration playbook (converts to ADR-011 when migration commits land) |
+| [docs/adr/](adr/) | All immutable architectural decisions (append-only; ADR-001 through ADR-011) |
 
 ### Operational reference
 
@@ -136,11 +135,11 @@ These files are active governance artifacts owned by their respective layers. Th
 
 ---
 
-## Current architecture migration status
+## Architecture migration status
 
-The architecture migration defined in [docs/adr/006-layer-architecture.md](adr/006-layer-architecture.md) (frozen) and [docs/decisions/008_migration_phases.md](decisions/008_migration_phases.md) (active) is in progress.
+The architecture migration defined in [docs/adr/006-layer-architecture.md](adr/006-layer-architecture.md) is **complete**. The implementation playbook is preserved as [docs/adr/011-migration-phases.md](adr/011-migration-phases.md) (ADR-011, status: COMPLETE).
 
-**Completed:**
+**All phases completed:**
 - `core/governance/` → `signals/lifecycle/` ✅
 - `signals/eda/` → `studies/eda/` ✅
 - `signals/lenses/` → `studies/lenses/` ✅
@@ -149,16 +148,8 @@ The architecture migration defined in [docs/adr/006-layer-architecture.md](adr/0
 - `report/` → `intelligence/reporting/` ✅
 - `registry/` (storage residual) → `signals/registry/` ✅
 - `core/signals/*`, `core/relationships/*`, `core/target/*` → `studies/kernels/` ✅
-
-**Working tree (unstaged deletions — not yet committed):**
-- `core/` directory deleted
-- `registry/sections.py` deleted
-
-**Remaining (per Decision 008):**
-- Stage and commit the core/ deletions
-- Convert `docs/decisions/008_migration_phases.md` to ADR-011 after migration commits land
-
-Until migration commits land, `docs/decisions/008_migration_phases.md` remains active guidance. Do not treat it as historical.
+- `core/` directory deleted ✅
+- `registry/sections.py` deleted ✅
 
 ---
 

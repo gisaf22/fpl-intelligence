@@ -1,6 +1,6 @@
-# Decision 008 — Architecture Migration Phases
+# ADR-011 — Architecture Migration Phases
 
-**Status:** ACTIVE  
+**Status:** COMPLETE  
 **Applies to:** All directories, all import paths  
 **Companion:** docs/adr/010-enforcement-contract.md  
 **Prerequisite:** docs/adr/006-layer-architecture.md (frozen)

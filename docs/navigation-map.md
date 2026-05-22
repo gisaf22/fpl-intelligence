@@ -119,8 +119,8 @@ intelligence/ → player scoring and weekly reporting
 | [docs/adr/010-enforcement-contract.md](adr/010-enforcement-contract.md) | Authoritative | Frozen system contract. Lifecycle annotation added. Lives in `adr/` as ADR-010. |
 | `archive/evaluation-framework.md` | Archived (Phase E) | Module map outdated (modules moved to `tests/helpers/`). Philosophy and metrics preserved with annotation. |
 | `archive/research-program.md` | Archived (Phase E) | Scope boundaries absorbed into `system-purpose.md`. |
-| `archive/stabilization/` | Archived (Phase E) | Wave history, risk register, Phase 11 execution plan. |
-| [docs/stabilization/PHASE11_STATUS.md](stabilization/PHASE11_STATUS.md) | Active until S6 | Tracks the one remaining open Phase 11 slice. Archives when S6 completes. |
+| `archive/stabilization/` | Archived | Wave history, risk register, Phase 11 execution plan, Phase 11 slice status. |
+| `archive/DOC_MIGRATION_PLAN.md` | Archived | Documentation architecture migration plan — all six phases complete. |
 
 ---
 

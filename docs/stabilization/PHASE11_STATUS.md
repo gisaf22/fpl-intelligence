@@ -1,7 +1,7 @@
 # Phase 11 — Operational Usability Stabilization: Status
 
 **Branch:** `stabilization/dal-hardening`  
-**Plan:** [STABILIZATION_EXECUTION_PLAN.md](STABILIZATION_EXECUTION_PLAN.md)  
+**Plan:** [STABILIZATION_EXECUTION_PLAN.md](../../archive/stabilization/STABILIZATION_EXECUTION_PLAN.md) (archived)  
 **Baseline:** 738 passed, 1 skipped | import-linter clean
 
 ---

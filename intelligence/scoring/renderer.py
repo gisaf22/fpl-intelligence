@@ -292,6 +292,18 @@ td.name-cell { font-weight: 500; }
   font-size: 0.82rem;
   color: var(--muted);
 }
+
+.provenance {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.4rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-family: monospace;
+}
 """
 
 _JS = """
@@ -304,6 +316,28 @@ function showTab(position) {
   });
 }
 """
+
+
+def _render_provenance(registry_path: str, registry_meta: dict) -> str:
+    if not registry_path and not registry_meta:
+        return ""
+    parts = []
+    if registry_path:
+        parts.append(f"registry: {html.escape(registry_path)}")
+    if registry_meta:
+        if "build_timestamp" in registry_meta:
+            ts = registry_meta["build_timestamp"].replace("T", " ").replace("+00:00", " UTC")
+            parts.append(f"built: {html.escape(ts)}")
+        if "data_cutoff_gw" in registry_meta:
+            parts.append(f"data cutoff: GW{registry_meta['data_cutoff_gw']}")
+        if "row_count" in registry_meta and "signal_count" in registry_meta:
+            parts.append(
+                f"signals: {registry_meta['row_count']} total, "
+                f"{registry_meta['signal_count']} passed filters"
+            )
+        if "registry_version" in registry_meta:
+            parts.append(f"version: {html.escape(registry_meta['registry_version'])}")
+    return f'<div class="provenance">{" · ".join(parts)}</div>'
 
 
 def _fmt(value: float | None, decimals: int = 2) -> str:
@@ -458,6 +492,7 @@ def render(output: ScorerOutput) -> str:
         tab_panels += f'<div class="tab-panel{active_cls}" data-pos="{pos}">{content}</div>'
 
     scored_at_display = output.scored_at.replace("T", " ").replace("+00:00", " UTC")
+    provenance_html = _render_provenance(output.registry_path, output.registry_meta)
 
     doc = f"""<!DOCTYPE html>
 <html lang="en">
@@ -479,6 +514,7 @@ def render(output: ScorerOutput) -> str:
     with GW total points). Signals shown are lifecycle-promoted (core_signal or review_signal)
     with |ρ| ≥ 0.15. Higher score = stronger historical signal alignment. Not a prediction.
   </div>
+  {provenance_html}
 </div>
 <div class="tabs">{tab_buttons}</div>
 {tab_panels}

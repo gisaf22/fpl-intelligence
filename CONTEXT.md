@@ -67,9 +67,11 @@ fpl-intelligence/
 ├── archive/         — retired code (pipeline_legacy/) and planning documents
 ├── dal/             — data access layer — staging, intermediate, curated, state, validation, prepared
 ├── docs/            — architectural and decision documents
-│   ├── architecture/   — DAL_CONTRACT.md, DOWNSTREAM_DEPENDENCY_GOVERNANCE.md, SYSTEM_CONTEXT.md
-│   ├── decisions/      — per-signal and design decision records
-│   └── stabilization/  — stabilization wave history and Phase 11 plan
+│   ├── adr/            — immutable architectural decision records (ADR-001 through ADR-010)
+│   ├── architecture/   — DAL_CONTRACT.md, layer-boundaries.md, operational-flow.md, registry-governance.md, etc.
+│   ├── decisions/      — active migration playbook (008_migration_phases.md only)
+│   ├── stabilization/  — Phase 11 status (PHASE11_STATUS.md; remainder archived)
+│   └── studies/        — study designs and published results
 ├── examples/        — quickstart script for DAL end-to-end validation
 ├── intelligence/    — operational intelligence layer
 │   ├── reporting/   — weekly registry snapshot runner and output generators
@@ -134,7 +136,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 **Phase 11 — Operational Usability Stabilization (active)**
 
 Executing the operational maturity stabilization plan. Eleven slices defined in
-`docs/stabilization/STABILIZATION_EXECUTION_PLAN.md`.
+`archive/stabilization/STABILIZATION_EXECUTION_PLAN.md` (archived; S6 is the only remaining open slice).
 
 - **Critical path (S1–S9):** CONTEXT.md truth alignment, ROADMAP correction, governance test hardening, dependency hygiene, integration test marking, conftest fixture, Makefile targets, registry artifact bootstrap, scorer HTML explainability.
 - **Polish (S10–S11):** Stale doc archival, `tests/helpers/` rename.

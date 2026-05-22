@@ -3,7 +3,7 @@
 
 **Status:** ACTIVE — awaiting system EDA and lens redesigns
 **Last updated:** GW 34, April 2026
-**Owned by:** research/registry/
+**Owned by:** signals/registry/
 
 ---
 

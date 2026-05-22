@@ -25,16 +25,16 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from core.governance import load_registry
-from build.assembly import assemble_registry_from_sections
-from build.config import assign_gw_block
-from build.sections import SectionBuildConfig, compute_relationship_sections
+from signals.lifecycle import load_registry
+from signals.registry.assembly import assemble_registry_from_sections
+from signals.registry.config import assign_gw_block
+from studies.experiments.registry_sections_study import SectionBuildConfig, compute_relationship_sections
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 
 # Seed registry: produced by the computed build against GW6-33 prepared data.
 # This is the reproducibility reference — not the old exploratory EDA-3 CSV.
-SEED_REGISTRY_PATH = Path("research/eda/findings/eda_03_joint_registry.csv")
+SEED_REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
 
 EXPECTED_REGISTRY_ROWS: int = 116
 
@@ -67,10 +67,10 @@ def computed_registry(seed_registry: pd.DataFrame) -> pd.DataFrame:
         pytest.skip(f"live DB not found at {DB_PATH}; skipping integration tests")
 
     from dal.curated.player_gameweek_spine import build_player_gameweek_spine
-    from build.population import build_prepared_dataset
+    from signals.registry.builder import _build_registry_population
 
     spine = build_player_gameweek_spine(DB_PATH)
-    prepared = build_prepared_dataset(spine, data_cutoff_gw=GW_MAX)
+    prepared = _build_registry_population(spine, data_cutoff_gw=GW_MAX)
 
     # Restrict to GW_MIN–GW_MAX window.
     prepared = prepared[prepared["gw"] >= GW_MIN].copy()

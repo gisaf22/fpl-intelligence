@@ -53,7 +53,7 @@ def get_player_fixture_base(db_path: Path, gw: int | None = None) -> pd.DataFram
     result = _resolve_player_side_context(result)
     if gw is not None:
         result = result[result["gw"] == gw].reset_index(drop=True)
-    validate_grain_uniqueness(result, ["player_id", "gw", "fixture_id"], "get_player_fixture_base")
+    validate_grain_uniqueness(result, "player_fixture_base")
     return result
 
 

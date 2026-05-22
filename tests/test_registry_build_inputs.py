@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from build.inputs import (
+from signals.registry.inputs import (
     PreparedDatasetContract,
     normalize_signal_config,
     validate_prepared_dataset,

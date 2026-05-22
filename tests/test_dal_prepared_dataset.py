@@ -1,16 +1,16 @@
-"""Unit tests for build.population."""
+"""Unit tests for registry.builder._build_registry_population."""
 
 from __future__ import annotations
 
 import pandas as pd
 import pytest
 
-from build.population import (
+from signals.registry.builder import _build_registry_population as build_prepared_dataset
+from signals.registry.population import (
     GOVERNED_SIGNAL_COLUMNS,
     MINUTES_THRESHOLD,
     OUTPUT_COLUMNS,
     POSITION_CODE_MAP,
-    build_prepared_dataset,
 )
 
 

@@ -13,4 +13,5 @@ __pycache__/
 .pytest_cache/
 .claude/
 .claude/settings.local.json
-outputs/
+outputs/*
+!outputs/registry/

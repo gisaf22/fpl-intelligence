@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from core.signals.population import (
+from studies.eda.population import (
     POPULATION_ROBUSTNESS_VALUES,
     MIN_N_FOR_RHO,
     RHO_SHIFT_STABLE_THRESHOLD,

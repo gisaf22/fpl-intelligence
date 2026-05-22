@@ -1,18 +1,25 @@
+import shutil
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from weekly.runner import main, run_week
+from signals.lifecycle.lifecycle import LifecycleViolationError
+from intelligence.reporting.runner import main, run_week
 
 
-REGISTRY_PATH = Path("research/eda/findings/eda_03_joint_registry.csv")
+RESEARCH_REGISTRY = Path("studies/eda/findings/eda_03_joint_registry.csv")
 
 
 def test_run_week_writes_registry_snapshot(tmp_path):
+    # Operational consumers require a non-exploratory registry path.
+    # Copy the research registry to a tmp location to simulate a promoted artifact.
+    registry_path = tmp_path / "registry.csv"
+    shutil.copy(RESEARCH_REGISTRY, registry_path)
+
     result = run_week(
         gw=36,
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         output_dir=tmp_path / "gw36",
     )
 
@@ -35,11 +42,19 @@ def test_run_week_writes_registry_snapshot(tmp_path):
     assert "downstream_status" in snapshot.columns
 
 
+def test_run_week_rejects_exploratory_registry(tmp_path):
+    """run_week must reject registries from studies/eda/ (exploratory state)."""
+    with pytest.raises(LifecycleViolationError, match="exploratory"):
+        run_week(gw=36, registry_path=RESEARCH_REGISTRY, output_dir=tmp_path / "gw36")
+
+
 def test_run_week_validates_before_writing_outputs(tmp_path):
+    # An invalid registry at a non-exploratory path: lifecycle gate passes,
+    # schema validation catches the missing column.
     invalid_registry = tmp_path / "invalid_registry.csv"
     output_dir = tmp_path / "gw36"
 
-    registry = pd.read_csv(REGISTRY_PATH)
+    registry = pd.read_csv(RESEARCH_REGISTRY)
     registry = registry.drop(columns=["signal_layer"])
     registry.to_csv(invalid_registry, index=False)
 
@@ -50,11 +65,14 @@ def test_run_week_validates_before_writing_outputs(tmp_path):
 
 
 def test_run_week_rejects_non_positive_gameweek(tmp_path):
+    # gw validation fires before lifecycle check.
     with pytest.raises(ValueError, match="gw must be positive"):
-        run_week(gw=0, registry_path=REGISTRY_PATH, output_dir=tmp_path)
+        run_week(gw=0, registry_path=tmp_path / "registry.csv", output_dir=tmp_path)
 
 
 def test_runner_cli_writes_snapshot(tmp_path, capsys):
+    registry_path = tmp_path / "registry.csv"
+    shutil.copy(RESEARCH_REGISTRY, registry_path)
     output_dir = tmp_path / "gw36"
 
     exit_code = main(
@@ -62,7 +80,7 @@ def test_runner_cli_writes_snapshot(tmp_path, capsys):
             "--gw",
             "36",
             "--registry-path",
-            str(REGISTRY_PATH),
+            str(registry_path),
             "--output-dir",
             str(output_dir),
         ]

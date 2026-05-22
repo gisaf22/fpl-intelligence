@@ -4,12 +4,12 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from core.governance import load_registry, validate_registry_contract
-from build.runner import main, run_registry_build
-from weekly.runner import run_week
+from signals.lifecycle import load_registry, validate_registry_contract
+from signals.registry.runner import main, run_registry_build
+from intelligence.reporting.runner import run_week
 
 
-SOURCE_REGISTRY_PATH = Path("research/eda/findings/eda_03_joint_registry.csv")
+SOURCE_REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
 
 
 def _prepared_relationship_data() -> pd.DataFrame:

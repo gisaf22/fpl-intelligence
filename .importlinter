@@ -1,0 +1,56 @@
+[importlinter]
+root_packages =
+    dal
+    studies
+    signals
+    intelligence
+
+[importlinter:contract:no_studies_to_signals]
+name = Studies must not import from signals
+type = forbidden
+source_modules =
+    studies
+forbidden_modules =
+    signals
+
+[importlinter:contract:no_studies_to_intelligence]
+name = Studies must not import from intelligence
+type = forbidden
+source_modules =
+    studies
+forbidden_modules =
+    intelligence
+
+[importlinter:contract:no_signals_to_studies]
+name = Signals must not import from studies
+type = forbidden
+source_modules =
+    signals
+forbidden_modules =
+    studies
+
+[importlinter:contract:no_signals_to_intelligence]
+name = Signals must not import from intelligence
+type = forbidden
+source_modules =
+    signals
+forbidden_modules =
+    intelligence
+
+[importlinter:contract:no_intelligence_to_studies]
+name = Intelligence must not import from studies
+type = forbidden
+source_modules =
+    intelligence
+forbidden_modules =
+    studies
+
+[importlinter:contract:no_dal_to_system_layers]
+name = DAL must not import from system layers
+type = forbidden
+source_modules =
+    dal
+forbidden_modules =
+    studies
+    signals
+    intelligence

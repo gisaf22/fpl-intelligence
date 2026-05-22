@@ -1,0 +1,13 @@
+{
+  "build_mode": "packaged",
+  "build_timestamp": "2026-05-21T15:24:25+00:00",
+  "data_cutoff_gw": 36,
+  "gw": 36,
+  "position_count": 4,
+  "registry_version": "eda_03_joint.v1",
+  "row_count": 116,
+  "schema_version": "registry_contract.v1",
+  "signal_count": 29,
+  "source_dataset_path": "studies/eda/findings/eda_03_joint_registry.csv",
+  "source_registry_path": "studies/eda/findings/eda_03_joint_registry.csv"
+}

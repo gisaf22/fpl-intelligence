@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -216,7 +217,7 @@ def _cast_and_validate(
     validate_row_count_invariant(result, n_players=n_players, n_gws=n_gws)
     validate_time_continuity(result)
     validate_no_future_data(result, reference_gw=max_gw, performance_cols=PERFORMANCE_COLS)
-    validate_bgw_correctness(result)
+    validate_bgw_correctness(result, performance_cols=PERFORMANCE_COLS)
     validate_dgw_correctness(result)
     validate_null_semantics(result, NULL_RULES)
 
@@ -229,6 +230,7 @@ def build_player_gameweek_spine(db_path: Path) -> pd.DataFrame:
     Every player appears in every GW in the observed range. BGW rows have fixture_count=0
     and is_bgw=True with NULL performance columns. DGW rows have fixture_count=2, is_dgw=True.
     """
+    _t0 = time.perf_counter()
     df = get_player_fixture_base(db_path)
     # player_info: non-BGW rows sorted by (player_id, gw) for merge_asof BGW lookup
     player_info = _build_player_info(df)
@@ -290,4 +292,9 @@ def build_player_gameweek_spine(db_path: Path) -> pd.DataFrame:
     logger.info("Spine built: %d BGW rows, %d DGW rows", n_bgw, n_dgw)
 
     result = _cast_and_validate(result, len(player_universe), len(gw_range), max_gw)
+    elapsed_ms = (time.perf_counter() - _t0) * 1000
+    logger.info(
+        "[DAL:curated:spine] build complete | rows=%d cols=%d elapsed_ms=%.0f",
+        len(result), len(SPINE_COLS), elapsed_ms,
+    )
     return result[SPINE_COLS]

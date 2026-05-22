@@ -11,23 +11,25 @@ from dal.state.player_gameweek_state import build_player_gameweek_state
 from dal.exceptions import DALContractViolation
 from dal.validation import validate_grain_uniqueness
 
+pytestmark = pytest.mark.integration
+
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 
 _STATE_COLS = [
-    "points_roll3", "points_roll5",
-    "minutes_roll3", "minutes_roll5",
-    "xg_roll3", "xg_roll5",
-    "xa_roll3", "xa_roll5",
-    "xgi_roll3", "xgi_roll5",
-    "xgc_roll3", "xgc_roll5",
-    "goals_scored_roll3", "goals_scored_roll5",
-    "assists_roll3", "assists_roll5",
-    "clean_sheets_roll3", "clean_sheets_roll5",
-    "goals_conceded_roll3", "goals_conceded_roll5",
-    "saves_roll3", "saves_roll5",
-    "penalties_saved_roll3", "penalties_saved_roll5",
-    "bonus_roll3", "bonus_roll5",
-    "bps_roll3", "bps_roll5",
+    "points_roll3", "points_roll5", "points_roll8",
+    "minutes_roll3", "minutes_roll5", "minutes_roll8",
+    "xg_roll3", "xg_roll5", "xg_roll8",
+    "xa_roll3", "xa_roll5", "xa_roll8",
+    "xgi_roll3", "xgi_roll5", "xgi_roll8",
+    "xgc_roll3", "xgc_roll5", "xgc_roll8",
+    "goals_scored_roll3", "goals_scored_roll5", "goals_scored_roll8",
+    "assists_roll3", "assists_roll5", "assists_roll8",
+    "clean_sheets_roll3", "clean_sheets_roll5", "clean_sheets_roll8",
+    "goals_conceded_roll3", "goals_conceded_roll5", "goals_conceded_roll8",
+    "saves_roll3", "saves_roll5", "saves_roll8",
+    "penalties_saved_roll3", "penalties_saved_roll5", "penalties_saved_roll8",
+    "bonus_roll3", "bonus_roll5", "bonus_roll8",
+    "bps_roll3", "bps_roll5", "bps_roll8",
     "fixture_context",
     "minutes_trend",
 ]

@@ -1,14 +1,11 @@
 import pandas as pd
 
-from core.relationships import (
-    assign_association_class,
-    consolidate_flags,
-    decompose_rho,
-    haul_concentration,
-)
-from core.governance import validate_registry_contract
-from build.assembly import assemble_registry_from_sections
-from build.sections import SectionBuildConfig, compute_relationship_sections
+from signals.registry.association import assign_association_class, consolidate_flags
+from studies.kernels.correlation.panel import decompose_rho
+from studies.kernels.correlation.tail import haul_concentration
+from signals.lifecycle import validate_registry_contract
+from signals.registry.assembly import assemble_registry_from_sections
+from studies.experiments.registry_sections_study import SectionBuildConfig, compute_relationship_sections
 
 
 def test_decompose_rho_returns_panel_metrics_for_supported_slice():

@@ -6,9 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from core.signals.stability import (
+from studies.kernels.stability import (
     BLOCK_HOMOGENEITY_VALUES,
-    DEFAULT_GW_BLOCKS,
     EPSILON,
     MIN_N_FOR_BLOCK_STATS,
     POOLING_DECISION_VALUES,
@@ -18,6 +17,11 @@ from core.signals.stability import (
     compute_signal_block_distributions,
     flag_pooling_decision,
 )
+
+DEFAULT_GW_BLOCKS: dict[str, tuple[int, int]] = {
+    "first_half": (1, 17),
+    "second_half": (18, 38),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +60,8 @@ def _block_stats_for(
     gw_blocks: dict | None = None,
 ) -> pd.DataFrame:
     return compute_signal_block_distributions(
-        df, signals=[signal], positions=[position], gw_blocks=gw_blocks
+        df, signals=[signal], positions=[position],
+        gw_blocks=gw_blocks if gw_blocks is not None else DEFAULT_GW_BLOCKS,
     )
 
 
@@ -86,7 +91,7 @@ def test_stable_threshold_less_than_unstable():
 
 def test_output_has_required_columns():
     df = _make_df()
-    result = compute_signal_block_distributions(df, signals=["xg"], positions=["MID"])
+    result = compute_signal_block_distributions(df, signals=["xg"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
     expected_cols = {"signal", "position", "block", "n", "median", "q1", "q3", "iqr", "min_gw", "max_gw"}
     assert expected_cols.issubset(set(result.columns))
 
@@ -96,7 +101,7 @@ def test_output_row_count_signal_x_position_x_block():
     df2 = _make_df(position="FWD")
     combined = pd.concat([df, df2], ignore_index=True)
     result = compute_signal_block_distributions(
-        combined, signals=["xg"], positions=["MID", "FWD"]
+        combined, signals=["xg"], positions=["MID", "FWD"], gw_blocks=DEFAULT_GW_BLOCKS
     )
     # 1 signal × 2 positions × 2 blocks = 4 rows
     assert len(result) == 4
@@ -104,20 +109,20 @@ def test_output_row_count_signal_x_position_x_block():
 
 def test_missing_signal_is_skipped():
     df = _make_df()
-    result = compute_signal_block_distributions(df, signals=["nonexistent"], positions=["MID"])
+    result = compute_signal_block_distributions(df, signals=["nonexistent"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
     assert len(result) == 0
 
 
 def test_raises_on_missing_gw_column():
     df = pd.DataFrame({"position": ["MID"] * 5, "xg": [1.0] * 5})
     with pytest.raises(ValueError, match="missing required columns"):
-        compute_signal_block_distributions(df, signals=["xg"], positions=["MID"])
+        compute_signal_block_distributions(df, signals=["xg"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
 
 
 def test_raises_on_missing_position_column():
     df = pd.DataFrame({"gw": list(range(1, 6)), "xg": [1.0] * 5})
     with pytest.raises(ValueError, match="missing required columns"):
-        compute_signal_block_distributions(df, signals=["xg"], positions=["MID"])
+        compute_signal_block_distributions(df, signals=["xg"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +131,7 @@ def test_raises_on_missing_position_column():
 
 def test_iqr_is_q3_minus_q1():
     df = _make_df()
-    result = compute_signal_block_distributions(df, signals=["xg"], positions=["MID"])
+    result = compute_signal_block_distributions(df, signals=["xg"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
     for _, row in result.iterrows():
         if not np.isnan(row["iqr"]):
             assert abs(row["iqr"] - (row["q3"] - row["q1"])) < 1e-9
@@ -136,7 +141,7 @@ def test_block_n_matches_gw_range():
     first = [1.0] * 14  # GW 1-14
     second = [2.0] * 10  # GW 18-27
     df = _make_df(first_half_values=first, second_half_values=second)
-    result = compute_signal_block_distributions(df, signals=["xg"], positions=["MID"])
+    result = compute_signal_block_distributions(df, signals=["xg"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
     first_row = result[result["block"] == "first_half"].iloc[0]
     second_row = result[result["block"] == "second_half"].iloc[0]
     assert first_row["n"] == 14
@@ -149,7 +154,7 @@ def test_insufficient_n_produces_nan_stats():
         first_half_values=[1.0, 2.0, 3.0],
         second_half_values=[4.0, 5.0, 6.0],
     )
-    result = compute_signal_block_distributions(df, signals=["xg"], positions=["MID"])
+    result = compute_signal_block_distributions(df, signals=["xg"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
     for _, row in result.iterrows():
         assert np.isnan(row["median"])
         assert row["n"] in (3, 0)

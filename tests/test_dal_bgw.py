@@ -2,9 +2,12 @@
 
 from pathlib import Path
 
+import pytest
 from dal.curated.player_gameweek_spine import build_player_gameweek_spine
 from dal.validation import validate_bgw_correctness
 from dal.exceptions import DALContractViolation
+
+pytestmark = pytest.mark.integration
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 
@@ -27,8 +30,16 @@ def test_bgw_fixture_count_zero():
     )
 
 
-def test_bgw_performance_columns_zero():
-    """All is_bgw=True rows have performance columns == 0 — zero not null. Contract Section 5, 6."""
+def test_bgw_performance_columns_null():
+    """All is_bgw=True rows have performance columns == NULL. Contract Section 5, 6.
+
+    BGW rows have no fixture — performance is undefined (NULL), not zero.
+    NULL != zero per the DAL null semantics contract: NULL means no context exists,
+    zero means an observed outcome of zero. These must not be conflated.
+
+    Uses .notna() not != 0. pd.NA != 0 returns pd.NA (falsy) and silently misses
+    pd.NA violations — the exact bug fixed in SC-5 (validate_bgw_correctness).
+    """
     spine = build_player_gameweek_spine(DB_PATH)
     bgw_rows = spine[spine["is_bgw"] == True]  # KeyError if is_bgw missing
     if bgw_rows.empty:
@@ -37,11 +48,11 @@ def test_bgw_performance_columns_zero():
         if col not in bgw_rows.columns:
             raise KeyError(
                 f"Performance column '{col}' missing from spine — "
-                f"cannot verify BGW zero semantics. Contract Section 5 requires this column."
+                f"cannot verify BGW null semantics. Contract Section 5 requires this column."
             )
-        bad = bgw_rows[bgw_rows[col] != 0]
+        bad = bgw_rows[bgw_rows[col].notna()]
         assert bad.empty, (
-            f"BGW performance violation: {len(bad)} rows have {col} != 0"
+            f"BGW null violation: {len(bad)} rows have {col} not null (expected NULL for BGW rows)"
         )
 
 

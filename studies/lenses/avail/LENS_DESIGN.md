@@ -10,13 +10,20 @@
 
 ## 1. Study question
 
-Does rolling playing time consistency at GW N reliably predict whether a player will be
-available (play ≥ 60 minutes) at GW N+1? And does availability consistency associate
-independently with FPL returns beyond what form signals already capture?
+Does rolling playing time consistency at GW N reliably predict whether a player will earn
+a full appearance (≥ 60 minutes) at GW N+1? And does this availability consistency
+associate independently with FPL returns beyond what form signals already capture?
 
-This lens characterises availability signals as **population filters**, not scoring signals.
-The output informs SYNTH-01: which players should be considered reliable enough to receive
-a form signal score, and which carry rotation/injury risk that would degrade signal reliability.
+The 60-minute threshold is the FPL scoring rule at which a player earns an additional
+appearance point. It is not a generic participation indicator — it defines the population
+of players in a "started and completed" state whose return distributions are stable enough
+to characterise. Players below this threshold (partial minutes, late substitutions) are
+in an erratic return state not relevant to captaincy or transfer decisions.
+
+This lens characterises availability signals as **forward-looking full-appearance
+predictors**, not generic participation flags. The output informs SYNTH-01: which players
+are reliably expected to earn a full appearance next GW, and which carry rotation or
+injury risk that would degrade form signal reliability.
 
 ---
 
@@ -39,7 +46,11 @@ a form signal score, and which carry rotation/injury risk that would degrade sig
 
 **Primary target:** `played_next_gw` (binary: `minutes_next_gw >= 60`, else 0)
 
-This is the core availability question: given a player played this GW, will they play next GW?
+The threshold is the FPL appearance bonus rule. The question is not "will they be on
+the pitch?" but "will they earn a full appearance again?" — which is the decision-relevant
+question for transfers and captaincy. A player who plays 45 minutes off the bench is not
+a valid captaincy candidate and is correctly classified as 0 here.
+
 Spearman is appropriate for a binary target — it ranks by outcome value (0 or 1).
 
 **Secondary target:** `total_points_next_gw` (lag-1, same as LENS-FORM)
@@ -66,8 +77,9 @@ included to confirm, not expected to classify as informative.
 
 **Qualified-start threshold:** `minutes >= 60` at GW N (G-EDA1-04).
 
-Population defines the "currently playing" base. The target (`played_next_gw`) then asks
-whether availability persists to GW N+1.
+This is the FPL appearance bonus threshold, not a generic participation filter. The
+population is players who earned a full appearance this GW. The target (`played_next_gw`)
+then asks whether they earn a full appearance again at GW N+1.
 
 **DGW rows:** Included with `is_dgw` flag. Reported with and without DGW rows (G-EDA1-05).
 
@@ -134,11 +146,12 @@ translate directly to a binary outcome.
 - Single-season scope: 2025-26 only.
 - GKP near-constant target (92.5%): informative classification for GKP is structurally unlikely.
 - AVAIL-003 (8-GW): early block reduced to GW 9-12 (4 GWs) — small block sample.
-- `played_next_gw` is a strict threshold (minutes ≥ 60). Players who play 45-59 minutes
-  are classified as 0 even if they started. This is consistent with the form study population
-  filter and the FPL qualified-start convention.
-- This lens does not characterise injury or suspension risk — only recent playing time
-  consistency as a predictor of future participation.
+- `played_next_gw` uses the FPL appearance bonus threshold (minutes ≥ 60), not a generic
+  participation flag. A player who starts and is subbed off at 55 minutes is classified
+  as 0. This is correct: they did not earn the appearance bonus and are not a valid
+  captaincy or full-return candidate.
+- This lens does not characterise injury or suspension risk — only recent full-appearance
+  consistency as a predictor of future full-appearance probability.
 
 ---
 

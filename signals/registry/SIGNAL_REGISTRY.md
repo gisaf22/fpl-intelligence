@@ -1,7 +1,7 @@
 # SIGNAL_REGISTRY.md
 # Analytical Methodology — Signal Registry
 
-**Status:** ACTIVE — LENS-FORM complete; 2 signals informative for DEF/MID
+**Status:** ACTIVE — All 4 lens studies complete; 9 signals advancing to SYNTH-01
 **Last updated:** 2026-05-22
 **Owned by:** signals/registry/
 
@@ -43,7 +43,17 @@ Results summary:
 - FORM-005 points_roll5: informative MID only (naive baseline)
 - FORM-006 minutes_roll3: uninformative all positions
 
-Signals advancing to synthesis: xgi_roll3 (DEF, MID), xgi_roll5 (DEF, MID)
+Signals advancing to synthesis from LENS-FORM: xgi_roll3 (DEF, MID), xgi_roll5 (DEF, MID)
+
+**LENS-AVAIL complete: 2026-05-22** — minutes_roll3/5 informative MID; minutes_roll8 informative DEF+MID
+**LENS-MARKET complete: 2026-05-22** — transfers_in and ownership_count informative DEF+MID; purchase_price informative DEF+FWD
+**LENS-FIXTURE-GW complete: 2026-05-22** — all signals uninformative; fdr_avg shows correlation but non-monotonic quintiles
+
+Signals advancing to SYNTH-01:
+- FORM: xgi_roll3 (DEF, MID), xgi_roll5 (DEF, MID)
+- AVAIL: minutes_roll8 (DEF, MID) [strongest availability signal]
+- MARKET: transfers_in (DEF, MID), ownership_count (DEF, MID), purchase_price (DEF, FWD)
+- FIXTURE-GW: none — fdr_avg reserved for binary moderator role in SYNTH-01
 
 Previous study outputs (SA, SB, SC, SE) are archived in
 research/lenses/*/results/archive/. They are not valid
@@ -62,6 +72,16 @@ methodology and cannot be traced to EDA findings.
 | FORM-004 | points_roll3 | FORM | lag-1 | GKP (uninformative), DEF (uninformative), MID (uninformative), FWD (unstable) | passed | uninformative | excluded | Naive baseline only — not a synthesis candidate. GKP: CI crosses zero (rho 0.071). DEF: CI excludes zero but non-monotonic (Q5-Q1 1.22, monotonic=False). MID: CI excludes zero but Q5-Q1 gap 0.99 — just below 1.0 threshold (monotonic=True). FWD: CI excludes zero in aggregate but passes only 1/3 blocks — unstable. Naive baseline function served: points_roll5 MID is the informative naive benchmark. | 2026-05-22 |
 | FORM-005 | points_roll5 | FORM | lag-1 | GKP (uninformative), DEF (uninformative), MID (informative), FWD (uninformative) | passed | conditional | excluded | Naive baseline — not a synthesis candidate as independent signal. MID: rho 0.158, CI [0.118, 0.198], passes 3/3 blocks, Q5-Q1 1.31, monotonic. Sets naive baseline for MID at rho 0.158. FORM-001 (xgi_roll3 MID, rho 0.144) does NOT clear this baseline. FORM-002 (xgi_roll5 MID, rho 0.157) borderline below this baseline. GKP: CI crosses zero. DEF and FWD: CI excludes zero but fail decision relevance. | 2026-05-22 |
 | FORM-006 | minutes_roll3 | FORM | lag-1 | DEF (uninformative), MID (uninformative), FWD (uninformative) | flagged | uninformative | excluded | All positions: CI excludes zero (DEF rho 0.138, MID rho 0.179, FWD rho 0.085) but fail decision relevance — non-monotonic bin distributions. minutes_roll3 does not provide monotonic next-GW return separation. GK excluded (near-constant playing time). Raw minutes blocked as form signal (G-EDA2-02). LENS-AVAIL should characterise availability consistency and reliability properties — this study provides raw association evidence only (G-EDA7-05). | 2026-05-22 |
+| AVAIL-001 | minutes_roll3 | AVAIL | lag-1 | GKP (uninformative), DEF (uninformative), MID (informative), FWD (uninformative) | flagged | conditional | candidate (MID) | Primary target: played_next_gw (binary). MID: rho 0.232, CI [0.198, 0.269], passes 3/3 blocks, decision relevant. DEF: rho 0.223 CI excludes zero but fails monotonicity (Q5-Q1=0.214). FWD: rho 0.186 CI excludes zero but fails monotonicity (Q5-Q1=0.202). GKP: CI excludes zero but Q5-Q1=0.058 below threshold. Run: LENS-AVAIL-20260522_210958. | 2026-05-22 |
+| AVAIL-002 | minutes_roll5 | AVAIL | lag-1 | GKP (uninformative), DEF (uninformative), MID (informative), FWD (unstable) | flagged | conditional | candidate (MID) | Primary target: played_next_gw. MID: rho 0.227, CI [0.190, 0.265], passes 3/3 blocks, decision relevant. DEF: rho 0.213, CI excludes zero but fails monotonicity (Q5-Q1=0.226). FWD: CI excludes zero in aggregate but passes only 1/3 blocks — unstable. GKP: Q5-Q1=0.083, below threshold. | 2026-05-22 |
+| AVAIL-003 | minutes_roll8 | AVAIL | lag-1 | GKP (uninformative), DEF (informative), MID (informative), FWD (uninformative) | flagged | conditional | candidate (DEF, MID) | Primary target: played_next_gw. DEF: rho 0.219, CI [0.174, 0.261], passes 3/3 blocks, decision relevant. MID: rho 0.222, CI [0.180, 0.261], passes 3/3 blocks, decision relevant. FWD: rho 0.206, CI excludes zero but fails monotonicity (Q5-Q1=0.263). GKP: Q5-Q1=0.103 at threshold boundary but fails monotonicity. 8-GW horizon improves DEF classification vs shorter windows. | 2026-05-22 |
+| MARKET-001 | transfers_in | MARKET | lag-1 | GKP (uninformative), DEF (informative), MID (informative), FWD (uninformative) | flagged | conditional | candidate (DEF, MID) | DEF: rho 0.187, CI [0.146, 0.226], passes 3/3 blocks, decision relevant. MID: rho 0.190, CI [0.153, 0.230], passes 3/3 blocks, decision relevant. GKP: CI excludes zero but non-monotonic (Q5-Q1=0.909). FWD: CI excludes zero (rho 0.127) but non-monotonic (Q5-Q1=1.98 — above gap threshold but non-monotonic). High right-skew: median 8,839, max 1,670,976. Run: LENS-MARKET-20260522_211840. | 2026-05-22 |
+| MARKET-002 | transfers_balance | MARKET | lag-1 | GKP (uninformative), DEF (uninformative), MID (uninformative), FWD (uninformative) | flagged | uninformative | excluded | All positions uninformative. GKP and FWD: CI crosses zero. DEF: CI excludes zero (rho 0.066) but Q5-Q1=0.563, below threshold. MID: CI excludes zero (rho 0.102) but Q5-Q1=0.756, below threshold. Net transfer flow adds no independent information beyond gross inflows. | 2026-05-22 |
+| MARKET-003 | ownership_count | MARKET | lag-1 | GKP (uninformative), DEF (informative), MID (informative), FWD (unstable) | flagged | conditional | candidate (DEF, MID) | DEF: rho 0.156, CI [0.117, 0.196], passes 3/3 blocks, decision relevant. MID: rho 0.168, CI [0.130, 0.205], passes 3/3 blocks, decision relevant. GKP: CI excludes zero but non-monotonic (Q5-Q1=0.826). FWD: CI excludes zero but passes only 1/3 blocks — unstable. Highly correlated with transfers_out (excluded as redundant). SYNTH-01: test whether ownership adds beyond transfers_in (both informative for DEF/MID). | 2026-05-22 |
+| MARKET-004 | purchase_price | MARKET | lag-1 | GKP (uninformative), DEF (informative), MID (uninformative), FWD (informative) | flagged | conditional | candidate (DEF, FWD) | DEF: rho 0.121, CI [0.082, 0.162], passes 2/3 blocks, decision relevant. FWD: rho 0.155, CI [0.077, 0.237], passes 2/3 blocks, decision relevant. GKP: CI excludes zero but non-monotonic. MID: CI excludes zero (rho 0.121) but non-monotonic (Q5-Q1=1.37 but monotonic=False). Price may proxy player quality tier rather than forward signal — SYNTH-01 should test partial correlation controlling for form. | 2026-05-22 |
+| FIXTURE-001 | fdr_avg | FIXTURE-GW | same-GW | GKP (uninformative), DEF (uninformative), MID (uninformative), FWD (uninformative) | flagged | uninformative | excluded | All positions: CI excludes zero (DEF rho −0.196, MID −0.159, FWD −0.092, GKP −0.147) but fail decision relevance — non-monotonic middle quintiles despite meaningful endpoint gap (DEF Q5-Q1=−2.04 pts, MID=−1.46). Pattern: Q3 > Q2 reversal breaks monotonicity. fdr_avg shows genuine correlation and end-to-end point gap but does not provide clean graded separation across all quintile bins. May function better as binary context signal (easy/hard threshold) than continuous ranker. SYNTH-01 should test whether fdr_avg conditions form signal value as a binary moderator. Run: LENS-FIXTURE-GW-20260522_212117. | 2026-05-22 |
+| FIXTURE-002 | was_home | FIXTURE-GW | same-GW | GKP (uninformative), DEF (uninformative), MID (uninformative), FWD (uninformative) | flagged | uninformative | excluded | All positions uninformative. GKP and FWD: CI crosses zero. DEF: CI excludes zero (rho 0.068) but Q5-Q1=−0.145 — below threshold and non-monotonic. MID: CI excludes zero (rho 0.044) but Q5-Q1=0.044, trivially small. Home advantage does not provide decision-relevant discrimination in the primary population (minutes >= 60). | 2026-05-22 |
+| FIXTURE-003 | fixture_count | FIXTURE-GW | same-GW | DEF (uninformative), MID (uninformative) | flagged | uninformative | excluded | DEF: CI excludes zero (rho 0.098) but Q5-Q1=−0.407, non-monotonic. MID: CI excludes zero (rho 0.083) but Q5-Q1=−0.404, non-monotonic. DGW rows (fixture_count=2) do not provide clean monotonic discrimination — the DGW effect on returns is real but not graded across quintiles in a decision-relevant way. FWD and GKP excluded (blocked in EDA, G-EDA2-01). | 2026-05-22 |
 
 ---
 
@@ -233,3 +253,7 @@ Not permitted:
 | 1.0 | April 2026 | Initial document — schema and governance only. No signals registered. Awaiting system EDA and lens redesigns. |
 | 1.1 | 2026-05-22 | FORM-001 through FORM-006 registered as LENS-FORM candidates. EDA_FINDINGS.md gate decisions referenced. Lens Status pending — no lens code has run. |
 | 1.2 | 2026-05-22 | LENS-FORM complete. Lens Status and Synthesis Status set for all 6 signals. xgi_roll3 and xgi_roll5 classified conditional (informative DEF, MID; uninformative FWD). All others uninformative or unstable. Run: studies/runs/LENS-FORM-20260522_204715. |
+| 1.3 | 2026-05-22 | AVAIL-001–003, MARKET-001–004, FIXTURE-001–003 registered as candidates. Lens Status pending for all 10. |
+| 1.4 | 2026-05-22 | LENS-AVAIL complete. minutes_roll3/5 conditional (MID), minutes_roll8 conditional (DEF, MID). All others uninformative. |
+| 1.5 | 2026-05-22 | LENS-MARKET complete. transfers_in conditional (DEF, MID), ownership_count conditional (DEF, MID), purchase_price conditional (DEF, FWD). transfers_balance uninformative all positions. |
+| 1.6 | 2026-05-22 | LENS-FIXTURE-GW complete. All signals uninformative. fdr_avg shows genuine correlation and endpoint gap but non-monotonic quintile ordering — reserved for binary moderator role in SYNTH-01. |

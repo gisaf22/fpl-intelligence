@@ -1,8 +1,8 @@
 # SIGNAL_REGISTRY.md
 # Analytical Methodology — Signal Registry
 
-**Status:** ACTIVE — awaiting system EDA and lens redesigns
-**Last updated:** GW 34, April 2026
+**Status:** ACTIVE — LENS-FORM complete; 2 signals informative for DEF/MID
+**Last updated:** 2026-05-22
 **Owned by:** signals/registry/
 
 ---
@@ -30,14 +30,20 @@ in the system.
 
 ## Current state
 
-Registry is empty. No signals are registered.
+**LENS-FORM complete: 2026-05-22**
 
-Signals populate after:
-1. System EDA completes — research/eda/findings/EDA_FINDINGS.md
-2. Each lens study is redesigned and rerun under the locked
-   methodology — LENS-FORM, LENS-MARKET, LENS-FIXTURE-GW,
-   LENS-AVAIL
-3. Each lens study writes its findings here
+6 form signal candidates characterised. Run artefacts:
+`studies/runs/LENS-FORM-20260522_204715/`
+
+Results summary:
+- FORM-001 xgi_roll3: informative DEF and MID; uninformative FWD
+- FORM-002 xgi_roll5: informative DEF and MID; uninformative FWD
+- FORM-003 goals_scored_roll3: uninformative all positions
+- FORM-004 points_roll3: uninformative (naive baseline — GKP, DEF, MID); unstable FWD
+- FORM-005 points_roll5: informative MID only (naive baseline)
+- FORM-006 minutes_roll3: uninformative all positions
+
+Signals advancing to synthesis: xgi_roll3 (DEF, MID), xgi_roll5 (DEF, MID)
 
 Previous study outputs (SA, SB, SC, SE) are archived in
 research/lenses/*/results/archive/. They are not valid
@@ -50,6 +56,12 @@ methodology and cannot be traced to EDA findings.
 
 | Signal ID | Signal | Lens | Lag | Positions | EDA Status | Lens Status | Synthesis Status | Known Caveats | Last Updated |
 |-----------|--------|------|-----|-----------|------------|-------------|------------------|---------------|--------------|
+| FORM-001 | xgi_roll3 | FORM | lag-1 | DEF (informative), MID (informative), FWD (uninformative) | flagged | conditional | candidate (DEF, MID) | DEF: rho 0.123, CI [0.084, 0.161], passes 3/3 blocks, Q5-Q1 1.12, clears naive baseline. MID: rho 0.144, CI [0.107, 0.182], passes 3/3 blocks, Q5-Q1 1.30, does NOT clear naive baseline (points_roll3 MID rho 0.156). FWD: CI excludes zero (rho 0.091) but fails monotonicity gate — not decision relevant. GK excluded (G-EDA3-01). xgi subsumes xa and xg — no independent competing candidates (G-EDA6-02, G-EDA6-03). | 2026-05-22 |
+| FORM-002 | xgi_roll5 | FORM | lag-1 | DEF (informative), MID (informative), FWD (uninformative) | flagged | conditional | candidate (DEF, MID) | DEF: rho 0.113, CI [0.071, 0.155], passes 3/3 blocks, Q5-Q1 1.04, clears naive baseline (borderline). MID: rho 0.157, CI [0.118, 0.197], passes 3/3 blocks, Q5-Q1 1.64, clears naive baseline. FWD: CI excludes zero (rho 0.097) but fails monotonicity — not decision relevant. GK excluded. SYNTH-01 should test whether xgi_roll5 adds independent information beyond xgi_roll3 — both carry the same EDA construct (G-EDA6-04). | 2026-05-22 |
+| FORM-003 | goals_scored_roll3 | FORM | lag-1 | DEF (uninformative), MID (uninformative), FWD (uninformative) | passed | uninformative | excluded | DEF: CI crosses zero (rho 0.018, CI [−0.023, 0.061]). MID: CI excludes zero (rho 0.076) but fails decision relevance (Q5-Q1 0.38, non-monotonic). FWD: CI excludes zero (rho 0.097) but fails decision relevance (Q5-Q1 0.79, non-monotonic). Raw goals_scored EDA rho was same-GW (0.32 DEF); lag-1 prediction rho is substantially lower. Event sparsity: rolling mean of sparse binary event does not provide monotonic bin separation. | 2026-05-22 |
+| FORM-004 | points_roll3 | FORM | lag-1 | GKP (uninformative), DEF (uninformative), MID (uninformative), FWD (unstable) | passed | uninformative | excluded | Naive baseline only — not a synthesis candidate. GKP: CI crosses zero (rho 0.071). DEF: CI excludes zero but non-monotonic (Q5-Q1 1.22, monotonic=False). MID: CI excludes zero but Q5-Q1 gap 0.99 — just below 1.0 threshold (monotonic=True). FWD: CI excludes zero in aggregate but passes only 1/3 blocks — unstable. Naive baseline function served: points_roll5 MID is the informative naive benchmark. | 2026-05-22 |
+| FORM-005 | points_roll5 | FORM | lag-1 | GKP (uninformative), DEF (uninformative), MID (informative), FWD (uninformative) | passed | conditional | excluded | Naive baseline — not a synthesis candidate as independent signal. MID: rho 0.158, CI [0.118, 0.198], passes 3/3 blocks, Q5-Q1 1.31, monotonic. Sets naive baseline for MID at rho 0.158. FORM-001 (xgi_roll3 MID, rho 0.144) does NOT clear this baseline. FORM-002 (xgi_roll5 MID, rho 0.157) borderline below this baseline. GKP: CI crosses zero. DEF and FWD: CI excludes zero but fail decision relevance. | 2026-05-22 |
+| FORM-006 | minutes_roll3 | FORM | lag-1 | DEF (uninformative), MID (uninformative), FWD (uninformative) | flagged | uninformative | excluded | All positions: CI excludes zero (DEF rho 0.138, MID rho 0.179, FWD rho 0.085) but fail decision relevance — non-monotonic bin distributions. minutes_roll3 does not provide monotonic next-GW return separation. GK excluded (near-constant playing time). Raw minutes blocked as form signal (G-EDA2-02). LENS-AVAIL should characterise availability consistency and reliability properties — this study provides raw association evidence only (G-EDA7-05). | 2026-05-22 |
 
 ---
 
@@ -219,3 +231,5 @@ Not permitted:
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | April 2026 | Initial document — schema and governance only. No signals registered. Awaiting system EDA and lens redesigns. |
+| 1.1 | 2026-05-22 | FORM-001 through FORM-006 registered as LENS-FORM candidates. EDA_FINDINGS.md gate decisions referenced. Lens Status pending — no lens code has run. |
+| 1.2 | 2026-05-22 | LENS-FORM complete. Lens Status and Synthesis Status set for all 6 signals. xgi_roll3 and xgi_roll5 classified conditional (informative DEF, MID; uninformative FWD). All others uninformative or unstable. Run: studies/runs/LENS-FORM-20260522_204715. |

@@ -1,0 +1,195 @@
+# Signal Ontology — machine-readable form
+# Version: 1.0
+# Produced: 2026-05-24
+# Source of truth: docs/foundations/signal-ontology.md v3.2
+#
+# Fields:
+#   family            — conceptual family (Outcome / Allocation / Event / Process /
+#                       Participation / Market / Structural Tier / Context)
+#   scope             — attribution unit (Individual / Team / Population / Match)
+#   temporal_type     — what kind of quantity this is over time
+#                         count     : discrete integer count of occurrences; resets per period
+#                         rate      : continuous fraction of a bounded resource
+#                         stock     : point-in-time level that persists between periods
+#                         indicator : binary or categorical flag; no magnitude interpretation
+#                         estimate  : model-produced continuous approximation of an unobserved quantity
+#   semantic_constraint — invariants that hold regardless of analytical context or implementation
+
+signals:
+
+  total_points:
+    family: Outcome
+    scope: Individual
+    temporal_type: count
+    semantic_constraint: >
+      FPL system aggregate; non-negative integer; no direct football counterpart;
+      terminal — cannot be decomposed back into components without loss.
+
+  bonus:
+    family: Allocation
+    scope: Individual
+    temporal_type: count
+    semantic_constraint: >
+      FPL allocation; discrete in {0, 1, 2, 3}; determined by relative bps rank within match;
+      not a directly observed football event.
+
+  bps:
+    family: Allocation
+    scope: Individual
+    temporal_type: count
+    semantic_constraint: >
+      FPL intermediate index; non-negative integer; computed from fixed in-match action weights;
+      input to bonus allocation — not directly observed.
+
+  goals_scored:
+    family: Event
+    scope: Individual
+    temporal_type: count
+    semantic_constraint: >
+      Directly observed; non-negative integer; null in BGW.
+
+  assists:
+    family: Event
+    scope: Individual
+    temporal_type: count
+    semantic_constraint: >
+      Directly observed; non-negative integer; at most one per goal; null in BGW.
+
+  saves:
+    family: Event
+    scope: Individual
+    temporal_type: count
+    semantic_constraint: >
+      Directly observed; non-negative integer; GKP positional association; null in BGW.
+
+  penalties_saved:
+    family: Event
+    scope: Individual
+    temporal_type: count
+    semantic_constraint: >
+      Directly observed; non-negative integer; structurally sparse — depends on penalty occurrence;
+      GKP positional association; null in BGW.
+
+  clean_sheets:
+    family: Event
+    scope: Team
+    temporal_type: count
+    semantic_constraint: >
+      Directly observed; integer in {0, 1} — count of clean sheets achieved in a fixture;
+      team-level event but player-conditioned encoding: FPL awards clean_sheets=1 only to
+      players who played ≥60 minutes; values differ across teammates by minutes played;
+      null in BGW.
+
+  goals_conceded:
+    family: Event
+    scope: Team
+    temporal_type: count
+    semantic_constraint: >
+      Directly observed; non-negative integer; team-scope — shared by all eligible players;
+      null in BGW.
+
+  xg:
+    family: Process
+    scope: Individual
+    temporal_type: estimate
+    semantic_constraint: >
+      Model estimate; non-negative real; individual-scope; component of xgi; null in BGW.
+
+  xa:
+    family: Process
+    scope: Individual
+    temporal_type: estimate
+    semantic_constraint: >
+      Model estimate; non-negative real; individual-scope; component of xgi; null in BGW.
+
+  xgi:
+    family: Process
+    scope: Individual
+    temporal_type: estimate
+    semantic_constraint: >
+      Model estimate; non-negative real; equals xg + xa; individual-scope; null in BGW.
+
+  xgc:
+    family: Process
+    scope: Team
+    temporal_type: estimate
+    semantic_constraint: >
+      Model estimate; non-negative real; team-level defensive process but position-conditioned
+      encoding: FPL assigns distinct xgc values to different field-player positions within the
+      same fixture (SC-14); values are not uniform across all players on the same team; null in BGW.
+
+  minutes:
+    family: Participation
+    scope: Individual
+    temporal_type: rate
+    semantic_constraint: >
+      Directly observed; integer in [0, 90] per SGW fixture; null in BGW;
+      scales with fixture_count in DGW (max 180 in a two-fixture DGW).
+
+  transfers_in:
+    family: Market
+    scope: Population
+    temporal_type: count
+    semantic_constraint: >
+      FPL manager population aggregate; non-negative integer; not a football observation.
+
+  transfers_out:
+    family: Market
+    scope: Population
+    temporal_type: count
+    semantic_constraint: >
+      FPL manager population aggregate; non-negative integer; not a football observation.
+
+  ownership_count:
+    family: Market
+    scope: Population
+    temporal_type: stock
+    semantic_constraint: >
+      FPL manager population stock; non-negative integer; point-in-time level;
+      net accumulation of transfers_in minus transfers_out over time.
+
+  purchase_price:
+    family: Structural Tier
+    scope: Individual
+    temporal_type: stock
+    semantic_constraint: >
+      FPL system assigned; positive real; point-in-time level; changes between GWs;
+      not set by managers directly.
+
+  fdr_avg:
+    family: Context
+    scope: Match
+    temporal_type: estimate
+    semantic_constraint: >
+      FPL fixture difficulty aggregate; positive real; fully determined pre-match; null in BGW.
+
+  fdr_max:
+    family: Context
+    scope: Match
+    temporal_type: estimate
+    semantic_constraint: >
+      FPL fixture difficulty aggregate; positive real; fully determined pre-match; null in BGW;
+      equals fdr_avg and fdr_min when fixture_count = 1.
+
+  fdr_min:
+    family: Context
+    scope: Match
+    temporal_type: estimate
+    semantic_constraint: >
+      FPL fixture difficulty aggregate; positive real; fully determined pre-match; null in BGW;
+      equals fdr_avg and fdr_max when fixture_count = 1.
+
+  was_home:
+    family: Context
+    scope: Match
+    temporal_type: indicator
+    semantic_constraint: >
+      Fixture indicator; binary {0, 1}; fully determined pre-match; null in BGW.
+
+  fixture_count:
+    family: Context
+    scope: Match
+    temporal_type: count
+    semantic_constraint: >
+      Non-negative integer in {0, 1, 2}; 0 in BGW; 1 in SGW; 2 in DGW;
+      fully determined pre-match.

@@ -30,7 +30,7 @@ def test_snapshot_changes_marks_baseline_without_previous_snapshot():
     assert list(changes.columns) == list(SNAPSHOT_CHANGE_COLUMNS)
     assert len(changes) == 1
     assert changes.loc[0, "change_type"] == "baseline"
-    assert changes.loc[0, "current_value"] == "116 rows"
+    assert changes.loc[0, "current_value"] == "104 rows"
 
 
 def test_snapshot_changes_detects_governance_transitions_by_key_not_row_order():

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 # Promotion class vocabulary is defined here to avoid circular imports
@@ -143,7 +144,7 @@ SIGNAL_LAYER_VALUES: frozenset[str] = frozenset(
     }
 )
 DOWNSTREAM_STATUS_VALUES: frozenset[str] = frozenset(
-    {"eligible", "caveated", "blocked"}
+    {"eligible", "caveated", "blocked", "approved"}
 )
 GEOMETRY_VALUES: frozenset[str] = frozenset(
     {
@@ -190,8 +191,6 @@ MATCH_LEVEL_SIGNALS: frozenset[str] = frozenset(
         "goals_conceded",
         "fixture_count",
         "fdr_avg",
-        "fdr_min",
-        "fdr_max",
         "is_dgw",
     }
 )
@@ -219,3 +218,41 @@ CONTROLLED_VALUE_COLUMNS: dict[str, frozenset[str]] = {
 # support_type is empty when no support failure exists.
 # promotion_class is null for blocked rows.
 NULLABLE_CONTROLLED_COLUMNS: frozenset[str] = frozenset({"support_type", "promotion_class"})
+
+# ---------------------------------------------------------------------------
+# Runtime governance metadata
+# ---------------------------------------------------------------------------
+
+LIFECYCLE_STATE_VALUES: frozenset[str] = frozenset(
+    {"candidate", "excluded", "not_applicable", "approved"}
+)
+LEAKAGE_RISK_VALUES: frozenset[str] = frozenset(
+    {"none", "evaluation_circularity", "direct"}
+)
+
+
+@dataclass(frozen=True)
+class GovernanceMetadata:
+    """Runtime governance container for a single signal-position pair.
+
+    Populated from evaluation_metadata.yaml via get_signal_governance().
+    When a signal appears in multiple lens studies, the most favorable
+    lifecycle_state is returned (candidate > excluded > not_applicable).
+    """
+
+    signal: str
+    position: str
+    signal_id: str           # e.g. "FORM-001"
+    lens: str                # e.g. "FORM"
+    lifecycle_state: str     # candidate | excluded | not_applicable
+    downstream_status: str   # eligible | caveated | blocked
+    leakage_risk: str        # none | evaluation_circularity | direct
+    behavioral_reason: str
+    source_gate_decisions: tuple[str, ...]
+    rho_pooled: float | None
+    ci_lower: float | None
+    ci_upper: float | None
+
+
+class GovernanceMetadataError(ValueError):
+    """Raised when evaluation governance metadata is missing or unresolvable."""

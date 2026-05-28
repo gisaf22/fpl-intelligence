@@ -1,9 +1,27 @@
 """Captain candidate ranking.
 
 Produces a ranked list of captain options for a target gameweek based on
-recent form, attacking involvement, fixture difficulty, and minutes stability.
+recent form, attacking involvement, fixture context, and minutes stability.
 
-All weights are explicit and static. No learned weighting, no ML.
+Weights are loaded from the governance registry (signals/registry/weight_registry.yaml).
+All weights are PROVISIONAL-EDITORIAL — no analytical derivation exists.
+Resolution: Phase 7 SYNTH-01 will replace with evidence-derived composition values.
+
+## Phase 6 governance changes (2026-05-27)
+
+GAP-TRACE-01 (SCOPE VIOLATION fixed): xgi_roll3 and xgi_roll5 excluded at FWD
+  (FORM-001/002 G2-FAIL; haul-concentration effect). FWD players now get a neutral
+  0.5 on both form_score and involvement_score — zero is substituted before
+  normalize_within_position so all FWD players receive equal treatment on xgi signals.
+
+GAP-TRACE-02 (GOVERNANCE INCONSISTENCY fixed): fdr_avg removed from fixture_score
+  (FIXTURE-001 excluded at all positions). fixture_score now uses binary DGW indicator
+  from STATE fixture_context column (GAP-TRACE-06). Weight value 0.20 retained.
+
+Known remaining governance notes (do not resolve until SYNTH-01):
+- form_score uses xgi_roll5: PROVISIONAL-EDITORIAL; weight 0.35 unjustified (Phase 7)
+- _MIN_MINUTES_ROLL3 = 45.0: UNJUSTIFIED — no evaluation study establishes this
+  eligibility threshold; see threshold-registry.md §CAPT-T-01
 """
 
 from __future__ import annotations
@@ -16,34 +34,23 @@ from intelligence._base import (
     validate_intelligence_inputs,
     weighted_composite,
 )
+from intelligence.weight_registry import get_module_weights
 
-# Explicit static weights — document any change here with rationale.
-# form + involvement = 65% (output-focused)
-# fixture + minutes = 35% (opportunity/availability filter)
-_WEIGHTS: dict[str, float] = {
-    "form_score": 0.35,
-    "involvement_score": 0.30,
-    "fixture_score": 0.20,
-    "minutes_score": 0.15,
-}
+# Weights loaded from governance registry — fails hard if entry missing.
+_WEIGHTS: dict[str, float] = get_module_weights("captain")
 
-# Minimum 3-GW rolling minutes to be considered a captain candidate.
-# Players below this threshold are not starting reliably enough.
+# UNJUSTIFIED (threshold-registry.md §CAPT-T-01): no lens study establishes 45.0
+# as an eligibility cutoff; evidence required: captain precision vs. minutes floor.
 _MIN_MINUTES_ROLL3 = 45.0
-
-# FDR neutral value used when fdr_avg is missing (e.g. BGW rows).
-_FDR_NEUTRAL = 3.0
-# FDR scale upper bound + 1, used to invert: easy fixture → high score.
-_FDR_CEILING = 6.0
 
 _OUTPUT_COLS = [
     "player_id",
     "player_name",
     "position_label",
     "team_id",
-    "points_roll3",
+    "xgi_roll5",
     "xgi_roll3",
-    "fdr_avg",
+    "fixture_context",
     "minutes_roll3",
     "form_score",
     "involvement_score",
@@ -78,10 +85,10 @@ def rank_captain_candidates(
     columns (form_score, involvement_score, fixture_score, minutes_score)
     for full explainability.
 
-    Scoring components (static weights):
-    - form_score      35%: points_roll3, normalized within position
-    - involvement_score 30%: xgi_roll3, normalized within position
-    - fixture_score   20%: inverted fdr_avg, normalized within position
+    Scoring components (registry weights; all PROVISIONAL-EDITORIAL):
+    - form_score      35%: xgi_roll5 (DEF/MID); FWD scope guard → neutral 0.5
+    - involvement_score 30%: xgi_roll3 (DEF/MID); FWD scope guard → neutral 0.5
+    - fixture_score   20%: binary DGW flag from fixture_context (replaces fdr_avg)
     - minutes_score   15%: minutes_roll3, normalized within position
 
     Only players with minutes_roll3 >= 45 are eligible (must be starting).
@@ -99,19 +106,31 @@ def rank_captain_candidates(
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # Invert FDR so that easy fixtures (low FDR) produce high scores.
-    eligible["_fdr_inv"] = _FDR_CEILING - eligible["fdr_avg"].fillna(_FDR_NEUTRAL)
+    # GAP-TRACE-01: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
+    # Zero out xgi signals for FWD players before normalisation; all-zero FWD group
+    # returns 0.5 from normalize_within_position (neutral, no xgi contribution at FWD).
+    fwd_mask = eligible["position_label"] == "FWD"
+    eligible["_xgi_roll5_scored"] = eligible["xgi_roll5"].where(~fwd_mask, 0.0)
+    eligible["_xgi_roll3_scored"] = eligible["xgi_roll3"].where(~fwd_mask, 0.0)
 
-    eligible["form_score"] = normalize_within_position(eligible, "points_roll3")
-    eligible["involvement_score"] = normalize_within_position(eligible, "xgi_roll3")
-    eligible["fixture_score"] = normalize_within_position(eligible, "_fdr_inv")
+    # GAP-TRACE-02 / GAP-TRACE-06: binary DGW flag from STATE fixture_context.
+    eligible["_fixture_context_dgw"] = (
+        eligible["fixture_context"].fillna("SGW") == "DGW"
+    ).astype(float)
+
+    eligible["form_score"] = normalize_within_position(eligible, "_xgi_roll5_scored")
+    eligible["involvement_score"] = normalize_within_position(
+        eligible, "_xgi_roll3_scored"
+    )
+    eligible["fixture_score"] = normalize_within_position(
+        eligible, "_fixture_context_dgw"
+    )
     eligible["minutes_score"] = normalize_within_position(eligible, "minutes_roll3")
 
     eligible["captain_score"] = weighted_composite(
         eligible, list(_WEIGHTS.keys()), _WEIGHTS
     )
 
-    # Rank within each position (not globally) then present top-n overall.
     eligible["captain_rank"] = (
         eligible.groupby("position_label")["captain_score"]
         .rank(ascending=False, method="min")

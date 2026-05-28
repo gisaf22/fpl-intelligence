@@ -1,8 +1,26 @@
 """Transfer target ranking.
 
 Identifies strong incoming transfer candidates based on rising form, fixture
-opportunity, involvement, and minutes stability. Does not model price
-movements, ownership shifts, or market dynamics.
+context, involvement, and minutes stability. Does not model price movements,
+ownership shifts, or market dynamics.
+
+Weights are loaded from the governance registry (signals/registry/weight_registry.yaml).
+All weights are PROVISIONAL-EDITORIAL — no analytical derivation exists.
+
+## Phase 6 governance changes (2026-05-27)
+
+GAP-TRACE-01 (SCOPE VIOLATION fixed): xgi_roll3 and xgi_roll5 excluded at FWD
+  (FORM-001/002 G2-FAIL). FWD scope guard: xgi_roll3 zeroed at FWD for recent_form,
+  form_momentum, and involvement components. All-zero FWD group → neutral 0.5.
+
+GAP-TRACE-02 (GOVERNANCE INCONSISTENCY fixed): fdr_avg removed from fixture_score
+  (FIXTURE-001 excluded at all positions). fixture_score now uses binary DGW indicator
+  from STATE fixture_context column (GAP-TRACE-06). Weight value 0.20 retained.
+
+Known remaining governance notes (do not resolve until SYNTH-01):
+- recent_form_score uses xgi_roll3: PROVISIONAL-EDITORIAL; MID caveat (naive baseline)
+- form_momentum_score: no evaluation study assesses xgi momentum specifically
+- _MIN_MINUTES_ROLL5 = 30.0: UNJUSTIFIED (threshold-registry.md §TRANS-T-01)
 """
 
 from __future__ import annotations
@@ -15,23 +33,14 @@ from intelligence._base import (
     validate_intelligence_inputs,
     weighted_composite,
 )
+from intelligence.weight_registry import get_module_weights
 
-# Explicit static weights.
-# Recent form + momentum = 55% (directional signal)
-# Fixture + involvement + minutes = 45% (opportunity/reliability)
-_WEIGHTS: dict[str, float] = {
-    "recent_form_score": 0.30,
-    "form_momentum_score": 0.25,
-    "fixture_score": 0.20,
-    "involvement_score": 0.15,
-    "minutes_stability_score": 0.10,
-}
+# Weights loaded from governance registry — fails hard if entry missing.
+_WEIGHTS: dict[str, float] = get_module_weights("transfers")
 
-# Minimum 5-GW rolling minutes to qualify — transfers need sustained involvement.
+# UNJUSTIFIED (threshold-registry.md §TRANS-T-01): no lens study establishes 30.0
+# as a participation minimum for transfer targets.
 _MIN_MINUTES_ROLL5 = 30.0
-
-_FDR_NEUTRAL = 3.0
-_FDR_CEILING = 6.0
 
 _OUTPUT_COLS = [
     "player_id",
@@ -39,10 +48,9 @@ _OUTPUT_COLS = [
     "position_label",
     "team_id",
     "purchase_price",
-    "points_roll3",
-    "points_roll5",
     "xgi_roll3",
-    "fdr_avg",
+    "xgi_roll5",
+    "fixture_context",
     "minutes_roll5",
     "recent_form_score",
     "form_momentum_score",
@@ -79,11 +87,11 @@ def rank_transfer_targets(
     DataFrame ranked by transfer_score descending with explicit component
     columns for explainability.
 
-    Scoring components (static weights):
-    - recent_form_score    30%: points_roll3, normalized within position
-    - form_momentum_score  25%: points_roll3 − points_roll5 (rising = positive)
-    - fixture_score        20%: inverted fdr_avg, normalized within position
-    - involvement_score    15%: xgi_roll3, normalized within position
+    Scoring components (registry weights; all PROVISIONAL-EDITORIAL):
+    - recent_form_score    30%: xgi_roll3; FWD scope guard → neutral 0.5
+    - form_momentum_score  25%: xgi_roll3 − xgi_roll5; FWD scope guard applied
+    - fixture_score        20%: binary DGW flag from fixture_context (replaces fdr_avg)
+    - involvement_score    15%: xgi_roll3; FWD scope guard → neutral 0.5
     - minutes_stability    10%: minutes_roll5, normalized within position
 
     Only players with minutes_roll5 >= 30 are eligible.
@@ -105,20 +113,36 @@ def rank_transfer_targets(
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # Form momentum: positive when recent form (roll3) exceeds medium-term (roll5).
-    eligible["_momentum"] = (
-        eligible["points_roll3"].fillna(0) - eligible["points_roll5"].fillna(0)
-    )
-    eligible["_fdr_inv"] = _FDR_CEILING - eligible["fdr_avg"].fillna(_FDR_NEUTRAL)
+    # GAP-TRACE-01: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
+    # Zero out both for FWD players; all-zero FWD group returns 0.5 from normalization.
+    fwd_mask = eligible["position_label"] == "FWD"
+    xgi_roll3_scored = eligible["xgi_roll3"].fillna(0).where(~fwd_mask, 0.0)
+    xgi_roll5_scored = eligible["xgi_roll5"].fillna(0).where(~fwd_mask, 0.0)
+
+    eligible["_xgi_roll3_scored"] = xgi_roll3_scored
+    eligible["_xgi_roll5_scored"] = xgi_roll5_scored
+
+    # Form momentum: positive when recent xgi (roll3) exceeds medium-term (roll5).
+    # FWD guard: both operands zeroed → momentum = 0 for all FWD → neutral 0.5.
+    eligible["_momentum"] = xgi_roll3_scored - xgi_roll5_scored
+
+    # GAP-TRACE-02 / GAP-TRACE-06: binary DGW flag from STATE fixture_context.
+    eligible["_fixture_context_dgw"] = (
+        eligible["fixture_context"].fillna("SGW") == "DGW"
+    ).astype(float)
 
     eligible["recent_form_score"] = normalize_within_position(
-        eligible, "points_roll3"
+        eligible, "_xgi_roll3_scored"
     )
     eligible["form_momentum_score"] = normalize_within_position(
         eligible, "_momentum"
     )
-    eligible["fixture_score"] = normalize_within_position(eligible, "_fdr_inv")
-    eligible["involvement_score"] = normalize_within_position(eligible, "xgi_roll3")
+    eligible["fixture_score"] = normalize_within_position(
+        eligible, "_fixture_context_dgw"
+    )
+    eligible["involvement_score"] = normalize_within_position(
+        eligible, "_xgi_roll3_scored"
+    )
     eligible["minutes_stability_score"] = normalize_within_position(
         eligible, "minutes_roll5"
     )

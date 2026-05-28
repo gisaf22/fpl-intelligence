@@ -127,15 +127,13 @@ def test_players_ranked_within_position(state):
         )
 
 
-def test_excluded_signals_absent_from_composite(state, tmp_path):
+def test_excluded_signals_absent_from_composite(state):
     """bonus and bps must not appear in signal_normalised of any player score."""
-    import shutil
-    from intelligence.scoring.signals import load_manifest_from_path
+    from signals.lifecycle.loader import load_registry
+    from intelligence.scoring.signals import load_manifest
 
-    # Operational consumers require a non-exploratory registry path.
-    registry_path = tmp_path / "registry.csv"
-    shutil.copy(Path("studies/eda/findings/eda_03_joint_registry.csv"), registry_path)
-    manifest = load_manifest_from_path(registry_path)
+    registry = load_registry(Path("studies/eda/findings/eda_03_joint_registry.csv"))
+    manifest = load_manifest(registry)
 
     output = score(state, manifest, gw=1)
     for p in output.players:

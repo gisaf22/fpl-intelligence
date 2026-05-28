@@ -1,0 +1,11 @@
+signal_id,signal,position,lens_status,rationale
+FIXTURE-001,fdr_avg,GKP,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=-1.325, monotonic=False)"
+FIXTURE-001,fdr_avg,DEF,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=-2.039, monotonic=False)"
+FIXTURE-001,fdr_avg,MID,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=-1.456, monotonic=False)"
+FIXTURE-001,fdr_avg,FWD,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=-1.041, monotonic=False)"
+FIXTURE-002,was_home,GKP,uninformative,"CI crosses zero [-0.017, 0.135]"
+FIXTURE-002,was_home,DEF,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=-0.145, monotonic=False)"
+FIXTURE-002,was_home,MID,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=0.044, monotonic=False)"
+FIXTURE-002,was_home,FWD,uninformative,"CI crosses zero [-0.065, 0.087]"
+FIXTURE-003,fixture_count,DEF,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=-0.407, monotonic=False)"
+FIXTURE-003,fixture_count,MID,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=-0.404, monotonic=False)"

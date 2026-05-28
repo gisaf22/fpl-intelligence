@@ -1,0 +1,26 @@
+{
+  "timestamp": "20260524_222535",
+  "db_path": "/Users/safarifgisa/.fpl/fpl.db",
+  "design_doc": "studies/eda/EDA_08_DESIGN.md",
+  "framework": "EVAL_DESIGN.md v2.2",
+  "gw_min": 6,
+  "gw_max": 33,
+  "minutes_threshold": 60,
+  "gw_blocks": {
+    "early": [
+      6,
+      15
+    ],
+    "mid": [
+      16,
+      25
+    ],
+    "late": [
+      26,
+      33
+    ]
+  },
+  "n_bootstrap": 2000,
+  "ci_level": 0.95,
+  "partial_rho_redundancy_threshold": 0.3
+}

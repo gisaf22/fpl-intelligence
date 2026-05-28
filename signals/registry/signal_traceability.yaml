@@ -1,0 +1,1617 @@
+# Signal Traceability Matrix — Machine-Readable
+# Version: 1.0
+# Produced: 2026-05-27
+# Authority: Operational Convergence Plan Phase 5
+# Human-readable form: docs/governance/signal-traceability-matrix.md
+#
+# Each entry covers one signal × position pair. Fields:
+#   signal             — signal column name
+#   position           — DEF | MID | FWD | GK
+#   meaning            — plain-language description
+#   scope              — individual | team_context | market | schedule_context
+#   evaluation_lens    — FORM | AVAIL | MARKET | FIXTURE-GW | STATE-ONLY
+#   signal_id          — e.g. FORM-001, or null for STATE-ONLY entries
+#   evaluation_target  — total_points | played_next_gw | null
+#   lifecycle_state    — candidate | excluded | not_applicable | provisional
+#   downstream_status  — eligible | caveated | blocked
+#   rho_pooled         — Spearman rho from lens study (null if not evaluated)
+#   rejection_basis    — for excluded/not_applicable: specific gate failure or governance rule
+#   caveat             — for caveated/borderline candidates: documented limitation
+#   redundancy         — known high-redundancy relationships at this position
+#   operational_role   — form | availability | market | fixture | defensive | null
+#   consumer_modules   — intelligence modules that reference this signal (list)
+#   consumer_note      — explanation when consumer_modules is empty or there is a governance gap
+#   threshold_dependencies — threshold-registry.md IDs that govern use of this signal
+
+schema_version: "1.0"
+produced: "2026-05-27"
+authority: "docs/governance/operational-convergence-plan.md §Phase 5"
+source_of_truth:
+  evaluation_metadata: signals/evaluation/evaluation_metadata.yaml
+  state_inventory: docs/governance/state-representation-inventory.md
+  threshold_registry: docs/governance/threshold-registry.md
+
+entries:
+
+  # ===========================================================================
+  # FORM lens (target: total_points, population: minutes >= 60)
+  # ===========================================================================
+
+  # --- xgi_roll3 (FORM-001) ---
+
+  - signal: xgi_roll3
+    position: DEF
+    meaning: "3-GW rolling mean of expected goal involvement (xG + xA) per player"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-001
+    evaluation_target: total_points
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: 0.123
+    rejection_basis: null
+    caveat: "MIN_RHO=0.15 conflict (SCORE-T-01) incorrectly caveats this signal in scoring/signals.py; rho=0.123 clears Gate 1 (CI excludes zero) which is the correct gate per evaluation-gate-criteria.md"
+    redundancy: "Temporal window overlap with xgi_roll5 DEF; SYNTH-01 to evaluate independent contribution"
+    operational_role: form
+    consumer_modules:
+      - intelligence/captain.py
+      - intelligence/value.py
+      - intelligence/transfers.py
+    consumer_note: null
+    threshold_dependencies:
+      - SCORE-T-01
+
+  - signal: xgi_roll3
+    position: MID
+    meaning: "3-GW rolling mean of expected goal involvement (xG + xA) per player"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-001
+    evaluation_target: total_points
+    lifecycle_state: candidate
+    downstream_status: caveated
+    rho_pooled: 0.144
+    rejection_basis: null
+    caveat: "Does not clear naive baseline (points_roll5 MID rho=0.158 > xgi_roll3 MID rho=0.144); SYNTH-01 must test independent contribution before operational reliance at MID"
+    redundancy: "Temporal window overlap with xgi_roll5 MID"
+    operational_role: form
+    consumer_modules:
+      - intelligence/captain.py
+      - intelligence/value.py
+      - intelligence/transfers.py
+    consumer_note: null
+    threshold_dependencies: []
+
+  - signal: xgi_roll3
+    position: FWD
+    meaning: "3-GW rolling mean of expected goal involvement (xG + xA) per player"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-001
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.091
+    rejection_basis: "G2-FAIL: non-monotonic quintile ordering — haul-concentration effect at FWD destroys Q5-Q1 monotonic separation; burst goal events suppress rolling mean informativeness"
+    caveat: null
+    redundancy: null
+    operational_role: form
+    consumer_modules:
+      - intelligence/captain.py
+      - intelligence/value.py
+      - intelligence/transfers.py
+    consumer_note: "Phase 6 (GAP-TRACE-01) resolved: FWD scope guard applied in captain.py, value.py, transfers.py — xgi_roll3 zeroed for FWD players before normalization; all-zero FWD group returns neutral 0.5."
+    threshold_dependencies: []
+
+  - signal: xgi_roll3
+    position: GK
+    meaning: "3-GW rolling mean of expected goal involvement (xG + xA) per player"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-001
+    evaluation_target: total_points
+    lifecycle_state: not_applicable
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA3-01: GK excluded from attacking process signals by ontological design"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: null
+    threshold_dependencies: []
+
+  # --- xgi_roll5 (FORM-002) ---
+
+  - signal: xgi_roll5
+    position: DEF
+    meaning: "5-GW rolling mean of expected goal involvement (xG + xA) per player"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-002
+    evaluation_target: total_points
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: 0.113
+    rejection_basis: null
+    caveat: "MIN_RHO=0.15 conflict (SCORE-T-01) incorrectly caveats this signal; rho=0.113 clears Gate 1 which is the correct gate"
+    redundancy: "Temporal window overlap with xgi_roll3 DEF; SYNTH-01 to evaluate which horizon adds independent contribution"
+    operational_role: form
+    consumer_modules:
+      - intelligence/captain.py
+      - intelligence/value.py
+      - intelligence/transfers.py
+    consumer_note: null
+    threshold_dependencies:
+      - SCORE-T-01
+
+  - signal: xgi_roll5
+    position: MID
+    meaning: "5-GW rolling mean of expected goal involvement (xG + xA) per player"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-002
+    evaluation_target: total_points
+    lifecycle_state: candidate
+    downstream_status: caveated
+    rho_pooled: 0.157
+    rejection_basis: null
+    caveat: "Borderline below naive baseline (points_roll5 MID rho=0.158 vs xgi_roll5 MID rho=0.157); independence from xgi_roll3 and naive baseline clearance both require SYNTH-01"
+    redundancy: "Temporal window overlap with xgi_roll3 MID; pair under SYNTH-01 evaluation"
+    operational_role: form
+    consumer_modules:
+      - intelligence/captain.py
+      - intelligence/value.py
+      - intelligence/transfers.py
+    consumer_note: null
+    threshold_dependencies: []
+
+  - signal: xgi_roll5
+    position: FWD
+    meaning: "5-GW rolling mean of expected goal involvement (xG + xA) per player"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-002
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.097
+    rejection_basis: "G2-FAIL: non-monotonic quintile ordering — same haul-concentration caveat as xgi_roll3 FWD; 5-GW rolling mean cannot recover monotonic structure from burst event data"
+    caveat: null
+    redundancy: null
+    operational_role: form
+    consumer_modules:
+      - intelligence/captain.py
+      - intelligence/value.py
+      - intelligence/transfers.py
+    consumer_note: "Phase 6 (GAP-TRACE-01) resolved: FWD scope guard applied in captain.py, value.py, transfers.py — xgi_roll5 zeroed for FWD players before normalization; all-zero FWD group returns neutral 0.5."
+    threshold_dependencies: []
+
+  - signal: xgi_roll5
+    position: GK
+    meaning: "5-GW rolling mean of expected goal involvement (xG + xA) per player"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-002
+    evaluation_target: total_points
+    lifecycle_state: not_applicable
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA3-01: GK excluded from attacking process signals by ontological design"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: null
+    threshold_dependencies: []
+
+  # --- goals_scored_roll3 (FORM-003) ---
+
+  - signal: goals_scored_roll3
+    position: DEF
+    meaning: "3-GW rolling mean of individual goals scored"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-003
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.018
+    rejection_basis: "G1-FAIL: CI crosses zero at DEF — no reliable association between 3-GW goal rate and next-GW points"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from STATE in Phase 3 (Representation Inventory Lock). Not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: goals_scored_roll3
+    position: MID
+    meaning: "3-GW rolling mean of individual goals scored"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-003
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.076
+    rejection_basis: "G2-FAIL: non-monotonic quintile ordering (Q5-Q1=0.38) — rolling goal-rate mean destroys burst goal-scoring structure at MID"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from STATE in Phase 3."
+    threshold_dependencies: []
+
+  - signal: goals_scored_roll3
+    position: FWD
+    meaning: "3-GW rolling mean of individual goals scored"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-003
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.097
+    rejection_basis: "G2-FAIL: non-monotonic quintile ordering (Q5-Q1=0.79) — rolling mean smooths burst goal events; goals too sparse and bursty for monotonic rolling signal at FWD"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from STATE in Phase 3."
+    threshold_dependencies: []
+
+  - signal: goals_scored_roll3
+    position: GK
+    meaning: "3-GW rolling mean of individual goals scored"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-003
+    evaluation_target: total_points
+    lifecycle_state: not_applicable
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA3-01: GK excluded from attacking event signals by ontological design"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: null
+    threshold_dependencies: []
+
+  # --- points_roll3 (FORM-004) ---
+
+  - signal: points_roll3
+    position: GK
+    meaning: "3-GW rolling mean of total FPL points (lagged evaluation target)"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-004
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.071
+    rejection_basis: "G-EDA7-02: evaluation circularity — lagged target; G1-FAIL: CI crosses zero at GK"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from captain.py and value.py in Phase 1 (target leakage). Removed from STATE in Phase 3. Must not be re-introduced."
+    threshold_dependencies: []
+
+  - signal: points_roll3
+    position: DEF
+    meaning: "3-GW rolling mean of total FPL points (lagged evaluation target)"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-004
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA7-02: evaluation circularity — lagged target; G2-FAIL: non-monotonic quintile ordering at DEF"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from STATE in Phase 3. Must not be re-introduced."
+    threshold_dependencies: []
+
+  - signal: points_roll3
+    position: MID
+    meaning: "3-GW rolling mean of total FPL points (lagged evaluation target)"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-004
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA7-02: evaluation circularity — lagged target; G2-FAIL: Q5-Q1=0.99 below 1.0 threshold at MID"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from STATE in Phase 3."
+    threshold_dependencies: []
+
+  - signal: points_roll3
+    position: FWD
+    meaning: "3-GW rolling mean of total FPL points (lagged evaluation target)"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-004
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA7-02: evaluation circularity — lagged target; G3-FAIL: 1/3 temporal blocks stable at FWD"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from STATE in Phase 3."
+    threshold_dependencies: []
+
+  # --- points_roll5 (FORM-005) ---
+
+  - signal: points_roll5
+    position: GK
+    meaning: "5-GW rolling mean of total FPL points (lagged evaluation target)"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-005
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA7-02: evaluation circularity — lagged target; G1-FAIL: CI crosses zero at GK"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from STATE in Phase 3."
+    threshold_dependencies: []
+
+  - signal: points_roll5
+    position: DEF
+    meaning: "5-GW rolling mean of total FPL points (lagged evaluation target)"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-005
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA7-02: evaluation circularity — lagged target; G2-FAIL: fails decision relevance at DEF"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from STATE in Phase 3."
+    threshold_dependencies: []
+
+  - signal: points_roll5
+    position: MID
+    meaning: "5-GW rolling mean of total FPL points (lagged evaluation target)"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-005
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.158
+    rejection_basis: "G-EDA7-02: evaluation circularity — retained as naive evaluation baseline only (rho=0.158 sets the MID FORM benchmark); excluded as synthesis candidate to prevent evaluation circularity contaminating SYNTH-01"
+    caveat: "Passes all gates at MID (3/3 blocks) but analytically circular; role is evaluation baseline, not operational feature"
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from STATE in Phase 3. Role: evaluation baseline only."
+    threshold_dependencies: []
+
+  - signal: points_roll5
+    position: FWD
+    meaning: "5-GW rolling mean of total FPL points (lagged evaluation target)"
+    scope: individual
+    evaluation_lens: FORM
+    signal_id: FORM-005
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA7-02: evaluation circularity — lagged target; G2-FAIL: fails decision relevance at FWD"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Removed from STATE in Phase 3."
+    threshold_dependencies: []
+
+  # ===========================================================================
+  # AVAIL lens (target: played_next_gw, population: appeared in GW)
+  # minutes_roll3 also evaluated under FORM as FORM-006 (excluded all positions
+  # by G-EDA2-02: minutes blocked as form proxy). AVAIL is the authoritative lens.
+  # ===========================================================================
+
+  # --- minutes_roll3 (AVAIL-001) ---
+
+  - signal: minutes_roll3
+    position: GK
+    meaning: "3-GW rolling mean of minutes played — short-term participation proxy"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-001
+    evaluation_target: played_next_gw
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "AVAIL G2-FAIL: Q5-Q1=0.058 below monotonicity threshold — no meaningful availability separation at GK; FORM G-EDA2-02: blocked as form proxy"
+    caveat: null
+    redundancy: null
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+    consumer_note: "Consumed at all positions by availability.py for risk classification (AVAIL-T-01, AVAIL-T-02). GK is not a candidate; availability risk classification use at GK is provisional."
+    threshold_dependencies:
+      - AVAIL-T-01
+      - AVAIL-T-02
+
+  - signal: minutes_roll3
+    position: DEF
+    meaning: "3-GW rolling mean of minutes played — short-term participation proxy"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-001
+    evaluation_target: played_next_gw
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.223
+    rejection_basis: "AVAIL G2-FAIL: non-monotonic quintile ordering (Q5-Q1=0.214) — 3-GW minutes does not reliably separate starters from non-starters at DEF monotonically"
+    caveat: "Consumed by captain.py as eligibility filter (CAPT-T-01) and minutes_score at DEF despite AVAIL exclusion"
+    redundancy: "Temporal window overlap with minutes_roll5 and minutes_roll8 in availability domain"
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+      - intelligence/captain.py
+    consumer_note: "DEF exclusion from AVAIL means captain.py DEF eligibility filter use is provisional. Phase 8 calibration required."
+    threshold_dependencies:
+      - AVAIL-T-01
+      - AVAIL-T-02
+      - CAPT-T-01
+
+  - signal: minutes_roll3
+    position: MID
+    meaning: "3-GW rolling mean of minutes played — short-term participation proxy"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-001
+    evaluation_target: played_next_gw
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: 0.232
+    rejection_basis: null
+    caveat: "FORM lens excluded at all positions (G-EDA2-02: minutes blocked as form proxy); AVAIL lens finds informative for availability prediction at MID only. Must not be used as a form signal."
+    redundancy: "Temporal window overlap with minutes_roll5 (MID rho=0.227) and minutes_roll8 (MID rho=0.222); SYNTH-01 to test which horizon(s) add independent availability information"
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+      - intelligence/captain.py
+    consumer_note: null
+    threshold_dependencies:
+      - AVAIL-T-01
+      - AVAIL-T-02
+      - CAPT-T-01
+
+  - signal: minutes_roll3
+    position: FWD
+    meaning: "3-GW rolling mean of minutes played — short-term participation proxy"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-001
+    evaluation_target: played_next_gw
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.186
+    rejection_basis: "AVAIL G2-FAIL: non-monotonic quintile ordering (Q5-Q1=0.202) — rotation patterns at FWD do not follow a monotonic minutes gradient"
+    caveat: "Consumed by captain.py at FWD for eligibility and minutes_score despite AVAIL exclusion"
+    redundancy: null
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+      - intelligence/captain.py
+    consumer_note: "FWD exclusion means captain.py FWD eligibility filter use is provisional. Phase 8 calibration required."
+    threshold_dependencies:
+      - AVAIL-T-01
+      - AVAIL-T-02
+      - CAPT-T-01
+
+  # --- minutes_roll5 (AVAIL-002) ---
+
+  - signal: minutes_roll5
+    position: GK
+    meaning: "5-GW rolling mean of minutes played — medium-term participation proxy"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-002
+    evaluation_target: played_next_gw
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "AVAIL G2-FAIL: Q5-Q1=0.083 below monotonicity threshold at GK — insufficient availability separation even over 5-GW window"
+    caveat: null
+    redundancy: null
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+    consumer_note: "Consumed by availability.py for divergence calculation at all positions. GK exclusion from AVAIL study; divergence use is provisional at GK."
+    threshold_dependencies: []
+
+  - signal: minutes_roll5
+    position: DEF
+    meaning: "5-GW rolling mean of minutes played — medium-term participation proxy"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-002
+    evaluation_target: played_next_gw
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.213
+    rejection_basis: "AVAIL G2-FAIL: non-monotonic quintile ordering (Q5-Q1=0.226) — 5-GW minutes average fails to provide monotonic availability signal at DEF"
+    caveat: "Consumed as 30-min eligibility floor in value.py, fixtures.py, transfers.py at DEF despite AVAIL exclusion"
+    redundancy: null
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+      - intelligence/value.py
+      - intelligence/fixtures.py
+      - intelligence/transfers.py
+    consumer_note: "DEF exclusion means eligibility floor at DEF is editorially motivated. Phase 8 calibration required."
+    threshold_dependencies:
+      - VAL-T-01
+      - TRANS-T-01
+      - FIX-T-01
+
+  - signal: minutes_roll5
+    position: MID
+    meaning: "5-GW rolling mean of minutes played — medium-term participation proxy"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-002
+    evaluation_target: played_next_gw
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: 0.227
+    rejection_basis: null
+    caveat: null
+    redundancy: "Temporal window overlap with minutes_roll3 (MID rho=0.232) and minutes_roll8 (MID rho=0.222); SYNTH-01 to test independence"
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+      - intelligence/value.py
+      - intelligence/fixtures.py
+      - intelligence/transfers.py
+    consumer_note: null
+    threshold_dependencies:
+      - VAL-T-01
+      - TRANS-T-01
+      - FIX-T-01
+
+  - signal: minutes_roll5
+    position: FWD
+    meaning: "5-GW rolling mean of minutes played — medium-term participation proxy"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-002
+    evaluation_target: played_next_gw
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "AVAIL G3-FAIL: CI excludes zero in aggregate but only 1/3 temporal blocks stable — temporally unstable availability signal at FWD"
+    caveat: "Consumed as eligibility floor in value.py, fixtures.py, transfers.py at FWD despite AVAIL exclusion"
+    redundancy: null
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+      - intelligence/value.py
+      - intelligence/fixtures.py
+      - intelligence/transfers.py
+    consumer_note: "FWD exclusion means eligibility floor at FWD is editorially motivated. Phase 8 calibration required."
+    threshold_dependencies:
+      - VAL-T-01
+      - TRANS-T-01
+      - FIX-T-01
+
+  # --- minutes_roll8 (AVAIL-003) ---
+
+  - signal: minutes_roll8
+    position: GK
+    meaning: "8-GW rolling mean of minutes played — baseline participation stability"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-003
+    evaluation_target: played_next_gw
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "AVAIL G2-FAIL: non-monotonic at GK; Q5-Q1=0.103 at threshold boundary — insufficient reliable availability separation even with 8-GW window"
+    caveat: null
+    redundancy: null
+    operational_role: availability
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: excluded at GK; not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: minutes_roll8
+    position: DEF
+    meaning: "8-GW rolling mean of minutes played — baseline participation stability"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-003
+    evaluation_target: played_next_gw
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: 0.219
+    rejection_basis: null
+    caveat: "Best availability signal at DEF — 8-GW horizon improves classification stability vs shorter windows."
+    redundancy: "All three minutes windows excluded at DEF from AVAIL (roll3 G2-FAIL, roll5 G2-FAIL); minutes_roll8 is the only DEF candidate in the availability domain"
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+    consumer_note: "Phase 6 (GAP-TRACE-03) resolved: wired to availability.py as long_horizon_flag for DEF players (minutes_roll8 < 60 threshold). Only DEF and MID positions governed by AVAIL-003."
+    threshold_dependencies: []
+
+  - signal: minutes_roll8
+    position: MID
+    meaning: "8-GW rolling mean of minutes played — baseline participation stability"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-003
+    evaluation_target: played_next_gw
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: 0.222
+    rejection_basis: null
+    caveat: "SYNTH-01 to test whether 8-GW horizon adds independent availability information over minutes_roll3 (rho=0.232) and minutes_roll5 (rho=0.227) at MID"
+    redundancy: "Temporal overlap with minutes_roll3 and minutes_roll5 at MID — all three are MID candidates; SYNTH-01 to resolve which window(s) are independent"
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+    consumer_note: "Phase 6 (GAP-TRACE-03) resolved: wired to availability.py as long_horizon_flag for MID players (minutes_roll8 < 60 threshold). Redundancy with roll3/roll5 at MID noted; SYNTH-01 to resolve."
+    threshold_dependencies: []
+
+  - signal: minutes_roll8
+    position: FWD
+    meaning: "8-GW rolling mean of minutes played — baseline participation stability"
+    scope: individual
+    evaluation_lens: AVAIL
+    signal_id: AVAIL-003
+    evaluation_target: played_next_gw
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.206
+    rejection_basis: "AVAIL G2-FAIL: non-monotonic quintile ordering (Q5-Q1=0.263) — availability signal does not follow monotonic minutes gradient at FWD even with 8-GW window"
+    caveat: null
+    redundancy: null
+    operational_role: availability
+    consumer_modules: []
+    consumer_note: "Not consumed by any module. Excluded at FWD."
+    threshold_dependencies: []
+
+  # ===========================================================================
+  # MARKET lens (target: total_points, population: minutes >= 60)
+  # ===========================================================================
+
+  # --- transfers_in (MARKET-001) ---
+
+  - signal: transfers_in
+    position: GK
+    meaning: "GW transfer inflows — FPL market demand signal"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-001
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "MARKET G2-FAIL: non-monotonic quintile ordering (Q5-Q1=0.909) at GK — transfer demand does not provide monotonic scoring signal for GK"
+    caveat: null
+    redundancy: null
+    operational_role: market
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any intelligence module."
+    threshold_dependencies: []
+
+  - signal: transfers_in
+    position: DEF
+    meaning: "GW transfer inflows — FPL market demand signal"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-001
+    evaluation_target: total_points
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: 0.187
+    rejection_basis: null
+    caveat: "HIGH REDUNDANCY with ownership_count at DEF (partial rho=0.794 per synth01-candidate-set.md); SYNTH-01 to resolve which signal to retain"
+    redundancy: "ownership_count DEF: HIGH REDUNDANCY pair (partial rho=0.794); SYNTH-01 resolution required — likely SUBSTITUTE relationship"
+    operational_role: market
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF/MID but not consumed by any intelligence module. Phase 6 alignment required."
+    threshold_dependencies: []
+
+  - signal: transfers_in
+    position: MID
+    meaning: "GW transfer inflows — FPL market demand signal"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-001
+    evaluation_target: total_points
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: 0.190
+    rejection_basis: null
+    caveat: "HIGH REDUNDANCY with ownership_count at MID (partial rho=0.831); SYNTH-01 to resolve"
+    redundancy: "ownership_count MID: HIGH REDUNDANCY pair (partial rho=0.831); SYNTH-01 resolution required"
+    operational_role: market
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module. Phase 6 alignment required."
+    threshold_dependencies: []
+
+  - signal: transfers_in
+    position: FWD
+    meaning: "GW transfer inflows — FPL market demand signal"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-001
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.127
+    rejection_basis: "MARKET G2-FAIL: non-monotonic quintile ordering despite large Q5-Q1 gap (1.98 pts) — market demand at FWD reflects player tier rather than monotonic form signal"
+    caveat: null
+    redundancy: null
+    operational_role: market
+    consumer_modules: []
+    consumer_note: "Not consumed by any module."
+    threshold_dependencies: []
+
+  # --- transfers_balance (MARKET-002) ---
+
+  - signal: transfers_balance
+    position: GK
+    meaning: "Net transfer balance (transfers_in minus transfers_out)"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-002
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "MARKET G1-FAIL: CI crosses zero at GK — net transfer balance has no reliable relationship with GK returns"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Uninformative at all positions. Not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: transfers_balance
+    position: DEF
+    meaning: "Net transfer balance (transfers_in minus transfers_out)"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-002
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.066
+    rejection_basis: "MARKET G2-FAIL: Q5-Q1=0.563 below decision relevance threshold — net transfer balance provides insufficient scoring separation at DEF"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: transfers_balance
+    position: MID
+    meaning: "Net transfer balance (transfers_in minus transfers_out)"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-002
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.102
+    rejection_basis: "MARKET G2-FAIL: Q5-Q1=0.756 below decision relevance threshold — net balance uninformative at MID"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: transfers_balance
+    position: FWD
+    meaning: "Net transfer balance (transfers_in minus transfers_out)"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-002
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "MARKET G1-FAIL: CI crosses zero at FWD — no reliable relationship between net transfer balance and FWD returns"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Not consumed by any module."
+    threshold_dependencies: []
+
+  # --- ownership_count (MARKET-003) ---
+
+  - signal: ownership_count
+    position: GK
+    meaning: "Total FPL managers owning the player — market consensus signal"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-003
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "MARKET G2-FAIL: non-monotonic quintile ordering (Q5-Q1=0.826) at GK — ownership concentration does not track GK form monotonically"
+    caveat: null
+    redundancy: null
+    operational_role: market
+    consumer_modules: []
+    consumer_note: "Not consumed by any module at GK."
+    threshold_dependencies: []
+
+  - signal: ownership_count
+    position: DEF
+    meaning: "Total FPL managers owning the player — market consensus signal"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-003
+    evaluation_target: total_points
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: 0.156
+    rejection_basis: null
+    caveat: "HIGH REDUNDANCY with transfers_in at DEF (partial rho=0.794); SYNTH-01 to resolve which signal adds independent contribution"
+    redundancy: "transfers_in DEF: HIGH REDUNDANCY pair (partial rho=0.794)"
+    operational_role: market
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF/MID but not consumed by any intelligence module. Phase 6 alignment required."
+    threshold_dependencies: []
+
+  - signal: ownership_count
+    position: MID
+    meaning: "Total FPL managers owning the player — market consensus signal"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-003
+    evaluation_target: total_points
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: 0.168
+    rejection_basis: null
+    caveat: "HIGH REDUNDANCY with transfers_in at MID (partial rho=0.831); SYNTH-01 to resolve"
+    redundancy: "transfers_in MID: HIGH REDUNDANCY pair (partial rho=0.831)"
+    operational_role: market
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module. Phase 6 alignment required."
+    threshold_dependencies: []
+
+  - signal: ownership_count
+    position: FWD
+    meaning: "Total FPL managers owning the player — market consensus signal"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-003
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "MARKET G3-FAIL: CI excludes zero but only 1/3 temporal blocks stable — temporally unstable ownership-return relationship at FWD"
+    caveat: null
+    redundancy: null
+    operational_role: market
+    consumer_modules: []
+    consumer_note: "Not consumed by any module."
+    threshold_dependencies: []
+
+  # --- purchase_price (MARKET-004) ---
+
+  - signal: purchase_price
+    position: GK
+    meaning: "FPL acquisition price in £m — player quality tier proxy"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-004
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "MARKET G2-FAIL: non-monotonic bin ordering at GK — price tier does not track GK points monotonically"
+    caveat: null
+    redundancy: null
+    operational_role: market
+    consumer_modules: []
+    consumer_note: "Not consumed by any module at GK."
+    threshold_dependencies: []
+
+  - signal: purchase_price
+    position: DEF
+    meaning: "FPL acquisition price in £m — player quality tier proxy"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-004
+    evaluation_target: total_points
+    lifecycle_state: candidate
+    downstream_status: caveated
+    rho_pooled: 0.121
+    rejection_basis: null
+    caveat: "Borderline temporal stability (2/3 blocks); SYNTH-01 to test partial correlation controlling for form signals. MIN_RHO=0.15 conflict (SCORE-T-01) incorrectly caveats at rho=0.121."
+    redundancy: null
+    operational_role: market
+    consumer_modules:
+      - intelligence/value.py
+    consumer_note: "value.py uses purchase_price as efficiency denominator (xgi_roll5/purchase_price) at all positions — role is price normalization, not a directly scored signal."
+    threshold_dependencies:
+      - SCORE-T-01
+
+  - signal: purchase_price
+    position: MID
+    meaning: "FPL acquisition price in £m — player quality tier proxy"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-004
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.121
+    rejection_basis: "MARKET G2-FAIL: non-monotonic quintile ordering despite large Q5-Q1 gap (1.37 pts) at MID — price tier signal non-monotonic at MID"
+    caveat: null
+    redundancy: null
+    operational_role: market
+    consumer_modules:
+      - intelligence/value.py
+    consumer_note: "value.py uses purchase_price as efficiency denominator at all positions despite MID exclusion. Price normalization role differs from scored signal role."
+    threshold_dependencies: []
+
+  - signal: purchase_price
+    position: FWD
+    meaning: "FPL acquisition price in £m — player quality tier proxy"
+    scope: market
+    evaluation_lens: MARKET
+    signal_id: MARKET-004
+    evaluation_target: total_points
+    lifecycle_state: candidate
+    downstream_status: caveated
+    rho_pooled: 0.155
+    rejection_basis: null
+    caveat: "Borderline temporal stability (2/3 blocks); price may proxy role seniority and selection priority rather than direct scoring contribution"
+    redundancy: null
+    operational_role: market
+    consumer_modules:
+      - intelligence/value.py
+    consumer_note: "value.py uses purchase_price as efficiency denominator at FWD."
+    threshold_dependencies: []
+
+  # ===========================================================================
+  # FIXTURE-GW lens (target: total_points, same-GW, population: minutes >= 60)
+  # ===========================================================================
+
+  # --- fdr_avg (FIXTURE-001) ---
+
+  - signal: fdr_avg
+    position: GK
+    meaning: "Mean fixture difficulty rating (FDR) for the evaluated gameweek"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-001
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: -0.147
+    rejection_basis: "FIXTURE G2-FAIL: non-monotonic middle quintiles at GK — FDR does not provide monotonic scoring separation; reserved for binary moderator role in SYNTH-01"
+    caveat: null
+    redundancy: null
+    operational_role: fixture
+    consumer_modules: []
+    consumer_note: "Phase 6 (GAP-TRACE-02) resolved: fdr_avg removed from all scoring weights in captain.py, fixtures.py, transfers.py. Retained as informational output column in fixtures.py (fdr_window_avg) only — not scored. Reserved for binary moderator role in SYNTH-01."
+    threshold_dependencies: []
+
+  - signal: fdr_avg
+    position: DEF
+    meaning: "Mean fixture difficulty rating (FDR) for the evaluated gameweek"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-001
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: -0.196
+    rejection_basis: "FIXTURE G2-FAIL: Q3>Q2 quintile reversal breaks monotonicity at DEF — reserved for binary moderator role in SYNTH-01"
+    caveat: null
+    redundancy: null
+    operational_role: fixture
+    consumer_modules: []
+    consumer_note: "Phase 6 (GAP-TRACE-02) resolved: fdr_avg removed from all scoring weights. Informational output only."
+    threshold_dependencies: []
+
+  - signal: fdr_avg
+    position: MID
+    meaning: "Mean fixture difficulty rating (FDR) for the evaluated gameweek"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-001
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: -0.159
+    rejection_basis: "FIXTURE G2-FAIL: non-monotonic middle quintiles despite Q5-Q1=-1.46 pts endpoint gap at MID — reserved for binary moderator role"
+    caveat: null
+    redundancy: null
+    operational_role: fixture
+    consumer_modules: []
+    consumer_note: "Phase 6 (GAP-TRACE-02) resolved: fdr_avg removed from all scoring weights. Informational output only."
+    threshold_dependencies: []
+
+  - signal: fdr_avg
+    position: FWD
+    meaning: "Mean fixture difficulty rating (FDR) for the evaluated gameweek"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-001
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: -0.092
+    rejection_basis: "FIXTURE G2-FAIL: fails decision relevance at FWD; reserved for binary moderator role (easy vs. difficult fixture) in SYNTH-01"
+    caveat: null
+    redundancy: null
+    operational_role: fixture
+    consumer_modules: []
+    consumer_note: "Phase 6 (GAP-TRACE-02) resolved: fdr_avg removed from all scoring weights. Informational output only."
+    threshold_dependencies: []
+
+  # --- was_home (FIXTURE-002) ---
+
+  - signal: was_home
+    position: GK
+    meaning: "Binary flag indicating home fixture (1 = home, 0 = away)"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-002
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "FIXTURE G1-FAIL: CI crosses zero at GK — home advantage shows no reliable relationship with GK returns"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: was_home
+    position: DEF
+    meaning: "Binary flag indicating home fixture (1 = home, 0 = away)"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-002
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.068
+    rejection_basis: "FIXTURE G2-FAIL: Q5-Q1=-0.145 non-monotonic at DEF — home/away binary does not provide reliable scoring advantage for defenders"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: was_home
+    position: MID
+    meaning: "Binary flag indicating home fixture (1 = home, 0 = away)"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-002
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.044
+    rejection_basis: "FIXTURE G2-FAIL: Q5-Q1=0.044 trivially small at MID — no decision-relevant scoring separation for midfielders"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: was_home
+    position: FWD
+    meaning: "Binary flag indicating home fixture (1 = home, 0 = away)"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-002
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "FIXTURE G1-FAIL: CI crosses zero at FWD — no reliable home advantage effect on FWD returns"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Not consumed by any module."
+    threshold_dependencies: []
+
+  # --- fixture_count (FIXTURE-003) ---
+
+  - signal: fixture_count
+    position: GK
+    meaning: "Number of fixtures in the gameweek (1 = SGW, 2 = DGW)"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-003
+    evaluation_target: total_points
+    lifecycle_state: not_applicable
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA2-01: GK blocked from schedule context signal by ontological design"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: null
+    threshold_dependencies: []
+
+  - signal: fixture_count
+    position: DEF
+    meaning: "Number of fixtures in the gameweek (1 = SGW, 2 = DGW)"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-003
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.098
+    rejection_basis: "FIXTURE G2-FAIL: non-monotonic (Q5-Q1=-0.407) — DGW effect is a binary multiplier, not a graded monotonic signal; fixture_count should be treated as a binary DGW flag"
+    caveat: "fixtures.py reads is_dgw spine flag (not fixture_count) for DGW bonus detection — functionally equivalent but bypasses STATE fixture_context column"
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Not consumed directly. fixtures.py reads is_dgw from spine as binary proxy."
+    threshold_dependencies: []
+
+  - signal: fixture_count
+    position: MID
+    meaning: "Number of fixtures in the gameweek (1 = SGW, 2 = DGW)"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-003
+    evaluation_target: total_points
+    lifecycle_state: excluded
+    downstream_status: blocked
+    rho_pooled: 0.083
+    rejection_basis: "FIXTURE G2-FAIL: non-monotonic (Q5-Q1=-0.404) at MID — DGW effect is binary multiplier; same conclusion as DEF"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: "Not consumed directly. fixtures.py reads is_dgw from spine."
+    threshold_dependencies: []
+
+  - signal: fixture_count
+    position: FWD
+    meaning: "Number of fixtures in the gameweek (1 = SGW, 2 = DGW)"
+    scope: schedule_context
+    evaluation_lens: FIXTURE-GW
+    signal_id: FIXTURE-003
+    evaluation_target: total_points
+    lifecycle_state: not_applicable
+    downstream_status: blocked
+    rho_pooled: null
+    rejection_basis: "G-EDA2-01: FWD blocked from schedule context signal by ontological design"
+    caveat: null
+    redundancy: null
+    operational_role: null
+    consumer_modules: []
+    consumer_note: null
+    threshold_dependencies: []
+
+  # ===========================================================================
+  # STATE-governed columns not in evaluation_metadata.yaml
+  # Source: docs/governance/state-representation-inventory.md
+  # Evaluated in LENS-FORM team context studies; individual lens records in
+  # studies/runs/ CSVs rather than evaluation_metadata.yaml
+  # ===========================================================================
+
+  - signal: xgc_roll3
+    position: DEF
+    meaning: "3-GW rolling mean of expected goals conceded (team-level)"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Candidate at DEF/GK scope only; scope-restricted per state-representation-inventory.md. Pooled redundancy with goals_conceded + clean_sheets (G-EDA8-05); positional utility not ruled out."
+    redundancy: "Pooled redundancy with xgc_roll5, goals_conceded_roll3/5, clean_sheets_roll3/5 at DEF/GK (G-EDA8-05); SYNTH-01 to resolve which defensive signal(s) survive"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF scope but not consumed by any intelligence module. Phase 6 alignment required."
+    threshold_dependencies: []
+
+  - signal: xgc_roll3
+    position: GK
+    meaning: "3-GW rolling mean of expected goals conceded (team-level)"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Candidate at DEF/GK scope only. Pooled redundancy with other defensive signals (G-EDA8-05)."
+    redundancy: "Pooled redundancy with defensive signal group at DEF/GK (G-EDA8-05)"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module. Phase 6 alignment required."
+    threshold_dependencies: []
+
+  - signal: xgc_roll5
+    position: DEF
+    meaning: "5-GW rolling mean of expected goals conceded (team-level)"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Same scope restriction and redundancy caveat as xgc_roll3 DEF (G-EDA8-05)."
+    redundancy: "Pooled redundancy with xgc_roll3 and other defensive signals (G-EDA8-05)"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: xgc_roll5
+    position: GK
+    meaning: "5-GW rolling mean of expected goals conceded (team-level)"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Same scope restriction as xgc_roll3 GK (G-EDA8-05)."
+    redundancy: "Pooled redundancy with defensive signal group at DEF/GK (G-EDA8-05)"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: goals_conceded_roll3
+    position: DEF
+    meaning: "3-GW rolling mean of actual goals conceded (team-level)"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Candidate at DEF/GK scope; moderate_shift risk at MID (G-EDA5) — must not be used at MID or FWD."
+    redundancy: "Pooled redundancy with xgc_roll3/5 and clean_sheets_roll3/5 at DEF/GK (G-EDA8-05)"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module. Phase 6 alignment required."
+    threshold_dependencies: []
+
+  - signal: goals_conceded_roll3
+    position: GK
+    meaning: "3-GW rolling mean of actual goals conceded (team-level)"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Candidate at DEF/GK scope. Same caveat as DEF entry."
+    redundancy: "Pooled redundancy with defensive signal group at DEF/GK (G-EDA8-05)"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: goals_conceded_roll5
+    position: DEF
+    meaning: "5-GW rolling mean of actual goals conceded (team-level)"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Same scope restriction and redundancy caveat as goals_conceded_roll3 DEF."
+    redundancy: "Pooled redundancy with defensive signal group at DEF/GK (G-EDA8-05)"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: goals_conceded_roll5
+    position: GK
+    meaning: "5-GW rolling mean of actual goals conceded (team-level)"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Same scope restriction as goals_conceded_roll5 DEF."
+    redundancy: "Pooled redundancy with defensive signal group at DEF/GK (G-EDA8-05)"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: clean_sheets_roll3
+    position: DEF
+    meaning: "3-GW rolling mean of clean sheet frequency"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Candidate at DEF/GK scope. Surviving defensive signal after xgc redundancy resolution (G-EDA8-05)."
+    redundancy: "Pooled redundancy with xgc_roll3/5 and goals_conceded_roll3/5 at DEF/GK (G-EDA8-05); SYNTH-01 to determine which defensive signal(s) add independent contribution"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module. Phase 6 alignment required."
+    threshold_dependencies: []
+
+  - signal: clean_sheets_roll3
+    position: GK
+    meaning: "3-GW rolling mean of clean sheet frequency"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Candidate at DEF/GK scope. Same basis as DEF entry (G-EDA8-05)."
+    redundancy: "Pooled redundancy with defensive signal group at DEF/GK (G-EDA8-05)"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: clean_sheets_roll5
+    position: DEF
+    meaning: "5-GW rolling mean of clean sheet frequency"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Same scope restriction and basis as clean_sheets_roll3 DEF (G-EDA8-05)."
+    redundancy: "Pooled redundancy with defensive signal group at DEF/GK (G-EDA8-05)"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: clean_sheets_roll5
+    position: GK
+    meaning: "5-GW rolling mean of clean sheet frequency"
+    scope: team_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Same scope restriction as clean_sheets_roll5 DEF (G-EDA8-05)."
+    redundancy: "Pooled redundancy with defensive signal group at DEF/GK (G-EDA8-05)"
+    operational_role: defensive
+    consumer_modules: []
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
+    threshold_dependencies: []
+
+  - signal: minutes_trend
+    position: DEF
+    meaning: "Categorical direction of recent minutes change: rising | stable | falling (roll3 vs. prior-3-GW divergence >= 30 min)"
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: provisional
+    downstream_status: caveated
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "PROVISIONAL-EDITORIAL: 30-minute divergence threshold (STATE-T-01) has no predictive study backing. Restricted to availability domain only — must not feed form, value, or captain scoring."
+    redundancy: null
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+    consumer_note: "Consumed by availability.py (falling_trend_flag). Domain restriction enforced by _AVAILABILITY_DOMAIN_ONLY in player_gameweek_state.py."
+    threshold_dependencies:
+      - STATE-T-01
+      - AVAIL-T-03
+
+  - signal: minutes_trend
+    position: MID
+    meaning: "Categorical direction of recent minutes change: rising | stable | falling"
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: provisional
+    downstream_status: caveated
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "PROVISIONAL-EDITORIAL: same caveat as DEF. Availability domain only."
+    redundancy: null
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+    consumer_note: "Consumed by availability.py. Domain restriction enforced."
+    threshold_dependencies:
+      - STATE-T-01
+      - AVAIL-T-03
+
+  - signal: minutes_trend
+    position: FWD
+    meaning: "Categorical direction of recent minutes change: rising | stable | falling"
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: provisional
+    downstream_status: caveated
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "PROVISIONAL-EDITORIAL: same caveat as DEF. Availability domain only."
+    redundancy: null
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+    consumer_note: "Consumed by availability.py. Domain restriction enforced."
+    threshold_dependencies:
+      - STATE-T-01
+      - AVAIL-T-03
+
+  - signal: minutes_trend
+    position: GK
+    meaning: "Categorical direction of recent minutes change: rising | stable | falling"
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: provisional
+    downstream_status: caveated
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "PROVISIONAL-EDITORIAL: same caveat as DEF. GK playing time near-constant — trend utility is limited at GK."
+    redundancy: null
+    operational_role: availability
+    consumer_modules:
+      - intelligence/availability.py
+    consumer_note: "Consumed by availability.py but GK near-constant playing time limits practical utility of the trend classification."
+    threshold_dependencies:
+      - STATE-T-01
+      - AVAIL-T-03
+
+  - signal: fixture_context
+    position: DEF
+    meaning: "Gameweek fixture classification: DGW | BGW | SGW derived from spine is_dgw/is_bgw flags"
+    scope: schedule_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Contemporaneous label — classifies the current GW type, not a lag-1 predictor. Valid for conditional scoring adjustment only, not as an independent predictive feature."
+    redundancy: null
+    operational_role: fixture
+    consumer_modules:
+      - intelligence/fixtures.py
+      - intelligence/captain.py
+      - intelligence/transfers.py
+    consumer_note: "Phase 6 (GAP-TRACE-06) resolved: fixtures.py migrated from spine is_dgw to STATE fixture_context. captain.py and transfers.py also consume fixture_context for DGW-based fixture_score component."
+    threshold_dependencies: []
+
+  - signal: fixture_context
+    position: MID
+    meaning: "Gameweek fixture classification: DGW | BGW | SGW derived from spine is_dgw/is_bgw flags"
+    scope: schedule_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Contemporaneous label. Same caveat as DEF entry."
+    redundancy: null
+    operational_role: fixture
+    consumer_modules:
+      - intelligence/fixtures.py
+      - intelligence/captain.py
+      - intelligence/transfers.py
+    consumer_note: "Phase 6 (GAP-TRACE-06) resolved: all three modules now consume fixture_context from STATE."
+    threshold_dependencies: []
+
+  - signal: fixture_context
+    position: FWD
+    meaning: "Gameweek fixture classification: DGW | BGW | SGW derived from spine is_dgw/is_bgw flags"
+    scope: schedule_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Contemporaneous label. Same caveat as DEF entry."
+    redundancy: null
+    operational_role: fixture
+    consumer_modules:
+      - intelligence/fixtures.py
+      - intelligence/captain.py
+      - intelligence/transfers.py
+    consumer_note: "Phase 6 (GAP-TRACE-06) resolved: all three modules now consume fixture_context from STATE."
+    threshold_dependencies: []
+
+  - signal: fixture_context
+    position: GK
+    meaning: "Gameweek fixture classification: DGW | BGW | SGW derived from spine is_dgw/is_bgw flags"
+    scope: schedule_context
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Contemporaneous label. Same caveat as DEF entry."
+    redundancy: null
+    operational_role: fixture
+    consumer_modules:
+      - intelligence/captain.py
+    consumer_note: "Phase 6 (GAP-TRACE-06) resolved: captain.py consumes fixture_context for DGW fixture_score component."
+    threshold_dependencies: []

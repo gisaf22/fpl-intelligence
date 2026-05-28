@@ -22,7 +22,6 @@ SIGNAL_FAMILY: dict[str, str] = {
     "starts":             "exposure",
     "transfers_in":       "market",
     "transfers_out":      "market",
-    "transfers_balance":  "market",
     "ownership_count":    "market",
     "purchase_price":     "market",
     "xg":                 "attacking",
@@ -43,16 +42,11 @@ SIGNAL_FAMILY: dict[str, str] = {
     "influence":          "form",
     "ict_index":          "form",
     "fdr_avg":            "fixture",
-    "fdr_min":            "fixture",
-    "fdr_max":            "fixture",
     "was_home":           "fixture",
     "is_dgw":             "fixture",
     "fixture_count":      "fixture",
-    "own_goals":          "discipline",
     "yellow_cards":       "discipline",
     "red_cards":          "discipline",
-    "penalties_missed":   "discipline",
-    "in_dreamteam":       "discipline",
 }
 
 EXPOSURE_SENSITIVITY_VALUES = frozenset({

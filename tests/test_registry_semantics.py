@@ -31,7 +31,7 @@ def test_enrich_signal_layers_adds_semantic_columns_to_raw_registry():
 
     assert SEMANTIC_COLUMNS.issubset(enriched.columns)
     assert enriched["downstream_status"].value_counts().to_dict() == {
-        "caveated": 83,
+        "caveated": 71,
         "blocked": 24,
         "eligible": 9,
     }

@@ -1,0 +1,82 @@
+{
+  "timestamp": "20260522_204715",
+  "db_path": "/Users/safarifgisa/.fpl/fpl.db",
+  "n_bootstrap": 2000,
+  "bootstrap_seed": 42,
+  "ci_level": 0.95,
+  "minutes_threshold": 60,
+  "gw_max": 33,
+  "gw_blocks": {
+    "early": [
+      3,
+      12
+    ],
+    "mid": [
+      13,
+      26
+    ],
+    "late": [
+      27,
+      33
+    ]
+  },
+  "quintile_gap_threshold": 1.0,
+  "signals": {
+    "xgi_roll3": {
+      "positions": [
+        "DEF",
+        "MID",
+        "FWD"
+      ],
+      "gw_min": 3,
+      "signal_id": "FORM-001"
+    },
+    "xgi_roll5": {
+      "positions": [
+        "DEF",
+        "MID",
+        "FWD"
+      ],
+      "gw_min": 6,
+      "signal_id": "FORM-002"
+    },
+    "goals_scored_roll3": {
+      "positions": [
+        "DEF",
+        "MID",
+        "FWD"
+      ],
+      "gw_min": 3,
+      "signal_id": "FORM-003"
+    },
+    "points_roll3": {
+      "positions": [
+        "GKP",
+        "DEF",
+        "MID",
+        "FWD"
+      ],
+      "gw_min": 3,
+      "signal_id": "FORM-004"
+    },
+    "points_roll5": {
+      "positions": [
+        "GKP",
+        "DEF",
+        "MID",
+        "FWD"
+      ],
+      "gw_min": 6,
+      "signal_id": "FORM-005"
+    },
+    "minutes_roll3": {
+      "positions": [
+        "DEF",
+        "MID",
+        "FWD"
+      ],
+      "gw_min": 3,
+      "signal_id": "FORM-006"
+    }
+  }
+}

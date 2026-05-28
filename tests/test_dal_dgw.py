@@ -35,26 +35,13 @@ def test_dgw_home_away_count_sums_to_two():
     )
 
 
-def test_dgw_fdr_ordering():
-    """All is_dgw=True rows satisfy fdr_min <= fdr_avg <= fdr_max. Contract Section 5, 6."""
+def test_dgw_fdr_avg_not_null():
+    """All is_dgw=True rows have fdr_avg not null — DGW rows have fixtures. Contract Section 5, 6."""
     spine = build_player_gameweek_spine(DB_PATH)
     dgw_rows = spine[spine["is_dgw"] == True]
     assert not dgw_rows.empty, "No DGW rows found"
-
-    for col in ("fdr_min", "fdr_avg", "fdr_max"):
-        if col not in dgw_rows.columns:
-            raise KeyError(
-                f"FDR column '{col}' missing from spine — "
-                f"cannot verify DGW FDR ordering. Contract Section 5 requires this column."
-            )
-
-    bad = dgw_rows[
-        (dgw_rows["fdr_min"] > dgw_rows["fdr_avg"]) |
-        (dgw_rows["fdr_avg"] > dgw_rows["fdr_max"])
-    ]
-    assert bad.empty, (
-        f"DGW FDR ordering violation: {len(bad)} rows have fdr_min > fdr_avg or fdr_avg > fdr_max"
-    )
+    bad = dgw_rows[dgw_rows["fdr_avg"].isna()]
+    assert bad.empty, f"DGW FDR violation: {len(bad)} rows have fdr_avg null"
 
 
 def test_dgw_clean_sheet_count_in_bounds():

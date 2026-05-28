@@ -2,6 +2,23 @@
 
 Surfaces players delivering high point returns relative to their FPL cost.
 Deterministic and price-static — does not forecast price changes.
+
+Weights are loaded from the governance registry (signals/registry/weight_registry.yaml).
+All weights are PROVISIONAL-EDITORIAL — no analytical derivation exists.
+
+## Phase 6 governance changes (2026-05-27)
+
+GAP-TRACE-01 (SCOPE VIOLATION fixed): xgi_roll3 and xgi_roll5 excluded at FWD
+  (FORM-001/002 G2-FAIL). FWD scope guard: both xgi signals zeroed before scoring
+  computations so all FWD players receive equal treatment (neutral 0.5 per component).
+  xgi_per_cost output column retains original values for informational display.
+
+Known remaining governance notes (do not resolve until SYNTH-01):
+- efficiency_score uses xgi_roll5/purchase_price: PROVISIONAL-EDITORIAL; weights unjustified
+- form_score uses xgi_roll3: PROVISIONAL-EDITORIAL; MID caveat (naive baseline)
+- consistency_score: no evaluation study assesses xgi momentum specifically
+- _MIN_MINUTES_ROLL5 = 30.0: UNJUSTIFIED — no lens study establishes this threshold;
+  see threshold-registry.md §VAL-T-01
 """
 
 from __future__ import annotations
@@ -14,19 +31,16 @@ from intelligence._base import (
     validate_intelligence_inputs,
     weighted_composite,
 )
+from intelligence.weight_registry import get_module_weights
 
-# Explicit static weights.
-# Value efficiency = 50%, form = 30%, consistency = 20%.
-_WEIGHTS: dict[str, float] = {
-    "efficiency_score": 0.50,
-    "form_score": 0.30,
-    "consistency_score": 0.20,
-}
+# Weights loaded from governance registry — fails hard if entry missing.
+_WEIGHTS: dict[str, float] = get_module_weights("value")
 
 # Minimum price to avoid division edge cases and very unpriced placeholders.
 _MIN_PRICE = 3.5
 
-# Minimum rolling minutes to include — bench-warmers inflate value artificially.
+# UNJUSTIFIED (threshold-registry.md §VAL-T-01): no lens study establishes 30.0
+# as a participation minimum; evidence required: value precision vs. minutes floor.
 _MIN_MINUTES_ROLL5 = 30.0
 
 _OUTPUT_COLS = [
@@ -35,10 +49,10 @@ _OUTPUT_COLS = [
     "position_label",
     "team_id",
     "purchase_price",
-    "points_roll3",
-    "points_roll5",
+    "xgi_roll3",
+    "xgi_roll5",
     "minutes_roll5",
-    "points_per_cost",
+    "xgi_per_cost",
     "efficiency_score",
     "form_score",
     "consistency_score",
@@ -71,11 +85,15 @@ def rank_value_players(
     -------
     DataFrame ranked by value_score descending with explainability columns.
 
-    Scoring components (static weights):
-    - efficiency_score  50%: points_roll5 / purchase_price, normalized within position
-    - form_score        30%: points_roll3, normalized within position
-    - consistency_score 20%: alignment between roll3 and roll5 (low divergence = consistent)
+    Scoring components (registry weights; all PROVISIONAL-EDITORIAL):
+    - efficiency_score  50%: xgi_roll5 / purchase_price, normalized within position
+                             FWD scope guard: xgi_roll5 zeroed at FWD → neutral 0.5
+    - form_score        30%: xgi_roll3, normalized within position
+                             FWD scope guard: zeroed at FWD → neutral 0.5
+    - consistency_score 20%: alignment between xgi_roll3 and xgi_roll5
+                             FWD scope guard: both zeroed → perfect consistency → 0.5
 
+    xgi_per_cost output column shows original (un-guarded) values for display.
     Only players with minutes_roll5 >= 30 and purchase_price >= 3.5 are eligible.
     """
     validate_intelligence_inputs(features, "rank_value_players")
@@ -97,24 +115,33 @@ def rank_value_players(
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # Points per cost: primary value signal.
-    eligible["points_per_cost"] = (
-        eligible["points_roll5"].fillna(0) / eligible["purchase_price"]
+    # xgi_per_cost for display: uses original xgi values (informational output).
+    eligible["xgi_per_cost"] = (
+        eligible["xgi_roll5"].fillna(0) / eligible["purchase_price"]
     )
 
-    # Consistency: how close are roll3 and roll5?
+    # GAP-TRACE-01: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
+    # Zero out xgi signals for FWD players; scoring uses these guarded values.
+    fwd_mask = eligible["position_label"] == "FWD"
+    xgi_roll5_scored = eligible["xgi_roll5"].fillna(0).where(~fwd_mask, 0.0)
+    xgi_roll3_scored = eligible["xgi_roll3"].fillna(0).where(~fwd_mask, 0.0)
+    eligible["_xgi_per_cost_scored"] = xgi_roll5_scored / eligible["purchase_price"]
+
+    # Consistency: how close are xgi_roll3 and xgi_roll5?
     # High score = roll3 ≈ roll5 (stable contributor, not one-week wonder).
-    roll3 = eligible["points_roll3"].fillna(0)
-    roll5 = eligible["points_roll5"].fillna(0)
-    # Normalised absolute divergence, inverted so 0 divergence = score 1.
-    max_roll5 = roll5.replace(0, 1)  # avoid division by zero
-    eligible["_consistency_raw"] = 1.0 - (roll3 - roll5).abs() / max_roll5.abs()
+    # Uses scope-guarded values; FWD players: both zero → perfect consistency → 0.5
+    max_roll5_scored = xgi_roll5_scored.replace(0, 1)  # avoid division by zero
+    eligible["_consistency_raw"] = 1.0 - (
+        (xgi_roll3_scored - xgi_roll5_scored).abs() / max_roll5_scored.abs()
+    )
     eligible["_consistency_raw"] = eligible["_consistency_raw"].clip(lower=0.0)
 
+    eligible["_xgi_roll3_scored"] = xgi_roll3_scored
+
     eligible["efficiency_score"] = normalize_within_position(
-        eligible, "points_per_cost"
+        eligible, "_xgi_per_cost_scored"
     )
-    eligible["form_score"] = normalize_within_position(eligible, "points_roll3")
+    eligible["form_score"] = normalize_within_position(eligible, "_xgi_roll3_scored")
     eligible["consistency_score"] = normalize_within_position(
         eligible, "_consistency_raw"
     )

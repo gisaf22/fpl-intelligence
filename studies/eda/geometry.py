@@ -19,8 +19,6 @@ MATCH_LEVEL_SIGNALS: frozenset[str] = frozenset(
         "goals_conceded",
         "fixture_count",
         "fdr_avg",
-        "fdr_min",
-        "fdr_max",
         "is_dgw",
     }
 )
@@ -33,7 +31,7 @@ POPULATION_SCOPE_VALUES: frozenset[str] = frozenset({"primary", "secondary"})
 POSITIONS: list[str] = ["GK", "DEF", "MID", "FWD"]
 BLOCK_ORDER: list[str] = ["early", "mid", "late"]
 
-FDR_SIGNALS: frozenset[str] = frozenset({"fdr_avg", "fdr_max", "fdr_min"})
+FDR_SIGNALS: frozenset[str] = frozenset({"fdr_avg"})
 FDR_ORDINAL_BINS: list[float] = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]
 FDR_ORDINAL_LABELS: list[str] = ["1", "2", "3", "4", "5"]
 

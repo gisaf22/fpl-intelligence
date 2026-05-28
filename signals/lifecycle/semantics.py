@@ -116,13 +116,13 @@ SIGNAL_LAYER_MAPPING: dict[str, dict[str, Any]] = {
         "signal_layer": "context",
         "layer_role": "fixture_difficulty",
         "feature_candidate_eligible": False,
-        "interpretation_caveat": "match-level schedule context",
+        "interpretation_caveat": "per-fixture minimum FDR; removed from spine — superseded by fdr_avg",
     },
     "fdr_max": {
         "signal_layer": "context",
         "layer_role": "fixture_difficulty",
         "feature_candidate_eligible": False,
-        "interpretation_caveat": "match-level schedule context",
+        "interpretation_caveat": "per-fixture maximum FDR; removed from spine — superseded by fdr_avg",
     },
     "was_home": {
         "signal_layer": "context",
@@ -148,6 +148,12 @@ SIGNAL_LAYER_MAPPING: dict[str, dict[str, Any]] = {
         "feature_candidate_eligible": False,
         "interpretation_caveat": "popularity/demand, not quality",
     },
+    "transfers_balance": {
+        "signal_layer": "market_behavior",
+        "layer_role": "demand_net_flow",
+        "feature_candidate_eligible": False,
+        "interpretation_caveat": "net transfer flow (transfers_in − transfers_out); removed from spine — uninformative all positions",
+    },
     "transfers_in": {
         "signal_layer": "market_behavior",
         "layer_role": "demand_inflow",
@@ -157,12 +163,6 @@ SIGNAL_LAYER_MAPPING: dict[str, dict[str, Any]] = {
     "transfers_out": {
         "signal_layer": "market_behavior",
         "layer_role": "demand_outflow",
-        "feature_candidate_eligible": False,
-        "interpretation_caveat": "behavioral demand signal",
-    },
-    "transfers_balance": {
-        "signal_layer": "market_behavior",
-        "layer_role": "net_demand",
         "feature_candidate_eligible": False,
         "interpretation_caveat": "behavioral demand signal",
     },

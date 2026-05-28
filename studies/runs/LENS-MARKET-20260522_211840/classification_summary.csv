@@ -1,0 +1,17 @@
+signal_id,signal,position,lens_status,rationale
+MARKET-001,transfers_in,GKP,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=0.909, monotonic=False)"
+MARKET-001,transfers_in,DEF,informative,"CI excludes zero, decision relevant, passes 3/3 GW blocks"
+MARKET-001,transfers_in,MID,informative,"CI excludes zero, decision relevant, passes 3/3 GW blocks"
+MARKET-001,transfers_in,FWD,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=1.983, monotonic=False)"
+MARKET-002,transfers_balance,GKP,uninformative,"CI crosses zero [-0.022, 0.136]"
+MARKET-002,transfers_balance,DEF,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=0.563, monotonic=False)"
+MARKET-002,transfers_balance,MID,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=0.756, monotonic=False)"
+MARKET-002,transfers_balance,FWD,uninformative,"CI crosses zero [-0.015, 0.149]"
+MARKET-003,ownership_count,GKP,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=0.826, monotonic=False)"
+MARKET-003,ownership_count,DEF,informative,"CI excludes zero, decision relevant, passes 3/3 GW blocks"
+MARKET-003,ownership_count,MID,informative,"CI excludes zero, decision relevant, passes 3/3 GW blocks"
+MARKET-003,ownership_count,FWD,unstable,CI excludes zero in aggregate but passes only 1/3 GW blocks
+MARKET-004,purchase_price,GKP,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=0.826, monotonic=False)"
+MARKET-004,purchase_price,DEF,informative,"CI excludes zero, decision relevant, passes 2/3 GW blocks"
+MARKET-004,purchase_price,MID,uninformative,"CI excludes zero but fails decision relevance (Q5-Q1=1.371, monotonic=False)"
+MARKET-004,purchase_price,FWD,informative,"CI excludes zero, decision relevant, passes 2/3 GW blocks"

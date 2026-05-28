@@ -21,7 +21,7 @@ STRUCTURAL_ZERO_MAP: dict[str, set[str]] = {
 }
 
 # Binary signals — semantically 0/1 flags, not continuous or zero-inflated.
-BINARY_SIGNALS: frozenset[str] = frozenset({"was_home", "is_dgw", "in_dreamteam", "starts"})
+BINARY_SIGNALS: frozenset[str] = frozenset({"was_home", "is_dgw", "starts"})
 
 # Reason sets used for precedence resolution in build_signal_status_table.
 EXCLUDE_REASONS: frozenset[str] = frozenset({"CONSTANT", "STRUCTURAL_ZERO"})

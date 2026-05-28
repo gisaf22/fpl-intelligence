@@ -9,7 +9,7 @@ This test re-runs the same computed build and asserts that the output is
 reproducible within governed tolerances:
 
 - Schema parity: same column set (order is not required)
-- Row parity: both seed and computed have exactly 112 rows
+- Row parity: both seed and computed have exactly 104 rows
 - No duplicate (signal, position) keys in computed
 - rho_pooled tolerance: absolute difference <= 0.02 for all matched non-null pairs
 
@@ -36,7 +36,7 @@ DB_PATH = Path.home() / ".fpl" / "fpl.db"
 # This is the reproducibility reference — not the old exploratory EDA-3 CSV.
 SEED_REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
 
-EXPECTED_REGISTRY_ROWS: int = 116
+EXPECTED_REGISTRY_ROWS: int = 104
 
 GW_MIN: int = 6
 GW_MAX: int = 33
@@ -134,7 +134,7 @@ def test_schema_parity(
 def test_seed_registry_has_expected_row_count(
     seed_registry: pd.DataFrame,
 ) -> None:
-    """Seed registry must have exactly 112 rows (29 signals × 4 positions)."""
+    """Seed registry must have exactly 104 rows (26 signals × 4 positions)."""
     assert len(seed_registry) == EXPECTED_REGISTRY_ROWS, (
         f"seed registry row count changed: expected {EXPECTED_REGISTRY_ROWS}, "
         f"got {len(seed_registry)}"
@@ -145,7 +145,7 @@ def test_seed_registry_has_expected_row_count(
 def test_computed_registry_row_count(
     computed_registry: pd.DataFrame,
 ) -> None:
-    """Computed registry must produce exactly 112 rows (29 signals × 4 positions)."""
+    """Computed registry must produce exactly 104 rows (26 signals × 4 positions)."""
     assert len(computed_registry) == EXPECTED_REGISTRY_ROWS, (
         f"computed registry row count: expected {EXPECTED_REGISTRY_ROWS}, "
         f"got {len(computed_registry)}"

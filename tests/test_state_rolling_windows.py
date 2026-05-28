@@ -79,15 +79,15 @@ class TestRollingWindowsWithBGW:
                 gw = row["gw"]
                 prior_gws = player_state[player_state["gw"].between(gw-5, gw-1)]
 
-                # Count non-NULL performance values in prior window
-                prior_points = prior_gws["total_points"].dropna()
+                # Count non-NULL xgi values in prior window
+                prior_xgi = prior_gws["xgi"].dropna()
 
-                # If we have at least 1 prior point, roll5 should be computed (not NA)
-                if len(prior_points) >= 1:
+                # If we have at least 1 prior xgi, roll5 should be computed (not NA)
+                if len(prior_xgi) >= 1:
                     # roll5 should be numeric, not NA
-                    assert pd.notna(row["points_roll5"]), (
-                        f"Player {player_id} GW {gw}: roll5 is NA but has "
-                        f"{len(prior_points)} prior non-NULL values"
+                    assert pd.notna(row["xgi_roll5"]), (
+                        f"Player {player_id} GW {gw}: xgi_roll5 is NA but has "
+                        f"{len(prior_xgi)} prior non-NULL values"
                     )
 
     def test_bgw_does_not_prevent_rolling_computation(self):
@@ -113,12 +113,12 @@ class TestRollingWindowsWithBGW:
 
                 # If mixed BGWs and SGWs, rolling should still compute
                 if bgw_count > 0 and sgw_count > 0:
-                    roll5_val = player_state[player_state["gw"] == gw]["points_roll5"].iloc[0]
+                    roll5_val = player_state[player_state["gw"] == gw]["xgi_roll5"].iloc[0]
                     # Should compute from SGW values, skipping BGW NULLs
                     # Either computed value or NA if all SGWs are NA
                     assert pd.notna(roll5_val) or sgw_count == 0, (
                         f"Player {player_id} GW {gw}: "
-                        f"roll5 is NA but has {sgw_count} non-BGW rows in window"
+                        f"xgi_roll5 is NA but has {sgw_count} non-BGW rows in window"
                     )
 
 
@@ -140,25 +140,25 @@ class TestRollingWindowsWithDGW:
 
             dgw_gws = player_spine[player_spine["is_dgw"] == True]["gw"].unique()
 
-            # For GWs after a DGW, roll window should include that DGW's summed points
+            # For GWs after a DGW, roll window should include that DGW's summed xgi
             for dgw_gw in dgw_gws:
-                dgw_points = player_spine[player_spine["gw"] == dgw_gw]["total_points"].iloc[0]
+                dgw_xgi = player_spine[player_spine["gw"] == dgw_gw]["xgi"].iloc[0]
 
                 # Check roll5 for GW = dgw_gw + 1 (if exists)
                 next_gw = dgw_gw + 1
                 next_state_rows = player_state[player_state["gw"] == next_gw]
 
                 if not next_state_rows.empty:
-                    roll5_val = next_state_rows["points_roll5"].iloc[0]
+                    roll5_val = next_state_rows["xgi_roll5"].iloc[0]
 
                     # roll5 at next_gw includes dgw_gw in its window (dgw_gw is 1 of 5 prior)
-                    # If dgw_points is not NA and roll5 is computed, it should reflect dgw
-                    if pd.notna(dgw_points) and pd.notna(roll5_val):
-                        # DGW points (summed) are included in rolling average
+                    # If dgw_xgi is not NA and roll5 is computed, it should reflect dgw
+                    if pd.notna(dgw_xgi) and pd.notna(roll5_val):
+                        # DGW xgi (summed) is included in rolling average
                         # We can't directly verify the value, but we can verify it computed
                         assert isinstance(roll5_val, (int, float)), (
                             f"Player {player_id} GW {next_gw}: "
-                            f"roll5 after DGW should be numeric"
+                            f"xgi_roll5 after DGW should be numeric"
                         )
 
     def test_dgw_minutes_sum_in_rolling(self):
@@ -218,9 +218,9 @@ class TestRollingWindowsLag1Convention:
         # Verify by checking that current GW (6) is not included
         # This is implicit in the lag-1 shift — the rolling window is computed
         # on shift(1) which already excludes the current row
-        roll5_gw6 = gw6_row["points_roll5"].iloc[0]
+        roll5_gw6 = gw6_row["xgi_roll5"].iloc[0]
 
         # If computed (not NA), it should be from GWs 1-5
         if pd.notna(roll5_gw6):
-            gws_1_5 = player_state[player_state["gw"].between(1, 5)]["total_points"].dropna()
+            gws_1_5 = player_state[player_state["gw"].between(1, 5)]["xgi"].dropna()
             assert len(gws_1_5) > 0, "No data in GWs 1-5"

@@ -85,17 +85,11 @@ def test_outcome_component_signals_in_caveated_not_confirmed(manifest):
         )
 
 
-def test_confirmed_signals_meet_rho_threshold(manifest):
-    """Every confirmed signal has abs(rho_pooled) >= MIN_RHO."""
-    from intelligence.scoring.signals import MIN_RHO
-
+def test_confirmed_signals_have_non_null_rho(manifest):
+    """Every confirmed signal has a non-null rho_pooled (CI gate, Phase 8 resolution of G-OPS-02)."""
     for sig in manifest.confirmed:
-        assert sig.rho_pooled == sig.rho_pooled, (  # NaN check
-            f"{sig.signal}/{sig.position} has rho_pooled=NaN"
-        )
-        assert abs(sig.rho_pooled) >= MIN_RHO, (
-            f"{sig.signal}/{sig.position} has |rho|={abs(sig.rho_pooled):.3f} "
-            f"below threshold {MIN_RHO}"
+        assert sig.rho_pooled == sig.rho_pooled, (  # NaN check via self-inequality
+            f"{sig.signal}/{sig.position} has rho_pooled=NaN — should be caveated, not confirmed"
         )
 
 

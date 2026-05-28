@@ -19,12 +19,23 @@ _EXPLORATORY_PREFIXES: tuple[Path, ...] = (Path("studies/eda"),)
 
 
 class LifecycleViolationError(ValueError):
-    """Raised when an operational consumer attempts to load an exploratory registry.
+    """Raised when an operational consumer attempts to load an exploratory registry,
+    or when a signal with lifecycle_state=excluded or downstream_status=blocked
+    is loaded by a scoring consumer.
 
     Exploratory registries live under studies/eda/ and represent unvalidated
     research outputs. Operational consumers (scorer, report runner) must consume
     only registries that have been promoted through the research lifecycle and
     written to outputs/registry/.
+    """
+
+
+class LeakageViolationError(ValueError):
+    """Raised when a signal with leakage_risk=direct is loaded by an operational consumer.
+
+    Direct leakage means the signal is a computational component of the scoring
+    target (e.g. bonus, bps). Loading such a signal in a scoring context would
+    contaminate the output with target information.
     """
 
 

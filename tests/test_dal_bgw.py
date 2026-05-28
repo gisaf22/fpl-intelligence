@@ -15,7 +15,7 @@ _PERFORMANCE_COLS = [
     "total_points", "minutes", "goals_scored", "assists",
     "clean_sheets", "yellow_cards", "red_cards", "saves",
     "bonus", "bps", "xg", "xa", "xgi", "goals_conceded", "xgc",
-    "starts", "penalties_saved", "penalties_missed", "own_goals",
+    "starts", "penalties_saved",
     "influence", "creativity", "threat", "ict_index",
 ]
 
@@ -56,22 +56,14 @@ def test_bgw_performance_columns_null():
         )
 
 
-def test_bgw_fdr_columns_null():
-    """All is_bgw=True rows have fdr_avg, fdr_min, fdr_max == NULL — no fixture, no difficulty. Contract Section 5, 6."""
+def test_bgw_fdr_avg_null():
+    """All is_bgw=True rows have fdr_avg == NULL — no fixture, no difficulty. Contract Section 5, 6."""
     spine = build_player_gameweek_spine(DB_PATH)
-    bgw_rows = spine[spine["is_bgw"] == True]  # KeyError if is_bgw missing
+    bgw_rows = spine[spine["is_bgw"] == True]
     if bgw_rows.empty:
         return
-    for col in ("fdr_avg", "fdr_min", "fdr_max"):
-        if col not in bgw_rows.columns:
-            raise KeyError(
-                f"FDR column '{col}' missing from spine — "
-                f"cannot verify BGW null semantics. Contract Section 5 requires this column."
-            )
-        bad = bgw_rows[bgw_rows[col].notna()]
-        assert bad.empty, (
-            f"BGW FDR violation: {len(bad)} rows have {col} not null"
-        )
+    bad = bgw_rows[bgw_rows["fdr_avg"].notna()]
+    assert bad.empty, f"BGW FDR violation: {len(bad)} rows have fdr_avg not null"
 
 
 def test_bgw_correctness_via_validator():

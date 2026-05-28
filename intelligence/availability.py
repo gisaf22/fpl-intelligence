@@ -3,6 +3,33 @@
 Identifies players with unreliable or deteriorating minute patterns. This is
 an operational warning layer — it does not predict injuries or suspensions.
 It surfaces observable patterns in recent playing time.
+
+## Threshold provenance — PROVISIONAL-EDITORIAL (2026-05-26)
+
+No analytical derivation exists for any classification threshold in this module.
+All thresholds (_HIGH_RISK_MINUTES_ROLL3, _MEDIUM_RISK_MINUTES_ROLL3,
+_DIVERGENCE_THRESHOLD) are editorial judgments set before the lens-study
+methodology was established. LENS-AVAIL evaluated minutes_roll3 and
+minutes_roll5 for predictive signal, but did not study risk classification
+thresholds. Resolution: review thresholds after Phase 8 completes.
+
+Editorial rationale on record:
+- _MEDIUM_RISK_MINUTES_ROLL3 = 60.0: corresponds to the FPL appearance bonus
+  boundary (players on 45+ minutes receive an appearance point; 60+ minutes
+  receive the full bonus). Editorial, not analytically established.
+- _HIGH_RISK_MINUTES_ROLL3 = 30.0: editorial; implies less than half a match
+  on average over 3 GWs
+- _DIVERGENCE_THRESHOLD = 20.0: editorial; no study defines a meaningful
+  divergence magnitude between roll3 and roll5
+
+## Phase 6 governance changes (2026-05-27)
+
+GAP-TRACE-03 (UNWIRED CANDIDATE fixed): minutes_roll8 wired at DEF (AVAIL-003
+  rho=0.219) and MID (rho=0.222). long_horizon_flag added for DEF/MID players
+  using minutes_roll8 as an additional availability signal. This is the only
+  AVAIL candidate at DEF (minutes_roll3 and minutes_roll5 both excluded at DEF).
+  GK and FWD: excluded from long_horizon_flag (minutes_roll8 excluded at those
+  positions; AVAIL-003 G2-FAIL at FWD, non-monotonic at GK).
 """
 
 from __future__ import annotations
@@ -17,11 +44,15 @@ from intelligence._base import (
 
 # Risk thresholds — explicit and static.
 # These reflect playing-time patterns, not injury likelihood.
-_HIGH_RISK_MINUTES_ROLL3 = 30.0    # Rarely starting or subbing on
-_MEDIUM_RISK_MINUTES_ROLL3 = 60.0  # Rotation risk / used as sub
+_HIGH_RISK_MINUTES_ROLL3 = 30.0    # UNJUSTIFIED (threshold-registry.md §AVAIL-T-01)
+_MEDIUM_RISK_MINUTES_ROLL3 = 60.0  # PROVISIONAL-EDITORIAL (threshold-registry.md §AVAIL-T-02): FPL appearance bonus boundary
 
 # Divergence threshold: roll3 significantly below roll5 signals a recent drop.
-_DIVERGENCE_THRESHOLD = 20.0  # minutes
+_DIVERGENCE_THRESHOLD = 20.0  # UNJUSTIFIED (threshold-registry.md §AVAIL-T-03)
+
+# Positions where minutes_roll8 is a governed AVAIL candidate (AVAIL-003).
+# GAP-TRACE-03: DEF (rho=0.219) and MID (rho=0.222) only.
+_MINUTES_ROLL8_POSITIONS = frozenset({"DEF", "MID"})
 
 _OUTPUT_COLS = [
     "player_id",
@@ -30,11 +61,13 @@ _OUTPUT_COLS = [
     "team_id",
     "minutes_roll3",
     "minutes_roll5",
+    "minutes_roll8",
     "minutes_trend",
     "minutes_divergence",
     "low_minutes_flag",
     "falling_trend_flag",
     "divergence_flag",
+    "long_horizon_flag",
     "risk_level",
     "risk_reason",
 ]
@@ -64,6 +97,8 @@ def flag_availability_risk(
     HIGH:   minutes_roll3 < 30 (rarely playing)
     MEDIUM: minutes_roll3 < 60 OR minutes_trend == 'falling'
             OR minutes_divergence > 20 (recent drop relative to 5-GW baseline)
+            OR long_horizon_flag == 1 (DEF/MID only: minutes_roll8 < 60,
+               using the 8-GW governed AVAIL candidate per GAP-TRACE-03)
     LOW:    none of the above
 
     All players at target_gw are included, not just risky ones, so consumers
@@ -79,6 +114,7 @@ def flag_availability_risk(
 
     roll3 = gw_df["minutes_roll3"].fillna(0)
     roll5 = gw_df["minutes_roll5"].fillna(0)
+    roll8 = gw_df["minutes_roll8"].fillna(0)
     trend = gw_df["minutes_trend"].fillna("")
 
     # Component risk signals — each is a binary flag.
@@ -89,12 +125,21 @@ def flag_availability_risk(
         gw_df["minutes_divergence"] > _DIVERGENCE_THRESHOLD
     ).astype(int)
 
+    # GAP-TRACE-03: long-horizon availability signal for DEF/MID (minutes_roll8 AVAIL-003).
+    # Flagged when the 8-GW baseline also shows low participation — useful at DEF
+    # where shorter windows are excluded from AVAIL evaluation.
+    gw_df["long_horizon_flag"] = (
+        (roll8 < _MEDIUM_RISK_MINUTES_ROLL3)
+        & gw_df["position_label"].isin(_MINUTES_ROLL8_POSITIONS)
+    ).astype(int)
+
     # Risk level: evaluated in priority order (HIGH → MEDIUM → LOW).
     conditions = [
         roll3 < _HIGH_RISK_MINUTES_ROLL3,
         (roll3 < _MEDIUM_RISK_MINUTES_ROLL3)
         | (trend == "falling")
-        | (gw_df["minutes_divergence"] > _DIVERGENCE_THRESHOLD),
+        | (gw_df["minutes_divergence"] > _DIVERGENCE_THRESHOLD)
+        | (gw_df["long_horizon_flag"] == 1),
     ]
     choices = ["HIGH", "MEDIUM"]
     gw_df["risk_level"] = np.select(conditions, choices, default="LOW")
@@ -113,6 +158,10 @@ def flag_availability_risk(
                 parts.append(
                     f"recent drop ({row['minutes_roll3']:.0f} vs "
                     f"{row['minutes_roll5']:.0f} 5-GW avg)"
+                )
+            if row["long_horizon_flag"]:
+                parts.append(
+                    f"8-GW avg {row['minutes_roll8']:.0f} min also low"
                 )
             return "; ".join(parts) if parts else "borderline minutes"
         return "stable minutes"

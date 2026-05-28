@@ -19,8 +19,8 @@ def test_promotion_class_counts_match_governed_registry():
     non_null_counts = df["promotion_class"].dropna().value_counts().to_dict()
     assert non_null_counts == {
         "review_signal": 48,
-        "context_control": 18,
-        "market_context": 16,
+        "market_context": 12,
+        "context_control": 10,
         "core_signal": 8,
         "exposure_control": 2,
     }

@@ -1,0 +1,5 @@
+Lag alignment check: PASS
+Produced: 2026-05-22T20:47:20.435032
+PASS [1] GW 1 xgi_roll3 rows are NaN (warmup confirmed).
+PASS [2] Lag-1 target matches total_points at GW N+1 for player 1.
+PASS [3] xgi_roll3 at GW 4 = 0.0067 matches mean(GW 1-3 xgi) = 0.0067.

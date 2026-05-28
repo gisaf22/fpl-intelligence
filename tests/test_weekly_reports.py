@@ -15,7 +15,7 @@ def test_signal_summary_is_compact_weekly_mart():
 
     summary = build_signal_summary(registry, gw=36)
 
-    assert len(summary) == 116
+    assert len(summary) == 104
     assert summary["gw"].eq(36).all()
     assert "n_records" not in summary.columns
     assert {
@@ -36,9 +36,9 @@ def test_summary_by_position_matches_status_counts():
     by_position = build_summary_by_position(summary)
 
     assert set(by_position["position"]) == {"GK", "DEF", "MID", "FWD"}
-    assert int(by_position["total_signals"].sum()) == 116
+    assert int(by_position["total_signals"].sum()) == 104
     assert int(by_position["eligible"].sum()) == 9
-    assert int(by_position["caveated"].sum()) == 83
+    assert int(by_position["caveated"].sum()) == 71
     assert int(by_position["blocked"].sum()) == 24
 
 
@@ -47,9 +47,9 @@ def test_summary_by_layer_matches_status_counts():
 
     by_layer = build_summary_by_layer(summary)
 
-    assert int(by_layer["total_signals"].sum()) == 116
+    assert int(by_layer["total_signals"].sum()) == 104
     assert int(by_layer["eligible"].sum()) == 9
-    assert int(by_layer["caveated"].sum()) == 83
+    assert int(by_layer["caveated"].sum()) == 71
     assert int(by_layer["blocked"].sum()) == 24
 
 
@@ -79,6 +79,6 @@ def test_write_weekly_report_tables(tmp_path):
 
     signal_summary = pd.read_csv(outputs["signal_summary"])
     stable = pd.read_csv(outputs["stable_performance_signals"])
-    assert len(signal_summary) == 116
+    assert len(signal_summary) == 104
     assert len(stable) == 9
 

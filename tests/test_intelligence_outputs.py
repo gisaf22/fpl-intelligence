@@ -35,14 +35,17 @@ def _base_row(
     position_label: str = "MID",
     minutes_roll3: float = 90.0,
     minutes_roll5: float = 85.0,
+    minutes_roll8: float = 88.0,
     points_roll3: float = 6.0,
     points_roll5: float = 5.5,
     xgi_roll3: float = 0.5,
+    xgi_roll5: float | None = None,
     fdr_avg: float = 3.0,
     purchase_price: float = 7.5,
     goals_scored: float = 0.5,
     minutes_trend: str = "stable",
     is_dgw: bool = False,
+    fixture_context: str = "SGW",
 ) -> dict:
     """Produce a single row with all required intelligence columns."""
     return {
@@ -62,13 +65,15 @@ def _base_row(
         "points_roll5": points_roll5,
         "minutes_roll3": minutes_roll3,
         "minutes_roll5": minutes_roll5,
+        "minutes_roll8": minutes_roll8,
         "xgi_roll3": xgi_roll3,
-        "xgi_roll5": xgi_roll3 - 0.1,
+        "xgi_roll5": (xgi_roll3 - 0.1) if xgi_roll5 is None else xgi_roll5,
         "xgc_roll3": 0.2,
         "xgc_roll5": 0.25,
         "goals_conceded_roll3": 0.3,
         "goals_conceded_roll5": 0.4,
         "minutes_trend": minutes_trend,
+        "fixture_context": fixture_context,
     }
 
 
@@ -148,16 +153,16 @@ class TestValidateIntelligenceInputs:
         validate_intelligence_inputs(two_player_features, "test")
 
     def test_missing_column_raises(self, two_player_features):
-        df = two_player_features.drop(columns=["points_roll3"])
+        df = two_player_features.drop(columns=["xgi_roll5"])
         with pytest.raises(IntelligenceInputError, match="missing required columns"):
             validate_intelligence_inputs(df, "test")
 
     def test_multiple_missing_columns_listed(self, two_player_features):
-        df = two_player_features.drop(columns=["points_roll3", "minutes_roll5"])
+        df = two_player_features.drop(columns=["xgi_roll5", "minutes_roll5"])
         with pytest.raises(IntelligenceInputError) as exc_info:
             validate_intelligence_inputs(df, "test")
         msg = str(exc_info.value)
-        assert "points_roll3" in msg or "minutes_roll5" in msg
+        assert "xgi_roll5" in msg or "minutes_roll5" in msg
 
 
 # ---------------------------------------------------------------------------
@@ -253,11 +258,11 @@ class TestRankTransferTargets:
         assert result.empty
 
     def test_rising_form_player_preferred(self):
-        # Player 1: roll3 > roll5 (rising form momentum)
-        # Player 2: roll3 < roll5 (declining form momentum)
+        # Player 1: xgi_roll3 > xgi_roll5 (rising xgi momentum)
+        # Player 2: xgi_roll3 < xgi_roll5 (declining xgi momentum)
         features = _make_features(
-            _base_row(1, 5, points_roll3=8.0, points_roll5=5.0),
-            _base_row(2, 5, points_roll3=5.0, points_roll5=8.0),
+            _base_row(1, 5, xgi_roll3=0.8, xgi_roll5=0.4),
+            _base_row(2, 5, xgi_roll3=0.4, xgi_roll5=0.8),
         )
         result = rank_transfer_targets(features, target_gw=5)
         assert result.iloc[0]["player_id"] == 1
@@ -275,7 +280,7 @@ class TestRankTransferTargets:
         assert "purchase_price" in result.columns
 
     def test_missing_column_raises(self, two_player_features):
-        df = two_player_features.drop(columns=["points_roll5"])
+        df = two_player_features.drop(columns=["xgi_roll5"])
         with pytest.raises(IntelligenceInputError):
             rank_transfer_targets(df, target_gw=5)
 
@@ -287,7 +292,7 @@ class TestRankTransferTargets:
 class TestRankValuePlayers:
     def test_returns_expected_columns(self, two_player_features):
         result = rank_value_players(two_player_features, target_gw=5)
-        for col in ["points_per_cost", "efficiency_score", "form_score",
+        for col in ["xgi_per_cost", "efficiency_score", "form_score",
                     "consistency_score", "value_score", "value_rank"]:
             assert col in result.columns
 
@@ -297,21 +302,21 @@ class TestRankValuePlayers:
         pd.testing.assert_frame_equal(r1, r2)
 
     def test_cheaper_player_may_rank_higher_on_value(self):
-        # Player 1: high returns, high price → moderate value
-        # Player 2: decent returns, low price → high value
+        # Player 1: same xgi, high price → low xgi/cost
+        # Player 2: same xgi, low price → high xgi/cost
         features = _make_features(
-            _base_row(1, 5, points_roll5=8.0, purchase_price=12.0),
-            _base_row(2, 5, points_roll5=6.0, purchase_price=5.5),
+            _base_row(1, 5, xgi_roll3=0.5, xgi_roll5=0.4, purchase_price=12.0),
+            _base_row(2, 5, xgi_roll3=0.5, xgi_roll5=0.4, purchase_price=5.5),
         )
         result = rank_value_players(features, target_gw=5)
-        # P2 ppc = 6/5.5 ≈ 1.09; P1 ppc = 8/12 ≈ 0.67 → P2 ranks higher on value
+        # P2 xgi_per_cost = 0.4/5.5 ≈ 0.073; P1 = 0.4/12 ≈ 0.033 → P2 ranks higher
         assert result.iloc[0]["player_id"] == 2
 
-    def test_points_per_cost_computed_correctly(self, two_player_features):
+    def test_xgi_per_cost_computed_correctly(self, two_player_features):
         result = rank_value_players(two_player_features, target_gw=5)
         for _, row in result.iterrows():
-            expected_ppc = row["points_roll5"] / row["purchase_price"]
-            assert abs(row["points_per_cost"] - expected_ppc) < 1e-6
+            expected_xpc = row["xgi_roll5"] / row["purchase_price"]
+            assert abs(row["xgi_per_cost"] - expected_xpc) < 1e-6
 
     def test_max_price_filter_works(self):
         features = _make_features(
@@ -420,29 +425,34 @@ class TestFlagAvailabilityRisk:
 class TestRankFixtureOpportunities:
     def test_returns_expected_columns(self, multi_gw_features):
         result = rank_fixture_opportunities(multi_gw_features, target_gw=5)
+        # fdr_opportunity_score removed in Phase 6 (GAP-TRACE-02: fdr_avg excluded)
         for col in ["fdr_window_avg", "dgw_in_window", "team_goals_roll5",
-                    "fdr_opportunity_score", "team_attack_score",
+                    "team_attack_score",
                     "dgw_bonus_score", "fixture_opportunity_score",
                     "fixture_opportunity_rank"]:
             assert col in result.columns
+        # Confirm fdr_opportunity_score is no longer present
+        assert "fdr_opportunity_score" not in result.columns
 
     def test_is_deterministic(self, multi_gw_features):
         r1 = rank_fixture_opportunities(multi_gw_features, target_gw=5)
         r2 = rank_fixture_opportunities(multi_gw_features, target_gw=5)
         pd.testing.assert_frame_equal(r1, r2)
 
-    def test_easy_fixture_scores_higher(self):
+    def test_dgw_fixture_scores_higher(self):
+        # Phase 6: fixture_score driven by DGW binary from fixture_context (GAP-TRACE-02/06)
         features = _make_features(
-            _base_row(1, 5, fdr_avg=1.5),   # easy
-            _base_row(2, 5, fdr_avg=4.5),   # hard
+            _base_row(1, 5, fixture_context="DGW"),   # double gameweek → higher score
+            _base_row(2, 5, fixture_context="SGW"),   # single gameweek
         )
         result = rank_fixture_opportunities(features, target_gw=5)
         assert result.iloc[0]["player_id"] == 1
 
     def test_dgw_bonus_applied(self):
+        # Phase 6: DGW detection via fixture_context STATE column (GAP-TRACE-06)
         features = _make_features(
-            _base_row(1, 5, is_dgw=True, fdr_avg=3.0),
-            _base_row(2, 5, is_dgw=False, fdr_avg=3.0),
+            _base_row(1, 5, fixture_context="DGW", fdr_avg=3.0),
+            _base_row(2, 5, fixture_context="SGW", fdr_avg=3.0),
         )
         result = rank_fixture_opportunities(features, target_gw=5)
         dgw_row = result[result["player_id"] == 1].iloc[0]
@@ -527,7 +537,7 @@ class TestIntelligenceGovernance:
 
     def test_value_explainability_columns_present(self, two_player_features):
         result = rank_value_players(two_player_features, target_gw=5)
-        for col in ["points_per_cost", "efficiency_score", "consistency_score"]:
+        for col in ["xgi_per_cost", "efficiency_score", "consistency_score"]:
             assert col in result.columns
 
     def test_availability_explainability_columns_present(self, two_player_features):

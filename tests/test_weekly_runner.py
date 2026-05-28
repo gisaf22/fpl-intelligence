@@ -24,7 +24,7 @@ def test_run_week_writes_registry_snapshot(tmp_path):
     )
 
     assert result.gw == 36
-    assert result.n_rows == 116
+    assert result.n_rows == 104
     assert result.registry_snapshot_path.exists()
     assert result.registry_snapshot_path.name == "registry_snapshot.csv"
     assert result.snapshot_changes_path.exists()
@@ -37,8 +37,8 @@ def test_run_week_writes_registry_snapshot(tmp_path):
 
     snapshot = pd.read_csv(result.registry_snapshot_path)
     signal_summary = pd.read_csv(result.signal_summary_path)
-    assert len(snapshot) == 116
-    assert len(signal_summary) == 116
+    assert len(snapshot) == 104
+    assert len(signal_summary) == 104
     assert "downstream_status" in snapshot.columns
 
 

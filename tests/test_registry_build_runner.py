@@ -44,14 +44,14 @@ def test_registry_build_writes_valid_registry_and_metadata(tmp_path):
 
     assert result.gw == 36
     assert result.data_cutoff_gw == 36
-    assert result.n_rows == 116
+    assert result.n_rows == 104
     assert result.registry_path.exists()
     assert result.registry_path.name == "registry.csv"
     assert result.metadata_path.exists()
 
     generated = load_registry(result.registry_path)
     validate_registry_contract(generated)
-    assert len(generated) == 116
+    assert len(generated) == 104
 
     metadata = json.loads(result.metadata_path.read_text(encoding="utf-8"))
     assert metadata["gw"] == 36
@@ -62,7 +62,7 @@ def test_registry_build_writes_valid_registry_and_metadata(tmp_path):
     assert metadata["registry_version"]
     assert metadata["schema_version"]
     assert metadata["build_timestamp"]
-    assert metadata["row_count"] == 116
+    assert metadata["row_count"] == 104
     assert metadata["signal_count"] == generated["signal"].nunique()
     assert metadata["position_count"] == 4
 
@@ -166,6 +166,6 @@ def test_weekly_runner_consumes_generated_registry(tmp_path):
         output_dir=tmp_path / "weekly" / "gw36",
     )
 
-    assert weekly_result.n_rows == 116
+    assert weekly_result.n_rows == 104
     assert weekly_result.weekly_report_path.exists()
     assert weekly_result.registry_snapshot_path.exists()

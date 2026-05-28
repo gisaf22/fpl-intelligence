@@ -65,23 +65,26 @@ def _make_spine(players: dict) -> pd.DataFrame:
 def test_rolling_excludes_current_gw_numerically():
     """Lag-1 proof: roll value at GW N must not include GW N performance.
 
-    Player: total_points = [10, 20, 30, 40, 999] for GWs 1-5.
+    Player: xgi = [0.1, 0.2, 0.3, 0.4, 9.99] for GWs 1-5.
     At GW 5:
-      - points_roll3 = mean(20, 30, 40) = 30.0  [GWs 2,3,4 — not GW 5]
-      - points_roll5 = mean(10, 20, 30, 40) = 25.0  [GWs 1,2,3,4 — not GW 5]
-    If 999 appears in either result, the lag-1 shift is broken.
+      - xgi_roll3 = mean(0.2, 0.3, 0.4) = 0.3  [GWs 2,3,4 — not GW 5]
+      - xgi_roll5 = mean(0.1, 0.2, 0.3, 0.4) = 0.25  [GWs 1,2,3,4 — not GW 5]
+    If 9.99 appears in either result, the lag-1 shift is broken.
     """
     spine = _make_spine({1: [10, 20, 30, 40, 999]})
+    # Override xgi with variable sentinel values to probe lag-1 correctness
+    spine = spine.copy()
+    spine["xgi"] = pd.array([0.1, 0.2, 0.3, 0.4, 9.99], dtype="Float64")
     state = build_player_gameweek_state(spine)
     gw5 = state[state["gw"] == 5].iloc[0]
 
-    assert abs(gw5["points_roll3"] - 30.0) < 1e-9, (
-        f"points_roll3 at GW5 = {gw5['points_roll3']!r}, expected 30.0. "
-        "GW5 value (999) is leaking into the roll3 window — lag-1 shift broken."
+    assert abs(gw5["xgi_roll3"] - 0.3) < 1e-9, (
+        f"xgi_roll3 at GW5 = {gw5['xgi_roll3']!r}, expected 0.3. "
+        "GW5 value (9.99) is leaking into the roll3 window — lag-1 shift broken."
     )
-    assert abs(gw5["points_roll5"] - 25.0) < 1e-9, (
-        f"points_roll5 at GW5 = {gw5['points_roll5']!r}, expected 25.0. "
-        "GW5 value (999) is leaking into the roll5 window — lag-1 shift broken."
+    assert abs(gw5["xgi_roll5"] - 0.25) < 1e-9, (
+        f"xgi_roll5 at GW5 = {gw5['xgi_roll5']!r}, expected 0.25. "
+        "GW5 value (9.99) is leaking into the roll5 window — lag-1 shift broken."
     )
 
 
@@ -131,8 +134,8 @@ def test_state_schema_exact():
 
     expected_derived = (
         {f"{'points' if c == 'total_points' else c}_roll{w}"
-         for c in _ROLL_COLS for w in (3, 5, 8)}
-        | {"fixture_context", "minutes_trend"}
+         for c in _ROLL_COLS for w in (3, 5)}
+        | {"minutes_roll8", "fixture_context", "minutes_trend"}
     )
     expected_all = set(spine.columns) | expected_derived
 

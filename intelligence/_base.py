@@ -16,10 +16,9 @@ import pandas as pd
 # Columns from the state layer required by intelligence functions.
 # These are all legitimate governed signal columns derived from the curated spine.
 _REQUIRED_STATE_COLS: frozenset[str] = frozenset([
-    "points_roll3",
-    "points_roll5",
     "minutes_roll3",
     "minutes_roll5",
+    "minutes_roll8",        # GAP-TRACE-03: AVAIL-003 candidate at DEF (rho=0.219) and MID (rho=0.222)
     "xgi_roll3",
     "xgi_roll5",
     "xgc_roll3",
@@ -27,6 +26,7 @@ _REQUIRED_STATE_COLS: frozenset[str] = frozenset([
     "goals_conceded_roll3",
     "goals_conceded_roll5",
     "minutes_trend",
+    "fixture_context",      # GAP-TRACE-06: governed STATE column for DGW/BGW/SGW classification
 ])
 
 # Spine columns required by intelligence functions.
@@ -39,7 +39,6 @@ _REQUIRED_SPINE_COLS: frozenset[str] = frozenset([
     "team_id",
     "purchase_price",
     "fdr_avg",
-    "fdr_min",
     "is_bgw",
     "goals_scored",
 ])

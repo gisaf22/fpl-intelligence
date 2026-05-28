@@ -31,6 +31,14 @@ for _col in _ROLL_COLS:
         "null_if_no_obs": True,
     }
 
+# minutes_roll8 — approved at DEF and MID (LENS-AVAIL AVAIL-003); only roll8 window produced
+STATE_COL_CONTRACTS["minutes_roll8"] = {
+    "causality": "lagged",
+    "warmup_gws": 1,
+    "min_obs_for_reliability": 8,
+    "null_if_no_obs": True,
+}
+
 # minutes_trend — requires 3 prior + 3 prior-prior GWs; warmup larger than roll3
 STATE_COL_CONTRACTS["minutes_trend"] = {
     "causality": "lagged",      # SC-1 fix: uses shift(1) — safe as pre-GW feature

@@ -1,0 +1,25 @@
+{
+  "timestamp": "20260522_212117",
+  "db_path": "/Users/safarifgisa/.fpl/fpl.db",
+  "n_bootstrap": 2000,
+  "bootstrap_seed": 42,
+  "ci_level": 0.95,
+  "minutes_threshold": 60,
+  "gw_max": 33,
+  "gw_blocks": {
+    "early": [
+      3,
+      12
+    ],
+    "mid": [
+      13,
+      26
+    ],
+    "late": [
+      27,
+      33
+    ]
+  },
+  "quintile_gap_threshold": 1.0,
+  "target": "total_points (same-GW)"
+}

@@ -60,6 +60,8 @@ def _state_row(
         "goals_conceded_roll3": 0.3,
         "goals_conceded_roll5": 0.4,
         "minutes_trend": "stable",
+        "minutes_roll8": 88.0,
+        "fixture_context": "SGW",
     }
 
 

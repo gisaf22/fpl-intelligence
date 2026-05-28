@@ -35,7 +35,7 @@ def _make_perf_row(**overrides):
         clean_sheets=1, yellow_cards=0, red_cards=0,
         saves=0, bonus=3, bps=30,
         xg=0.4, xa=0.1, xgi=0.5,
-        fdr_avg=3.0, fdr_min=3.0, fdr_max=3.0,
+        fdr_avg=3.0,
         was_home=True,
     )
     base.update(overrides)
@@ -54,7 +54,7 @@ def _make_bgw_row(**overrides):
         clean_sheets=None, yellow_cards=None, red_cards=None,
         saves=None, bonus=None, bps=None,
         xg=None, xa=None, xgi=None,
-        fdr_avg=None, fdr_min=None, fdr_max=None,
+        fdr_avg=None,
         was_home=None,
     )
     base.update(overrides)
@@ -72,7 +72,7 @@ def _make_dgw_row(**overrides):
         clean_sheets=1, yellow_cards=0, red_cards=0,
         saves=0, bonus=5, bps=50,
         xg=0.8, xa=0.3, xgi=1.1,
-        fdr_avg=3.0, fdr_min=2.0, fdr_max=4.0,
+        fdr_avg=3.0,
         was_home=None,
     )
     base.update(overrides)
@@ -234,17 +234,6 @@ class TestValidateDgwCorrectness:
         with pytest.raises(DALContractViolation) as exc_info:
             validate_dgw_correctness(df)
         assert 'fixture_count' in str(exc_info.value)
-        exc = exc_info.value
-        assert exc.error_code == 'DGW_WRONG_COUNT'
-        assert exc.layer == 'curated'
-        assert exc.validation == 'validate_dgw_correctness'
-        assert exc.n_violations == 1
-
-    def test_dgw_row_fdr_min_greater_than_fdr_avg_fails(self):
-        df = pd.DataFrame([_make_dgw_row(fdr_min=5.0, fdr_avg=3.0, fdr_max=5.0)])
-        with pytest.raises(DALContractViolation) as exc_info:
-            validate_dgw_correctness(df)
-        assert 'fdr' in str(exc_info.value).lower()
         exc = exc_info.value
         assert exc.error_code == 'DGW_WRONG_COUNT'
         assert exc.layer == 'curated'

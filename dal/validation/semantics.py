@@ -46,8 +46,8 @@ def validate_bgw_correctness(df: pd.DataFrame, performance_cols=None) -> None:
                 error_code='BGW_NONZERO',
             )
 
-    # fdr columns must be NULL
-    for col in ('fdr_avg', 'fdr_min', 'fdr_max'):
+    # fdr_avg must be NULL
+    for col in ('fdr_avg',):
         if col not in bgw.columns:
             continue
         bad = bgw[bgw[col].notna()]
@@ -129,23 +129,6 @@ def validate_dgw_correctness(df: pd.DataFrame) -> None:
                 layer='curated',
                 validation='validate_dgw_correctness',
                 n_violations=len(bad_fdr),
-                error_code='DGW_WRONG_COUNT',
-            )
-
-    # fdr_min <= fdr_avg <= fdr_max
-    if all(c in dgw.columns for c in ('fdr_min', 'fdr_avg', 'fdr_max')):
-        bad_order = dgw[
-            (dgw['fdr_min'] > dgw['fdr_avg']) | (dgw['fdr_avg'] > dgw['fdr_max'])
-        ]
-        if not bad_order.empty:
-            raise DALContractViolation(
-                message=(
-                    f"DGW correctness violation: {len(bad_order)} rows have fdr ordering "
-                    f"violated (fdr_min <= fdr_avg <= fdr_max)"
-                ),
-                layer='curated',
-                validation='validate_dgw_correctness',
-                n_violations=len(bad_order),
                 error_code='DGW_WRONG_COUNT',
             )
 

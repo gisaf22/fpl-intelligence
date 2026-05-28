@@ -141,12 +141,13 @@ def test_bgw_zero_substitution_rejected_at_state_entry():
     CURATED guarantees BGW performance columns are pd.NA. If a caller (e.g., a test
     helper or non-CURATED source) substitutes zeros, rolling averages are silently wrong.
     The entry guard closes this gap by failing before any computation runs.
+    Uses minutes (a _ROLL_COLS member) as the probe column.
     """
     spine = _sgw_spine(5)
-    # Inject a BGW row with zero-substituted total_points (semantic violation)
+    # Inject a BGW row with zero-substituted minutes (semantic violation)
     spine = spine.copy()
     spine.loc[spine["gw"] == 3, "is_bgw"] = True
-    spine.loc[spine["gw"] == 3, "total_points"] = pd.array([0], dtype="Int64")
+    spine.loc[spine["gw"] == 3, "minutes"] = pd.array([0], dtype="Int64")
 
     with pytest.raises(ValueError, match="BGW"):
         build_player_gameweek_state(spine)
@@ -219,7 +220,7 @@ def test_missing_required_column_raises_at_state_entry():
     immediately with a clear error message identifying the missing column.
     """
     spine = _sgw_spine(5)
-    spine_missing = spine.drop(columns=["total_points"])
+    spine_missing = spine.drop(columns=["xgi"])
 
     with pytest.raises(ValueError, match="missing"):
         build_player_gameweek_state(spine_missing)
@@ -261,20 +262,27 @@ def test_dgw_aggregated_points_used_correctly_in_rolling():
 
     CURATED guarantees DGW performance is the sum across 2 fixtures. STATE treats DGW
     rows identically to SGW rows for rolling purposes — it does not re-aggregate.
-    This verifies the rolling value at GW5 correctly reflects the DGW total (not half of it).
+    Uses xgi as the probe column (total_points is no longer rolled by STATE).
 
-    Sequence: GW1=5, GW2=7, GW3=12(DGW), GW4=8, GW5=6
-    At GW5, roll3 covers GWs 2–4 (lag-1 shift): mean(7, 12, 8) = 9.0
+    Sequence: xgi = [0.5, 0.7, 1.2(DGW), 0.8, 0.6] for GWs 1-5.
+    At GW5, roll3 covers GWs 2–4 (lag-1 shift): mean(0.7, 1.2, 0.8) = 0.9
     """
     spine = _make_spine({
         1: [(1, 5, False, False), (2, 7, False, False), (3, 12, False, True),
             (4, 8, False, False), (5, 6, False, False)],
     })
+    # Override xgi with variable values to probe rolling
+    spine = spine.copy()
+    spine.loc[spine["gw"] == 1, "xgi"] = pd.array([0.5], dtype="Float64")
+    spine.loc[spine["gw"] == 2, "xgi"] = pd.array([0.7], dtype="Float64")
+    spine.loc[spine["gw"] == 3, "xgi"] = pd.array([1.2], dtype="Float64")
+    spine.loc[spine["gw"] == 4, "xgi"] = pd.array([0.8], dtype="Float64")
+    spine.loc[spine["gw"] == 5, "xgi"] = pd.array([0.6], dtype="Float64")
     state = build_player_gameweek_state(spine)
 
-    gw5_roll3 = float(state[state["gw"] == 5]["points_roll3"].iloc[0])
-    assert abs(gw5_roll3 - 9.0) < 1e-9, (
-        f"DGW points not correctly reflected in roll3: expected 9.0, got {gw5_roll3}. "
+    gw5_roll3 = float(state[state["gw"] == 5]["xgi_roll3"].iloc[0])
+    assert abs(gw5_roll3 - 0.9) < 1e-9, (
+        f"DGW xgi not correctly reflected in roll3: expected 0.9, got {gw5_roll3}. "
         "STATE may be re-aggregating DGW values instead of using CURATED sums as-is."
     )
 

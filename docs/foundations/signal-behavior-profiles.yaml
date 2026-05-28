@@ -1,0 +1,894 @@
+# Signal Behavior Profiles
+# Version: 1.1
+# Produced: 2026-05-24
+# Updated: 2026-05-24 — EDA-8 complete; all stubs resolved; assists updated to REJECTED-BEHAVIORAL
+# Source gate decisions: studies/eda/findings/EDA_FINDINGS.md (EDA-0 through EDA-8)
+# Source lens findings: studies/runs/LENS-*/classification_summary.csv, studies/runs/EDA8-*/
+#
+# Status values:
+#   complete        — full profile; all gate decisions and lens study findings incorporated
+#   decision-closed — representation decision made from existing gate decisions; no new study needed
+#
+# persistence_class values:
+#   high, moderate-high, moderate, low-moderate, low, episodic, structural, not-applicable
+#
+# sparsity_level values:
+#   dense, moderate, sparse, structurally-sparse, not-applicable
+#
+# representation status values:
+#   APPROVED, CONDITIONAL, REJECTED-SEMANTIC, REJECTED-BEHAVIORAL
+
+---
+
+profiles:
+
+  # ---------------------------------------------------------------------------
+  # OUTCOME
+  # ---------------------------------------------------------------------------
+
+  - signal: total_points
+    family: Outcome
+    scope: Individual
+    temporal_type: count
+    status: complete
+
+    persistence_class: low
+    sparsity_level: moderate
+    behavioral_basis: >
+      Right-skewed target variable (skew=1.58, kurtosis=2.80); haul-concentrated; within-player
+      variation is real but weekly scores are noisy. Lag-1 raw is the standard naive baseline.
+      Rolling mean of total_points as a standalone representation of itself adds complexity without improving
+      discrimination — points_roll3 and points_roll5 fail decision relevance at most positions.
+    redundancy_flags: []
+    gate_decisions:
+      - G-EDA7-02  # lag-1 raw is mandatory naive baseline
+
+    lens_findings:
+      - lens: LENS-FORM
+        signal_id: FORM-004 (points_roll3), FORM-005 (points_roll5)
+        findings:
+          points_roll3:
+            GK: uninformative  # CI crosses zero
+            DEF: uninformative  # fails decision relevance Q5-Q1=1.22
+            MID: uninformative  # fails decision relevance Q5-Q1=0.99
+            FWD: unstable       # passes only 1/3 GW blocks
+          points_roll5:
+            GK: uninformative  # CI crosses zero
+            DEF: uninformative  # fails decision relevance Q5-Q1=0.96
+            MID: informative    # rho=0.157; passes 3/3 GW blocks
+            FWD: uninformative  # fails decision relevance
+
+    representation_implications:
+      approved:
+        - representation: total_points_lag1
+          basis: G-EDA7-02 — mandatory naive baseline for all lens study comparisons
+      conditional:
+        - representation: points_roll5_MID
+          basis: LENS-FORM FORM-005 — informative at MID only; does not generalise across positions
+          constraint: MID position only; treat as position-conditional baseline, not as a feature
+      rejected:
+        - representation: points_roll3
+          status: REJECTED-BEHAVIORAL
+          basis: LENS-FORM FORM-004 — uninformative or unstable at all positions
+        - representation: rolling_mean_as_primary_representation
+          status: REJECTED-BEHAVIORAL
+          basis: total_points is the target variable; using its rolling mean as a primary feature
+                 is circular; lag-1 raw serves the naive baseline role
+
+  # ---------------------------------------------------------------------------
+  # PROCESS
+  # ---------------------------------------------------------------------------
+
+  - signal: xgi
+    family: Process
+    scope: Individual
+    temporal_type: estimate
+    status: complete
+
+    persistence_class: moderate
+    sparsity_level: moderate
+    behavioral_basis: >
+      Confirmed state_sensitive (EDA-3 decomposition) — within-player variation in xgi drives the
+      pooled association. Rolling mean smoothing improves signal at DEF and MID by reducing
+      game-to-game noise. FWD association present (rho=0.50 raw) but rolling variants fail
+      decision relevance — haul concentration in FWD xgi may mean the smoothed signal loses the
+      burst events that drive the association. Absorbs xa and partially absorbs xg.
+    redundancy_flags:
+      - absorbs: xa
+        gate: G-EDA6-02
+      - absorbs: xg (FWD partial, MID partial)
+        gate: G-EDA6-03
+    gate_decisions:
+      - G-EDA3-01  # xgi MID primary candidate (rho 0.31, stable)
+      - G-EDA3-02  # xgi FWD candidate (rho 0.50, insufficient_data stability)
+      - G-EDA5-03  # xgi MID and FWD only confirmed stable; DEF and GK insufficient_data
+      - G-EDA6-02  # xa absorbed; xa_roll* excluded
+      - G-EDA6-03  # xg absorbed at FWD/MID; xg_roll* excluded
+      - G-EDA7-01  # xgi is primary form proxy advancing to LENS-FORM
+
+    lens_findings:
+      - lens: LENS-FORM
+        findings:
+          xgi_roll3 (FORM-001):
+            DEF: informative    # rho=0.123, CI=[0.084, 0.161]; passes 3/3 GW blocks; clears naive baseline
+            MID: informative    # rho=0.144, CI=[0.108, 0.182]; passes 3/3 GW blocks
+            FWD: uninformative  # rho=0.091; CI excludes zero but fails decision relevance (Q5-Q1=1.08, not monotonic)
+            GK: not-tested
+          xgi_roll5 (FORM-002):
+            DEF: informative    # rho=0.113, CI=[0.071, 0.155]; passes 3/3 GW blocks; clears naive baseline
+            MID: informative    # rho=0.157, CI=[0.118, 0.197]; passes 3/3 GW blocks; clears naive baseline
+            FWD: uninformative  # rho=0.097; CI excludes zero but fails decision relevance (Q5-Q1=1.11)
+            GK: not-tested
+
+    representation_implications:
+      approved:
+        - representation: xgi_roll3
+          positions: [DEF, MID]
+          basis: LENS-FORM FORM-001; informative and decision-relevant at DEF and MID
+        - representation: xgi_roll5
+          positions: [DEF, MID]
+          basis: LENS-FORM FORM-002; informative at DEF and MID; MID clears naive baseline
+      conditional:
+        - representation: xgi_roll3 or xgi_roll5 at FWD
+          status: CONDITIONAL
+          basis: CI excludes zero but fails decision relevance — Q5-Q1 gap too small; not monotonic;
+                 may reflect haul concentration being lost in the smoothed signal
+      rejected:
+        - representation: xgi_roll8
+          status: REJECTED-BEHAVIORAL
+          basis: no EDA justification for 8-window; removed in Phase 5 cleanup 2026-05-24
+        - representation: xa_roll3, xa_roll5, xa_roll8
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA6-02 — xa absorbed by xgi; excluded as independent candidates
+        - representation: xg_roll3, xg_roll5
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA6-03 — xg absorbed by xgi at FWD/MID; excluded as independent candidates
+
+  - signal: xa
+    family: Process
+    scope: Individual
+    temporal_type: estimate
+    status: decision-closed
+
+    decision: excluded-as-independent-candidate
+    decision_gate: G-EDA6-02
+    decision_basis: >
+      xa is a component of xgi. Partial_rho with xgi: MID=0.67, GK=0.99. Using xa alongside
+      xgi double-counts chance creation quality. xgi preferred as the broader concept.
+      Additionally blocked at DEF and FWD (G-EDA2-01 — insufficient data).
+    representation_implications:
+      rejected:
+        - representation: all xa representations
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA6-02 — absorbed by xgi; no independent information where xgi is present
+
+  - signal: xg
+    family: Process
+    scope: Individual
+    temporal_type: estimate
+    status: decision-closed
+
+    decision: excluded-as-independent-candidate
+    decision_gate: G-EDA6-03
+    decision_basis: >
+      xg is a component of xgi. Partial_rho with xgi: FWD=0.93, MID=0.74. Blocked at
+      DEF, GK, MID (G-EDA2-01 — insufficient data). At FWD and MID, xgi subsumes xg.
+    representation_implications:
+      rejected:
+        - representation: all xg representations
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA6-03 — absorbed by xgi at FWD/MID; blocked at other positions
+
+  - signal: xgc
+    family: Process
+    scope: Team
+    temporal_type: estimate
+    status: complete
+
+    persistence_class: low-moderate
+    sparsity_level: moderate
+    behavioral_basis: >
+      Expected goals conceded — a team-scope process estimate reflecting the quality of
+      chances allowed. EDA-8B found xgc informative at GKP (rho −0.114) but uninformative
+      at DEF (CI crosses zero). The GKP association is in the expected negative direction
+      (higher xgc → fewer points). However, Layer 2 redundancy check shows both partial
+      rhos below 0.30 (vs goals_conceded: −0.086; vs clean_sheets: −0.098), meaning xgc
+      carries no independent information beyond the observed defensive outcomes.
+      The process estimate is absorbed by the realised event outcomes.
+    redundancy_flags:
+      - redundant_with: goals_conceded, clean_sheets
+        positions: GKP
+        gate: G-EDA8-05
+        note: xgc informative at GKP (G-EDA8-04) but redundant with observed outcomes;
+              uninformative at DEF (G-EDA8-03)
+    gate_decisions:
+      - G-EDA8-03  # xgc DEF: uninformative
+      - G-EDA8-04  # xgc GKP: informative (rho −0.114) but temporally unstable (1/3 blocks)
+      - G-EDA8-05  # xgc GKP: redundant with goals_conceded and clean_sheets
+
+    representation_implications:
+      rejected:
+        - representation: xgc_roll3, xgc_roll5, xgc_lag1
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA8-05 — redundant with goals_conceded + clean_sheets (partial rho < 0.30);
+                 no independent information at any position; DEF uninformative (G-EDA8-03)
+      notes: team-scope annotation required if ever used; xgc in STATE (roll3/roll5) is
+             technically produced but provides no independent signal; represents a case
+             where a STATE column exists without analytical justification — Phase 4 cleanup task
+
+  # ---------------------------------------------------------------------------
+  # EVENT
+  # ---------------------------------------------------------------------------
+
+  - signal: goals_scored
+    family: Event
+    scope: Individual
+    temporal_type: count
+    status: complete
+
+    persistence_class: episodic
+    sparsity_level: sparse
+    behavioral_basis: >
+      High raw rho at FWD (0.85) and MID (0.58) but both positions caveated — association
+      is driven by haul observations (5-goal scores inflate the relationship). Rolling mean
+      destroys burst structure: goals_scored_roll3 fails decision relevance at all positions.
+      Smoothing converts an episodic haul signal into a near-zero average — the wrong
+      representation for a structurally bursty signal.
+    redundancy_flags:
+      - independent_of: assists
+        gate: G-EDA6-04
+    gate_decisions:
+      - G-EDA3-03  # goals_scored DEF core_signal (rho 0.32, stable)
+      - G-EDA3-05  # goals_scored FWD/MID caveated — event sparsity, not absent association
+      - G-EDA6-04  # structurally independent of assists
+
+    lens_findings:
+      - lens: LENS-FORM
+        findings:
+          goals_scored_roll3 (FORM-003):
+            DEF: uninformative  # CI crosses zero [-0.023, 0.061] — near-zero rho=0.018
+            MID: uninformative  # rho=0.076; CI excludes zero but fails decision relevance (Q5-Q1=0.38)
+            FWD: uninformative  # rho=0.097; CI excludes zero but fails decision relevance (Q5-Q1=0.79)
+
+    representation_implications:
+      conditional:
+        - representation: goals_scored_lag1 (raw)
+          status: CONDITIONAL
+          basis: G-EDA3-03 (DEF stable, core_signal); G-EDA3-05 (FWD/MID caveated — haul concentration)
+          constraint: interpret with haul concentration caveat; Q5 means dominated by haul events
+      rejected:
+        - representation: goals_scored_roll3
+          status: REJECTED-BEHAVIORAL
+          basis: LENS-FORM FORM-003 — uninformative at all positions; rolling mean destroys
+                 burst structure; smoothing converts a sparse haul signal into a near-zero average
+        - representation: goals_scored_roll5, goals_scored_roll8
+          status: REJECTED-BEHAVIORAL
+          basis: not studied; rejected by extension from FORM-003 finding and sparsity rationale;
+                 longer windows further dilute the rare meaningful spikes
+
+  - signal: assists
+    family: Event
+    scope: Individual
+    temporal_type: count
+    status: complete
+
+    persistence_class: episodic
+    sparsity_level: sparse
+    behavioral_basis: >
+      EDA-3 recorded contemporaneous rho 0.49 at MID and 0.36 at FWD (same-GW assists vs
+      same-GW total_points — definitionally correlated in FPL since assists give +3 points).
+      These are NOT lag-1 associations. EDA-8D established the first lag-1 characterisation:
+      assists lag-1 → next-GW total_points ≈ 0.04 at MID, essentially
+      uninformative. Rolling windows (roll3, roll5) improve marginally on raw (rho 0.05–0.09
+      at MID) but none clear the naive baseline (points_roll3 rho 0.14 at MID). Quintile
+      Q5-Q1 gaps are near-zero and non-monotonic across all positions and windows. The signal
+      has no association strength as a standalone form proxy — assists are absorbed by xgi (the
+      underlying process measure) which is far more informative.
+    redundancy_flags:
+      - independent_of: goals_scored
+        gate: G-EDA6-04
+        note: structurally independent of goals_scored; but both signals superseded by xgi
+              as the better process measure
+    gate_decisions:
+      - G-EDA3-04  # assists MID/FWD contemporaneous rho 0.49/0.36 (NOT lag-1 — see EDA-8 §8.1)
+      - G-EDA5-04  # assists DEF moderate_shift — irrelevant given no analytical value found
+      - G-EDA6-04  # structurally independent of goals_scored
+      - G-EDA8-07  # assists_roll3 MID: no-improvement
+      - G-EDA8-08  # assists_roll3 FWD: no-improvement
+      - G-EDA8-09  # assists_roll3 DEF: no-improvement
+      - G-EDA8-10  # assists preferred window: raw; but raw also fails naive baseline
+
+    lens_findings:
+      - lens: EDA-8D
+        findings:
+          assists_lag1:
+            MID: {rho: 0.042, ci: [0.002, 0.082], naive_rho: 0.140, clears_naive: false}
+            FWD: {rho: 0.033, ci: [-0.048, 0.112], naive_rho: 0.117, clears_naive: false}
+            DEF: {rho: 0.031, ci: [-0.010, 0.072], naive_rho: 0.096, clears_naive: false}
+          assists_roll3:
+            MID: {rho: 0.051, ci: [0.010, 0.092], naive_rho: 0.140, clears_naive: false}
+            FWD: {rho: 0.071, ci: [-0.015, 0.153], naive_rho: 0.117, clears_naive: false}
+            DEF: {rho: 0.002, ci: [-0.042, 0.047], naive_rho: 0.096, clears_naive: false}
+          assists_roll5:
+            MID: {rho: 0.062, ci: [0.020, 0.103], naive_rho: 0.140, clears_naive: false}
+            FWD: {rho: 0.092, ci: [0.000, 0.186], naive_rho: 0.117, clears_naive: false}
+            DEF: {rho: 0.002, ci: [-0.042, 0.051], naive_rho: 0.096, clears_naive: false}
+
+    representation_implications:
+      rejected:
+        - representation: assists_lag1 (raw), assists_roll3, assists_roll5
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA8-07/08/09/10 — no assists variant clears naive baseline in lag-1 analysis;
+                 Q5-Q1 gaps near-zero, non-monotonic; xgi is the correct form
+                 proxy for underlying attacking process
+      notes: assists as raw data remains in spine (SPINE_COLS) — it contributes to xgi
+             computation (xgi = xg + xa, with assists ≈ xa). The rejection applies to
+             assists as an independent form signal candidate, not to the raw spine data.
+
+  - signal: clean_sheets
+    family: Event
+    scope: Team
+    temporal_type: count
+    status: complete
+
+    persistence_class: low
+    sparsity_level: sparse
+    behavioral_basis: >
+      Binary defensive outcome per match (0 or 1 for SGW; 0-2 for DGW). Team defensive
+      quality creates mild persistence but individual clean sheets are highly match-dependent.
+      LENS-FIXTURE-GW ran but did not study clean_sheets rolling representations —
+      study covered only context signals (fdr_avg, was_home, fixture_count). Rolling window
+      behavior not lens-validated.
+    redundancy_flags:
+      - correlated_with: goals_conceded (inverse relationship; xgc redundancy check pending EDA-8B)
+    gate_decisions:
+      - EDA7-routing  # routed to LENS-FIXTURE-GW as team-scope defensive Event signal
+
+    lens_findings:
+      - lens: LENS-FIXTURE-GW
+        note: clean_sheets not studied in this lens run; only context signals covered
+
+    representation_implications:
+      conditional:
+        - representation: clean_sheets_lag1 (raw)
+          status: CONDITIONAL — not lens-validated
+          basis: team-scope Event signal; routing decision only; no lens rho_pooled established
+        - representation: clean_sheets_roll3
+          status: CONDITIONAL — not lens-validated
+          basis: rolling mean semantically admissible (count type); behavioral justification
+                 pending lens study
+      notes: team-scope annotation required; GW value shared by all eligible team players;
+             xgc redundancy (EDA-8B) may affect which signal is preferred at DEF/GK
+
+  - signal: goals_conceded
+    family: Event
+    scope: Team
+    temporal_type: count
+    status: complete
+
+    persistence_class: low-moderate
+    sparsity_level: moderate
+    behavioral_basis: >
+      Team-scope count; attributed to all eligible players. Moderate_shift at MID between
+      season halves (G-EDA5-04 reports goals_conceded MID as moderate_shift). LENS-FIXTURE-GW
+      ran but did not study goals_conceded rolling representations. xgc redundancy not
+      yet characterised (EDA-8B).
+    redundancy_flags:
+      - correlated_with: clean_sheets (inverse); xgc redundancy pending EDA-8B gate G-EDA8-05
+    gate_decisions:
+      - G-EDA5  # goals_conceded MID: moderate_shift temporal stability
+      - EDA7-routing  # routed to LENS-FIXTURE-GW as team-scope defensive Event signal
+
+    lens_findings:
+      - lens: LENS-FIXTURE-GW
+        note: goals_conceded not studied in this lens run; only context signals covered
+
+    representation_implications:
+      conditional:
+        - representation: goals_conceded_lag1 (raw)
+          status: CONDITIONAL — not lens-validated
+          basis: team-scope Event signal; routing decision only; moderate_shift at MID is a risk
+        - representation: goals_conceded_roll3
+          status: CONDITIONAL — not lens-validated
+          basis: rolling mean semantically admissible; behavioral justification pending lens study
+      notes: team-scope annotation required; moderate_shift at MID (EDA-5) means rolling
+             variants at MID carry seasonal drift risk; xgc redundancy decision (G-EDA8-05)
+             may determine which defensive process signal is preferred
+
+  - signal: saves
+    family: Event
+    scope: Individual
+    temporal_type: count
+    status: complete
+
+    persistence_class: low
+    sparsity_level: moderate
+    behavioral_basis: >
+      EDA-8A established the first lag-1 characterisation: saves GKP lag-1 →
+      next-GW total_points rho = −0.029, CI crosses zero, block stability 0/3. Uninformative
+      as a standalone signal. The near-zero negative rho is structurally explainable by the FPL
+      scoring system: a GK facing many shots is on a team under defensive pressure, which
+      tends to concede goals, forfeit the clean sheet bonus (the primary GK scoring event),
+      and lose bonus point opportunities. High saves is a consolation prize for GKs on weak
+      teams; clean sheets are the reward for GKs on strong teams. This structural tension
+      suppresses the association strength of saves to essentially zero.
+      Saves is blocked at DEF, MID, FWD (structural zero — G-EDA2-03).
+    redundancy_flags: []
+    gate_decisions:
+      - G-EDA2-03  # blocked DEF/MID/FWD — structural zero
+      - G-EDA6-06  # saves GKP partial_rho 0.88 with ict_index (contemporaneous) — deferred to EDA-8
+      - G-EDA8-01  # saves GKP: uninformative (rho −0.029, CI crosses zero)
+      - G-EDA8-02  # saves GKP Layer 3: ineligible
+
+    representation_implications:
+      rejected:
+        - representation: saves_lag1, saves_roll3, saves_roll5 (GKP)
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA8-01 uninformative — saves GKP does not associate with next-GW returns;
+                 no rolling window study warranted (G-EDA8-02 ineligible)
+        - representation: saves (all) at DEF, MID, FWD
+          status: REJECTED-SEMANTIC
+          basis: G-EDA2-03 — structural zero for outfield players; not a candidate signal
+      notes: saves in STATE (saves_roll3, saves_roll5) technically produced but uninformative;
+             Phase 4/5 cleanup should assess whether removal is warranted
+
+  - signal: penalties_saved
+    family: Event
+    scope: Individual
+    temporal_type: count
+    status: complete
+
+    persistence_class: not-applicable
+    sparsity_level: structurally-sparse
+    behavioral_basis: >
+      EDA-8C sparsity gate: 99.7% zero-rate across 2,512 GKP player-GW records; only 8
+      non-zero records across the full season; only 6 distinct GKPs ever saved a penalty.
+      More extreme than the red_cards exclusion in EDA-2 (which used the same structural
+      basis). Rolling mean representations are analytically meaningless — smoothing
+      near-all-zeros produces a near-constant near-zero column. No Layer 1 study warranted.
+      The signal is structurally sparse by a wide margin.
+    redundancy_flags: []
+    gate_decisions:
+      - G-EDA8-06  # penalties_saved: structurally-sparse (99.7% zero-rate, 8 non-zero records)
+
+    representation_implications:
+      rejected:
+        - representation: penalties_saved_lag1, penalties_saved_roll3, penalties_saved_roll5
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA8-06 structurally-sparse — Layer 1 ineligible; no rolling window
+                 representation warranted; signal is near-constant zero for all practical purposes
+      notes: penalties_saved in STATE (roll3/roll5) technically produced but structurally
+             meaningless; Phase 4/5 cleanup task
+
+  # ---------------------------------------------------------------------------
+  # PARTICIPATION
+  # ---------------------------------------------------------------------------
+
+  - signal: minutes
+    family: Participation
+    scope: Individual
+    temporal_type: rate
+    status: complete
+
+    persistence_class: high
+    sparsity_level: dense
+    behavioral_basis: >
+      Blocked as a quality signal across all positions (G-EDA2-02) — minutes reflects
+      availability and playing time allocation, not form. High persistence: managers
+      allocate minutes consistently to established starters; rotation and injury create
+      perturbations. Rolling mean tracks playing time reliability over recent GWs.
+      LENS-AVAIL confirms minutes_roll8 is the strongest availability signal at DEF and MID;
+      minutes_roll3 and roll5 informative at MID only.
+    redundancy_flags: []
+    gate_decisions:
+      - G-EDA2-02  # blocked as quality signal; AVAIL lens only
+      - G-EDA7-05  # minutes_roll* AVAIL candidate; not a form signal
+
+    lens_findings:
+      - lens: LENS-AVAIL
+        target: total_points_next_gw and played_next_gw
+        findings:
+          minutes_roll3 (AVAIL-001):
+            GK: uninformative  # rho=0.105 (total_points); fails decision relevance
+            DEF: uninformative  # rho=0.138; fails decision relevance
+            MID: informative    # rho=0.179, CI=[0.140, 0.217]; passes 3/3 GW blocks
+            FWD: uninformative  # rho=0.085; fails decision relevance
+          minutes_roll5 (AVAIL-002):
+            GK: uninformative  # rho=0.108; fails decision relevance
+            DEF: uninformative  # rho=0.124; fails decision relevance
+            MID: informative    # rho=0.168, CI=[0.129, 0.205]; passes 3/3 GW blocks
+            FWD: unstable       # passes only 1/3 GW blocks
+          minutes_roll8 (AVAIL-003):
+            GK: uninformative  # rho=0.100; fails decision relevance
+            DEF: informative    # rho=0.130, CI=[0.085, 0.172]; passes 3/3 GW blocks
+            MID: informative    # rho=0.169, CI=[0.125, 0.212]; passes 3/3 GW blocks
+            FWD: uninformative  # rho=0.139; fails decision relevance
+
+    representation_implications:
+      approved:
+        - representation: minutes_roll8
+          positions: [DEF, MID]
+          basis: LENS-AVAIL AVAIL-003 — informative at DEF and MID; strongest window for availability
+        - representation: minutes_roll3
+          positions: [MID]
+          basis: LENS-AVAIL AVAIL-001 — informative at MID
+        - representation: minutes_roll5
+          positions: [MID]
+          basis: LENS-AVAIL AVAIL-002 — informative at MID
+      rejected:
+        - representation: minutes as form signal
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA2-02 — eligibility/availability signal only; must not be classified as form
+        - representation: minutes_trend
+          status: CONDITIONAL — threshold rationale pending documentation (Phase 4 task)
+          basis: minutes_trend is in STATE output; 30-minute threshold basis undocumented;
+                 behavioral justification required before approval
+      notes: LENS-AVAIL also tracked played_next_gw (availability characterisation); minutes_roll3
+             shows stronger availability signal (rho≈0.18-0.23) than total_points signal;
+             the two targets are distinct evaluation contexts
+
+  # ---------------------------------------------------------------------------
+  # MARKET
+  # ---------------------------------------------------------------------------
+
+  - signal: transfers_in
+    family: Market
+    scope: Population
+    temporal_type: count
+    status: complete
+
+    persistence_class: low
+    sparsity_level: moderate
+    behavioral_basis: >
+      Weekly flow count of manager purchases. Reactive to events (injury returns, price rises,
+      fixture runs) — persistence is low because transfer activity spikes episodically.
+      Informative at DEF and MID in LENS-MARKET (rho≈0.187-0.190); fails at GK and FWD.
+      Point-in-time characterisation — rolling mean would average current and stale sentiment.
+    redundancy_flags:
+      - note: transfers_balance (in-minus-out) studied in LENS-MARKET; found uninformative all positions
+    gate_decisions:
+      - LENS-MARKET MARKET-001
+
+    lens_findings:
+      - lens: LENS-MARKET
+        findings:
+          transfers_in (MARKET-001):
+            GK: uninformative   # rho=0.146; CI excludes zero but fails decision relevance
+            DEF: informative    # rho=0.187, CI=[0.146, 0.226]; passes 3/3 GW blocks
+            MID: informative    # rho=0.190, CI=[0.153, 0.230]; passes 3/3 GW blocks
+            FWD: uninformative  # rho=0.127; CI excludes zero but fails decision relevance
+
+    representation_implications:
+      approved:
+        - representation: transfers_in (point-in-time, lag-1)
+          positions: [DEF, MID]
+          basis: LENS-MARKET MARKET-001 — informative at DEF and MID
+      rejected:
+        - representation: transfers_in rolling mean
+          status: REJECTED-BEHAVIORAL
+          basis: Market family rule — no rolling transforms; rolling mean mixes current and stale
+                 manager sentiment; point-in-time reflects the current decision cycle
+        - representation: transfers_balance (in minus out)
+          status: REJECTED-BEHAVIORAL
+          basis: LENS-MARKET MARKET-002 — uninformative at all positions
+
+  - signal: transfers_out
+    family: Market
+    scope: Population
+    temporal_type: count
+    status: complete
+
+    persistence_class: low
+    sparsity_level: moderate
+    behavioral_basis: >
+      Weekly flow count of manager sales. Inversely signals declining confidence. Not
+      separately studied in LENS-MARKET (transfers_balance studied instead, found
+      uninformative). By analogy with transfers_in, point-in-time characterisation applies.
+      No independent lens study; representation decision derives from Market family rule.
+    redundancy_flags:
+      - correlated_with: transfers_in (inverse flow; balance studied and found uninformative)
+    gate_decisions:
+      - LENS-MARKET (transfers_balance studied — G-MARKET-002 uninformative)
+
+    lens_findings:
+      - lens: LENS-MARKET
+        note: transfers_out not separately studied; transfers_balance (in minus out) studied
+              as MARKET-002 and found uninformative at all positions
+
+    representation_implications:
+      conditional:
+        - representation: transfers_out (point-in-time, lag-1)
+          status: CONDITIONAL — not independently lens-validated
+          basis: Market family rule applies; analogous characterisation to transfers_in;
+                 no standalone lens finding available
+      rejected:
+        - representation: transfers_out rolling mean
+          status: REJECTED-BEHAVIORAL
+          basis: Market family rule — no rolling transforms for population flow signals
+
+  - signal: ownership_count
+    family: Market
+    scope: Population
+    temporal_type: stock
+    status: complete
+
+    persistence_class: high
+    sparsity_level: dense
+    behavioral_basis: >
+      Stock signal — cumulative count of managers holding this player; changes slowly as
+      the season progresses. High persistence reflects gradual market consensus building.
+      Informative at DEF and MID (rho≈0.156-0.168); unstable at FWD; uninformative at GK.
+      Rolling mean is semantically inadmissible for a stock signal (produces an average level
+      rather than the current level). Delta is the appropriate derivative representation.
+    redundancy_flags: []
+    gate_decisions:
+      - LENS-MARKET MARKET-003
+
+    lens_findings:
+      - lens: LENS-MARKET
+        findings:
+          ownership_count (MARKET-003):
+            GK: uninformative  # rho=0.126; CI excludes zero but fails decision relevance
+            DEF: informative   # rho=0.156, CI=[0.117, 0.196]; passes 3/3 GW blocks
+            MID: informative   # rho=0.168, CI=[0.130, 0.205]; passes 3/3 GW blocks
+            FWD: unstable      # rho=0.136; CI excludes zero but passes only 1/3 GW blocks
+
+    representation_implications:
+      approved:
+        - representation: ownership_count (point-in-time, lag-1)
+          positions: [DEF, MID]
+          basis: LENS-MARKET MARKET-003 — informative at DEF and MID
+      conditional:
+        - representation: ownership_count_delta (change per GW)
+          status: CONDITIONAL — not lens-validated
+          basis: delta is semantically admissible for stock temporal type; not studied;
+                 may capture recent market movement better than the level
+        - representation: log1p(ownership_count) or delta-log
+          status: CONDITIONAL — pending distributional EDA
+          basis: admissible if EDA confirms heavy-tail distribution; ownership_count
+                 likely right-skewed (template vs fringe players); requires distributional
+                 study before approval
+      rejected:
+        - representation: ownership_count rolling mean
+          status: REJECTED-SEMANTIC
+          basis: stock temporal type — rolling mean produces average level over N weeks;
+                 a stock variable's current level is the relevant quantity, not its average
+
+  # ---------------------------------------------------------------------------
+  # STRUCTURAL TIER
+  # ---------------------------------------------------------------------------
+
+  - signal: purchase_price
+    family: Structural Tier
+    scope: Individual
+    temporal_type: stock
+    status: complete
+
+    persistence_class: structural
+    sparsity_level: dense
+    behavioral_basis: >
+      FPL system's assigned price — a structural encoding of player valuation that changes
+      slowly via the FPL price rise/fall mechanism. Informative at DEF and FWD (passes 2/3
+      GW blocks each); uninformative at GK and MID. The association reflects player quality
+      tier rather than recent form — price embeds a long-run assessment.
+    redundancy_flags: []
+    gate_decisions:
+      - LENS-MARKET MARKET-004
+
+    lens_findings:
+      - lens: LENS-MARKET
+        findings:
+          purchase_price (MARKET-004):
+            GK: uninformative   # rho=0.106; CI excludes zero but fails decision relevance
+            DEF: informative    # rho=0.121, CI=[0.082, 0.162]; passes 2/3 GW blocks
+            MID: uninformative  # rho implies fails decision relevance
+            FWD: informative    # passes 2/3 GW blocks
+
+    representation_implications:
+      approved:
+        - representation: purchase_price (point-in-time, lag-1)
+          positions: [DEF, FWD]
+          basis: LENS-MARKET MARKET-004 — informative at DEF and FWD
+      rejected:
+        - representation: purchase_price rolling mean
+          status: REJECTED-SEMANTIC
+          basis: stock temporal type — rolling mean of price produces average tier over N weeks;
+                 current price is the relevant quantity
+        - representation: purchase_price delta
+          status: REJECTED-BEHAVIORAL
+          basis: price changes reflect FPL system adjustments based on ownership transfer flow;
+                 the delta is a derived market mechanic, not an independent football signal;
+                 no analytical basis for using price movement as an analytical representation
+        - representation: log1p(purchase_price)
+          status: CONDITIONAL — pending distributional EDA
+          basis: admissible only if price distribution is confirmed heavy-tailed; requires study
+
+  # ---------------------------------------------------------------------------
+  # ALLOCATION
+  # ---------------------------------------------------------------------------
+
+  - signal: bonus
+    family: Allocation
+    scope: Individual
+    temporal_type: count
+    status: decision-closed
+
+    decision: excluded-from-lens-studies
+    decision_gate: G-EDA7-06
+    decision_basis: >
+      Bonus is an intermediate FPL scoring construct — allocated by the FPL system based on
+      relative bps standing. It is a points component, not an independent football signal.
+      Using bonus as an analytical representation for total_points risks target leakage (bonus is a direct
+      component of the total_points score). core_signal at DEF and GK (rho=0.54) — the
+      association is real but analytically circular. Excluded from all lens studies.
+    representation_implications:
+      rejected:
+        - representation: all bonus representations as analytical representations
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA7-06 — target leakage risk; bonus is a component of total_points;
+                 association is real but cannot be used as an analytical representation without leakage
+
+  - signal: bps
+    family: Allocation
+    scope: Individual
+    temporal_type: count
+    status: decision-closed
+
+    decision: excluded-from-lens-studies
+    decision_gate: G-EDA7-06
+    decision_basis: >
+      bps (bonus points system index) is the input to bonus allocation — a continuous index
+      computed from in-match actions. core_signal at GK (rho=0.91) — extremely high association
+      because bps directly drives the bonus allocation which is part of total_points.
+      Association is analytically circular; excluded from all lens studies.
+    representation_implications:
+      rejected:
+        - representation: all bps representations as analytical representations
+          status: REJECTED-BEHAVIORAL
+          basis: G-EDA7-06 — target leakage risk; bps is an input to the FPL scoring mechanism;
+                 rho=0.91 at GK reflects the circular relationship with total_points
+
+  # ---------------------------------------------------------------------------
+  # CONTEXT
+  # ---------------------------------------------------------------------------
+
+  - signal: fdr_avg
+    family: Context
+    scope: Match
+    temporal_type: estimate
+    status: complete
+
+    persistence_class: not-applicable
+    sparsity_level: not-applicable
+    behavioral_basis: >
+      Pre-match fixture difficulty rating — fully determined before any match begins.
+      Negative rho confirmed at all positions (DEF rho=-0.196, MID rho=-0.159) — harder
+      fixtures associate with fewer points, as expected. But fails decision relevance at
+      all positions: Q5-Q1 gap is negative and non-monotonic across quintiles, meaning the
+      signal cannot be used as a simple directional rank indicator. Ontology ineligible
+      for temporal aggregation.
+    redundancy_flags:
+      - absorbs: fdr_max (G-EDA6-01; pairwise rho=1.0)
+      - absorbs: fdr_min (G-EDA6-01; pairwise rho=1.0)
+    gate_decisions:
+      - G-EDA6-01  # fdr_avg/max/min perfectly redundant; fdr_avg sole representative
+
+    lens_findings:
+      - lens: LENS-FIXTURE-GW
+        findings:
+          fdr_avg (FIXTURE-001):
+            GK: uninformative   # rho=-0.147; CI excludes zero but fails decision relevance (Q5-Q1=-1.325)
+            DEF: uninformative  # rho=-0.196; fails decision relevance (Q5-Q1=-2.039, not monotonic)
+            MID: uninformative  # rho=-0.159; fails decision relevance (Q5-Q1=-1.456)
+            FWD: uninformative  # rho=-0.092; fails decision relevance (Q5-Q1=-1.041)
+
+    representation_implications:
+      rejected:
+        - representation: fdr_avg rolling mean
+          status: REJECTED-SEMANTIC
+          basis: Context family — pre-match fixed; temporal aggregation produces historical
+                 average of pre-match properties, not a forward-looking signal
+        - representation: fdr_avg as directional rank indicator
+          status: REJECTED-BEHAVIORAL
+          basis: LENS-FIXTURE-GW FIXTURE-001 — fails decision relevance at all positions;
+                 non-monotonic quintile ordering; cannot function as a simple rank signal
+      conditional:
+        - representation: fdr_avg as binary difficulty moderator
+          status: CONDITIONAL — not yet validated
+          basis: may condition other signals in stratified analysis (easy/medium/hard tercile);
+                 this is a SYNTH-01 question, not a standalone representation
+
+  - signal: fdr_max
+    family: Context
+    scope: Match
+    temporal_type: estimate
+    status: decision-closed
+
+    decision: excluded-redundant
+    decision_gate: G-EDA6-01
+    decision_basis: >
+      Perfectly redundant with fdr_avg (pairwise rho=1.0 at all positions). Carries no
+      independent information. Additionally excluded by Context ontology (pre-match fixed).
+    representation_implications:
+      rejected:
+        - representation: all fdr_max representations
+          status: REJECTED-SEMANTIC
+          basis: G-EDA6-01 — perfectly redundant with fdr_avg; additionally Context ontology
+                 excludes all temporal aggregation
+
+  - signal: fdr_min
+    family: Context
+    scope: Match
+    temporal_type: estimate
+    status: decision-closed
+
+    decision: excluded-redundant
+    decision_gate: G-EDA6-01
+    decision_basis: >
+      Perfectly redundant with fdr_avg (pairwise rho=1.0 at all positions). Carries no
+      independent information. Additionally excluded by Context ontology (pre-match fixed).
+    representation_implications:
+      rejected:
+        - representation: all fdr_min representations
+          status: REJECTED-SEMANTIC
+          basis: G-EDA6-01 — perfectly redundant with fdr_avg; additionally Context ontology
+                 excludes all temporal aggregation
+
+  - signal: was_home
+    family: Context
+    scope: Match
+    temporal_type: indicator
+    status: decision-closed
+
+    decision: ontology-derived-exclusion
+    decision_basis: >
+      Context family — pre-match fixed; Layer 3 ineligible by ontology classification.
+      No EDA gate decisions required or produced. LENS-FIXTURE-GW empirically confirmed
+      uninformative at all positions (FIXTURE-002; rho≈0.044-0.068 at DEF/MID, CI barely
+      excludes zero; fails decision relevance). Lens finding confirms but does not constitute
+      the exclusion — the exclusion is ontology-derived.
+    lens_findings:
+      - lens: LENS-FIXTURE-GW
+        findings:
+          was_home (FIXTURE-002):
+            GK: uninformative  # CI crosses zero; rho=0.058
+            DEF: uninformative # rho=0.068; CI excludes zero but fails decision relevance
+            MID: uninformative # rho=0.044; CI excludes zero but fails decision relevance
+            FWD: uninformative # CI crosses zero; rho=0.009
+    representation_implications:
+      rejected:
+        - representation: all was_home representations
+          status: REJECTED-SEMANTIC
+          basis: Context family ontology — indicator temporal type; no magnitude to aggregate;
+                 pre-match fixed; all temporal transforms inadmissible
+
+  - signal: fixture_count
+    family: Context
+    scope: Match
+    temporal_type: count
+    status: decision-closed
+
+    decision: ontology-derived-exclusion
+    decision_basis: >
+      Context family — pre-match fixed; Layer 3 ineligible by ontology. Additionally
+      blocked at FWD and GK (G-EDA2-01). LENS-FIXTURE-GW confirmed: fixture_count is
+      informative in the DGW-inclusive sample (rho≈0.098 DEF, 0.083 MID) but CI does not
+      exclude zero when DGW rows are removed — the entire signal is the fixture multiplier
+      effect, not fixture_count as an independent signal.
+    gate_decisions:
+      - G-EDA2-01  # blocked FWD and GK
+    lens_findings:
+      - lens: LENS-FIXTURE-GW
+        findings:
+          fixture_count (FIXTURE-003):
+            DEF: uninformative  # full sample rho=0.098 (CI excludes zero); DGW-adjusted CI crosses zero
+            MID: uninformative  # full sample rho=0.083 (CI excludes zero); DGW-adjusted CI crosses zero
+            FWD: not-tested     # blocked (G-EDA2-01)
+            GK: not-tested      # blocked (G-EDA2-01)
+    representation_implications:
+      rejected:
+        - representation: all fixture_count representations
+          status: REJECTED-SEMANTIC
+          basis: Context family ontology — pre-match fixed; the apparent DGW association is
+                 the fixture multiplier effect, not fixture_count as an independent signal;
+                 confirmed by DGW-adjusted CI crossing zero in LENS-FIXTURE-GW FIXTURE-003

@@ -81,13 +81,8 @@ def _aggregate_to_gw_grain(df: pd.DataFrame) -> pd.DataFrame:
     extra = grouped.agg(
         fixture_count=("fixture_id", "count"),
         fdr_avg=("fixture_difficulty", "mean"),
-        fdr_min=("fixture_difficulty", "min"),
-        fdr_max=("fixture_difficulty", "max"),
-        in_dreamteam=("in_dreamteam", "max"),
     ).reset_index()
     extra["fdr_avg"] = extra["fdr_avg"].astype("Float64")
-    extra["fdr_min"] = extra["fdr_min"].astype("Float64")
-    extra["fdr_max"] = extra["fdr_max"].astype("Float64")
 
     return base.merge(extra, on=["player_id", "gw"])
 
@@ -147,14 +142,13 @@ def _apply_bgw_defaults(
     result.loc[bgw_mask, "home_count"] = 0
     result.loc[bgw_mask, "away_count"] = 0
     result.loc[bgw_mask, "ownership_count"] = 0
-    result.loc[bgw_mask, "in_dreamteam"] = 0
 
     for col in SUM_COLS:
         if col in result.columns:
             result.loc[bgw_mask, col] = pd.NA if col in PERFORMANCE_COLS else 0
 
-    # transfers_in/out/balance are GW-grain in the source — no record exists for a BGW player
-    for col in ("transfers_in", "transfers_out", "transfers_balance"):
+    # transfers_in/out are GW-grain in the source — no record exists for a BGW player
+    for col in ("transfers_in", "transfers_out"):
         result.loc[bgw_mask, col] = 0
 
     # Per-BGW-row lookup: causally correct identity columns per BGW row.

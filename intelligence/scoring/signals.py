@@ -21,10 +21,6 @@ _LEAKAGE_ROLES: frozenset[str] = frozenset({"points_component"})
 # layer_role values that are outcome-components (mechanistically tautological to the target)
 _OUTCOME_COMPONENT_ROLES: frozenset[str] = frozenset({"contribution_index"})
 
-# Minimum absolute rho required for a signal to carry meaningful directional information
-MIN_RHO: float = 0.15
-
-
 def _exclusion_reason(row: dict) -> str | None:
     """Return a human-readable exclusion reason, or None if the signal is clear."""
     caveat = str(row.get("interpretation_caveat") or "").lower()
@@ -41,7 +37,12 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
     """Build a SignalManifest from a validated governed registry DataFrame.
 
     Confirmed signals: promotion_class in (core_signal, review_signal),
-    no leakage or outcome-component exclusion, abs(rho_pooled) >= MIN_RHO.
+    no leakage or outcome-component exclusion, rho_pooled is non-null.
+
+    Gate is CI-based (rho_pooled non-null = signal cleared the CI gate during
+    lens evaluation). MIN_RHO was removed in Phase 8 (G-OPS-02 resolution):
+    SYNTH-01 approved three signals with rho < 0.15 via partial rho, confirming
+    the magnitude threshold was not evidence-derived.
 
     All other core/review signals go to caveated with the exclusion reason.
     positions_covered reflects only confirmed signals.
@@ -81,17 +82,6 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
             )
             continue
 
-        if abs(rho) < MIN_RHO:
-            caveated.append(
-                CaveatedSignal(
-                    signal=signal,
-                    position=position,
-                    reason=f"weak association: |rho|={abs(rho):.3f} below threshold {MIN_RHO}",
-                    promotion_class=promotion_class,
-                )
-            )
-            continue
-
         confirmed.append(
             ConfirmedSignal(
                 signal=signal,
@@ -113,15 +103,63 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
     )
 
 
+def _assert_governance_compliance(manifest: SignalManifest) -> None:
+    """Raise if any confirmed signal violates evaluation governance.
+
+    Checks each confirmed signal against evaluation_metadata.yaml. Three
+    hard-fail conditions (per Phase 2, operational-convergence-plan.md):
+      1. leakage_risk == "direct"       — signal is a scoring-target component
+      2. lifecycle_state == "excluded"  — signal was rejected in lens evaluation
+      3. downstream_status == "blocked" — evaluation blocked advancement
+
+    Signals not present in evaluation_metadata.yaml are silently skipped —
+    they predate the lens-study methodology and are governed separately.
+    Only signals WITH evaluation records are subject to enforcement here.
+    """
+    from signals.evaluation.governance import get_signal_governance
+    from signals.lifecycle.lifecycle import LeakageViolationError, LifecycleViolationError
+    from signals.lifecycle.schema import GovernanceMetadataError
+
+    for sig in manifest.confirmed:
+        try:
+            gov = get_signal_governance(sig.signal, sig.position)
+        except GovernanceMetadataError:
+            # Signal has no lens evaluation record — governance gap, not a violation.
+            # Pre-lens signals (goals_scored, assists, etc.) fall here.
+            continue
+
+        if gov.leakage_risk == "direct":
+            raise LeakageViolationError(
+                f"GOVERNANCE VIOLATION: {sig.signal}@{sig.position} has direct leakage "
+                f"risk but appears as confirmed in scoring manifest. "
+                f"Remove from registry. Source: {gov.signal_id}"
+            )
+        if gov.lifecycle_state == "excluded":
+            raise LifecycleViolationError(
+                f"GOVERNANCE VIOLATION: {sig.signal}@{sig.position} is excluded from "
+                f"lifecycle evaluation but appears as confirmed in scoring manifest. "
+                f"Lifecycle enforcement failed. Source: {gov.signal_id}"
+            )
+        if gov.downstream_status == "blocked":
+            raise LifecycleViolationError(
+                f"GOVERNANCE VIOLATION: {sig.signal}@{sig.position} has downstream "
+                f"status 'blocked' but appears as confirmed in scoring manifest. "
+                f"Source: {gov.signal_id}"
+            )
+
+
 def load_manifest_from_path(registry_path: str | Path) -> SignalManifest:
     """Load the registry CSV and return a SignalManifest.
 
     Enforces lifecycle governance: raises LifecycleViolationError if the
     registry path is an exploratory-state artifact (studies/eda/).
+    Also asserts evaluation governance compliance for all confirmed signals.
     """
     from signals.lifecycle.lifecycle import assert_operational_safe
     from signals.lifecycle.loader import load_registry
 
     assert_operational_safe(registry_path)
     registry = load_registry(registry_path)
-    return load_manifest(registry)
+    manifest = load_manifest(registry)
+    _assert_governance_compliance(manifest)
+    return manifest

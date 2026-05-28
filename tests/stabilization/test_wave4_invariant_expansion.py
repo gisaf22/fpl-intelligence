@@ -102,7 +102,7 @@ def test_state_col_contracts_exists():
 
     required_keys = {"causality", "warmup_gws", "min_obs_for_reliability", "null_if_no_obs"}
     from dal.state.player_gameweek_state import _ROLL_COLS
-    for col_suffix in ["points", "minutes"]:
+    for col_suffix in ["xgi", "minutes"]:
         # roll3 is the primary entry
         roll3_key = f"{col_suffix}_roll3"
         assert roll3_key in STATE_COL_CONTRACTS, (

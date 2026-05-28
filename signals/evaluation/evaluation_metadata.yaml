@@ -1,0 +1,1331 @@
+gate_criteria_ref: docs/governance/evaluation-gate-criteria.md
+block_stability_total: 3
+decision_class_vocab:
+  informative: Passes Gates 1-3 at this position; advances to synthesis candidate
+  uninformative: Fails Gate 1 (CI crosses zero) OR Gate 2 (fails decision relevance)
+    OR Gate 3 (< 2/3 blocks)
+  conditional: Passes gates but with documented scope constraint (naive baseline only;
+    or position-specific caveat)
+  excluded: Position not in scope by ontological design (e.g. GK for xgi; FWD/GKP
+    for fixture_count)
+lifecycle_state_vocab:
+  candidate: Signal-position pair approved for SYNTH-01 entry
+  excluded: Not advancing to synthesis
+  not_applicable: Position not studied; excluded by design before lens study ran
+  approved: Signal-position pair approved by SYNTH-01 partial rho evaluation. All
+    G-SYNTH1-* decisions recorded in signals/evaluation/synth01_decisions.yaml.
+downstream_status_vocab:
+  eligible: Approved for SYNTH-01; no blocking caveats
+  caveated: Approved for SYNTH-01 but with a documented constraint (borderline stability,
+    naive baseline concern)
+  blocked: Not eligible for synthesis or scoring
+  approved: SYNTH-01 APPROVED-* decision. Signal may enter operational composition.
+    Weight in synth01_decisions.yaml.
+leakage_risk_vocab:
+  none: No leakage concern
+  evaluation_circularity: Signal is a lagged/rolling version of the evaluation target
+  direct: Signal is a computational component of the scoring target (bonus, bps)
+evaluation_findings:
+- signal_id: FORM-001
+  signal: xgi_roll3
+  lens: FORM
+  target: total_points
+  per_position:
+    DEF:
+      rho_pooled: 0.123
+      rho_ci_lower: 0.084
+      rho_ci_upper: 0.161
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 3-GW attacking chance quality (xGI) correlates with DEF returns;
+        monotonic concentration in upper quintiles; informative across all 3 temporal
+        blocks
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1 gap'
+      - 'G3-PASS: 3/3 blocks'
+      synth01_decision: APPROVED-PRIMARY
+      composition_weight: 0.5
+      composition_role: primary
+      synth01_decision_id: G-SYNTH1-01
+    MID:
+      rho_pooled: 0.144
+      rho_ci_lower: 0.107
+      rho_ci_upper: 0.182
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: Informative at MID but does not clear naive baseline (points_roll5
+        MID rho=0.158 vs xgi_roll3 MID rho=0.144); SYNTH-01 must test independent
+        contribution
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1 gap'
+      - 'G3-PASS: 3/3 blocks'
+      notes: Does not clear naive baseline (points_roll5 MID rho=0.158 — borderline
+        above)
+      synth01_decision: EXCLUDED-REDUNDANT
+      composition_weight: null
+      composition_role: redundant
+      synth01_decision_id: G-SYNTH1-07
+    FWD:
+      rho_pooled: 0.091
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but quintile ordering non-monotonic; haul-concentration
+        effect at FWD destroys monotonic separation — xGI events are burst-concentrated
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering'
+      notes: CI excludes zero but fails monotonicity gate — Q5-Q1 gap non-monotonic;
+        not decision relevant
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: excluded
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK excluded from attacking process signals by ontological
+        design; xGI is not meaningful for goalkeepers
+      source_gate_decisions:
+      - 'G-EDA3-01: GK excluded from attacking process signals'
+      notes: GK excluded from attacking process signals by design (G-EDA3-01)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: FORM-002
+  signal: xgi_roll5
+  lens: FORM
+  target: total_points
+  per_position:
+    DEF:
+      rho_pooled: 0.113
+      rho_ci_lower: 0.071
+      rho_ci_upper: 0.155
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 5-GW xGI provides longer-horizon form signal; clears naive
+        baseline at DEF; SYNTH-01 to evaluate independence from xgi_roll3
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1 gap'
+      - 'G3-PASS: 3/3 blocks'
+      notes: Clears naive baseline (borderline); SYNTH-01 to test independence from
+        FORM-001
+      synth01_decision: APPROVED-SECONDARY
+      composition_weight: 0.5
+      composition_role: secondary
+      synth01_decision_id: G-SYNTH1-02
+    MID:
+      rho_pooled: 0.157
+      rho_ci_lower: 0.118
+      rho_ci_upper: 0.197
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 5-GW xGI informative at MID but borderline below naive baseline
+        (rho=0.157 vs points_roll5 MID rho=0.158); independence from xgi_roll3 and
+        naive baseline clearance both require SYNTH-01 test
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1 gap'
+      - 'G3-PASS: 3/3 blocks'
+      notes: Clears naive baseline (points_roll5 MID rho=0.158 — borderline below);
+        SYNTH-01 test required
+      synth01_decision: APPROVED-PRIMARY
+      composition_weight: 1.0
+      composition_role: primary
+      synth01_decision_id: G-SYNTH1-08
+    FWD:
+      rho_pooled: 0.097
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering — same
+        haul-concentration caveat as xgi_roll3 FWD; 5-GW rolling mean cannot recover
+        monotonic structure from burst event data
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering'
+      notes: CI excludes zero but fails monotonicity gate — same haul-concentration
+        caveat as FORM-001 FWD
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: excluded
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK excluded from attacking process signals by ontological
+        design
+      source_gate_decisions:
+      - 'G-EDA3-01: GK excluded from attacking process signals'
+      notes: GK excluded (G-EDA3-01)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: FORM-003
+  signal: goals_scored_roll3
+  lens: FORM
+  target: total_points
+  per_position:
+    DEF:
+      rho_pooled: 0.018
+      rho_ci_lower: -0.023
+      rho_ci_upper: 0.061
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI crosses zero at DEF — no reliable association between
+        3-GW goal rate and next-GW points at DEF
+      source_gate_decisions:
+      - 'G1-FAIL: CI crosses zero'
+      notes: CI crosses zero
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    MID:
+      rho_pooled: 0.076
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.38);
+        rolling goal-rate mean destroys burst goal-scoring structure at MID
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.38'
+      notes: CI excludes zero but fails decision relevance — Q5-Q1 0.38, non-monotonic
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    FWD:
+      rho_pooled: 0.097
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic (Q5-Q1=0.79); rolling
+        mean smooths burst goal events — goals too sparse and bursty to form monotonic
+        rolling signal at FWD
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.79'
+      notes: CI excludes zero but fails decision relevance — Q5-Q1 0.79, non-monotonic;
+        rolling mean destroys burst structure
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: excluded
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK excluded from attacking event signals by ontological design
+      source_gate_decisions:
+      - 'G-EDA3-01: GK excluded from attacking event signals'
+      notes: GK excluded from attacking event signals (G-EDA3-01)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: FORM-004
+  signal: points_roll3
+  lens: FORM
+  target: total_points
+  per_position:
+    GK:
+      rho_pooled: 0.071
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI crosses zero at GK — no predictive signal even under circularity concern
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G1-FAIL: CI crosses zero'
+      - FORM-004
+      notes: CI crosses zero — naive baseline function not served at GK
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI excludes zero but non-monotonic bin ordering at DEF — excluded regardless
+        of statistical significance
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G2-FAIL: non-monotonic quintile ordering'
+      - FORM-004
+      notes: CI excludes zero but non-monotonic bin ordering — not decision relevant
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    MID:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        Q5-Q1 gap (0.99) below 1.0 threshold at MID — excluded regardless of statistical
+        significance
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G2-FAIL: Q5-Q1=0.99 below 1.0 threshold'
+      - FORM-004
+      notes: CI excludes zero but Q5-Q1=0.99 (just below 1.0 threshold); monotonic=True
+        but insufficient gap
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: 1
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI excludes zero in aggregate but only 1/3 temporal blocks stable at FWD —
+        excluded regardless
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G3-FAIL: 1/3 temporal blocks stable'
+      - FORM-004
+      notes: CI excludes zero in aggregate but passes only 1/3 blocks — unstable
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: FORM-005
+  signal: points_roll5
+  lens: FORM
+  target: total_points
+  per_position:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI crosses zero at GK — no predictive signal even under circularity concern
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G1-FAIL: CI crosses zero'
+      - FORM-005
+      notes: CI crosses zero
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI excludes zero but fails decision relevance at DEF — excluded regardless
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G2-FAIL: decision relevance'
+      - FORM-005
+      notes: CI excludes zero but fails decision relevance
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    MID:
+      rho_pooled: 0.158
+      rho_ci_lower: 0.118
+      rho_ci_upper: 0.198
+      block_stability_count: 3
+      decision_class: conditional
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target; passes all gates at MID (rho=0.158, 3/3 blocks)
+        but retained only as naive evaluation baseline — excluded as synthesis candidate
+        to prevent evaluation circularity contaminating SYNTH-01
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — reserved as evaluation baseline only'
+      - FORM-005
+      notes: Naive baseline for MID only — sets the benchmark (rho=0.158); not a synthesis
+        candidate as independent signal
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI excludes zero but fails decision relevance at FWD — excluded regardless
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G2-FAIL: decision relevance'
+      - FORM-005
+      notes: CI excludes zero but fails decision relevance
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: FORM-006
+  signal: minutes_roll3
+  lens: FORM
+  target: total_points
+  per_position:
+    DEF:
+      rho_pooled: 0.138
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic bin distributions at DEF;
+        minutes are an exposure proxy blocked as form signal by G-EDA2-02
+      source_gate_decisions:
+      - 'G2-FAIL: non-monotonic quintile ordering'
+      - 'G-EDA2-02: minutes blocked as form proxy'
+      notes: CI excludes zero but fails decision relevance — non-monotonic bin distributions;
+        minutes blocked as form proxy (G-EDA2-02)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    MID:
+      rho_pooled: 0.179
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero (rho=0.179) but non-monotonic bins at MID
+        — does not provide monotonic next-GW return separation; minutes blocked as
+        form proxy by G-EDA2-02
+      source_gate_decisions:
+      - 'G2-FAIL: non-monotonic quintile ordering'
+      - 'G-EDA2-02: minutes blocked as form proxy'
+      notes: CI excludes zero (rho=0.179) but non-monotonic bins — does not provide
+        monotonic next-GW return separation
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    FWD:
+      rho_pooled: 0.085
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but fails decision relevance at FWD; minutes
+        blocked as form proxy by G-EDA2-02
+      source_gate_decisions:
+      - 'G2-FAIL: decision relevance'
+      - 'G-EDA2-02: minutes blocked as form proxy'
+      notes: CI excludes zero but fails decision relevance
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: excluded
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK playing time near-constant — no useful variation in the
+        form lens; excluded by design
+      source_gate_decisions:
+      - 'G-EDA2-02: minutes blocked as form proxy'
+      - 'GK-CONSTANT: near-constant playing time'
+      notes: GK excluded (near-constant playing time)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: AVAIL-001
+  signal: minutes_roll3
+  lens: AVAIL
+  target: played_next_gw
+  per_position:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1 gap (0.058) below monotonicity
+        threshold — no meaningful availability separation across minutes quintiles
+        at GK
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.058 below threshold'
+      notes: CI excludes zero but Q5-Q1=0.058 below threshold
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: 0.223
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.214)
+        — 3-GW minutes does not reliably separate starters from non-starters at DEF
+        in monotonic fashion
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.214'
+      notes: CI excludes zero but fails monotonicity (Q5-Q1=0.214)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    MID:
+      rho_pooled: 0.232
+      rho_ci_lower: 0.198
+      rho_ci_upper: 0.269
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 3-GW average minutes provides reliable availability separation
+        at MID — monotonic quintile ordering, 3/3 temporal blocks, rho=0.232
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      synth01_decision: APPROVED-PRIMARY
+      composition_weight: 0.5
+      composition_role: primary
+      synth01_decision_id: G-SYNTH1-09
+    FWD:
+      rho_pooled: 0.186
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.202)
+        — rotation patterns at FWD do not follow a monotonic minutes gradient
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.202'
+      notes: CI excludes zero but fails monotonicity (Q5-Q1=0.202)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: AVAIL-002
+  signal: minutes_roll5
+  lens: AVAIL
+  target: played_next_gw
+  per_position:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1 gap (0.083) below monotonicity
+        threshold at GK — insufficient availability separation even over 5-GW window
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.083 below threshold'
+      notes: CI excludes zero but Q5-Q1=0.083 below threshold
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: 0.213
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.226)
+        — 5-GW minutes average fails to provide monotonic availability signal at DEF
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.226'
+      notes: CI excludes zero but fails monotonicity (Q5-Q1=0.226)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    MID:
+      rho_pooled: 0.227
+      rho_ci_lower: 0.19
+      rho_ci_upper: 0.265
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: 5-GW average minutes provides reliable availability signal
+        at MID — monotonic ordering, 3/3 temporal blocks, rho=0.227
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      synth01_decision: EXCLUDED-REDUNDANT
+      composition_weight: null
+      composition_role: redundant
+      synth01_decision_id: G-SYNTH1-10
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: 1
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero in aggregate but only 1/3 temporal blocks
+        stable — temporally unstable availability signal at FWD
+      source_gate_decisions:
+      - G1-PASS
+      - 'G3-FAIL: 1/3 temporal blocks stable'
+      notes: CI excludes zero in aggregate but passes only 1/3 blocks — unstable
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: AVAIL-003
+  signal: minutes_roll8
+  lens: AVAIL
+  target: played_next_gw
+  per_position:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic at GK; Q5-Q1=0.103 at
+        threshold boundary — insufficient reliable availability separation even with
+        8-GW window
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.103 at threshold boundary'
+      notes: CI excludes zero but fails monotonicity; Q5-Q1=0.103 at threshold boundary
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: 0.219
+      rho_ci_lower: 0.174
+      rho_ci_upper: 0.261
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 8-GW average minutes provides the best availability signal
+        at DEF — longer horizon improves classification stability vs minutes_roll3/5;
+        rho=0.219, 3/3 blocks
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      notes: 8-GW horizon improves DEF availability classification vs shorter windows
+      synth01_decision: APPROVED-PRIMARY
+      composition_weight: 1.0
+      composition_role: primary
+      synth01_decision_id: G-SYNTH1-03
+    MID:
+      rho_pooled: 0.222
+      rho_ci_lower: 0.18
+      rho_ci_upper: 0.261
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 8-GW average minutes informative at MID alongside minutes_roll3/5;
+        SYNTH-01 to test whether longer horizon adds independent information over
+        shorter windows
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      synth01_decision: APPROVED-SECONDARY
+      composition_weight: 0.5
+      composition_role: secondary
+      synth01_decision_id: G-SYNTH1-11
+    FWD:
+      rho_pooled: 0.206
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.263)
+        — availability signal does not follow monotonic minutes gradient at FWD even
+        with 8-GW window
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.263'
+      notes: CI excludes zero but fails monotonicity (Q5-Q1=0.263)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: MARKET-001
+  signal: transfers_in
+  lens: MARKET
+  target: total_points
+  per_position:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.909)
+        at GK — transfer demand does not provide monotonic scoring signal for GK
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.909'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=0.909)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: 0.187
+      rho_ci_lower: 0.146
+      rho_ci_upper: 0.226
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: Transfer demand correlates with next-GW returns at DEF —
+        crowd-sourced momentum/consensus signal; rho=0.187, 3/3 blocks, monotonic
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      synth01_decision: APPROVED-PRIMARY
+      composition_weight: 0.5
+      composition_role: primary
+      synth01_decision_id: G-SYNTH1-04
+    MID:
+      rho_pooled: 0.19
+      rho_ci_lower: 0.153
+      rho_ci_upper: 0.23
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: Transfer demand informative at MID — market consensus tracks
+        form with a lag; rho=0.190, 3/3 blocks
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      synth01_decision: APPROVED-PRIMARY
+      composition_weight: 0.5
+      composition_role: primary
+      synth01_decision_id: G-SYNTH1-12
+    FWD:
+      rho_pooled: 0.127
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering despite
+        large Q5-Q1 gap (1.98 pts) — market demand at FWD reflects player tier rather
+        than monotonic form signal
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering (monotonic=False)'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=1.98 above gap threshold but
+        non-monotonic bin ordering)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: MARKET-002
+  signal: transfers_balance
+  lens: MARKET
+  target: total_points
+  per_position:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI crosses zero at GK — net transfer balance has no reliable
+        relationship with GK returns
+      source_gate_decisions:
+      - 'G1-FAIL: CI crosses zero'
+      notes: CI crosses zero
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: 0.066
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1 gap (0.563) below decision relevance
+        threshold — net transfer balance provides insufficient scoring separation
+        at DEF
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.563 below threshold'
+      notes: CI excludes zero but Q5-Q1=0.563, below threshold
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    MID:
+      rho_pooled: 0.102
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1 gap (0.756) below decision relevance
+        threshold — net balance uninformative at MID
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.756 below threshold'
+      notes: CI excludes zero but Q5-Q1=0.756, below threshold
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI crosses zero at FWD — no reliable relationship between
+        net transfer balance and FWD returns
+      source_gate_decisions:
+      - 'G1-FAIL: CI crosses zero'
+      notes: CI crosses zero
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: MARKET-003
+  signal: ownership_count
+  lens: MARKET
+  target: total_points
+  per_position:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.826)
+        at GK — ownership concentration does not track GK form monotonically
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.826'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=0.826)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: 0.156
+      rho_ci_lower: 0.117
+      rho_ci_upper: 0.196
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: Total ownership count correlates with DEF returns; rho=0.156,
+        3/3 blocks; SYNTH-01 to evaluate independence from transfers_in (crowd-sourced
+        consensus vs inflow)
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      notes: SYNTH-01 to test whether ownership adds independent information beyond
+        transfers_in
+      synth01_decision: EXCLUDED-REDUNDANT
+      composition_weight: null
+      composition_role: redundant
+      synth01_decision_id: G-SYNTH1-05
+    MID:
+      rho_pooled: 0.168
+      rho_ci_lower: 0.13
+      rho_ci_upper: 0.205
+      block_stability_count: 3
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: Ownership count informative at MID; rho=0.168, 3/3 blocks;
+        SYNTH-01 to test independence from transfers_in (crowd-sourced consensus may
+        be collinear with inflow)
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      notes: SYNTH-01 to test independence from transfers_in
+      synth01_decision: APPROVED-SECONDARY
+      composition_weight: 0.5
+      composition_role: secondary
+      synth01_decision_id: G-SYNTH1-13
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: 1
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but only 1/3 temporal blocks stable — temporally
+        unstable ownership-return relationship at FWD
+      source_gate_decisions:
+      - G1-PASS
+      - 'G3-FAIL: 1/3 temporal blocks stable'
+      notes: CI excludes zero but passes only 1/3 blocks — unstable
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: MARKET-004
+  signal: purchase_price
+  lens: MARKET
+  target: total_points
+  per_position:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic bin ordering at GK — price
+        tier does not track GK points monotonically
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic bin ordering'
+      notes: CI excludes zero but non-monotonic bin ordering
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: 0.121
+      rho_ci_lower: 0.082
+      rho_ci_upper: 0.162
+      block_stability_count: 2
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: Market price proxies player quality tier at DEF; rho=0.121,
+        passes 2/3 temporal blocks (borderline stability); SYNTH-01 to test partial
+        correlation controlling for form signals
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-WEAK: 2/3 temporal blocks'
+      notes: Passes 2/3 blocks (borderline stability); SYNTH-01 to test partial correlation
+        controlling for form
+      synth01_decision: APPROVED-SECONDARY
+      composition_weight: 0.5
+      composition_role: secondary
+      synth01_decision_id: G-SYNTH1-06
+    MID:
+      rho_pooled: 0.121
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering despite
+        large Q5-Q1 gap (1.37 pts) — price tier signal non-monotonic at MID
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic (monotonic=False, Q5-Q1=1.37)'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=1.37 but monotonic=False)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    FWD:
+      rho_pooled: 0.155
+      rho_ci_lower: 0.077
+      rho_ci_upper: 0.237
+      block_stability_count: 2
+      decision_class: informative
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: Price tier proxies player quality at FWD; rho=0.155, passes
+        2/3 temporal blocks (borderline stability); price may proxy role seniority
+        and selection priority
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-WEAK: 2/3 temporal blocks'
+      notes: Passes 2/3 blocks (borderline stability); price may proxy player quality
+        tier
+      synth01_decision: FWD-SINGLE-SIGNAL
+      composition_weight: 1.0
+      composition_role: primary
+      synth01_decision_id: G-SYNTH1-14
+- signal_id: FIXTURE-001
+  signal: fdr_avg
+  lens: FIXTURE-GW
+  target: total_points
+  per_position:
+    GK:
+      rho_pooled: -0.147
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic middle quintiles at GK
+        — FDR does not provide monotonic scoring separation; reserved for binary moderator
+        role in SYNTH-01
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic middle quintiles despite endpoint gap'
+      notes: CI excludes zero but fails decision relevance — non-monotonic middle
+        quintiles despite endpoint gap
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: -0.196
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero, Q5-Q1=-2.04 pts endpoint gap, but Q3>Q2
+        quintile reversal breaks monotonicity at DEF — reserved for binary moderator
+        role in SYNTH-01
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q3>Q2 reversal breaks monotonicity'
+      notes: CI excludes zero, Q5-Q1=-2.04 pts endpoint gap but Q3>Q2 reversal breaks
+        monotonicity
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    MID:
+      rho_pooled: -0.159
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero, Q5-Q1=-1.46 pts endpoint gap, but non-monotonic
+        middle quintiles at MID — FDR rejected as primary scored signal; reserved
+        for binary moderator in SYNTH-01
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic middle quintiles'
+      notes: CI excludes zero, Q5-Q1=-1.46 pts endpoint gap but non-monotonic middle
+        quintiles
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    FWD:
+      rho_pooled: -0.092
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but fails decision relevance at FWD; reserved
+        for binary moderator role (easy vs. difficult fixture) in SYNTH-01, not as
+        primary scored signal
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: fails decision relevance'
+      notes: CI excludes zero but fails decision relevance; reserved for binary moderator
+        role in SYNTH-01
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: FIXTURE-002
+  signal: was_home
+  lens: FIXTURE-GW
+  target: total_points
+  per_position:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI crosses zero at GK — home advantage shows no reliable
+        relationship with GK returns
+      source_gate_decisions:
+      - 'G1-FAIL: CI crosses zero'
+      notes: CI crosses zero
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: 0.068
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1=-0.145 non-monotonic at DEF —
+        home/away binary does not provide reliable scoring advantage for defenders
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=-0.145 non-monotonic'
+      notes: CI excludes zero but Q5-Q1=-0.145, non-monotonic
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    MID:
+      rho_pooled: 0.044
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1=0.044 trivially small at MID —
+        home advantage provides no decision-relevant scoring separation for midfielders
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.044 trivially small'
+      notes: CI excludes zero but Q5-Q1=0.044, trivially small — no decision-relevant
+        separation
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI crosses zero at FWD — no reliable home advantage effect
+        on FWD returns
+      source_gate_decisions:
+      - 'G1-FAIL: CI crosses zero'
+      notes: CI crosses zero
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+- signal_id: FIXTURE-003
+  signal: fixture_count
+  lens: FIXTURE-GW
+  target: total_points
+  per_position:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: excluded
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK and FWD blocked from schedule context signal by ontological
+        design (G-EDA2-01); DGW fixture count is primarily relevant for MID/DEF scoring
+        multipliers
+      source_gate_decisions:
+      - 'G-EDA2-01: GK and FWD blocked from schedule context signal'
+      notes: GK and FWD blocked in EDA (G-EDA2-01)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    DEF:
+      rho_pooled: 0.098
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic (Q5-Q1=-0.407) — DGW effect
+        at DEF is a binary multiplier, not a graded monotonic signal; fixture_count
+        should be treated as a binary DGW flag
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic Q5-Q1=-0.407; DGW is binary multiplier not graded
+        signal'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=-0.407); DGW effect is multiplier,
+        not graded signal
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    MID:
+      rho_pooled: 0.083
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: 'CI excludes zero but non-monotonic (Q5-Q1=-0.404) at MID
+        — same conclusion as DEF: DGW effect is binary, fixture count is not a gradable
+        scoring signal'
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic Q5-Q1=-0.404'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=-0.404)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: excluded
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK and FWD blocked from schedule context signal by ontological
+        design (G-EDA2-01)
+      source_gate_decisions:
+      - 'G-EDA2-01: GK and FWD blocked from schedule context signal'
+      notes: FWD blocked in EDA (G-EDA2-01)
+      synth01_decision: null
+      composition_weight: null
+      composition_role: null
+version: '3.0'
+version_note: v3.0 adds synth01_decision, composition_weight, composition_role per
+  Phase 7 execution (2026-05-27)

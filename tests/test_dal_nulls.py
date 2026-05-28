@@ -17,11 +17,11 @@ _PERFORMANCE_COLS = [
     "total_points", "minutes", "goals_scored", "assists",
     "clean_sheets", "yellow_cards", "red_cards", "saves",
     "bonus", "bps", "xg", "xa", "xgi", "goals_conceded", "xgc",
-    "starts", "penalties_saved", "penalties_missed", "own_goals",
+    "starts", "penalties_saved",
     "influence", "creativity", "threat", "ict_index",
 ]
-_FDR_COLS = ["fdr_avg", "fdr_min", "fdr_max"]
-_MARKET_COLS = ["transfers_in", "transfers_out", "ownership_count", "transfers_balance"]
+_FDR_COLS = ["fdr_avg"]
+_MARKET_COLS = ["transfers_in", "transfers_out", "ownership_count"]
 
 
 def test_identity_columns_never_null():
@@ -74,7 +74,7 @@ def test_performance_columns_null_for_bgw():
 
 
 def test_fdr_columns_null_for_bgw():
-    """BGW rows have fdr_avg, fdr_min, fdr_max == NULL — no fixture means no difficulty. Contract Section 5, 6."""
+    """BGW rows have fdr_avg == NULL — no fixture means no difficulty. Contract Section 5, 6."""
     spine = build_player_gameweek_spine(DB_PATH)
     bgw_rows = spine[spine["is_bgw"] == True]  # KeyError if is_bgw missing
     if bgw_rows.empty:
@@ -92,7 +92,7 @@ def test_fdr_columns_null_for_bgw():
 
 
 def test_market_columns_never_null():
-    """Market columns (transfers_in, ownership_count, transfers_balance) have zero nulls across all rows. Contract Section 5."""
+    """Market columns (transfers_in, transfers_out, ownership_count) have zero nulls across all rows. Contract Section 5."""
     spine = build_player_gameweek_spine(DB_PATH)
     for col in _MARKET_COLS:
         if col not in spine.columns:

@@ -16,20 +16,11 @@ pytestmark = pytest.mark.integration
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 
 _STATE_COLS = [
-    "points_roll3", "points_roll5", "points_roll8",
+    "xgi_roll3", "xgi_roll5",
+    "xgc_roll3", "xgc_roll5",
+    "clean_sheets_roll3", "clean_sheets_roll5",
+    "goals_conceded_roll3", "goals_conceded_roll5",
     "minutes_roll3", "minutes_roll5", "minutes_roll8",
-    "xg_roll3", "xg_roll5", "xg_roll8",
-    "xa_roll3", "xa_roll5", "xa_roll8",
-    "xgi_roll3", "xgi_roll5", "xgi_roll8",
-    "xgc_roll3", "xgc_roll5", "xgc_roll8",
-    "goals_scored_roll3", "goals_scored_roll5", "goals_scored_roll8",
-    "assists_roll3", "assists_roll5", "assists_roll8",
-    "clean_sheets_roll3", "clean_sheets_roll5", "clean_sheets_roll8",
-    "goals_conceded_roll3", "goals_conceded_roll5", "goals_conceded_roll8",
-    "saves_roll3", "saves_roll5", "saves_roll8",
-    "penalties_saved_roll3", "penalties_saved_roll5", "penalties_saved_roll8",
-    "bonus_roll3", "bonus_roll5", "bonus_roll8",
-    "bps_roll3", "bps_roll5", "bps_roll8",
     "fixture_context",
     "minutes_trend",
 ]
@@ -60,10 +51,10 @@ def test_grain_preserved(state):
 
 
 def test_rolling_correctness(state):
-    """points_roll3 at the 4th GW position for a player matches manual calculation.
+    """xgi_roll3 at the 4th GW position for a player matches manual calculation.
 
     With shift(1).rolling(3, min_periods=1), the value at index 3 is the mean of
-    total_points at indices 0, 1, 2 (the prior 3 GWs).
+    xgi at indices 0, 1, 2 (the prior 3 GWs).
     """
     player_counts = state.groupby("player_id")["gw"].count()
     candidates = player_counts[player_counts >= 5].index
@@ -73,18 +64,18 @@ def test_rolling_correctness(state):
     player_rows = state[state["player_id"] == pid].sort_values("gw").reset_index(drop=True)
 
     # 4th row (index 3) — shift(1).rolling(3) at index 3 looks at indices 0, 1, 2
-    expected = player_rows.loc[0:2, "total_points"].mean()
-    actual = player_rows.loc[3, "points_roll3"]
+    expected = player_rows.loc[0:2, "xgi"].mean()
+    actual = player_rows.loc[3, "xgi_roll3"]
     assert abs(actual - expected) < 1e-9, f"Expected {expected}, got {actual}"
 
 
 def test_min_periods_gw2(state):
-    """GW2 rows for players who played GW1 have non-null points_roll3."""
+    """GW2 rows for players who played GW1 have non-null xgi_roll3."""
     # Only players who also played GW1 (non-BGW at GW1) can have a non-null roll at GW2
-    played_gw1 = set(state[(state["gw"] == 1) & state["total_points"].notna()]["player_id"])
+    played_gw1 = set(state[(state["gw"] == 1) & state["xgi"].notna()]["player_id"])
     gw2 = state[(state["gw"] == 2) & state["player_id"].isin(played_gw1)]
-    gw2_with_data = gw2[gw2["total_points"].notna()]
-    assert gw2_with_data["points_roll3"].notna().all()
+    gw2_with_data = gw2[gw2["xgi"].notna()]
+    assert gw2_with_data["xgi_roll3"].notna().all()
 
 
 def test_fixture_context_values(state):

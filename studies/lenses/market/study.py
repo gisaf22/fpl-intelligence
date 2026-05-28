@@ -16,14 +16,12 @@ RUNS_DIR = Path("studies/runs")
 
 SIGNALS: dict[str, dict] = {
     "transfers_in":      {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
-    "transfers_balance": {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
     "ownership_count":   {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
     "purchase_price":    {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
 }
 
 SIGNAL_IDS: dict[str, str] = {
     "transfers_in":      "MARKET-001",
-    "transfers_balance": "MARKET-002",
     "ownership_count":   "MARKET-003",
     "purchase_price":    "MARKET-004",
 }

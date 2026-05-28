@@ -1,11 +1,27 @@
 """Fixture opportunity indicators.
 
 Surfaces players and teams with favorable near-term fixture windows. Uses
-FPL fixture difficulty ratings (FDR) and team-level attacking output as
-observable inputs — no predictive modeling.
+team-level attacking output and DGW presence as observable inputs — no predictive
+modeling. Opponent defensive weakness is proxied through recent team-level
+concession rates derived from the curated spine.
 
-Opponent defensive weakness is proxied through recent team-level concession
-rates derived from the curated spine. No external data sources are required.
+Weights are loaded from the governance registry (signals/registry/weight_registry.yaml).
+All weights are PROVISIONAL-EDITORIAL — no analytical derivation exists.
+
+## Phase 6 governance changes (2026-05-27)
+
+GAP-TRACE-02 (GOVERNANCE INCONSISTENCY fixed): fdr_avg removed from scoring weights.
+  fdr_opportunity_score component removed entirely (fdr_avg excluded at all positions;
+  FIXTURE-001 G2-FAIL). Remaining two components (team_attack_score, dgw_bonus_score)
+  retained at original values; weighted_composite normalises to an effective 0.58:0.42
+  split. fdr_window_avg kept as an informational output column only.
+
+GAP-TRACE-06 (GOVERNED BUT NOT WIRED fixed): DGW detection migrated from spine
+  is_dgw flag to STATE fixture_context column (DGW/BGW/SGW classification).
+
+Known remaining governance notes (do not resolve until SYNTH-01):
+- team_attack_score: no lens evaluation — goals_scored is a team-level proxy
+- _MIN_MINUTES_ROLL5 = 30.0: UNJUSTIFIED (threshold-registry.md §FIX-T-01)
 """
 
 from __future__ import annotations
@@ -18,19 +34,16 @@ from intelligence._base import (
     validate_intelligence_inputs,
     weighted_composite,
 )
+from intelligence.weight_registry import get_module_weights
 
-# Explicit static weights for fixture opportunity score.
-# FDR is the primary signal (40%); team attack and DGW bonus inform the rest.
-_WEIGHTS: dict[str, float] = {
-    "fdr_opportunity_score": 0.40,
-    "team_attack_score": 0.35,
-    "dgw_bonus_score": 0.25,
-}
+# Weights loaded from governance registry — fails hard if entry missing.
+# Note: fdr_opportunity_score removed in Phase 6 (GAP-TRACE-02).
+_WEIGHTS: dict[str, float] = get_module_weights("fixtures")
 
 _FDR_NEUTRAL = 3.0
-_FDR_CEILING = 6.0
 
-# Minimum rolling minutes to be included in fixture opportunity output.
+# UNJUSTIFIED (threshold-registry.md §FIX-T-01): no lens study establishes 30.0
+# as a participation minimum for fixture opportunity.
 _MIN_MINUTES_ROLL5 = 30.0
 
 _OUTPUT_COLS = [
@@ -41,7 +54,6 @@ _OUTPUT_COLS = [
     "fdr_window_avg",
     "dgw_in_window",
     "team_goals_roll5",
-    "fdr_opportunity_score",
     "team_attack_score",
     "dgw_bonus_score",
     "fixture_opportunity_score",
@@ -109,10 +121,12 @@ def rank_fixture_opportunities(
     DataFrame ranked by fixture_opportunity_score descending with explainability
     columns.
 
-    Scoring components (static weights):
-    - fdr_opportunity_score  40%: mean inverted FDR across window, per player
-    - team_attack_score      35%: team's rolling goals scored (proxy for attack quality)
-    - dgw_bonus_score        25%: whether any GW in the window is a DGW (binary)
+    Scoring components (registry weights; PROVISIONAL-EDITORIAL):
+    - team_attack_score  (58% effective): team's rolling goals scored
+    - dgw_bonus_score    (42% effective): DGW presence in window from fixture_context
+
+    fdr_window_avg is computed and retained as an informational output only —
+    it no longer contributes to fixture_opportunity_score (GAP-TRACE-02).
 
     Only players with minutes_roll5 >= 30 at target_gw are included.
     """
@@ -129,10 +143,11 @@ def rank_fixture_opportunities(
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # Fixture window: compute per-player mean FDR and DGW presence.
+    # Fixture window: compute per-player DGW presence (from fixture_context, GAP-TRACE-06)
+    # and mean FDR (informational only, not scored).
     window_gws = list(range(target_gw, target_gw + horizon))
     window_df = features[features["gw"].isin(window_gws)][
-        ["player_id", "gw", "fdr_avg", "is_dgw"]
+        ["player_id", "gw", "fdr_avg", "fixture_context"]
     ]
 
     if window_df.empty:
@@ -142,12 +157,11 @@ def rank_fixture_opportunities(
     else:
         fdr_summary = window_df.groupby("player_id").agg(
             fdr_window_avg=("fdr_avg", "mean"),
-            dgw_in_window=("is_dgw", "any"),
+            dgw_in_window=("fixture_context", lambda s: int((s == "DGW").any())),
         )
         fdr_summary["fdr_window_avg"] = fdr_summary["fdr_window_avg"].fillna(
             _FDR_NEUTRAL
         )
-        fdr_summary["dgw_in_window"] = fdr_summary["dgw_in_window"].astype(int)
         eligible = eligible.merge(
             fdr_summary, on="player_id", how="left"
         )
@@ -158,17 +172,13 @@ def rank_fixture_opportunities(
     team_attack = _build_team_attack_strength(features, target_gw, horizon)
     eligible["team_goals_roll5"] = eligible["team_id"].map(team_attack).fillna(0.5)
 
-    # Invert FDR: low FDR = easy fixture = high score.
-    eligible["_fdr_inv"] = _FDR_CEILING - eligible["fdr_window_avg"]
-
-    eligible["fdr_opportunity_score"] = normalize_within_position(
-        eligible, "_fdr_inv"
-    )
     eligible["team_attack_score"] = normalize_within_position(
         eligible, "team_goals_roll5"
     )
-    # DGW bonus: binary flag normalized to [0, 1] already (0 or 1).
-    eligible["dgw_bonus_score"] = eligible["dgw_in_window"].astype(float)
+    # DGW bonus: binary flag normalized to [0, 1] within position.
+    eligible["dgw_bonus_score"] = normalize_within_position(
+        eligible, "dgw_in_window"
+    )
 
     eligible["fixture_opportunity_score"] = weighted_composite(
         eligible, list(_WEIGHTS.keys()), _WEIGHTS

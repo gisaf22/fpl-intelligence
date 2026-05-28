@@ -8,9 +8,6 @@ GAMEWEEK_CONTEXT_COLS = [
     "is_previous",
     "is_live",
     "is_next",
-    "average_entry_score",
-    "highest_score",
-    "transfers_made",
 ]
 
 # Output column order for the final spine
@@ -40,9 +37,6 @@ SPINE_COLS = [
     "xgi",
     "xgc",
     "fdr_avg",
-    "fdr_min",
-    "fdr_max",
-    "transfers_balance",
     "fixture_count",
     "is_bgw",
     "is_dgw",
@@ -51,22 +45,16 @@ SPINE_COLS = [
     "was_home",
     "starts",
     "penalties_saved",
-    "penalties_missed",
-    "own_goals",
     "influence",
     "creativity",
     "threat",
     "ict_index",
-    "in_dreamteam",
     "transfers_out",
     "deadline_time",
     "finished",
     "is_previous",
     "is_live",
     "is_next",
-    "average_entry_score",
-    "highest_score",
-    "transfers_made",
 ]
 
 # Semantic classification for every FIRST_COLS entry.
@@ -84,7 +72,6 @@ FIRST_COL_SEMANTICS: dict[str, str] = {
     "ownership_count":    "invariant_per_gw",
     "transfers_in":       "invariant_per_gw",
     "transfers_out":      "invariant_per_gw",
-    "transfers_balance":  "invariant_per_gw",
     "was_home":           "canonical_first_fixture",  # NULL for DGW by contract
 }
 
@@ -98,7 +85,6 @@ FIRST_COLS = [
     "ownership_count",
     "transfers_in",
     "transfers_out",
-    "transfers_balance",
     "was_home",
 ]
 
@@ -123,8 +109,6 @@ SUM_COLS = [
     "away_count",
     "starts",
     "penalties_saved",
-    "penalties_missed",
-    "own_goals",
     "influence",
     "creativity",
     "threat",
@@ -136,7 +120,7 @@ PERFORMANCE_COLS = {
     "total_points", "minutes", "goals_scored", "assists", "clean_sheets",
     "yellow_cards", "red_cards", "saves", "bonus", "bps",
     "goals_conceded", "xg", "xa", "xgi", "xgc",
-    "starts", "penalties_saved", "penalties_missed", "own_goals",
+    "starts", "penalties_saved",
     "influence", "creativity", "threat", "ict_index",
 }
 
@@ -167,9 +151,6 @@ DTYPES: dict[str, str] = {
     "xgi":              "Float64", # nullable: BGW
     "xgc":              "Float64", # nullable: BGW
     "fdr_avg":          "Float64", # nullable: BGW
-    "fdr_min":          "Float64", # nullable: BGW
-    "fdr_max":          "Float64", # nullable: BGW
-    "transfers_balance":"int64",
     "fixture_count":    "int64",
     "is_bgw":           "boolean",
     "is_dgw":           "boolean",
@@ -178,13 +159,10 @@ DTYPES: dict[str, str] = {
     "was_home":         "boolean",
     "starts":           "Int64",   # nullable: BGW
     "penalties_saved":  "Int64",   # nullable: BGW
-    "penalties_missed": "Int64",   # nullable: BGW
-    "own_goals":        "Int64",   # nullable: BGW
     "influence":        "Float64", # nullable: BGW
     "creativity":       "Float64", # nullable: BGW
     "threat":           "Float64", # nullable: BGW
     "ict_index":        "Float64", # nullable: BGW
-    "in_dreamteam":     "int64",
     "transfers_out":    "int64",
     # Gameweek context columns — sourced from events table at GW grain
     "deadline_time":        "string",
@@ -192,9 +170,6 @@ DTYPES: dict[str, str] = {
     "is_previous":          "int64",
     "is_live":              "int64",
     "is_next":              "int64",
-    "average_entry_score":  "Int64",    # nullable: future GWs
-    "highest_score":        "Int64",    # nullable: future GWs
-    "transfers_made":       "int64",
 }
 
 # Null semantics contract for the final spine
@@ -210,18 +185,15 @@ NULL_RULES: dict[str, str] = {
     "is_dgw":               "never_null",
     "home_count":           "never_null",
     "away_count":           "never_null",
-    "in_dreamteam":         "never_null",
     "transfers_in":         "never_null",
     "transfers_out":        "never_null",
     "ownership_count":      "never_null",
-    "transfers_balance":    "never_null",
     "purchase_price":       "never_null",
     "deadline_time":        "never_null",
     "finished":             "never_null",
     "is_previous":          "never_null",
     "is_live":              "never_null",
     "is_next":              "never_null",
-    "transfers_made":       "never_null",
     "total_points":         "null_if_bgw",
     "minutes":              "null_if_bgw",
     "goals_scored":         "null_if_bgw",
@@ -238,17 +210,11 @@ NULL_RULES: dict[str, str] = {
     "goals_conceded":       "null_if_bgw",
     "xgc":                  "null_if_bgw",
     "fdr_avg":              "null_if_bgw",
-    "fdr_min":              "null_if_bgw",
-    "fdr_max":              "null_if_bgw",
     "starts":               "null_if_bgw",
     "penalties_saved":      "null_if_bgw",
-    "penalties_missed":     "null_if_bgw",
-    "own_goals":            "null_if_bgw",
     "influence":            "null_if_bgw",
     "creativity":           "null_if_bgw",
     "threat":               "null_if_bgw",
     "ict_index":            "null_if_bgw",
     "was_home":             "always_nullable",
-    "average_entry_score":  "always_nullable",
-    "highest_score":        "always_nullable",
 }

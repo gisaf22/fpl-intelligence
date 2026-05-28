@@ -12,7 +12,7 @@ def test_current_registry_loads_and_validates():
 
     validate_registry_contract(registry)
 
-    assert len(registry) == 116
+    assert len(registry) == 104
     assert registry["feature_candidate_eligible"].map(type).eq(bool).all()
     assert registry["low_confidence"].map(type).eq(bool).all()
     assert registry["tail_sensitive"].map(type).eq(bool).all()

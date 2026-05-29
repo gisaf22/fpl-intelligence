@@ -23,7 +23,7 @@ intelligence/ → player scoring and weekly reporting
 | [docs/system-purpose.md](system-purpose.md) | What is this system for? What does it not do? |
 | [docs/architecture/system-model.md](architecture/system-model.md) | What is each part of the system responsible for? (3-plane model) |
 | [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) | How does a decision get made, end to end? |
-| [docs/adr/012-dal-design-rationale.md](adr/012-dal-design-rationale.md) | What design decisions govern the data layer? (code contracts in `dal/fct/fct_contracts.py`) |
+| [dal/README.md](../dal/README.md) | What are the DAL layers and entry points? |
 
 ---
 
@@ -41,14 +41,11 @@ intelligence/ → player scoring and weekly reporting
 
 ### DAL contributor
 
-1. `dal/fct/fct_contracts.py` — spine column definitions, dtypes, null rules (code-enforced)
-2. `dal/contracts.py` — grain contract registry (code-enforced)
-3. `dal/feat/feat_contracts.py` + `dal/feat/feat_schema.py` — feature columns and Pandera schema
-4. [docs/adr/012-dal-design-rationale.md](adr/012-dal-design-rationale.md) — design rationale: null semantics, rolling conventions, known limitations
-5. [docs/adr/007-bgw-team-semantics.md](adr/007-bgw-team-semantics.md) — BGW team_id temporal rule
-6. [docs/adr/008-dgw-aggregation-rules.md](adr/008-dgw-aggregation-rules.md) — DGW aggregation and normalization
-7. [docs/adr/009-first-cols-ordering.md](adr/009-first-cols-ordering.md) — FIRST_COLS semantic classification
-8. [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) — what downstream modules may and may not import
+1. `dal/fct/fct_contracts.py` — spine column definitions, dtypes, null rules, aggregation semantics (code-enforced)
+2. `dal/feat/feat_contracts.py` + `dal/feat/feat_schema.py` — feature columns and Pandera schema
+3. `dal/exceptions.py` — `ErrorCode` vocabulary, `DALContractViolation`
+4. [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) — what downstream modules may and may not import
+5. [dal/README.md](../dal/README.md) — layer overview and entry points
 
 ### Research contributor (lens studies, EDA, experiments)
 
@@ -56,9 +53,7 @@ intelligence/ → player scoring and weekly reporting
 2. [docs/research-lifecycle.md](research-lifecycle.md) — lifecycle states and promotion criteria
 3. [signals/registry/SIGNAL_REGISTRY.md](../signals/registry/SIGNAL_REGISTRY.md) — governance registry: signal schema, lifecycle rules, update protocol
 4. [signals/evaluation/EVAL_DESIGN.md](../signals/evaluation/EVAL_DESIGN.md) — **locked** success criteria and failure conditions (cannot be revised retrospectively)
-5. [docs/adr/004-analytical-foundations.md](adr/004-analytical-foundations.md) — locked EDA-1 gate decisions (Spearman, GW bounds, population)
-6. [docs/adr/005-signal-exclusions.md](adr/005-signal-exclusions.md) — locked EDA-2 signal exclusions
-7. [docs/studies/](studies/) — study designs and published results
+5. [docs/studies/](studies/) — study designs and published results
 
 ### Intelligence / scoring contributor
 
@@ -81,13 +76,12 @@ intelligence/ → player scoring and weekly reporting
 
 | Document | Authoritative for |
 |----------|-------------------|
-| `dal/fct/fct_contracts.py`, `dal/contracts.py`, `dal/validation/` | All DAL behavior: grain, column contracts, null semantics, dtype contracts, BGW/DGW invariants (code-enforced) |
+| `dal/fct/fct_contracts.py`, `dal/validation/` | All DAL behavior: grain, column contracts, null semantics, dtype contracts, BGW/DGW invariants (code-enforced) |
 | [signals/evaluation/EVAL_DESIGN.md](../signals/evaluation/EVAL_DESIGN.md) | Success criteria and failure conditions for 2025-26 methodology |
 | [signals/registry/SIGNAL_REGISTRY.md](../signals/registry/SIGNAL_REGISTRY.md) | Lifecycle status for every named signal |
 | [docs/research-lifecycle.md](research-lifecycle.md) | Signal lifecycle state definitions and promotion rules |
 | [docs/registry-governance.md](registry-governance.md) | Exploratory vs operational registry semantics; lifecycle gate enforcement |
 | [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) | Allowed and forbidden import patterns for downstream modules |
-| [docs/adr/](adr/) | All immutable architectural decisions (append-only; ADR-001 through ADR-011) |
 | [docs/governance/platform-rubric.md](governance/platform-rubric.md) | Platform maturity & maintainability assessment rubric — 10 categories, scoring methodology, maturity levels |
 | [docs/governance/platform-assessment-2026-05.md](governance/platform-assessment-2026-05.md) | May 2026 platform assessment — Operational (Level 4), score 4.04, top gaps and improvement actions |
 | [docs/governance/platform-improvement-plan.md](governance/platform-improvement-plan.md) | PLATFORM-01 improvement plan — 5 phases addressing assessment findings; no analytical changes |
@@ -107,7 +101,6 @@ intelligence/ → player scoring and weekly reporting
 | [docs/architecture/runtime-artifacts.md](architecture/runtime-artifacts.md) | What artifacts are produced, where they live, gitignore policy, bootstrap semantics |
 | [docs/architecture/db-schema.md](architecture/db-schema.md) | Source database table and column reference |
 | [dal/README.md](../dal/README.md) | DAL entry points and layer overview |
-| [dal/state/STATE_CONTRACT.md](../dal/state/STATE_CONTRACT.md) | 30 derived state columns with causality and warmup specs |
 | [CONTEXT.md](../CONTEXT.md) | Project state and session orientation |
 
 ### Study record (permanent research artifacts)
@@ -124,11 +117,10 @@ intelligence/ → player scoring and weekly reporting
 
 | Document | Status | Notes |
 |----------|--------|-------|
-| `archive/architecture-boundaries.md` | Archived (Phase C) | Superseded by `architecture/layer-boundaries.md`. |
-| `archive/SYSTEM_CONTEXT.md` | Archived (Phase C) | Superseded by `architecture/layer-boundaries.md`. |
-| [docs/adr/010-enforcement-contract.md](adr/010-enforcement-contract.md) | Authoritative | Frozen system contract. Lifecycle annotation added. Lives in `adr/` as ADR-010. |
-| `archive/evaluation-framework.md` | Archived (Phase E) | Module map outdated (modules moved to `tests/helpers/`). Philosophy and metrics preserved with annotation. |
-| `archive/research-program.md` | Archived (Phase E) | Scope boundaries absorbed into `system-purpose.md`. |
+| `archive/architecture-boundaries.md` | Archived | Superseded by `architecture/layer-boundaries.md`. |
+| `archive/SYSTEM_CONTEXT.md` | Archived | Superseded by `architecture/layer-boundaries.md`. |
+| `archive/evaluation-framework.md` | Archived | Module map outdated (modules moved to `tests/helpers/`). Philosophy and metrics preserved with annotation. |
+| `archive/research-program.md` | Archived | Scope boundaries absorbed into `system-purpose.md`. |
 | `archive/stabilization/` | Archived | Wave history, risk register, Phase 11 execution plan, Phase 11 slice status. |
 | `archive/DOC_MIGRATION_PLAN.md` | Archived | Documentation architecture migration plan — all six phases complete. |
 
@@ -160,24 +152,6 @@ These files are active governance artifacts owned by their respective layers. Th
 |------|----------|---------|
 | [signals/registry/SIGNAL_REGISTRY.md](../signals/registry/SIGNAL_REGISTRY.md) | `signals/registry/` | Single source of truth for signal lifecycle status. Updated only at methodology milestones. |
 | [signals/evaluation/EVAL_DESIGN.md](../signals/evaluation/EVAL_DESIGN.md) | `signals/evaluation/` | Locked success criteria for 2025-26 methodology. Cannot be revised retrospectively. |
-
----
-
-## Architecture migration status
-
-The architecture migration defined in [docs/adr/006-layer-architecture.md](adr/006-layer-architecture.md) is **complete**. The implementation playbook is preserved as [docs/adr/011-migration-phases.md](adr/011-migration-phases.md) (ADR-011, status: COMPLETE).
-
-**All phases completed:**
-- `core/governance/` → `signals/lifecycle/` ✅
-- `signals/eda/` → `studies/eda/` ✅
-- `signals/lenses/` → `studies/lenses/` ✅
-- `signals/experiments/` → `studies/experiments/` ✅
-- `scorer/` → `intelligence/scoring/` ✅
-- `report/` → `intelligence/reporting/` ✅
-- `registry/` (storage residual) → `signals/registry/` ✅
-- `core/signals/*`, `core/relationships/*`, `core/target/*` → `studies/kernels/` ✅
-- `core/` directory deleted ✅
-- `registry/sections.py` deleted ✅
 
 ---
 

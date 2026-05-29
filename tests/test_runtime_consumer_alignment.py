@@ -1,4 +1,4 @@
-"""Phase 6 operational alignment tests.
+"""Runtime consumer alignment tests for the intelligence layer.
 
 Verifies that:
 1. No intelligence module contains hardcoded weight values — all weights are
@@ -98,7 +98,7 @@ class TestNoHardcodedWeights:
     A hardcoded weight dict looks like:
         _WEIGHTS = {"form_score": 0.35, "fixture_score": 0.20, ...}
 
-    Phase 6 requires all such dicts to be replaced by get_module_weights()
+    The weight registry enforces that all such dicts are replaced by get_module_weights()
     registry calls. This test parses each module's AST and asserts no
     top-level assignment to _WEIGHTS (or similar) uses a plain Dict literal
     with float values.
@@ -184,17 +184,17 @@ class TestWeightRegistryLoader:
             get_weight_metadata("captain", "nonexistent_key_xyz")
 
     def test_fdr_opportunity_score_not_in_fixtures(self) -> None:
-        """GAP-TRACE-02: fdr_opportunity_score must be removed from fixtures registry."""
+        """fdr_opportunity_score must not appear in fixtures registry."""
         from intelligence.weight_registry import get_module_weights
 
         weights = get_module_weights("fixtures")
         assert "fdr_opportunity_score" not in weights, (
             "fixtures registry must not contain fdr_opportunity_score — "
-            "removed in Phase 6 (GAP-TRACE-02; FIXTURE-001 G2-FAIL at all positions)."
+            "fdr_avg excluded at all positions (FIXTURE-001 G2-FAIL: non-monotonic quintile ordering)."
         )
 
     def test_fixtures_has_two_components(self) -> None:
-        """GAP-TRACE-02: fixtures module retains exactly team_attack_score and dgw_bonus_score."""
+        """fixtures module scoring uses exactly team_attack_score and dgw_bonus_score."""
         from intelligence.weight_registry import get_module_weights
 
         weights = get_module_weights("fixtures")
@@ -238,7 +238,7 @@ class TestLifecycleEnforcement:
         from signals.lifecycle.schema import GovernanceMetadataError
 
         # Find an excluded signal from the evaluation metadata to use as the test case.
-        # GAP-TRACE-01: xgi_roll3 at FWD is excluded (FORM-001 G2-FAIL).
+        # xgi_roll3 excluded at FWD (FORM-001 G2-FAIL: non-monotonic quintile ordering).
         try:
             gov = get_signal_governance("xgi_roll3", "FWD")
         except GovernanceMetadataError:
@@ -376,11 +376,15 @@ class TestScoreProvenance:
 
 
 # ---------------------------------------------------------------------------
-# 5. GAP-TRACE-02: No fdr_avg in scoring (informational only)
+# 5. fdr_avg excluded from scoring (informational output only)
 # ---------------------------------------------------------------------------
 
 class TestFdrRemovedFromScoring:
-    """GAP-TRACE-02: fdr_avg must not contribute to any scored output."""
+    """fdr_avg must not contribute to any scored output.
+
+    LENS-FIXTURE-GW found non-monotonic quintile ordering at all positions;
+    fdr_avg is retained as an informational output column only.
+    """
 
     def _features_with_varying_fdr(self) -> pd.DataFrame:
         """Two players: identical except one has a much better (lower) FDR."""
@@ -447,11 +451,11 @@ class TestFdrRemovedFromScoring:
 
 
 # ---------------------------------------------------------------------------
-# 6. GAP-TRACE-01: FWD scope guard applied
+# 6. FWD scope guard: xgi_roll3/xgi_roll5 excluded at FWD
 # ---------------------------------------------------------------------------
 
 class TestFwdScopeGuard:
-    """GAP-TRACE-01: xgi_roll3/xgi_roll5 excluded at FWD; scores must be neutralised."""
+    """xgi_roll3/xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL); scores neutralised to 0.5."""
 
     def _fwd_features_varying_xgi(self) -> pd.DataFrame:
         """Two FWD players with very different xgi — scores should be equal (0.5)."""
@@ -500,11 +504,11 @@ class TestFwdScopeGuard:
 
 
 # ---------------------------------------------------------------------------
-# 7. GAP-TRACE-03: minutes_roll8 wired for DEF/MID availability
+# 7. minutes_roll8 wired for DEF/MID long-horizon availability flag
 # ---------------------------------------------------------------------------
 
 class TestMinutesRoll8Wired:
-    """GAP-TRACE-03: availability.py must use minutes_roll8 for DEF/MID long_horizon_flag."""
+    """availability.py must use minutes_roll8 for DEF/MID long_horizon_flag (AVAIL-003)."""
 
     def test_long_horizon_flag_in_output(self) -> None:
         from intelligence.availability import flag_availability_risk

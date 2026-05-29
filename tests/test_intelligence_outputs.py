@@ -425,7 +425,7 @@ class TestFlagAvailabilityRisk:
 class TestRankFixtureOpportunities:
     def test_returns_expected_columns(self, multi_gw_features):
         result = rank_fixture_opportunities(multi_gw_features, target_gw=5)
-        # fdr_opportunity_score removed in Phase 6 (GAP-TRACE-02: fdr_avg excluded)
+        # fdr_opportunity_score not in fixtures registry (fdr_avg G2-FAIL at all positions)
         for col in ["fdr_window_avg", "dgw_in_window", "team_goals_roll5",
                     "team_attack_score",
                     "dgw_bonus_score", "fixture_opportunity_score",
@@ -440,7 +440,7 @@ class TestRankFixtureOpportunities:
         pd.testing.assert_frame_equal(r1, r2)
 
     def test_dgw_fixture_scores_higher(self):
-        # Phase 6: fixture_score driven by DGW binary from fixture_context (GAP-TRACE-02/06)
+        # fixture_score uses binary DGW indicator from STATE fixture_context column
         features = _make_features(
             _base_row(1, 5, fixture_context="DGW"),   # double gameweek → higher score
             _base_row(2, 5, fixture_context="SGW"),   # single gameweek
@@ -449,7 +449,7 @@ class TestRankFixtureOpportunities:
         assert result.iloc[0]["player_id"] == 1
 
     def test_dgw_bonus_applied(self):
-        # Phase 6: DGW detection via fixture_context STATE column (GAP-TRACE-06)
+        # DGW detection reads STATE fixture_context, not spine is_dgw (governed column access)
         features = _make_features(
             _base_row(1, 5, fixture_context="DGW", fdr_avg=3.0),
             _base_row(2, 5, fixture_context="SGW", fdr_avg=3.0),

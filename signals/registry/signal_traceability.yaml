@@ -100,7 +100,7 @@ entries:
       - intelligence/captain.py
       - intelligence/value.py
       - intelligence/transfers.py
-    consumer_note: "Phase 6 (GAP-TRACE-01) resolved: FWD scope guard applied in captain.py, value.py, transfers.py — xgi_roll3 zeroed for FWD players before normalization; all-zero FWD group returns neutral 0.5."
+    consumer_note: "FWD scope guard applied in captain.py, value.py, transfers.py — xgi_roll3 zeroed for FWD players before normalization; all-zero FWD group returns neutral 0.5."
     threshold_dependencies: []
 
   - signal: xgi_roll3
@@ -184,7 +184,7 @@ entries:
       - intelligence/captain.py
       - intelligence/value.py
       - intelligence/transfers.py
-    consumer_note: "Phase 6 (GAP-TRACE-01) resolved: FWD scope guard applied in captain.py, value.py, transfers.py — xgi_roll5 zeroed for FWD players before normalization; all-zero FWD group returns neutral 0.5."
+    consumer_note: "FWD scope guard applied in captain.py, value.py, transfers.py — xgi_roll5 zeroed for FWD players before normalization; all-zero FWD group returns neutral 0.5."
     threshold_dependencies: []
 
   - signal: xgi_roll5
@@ -657,7 +657,7 @@ entries:
     operational_role: availability
     consumer_modules:
       - intelligence/availability.py
-    consumer_note: "Phase 6 (GAP-TRACE-03) resolved: wired to availability.py as long_horizon_flag for DEF players (minutes_roll8 < 60 threshold). Only DEF and MID positions governed by AVAIL-003."
+    consumer_note: "wired to availability.py as long_horizon_flag for DEF players (minutes_roll8 < 60 threshold). Only DEF and MID positions governed by AVAIL-003."
     threshold_dependencies: []
 
   - signal: minutes_roll8
@@ -676,7 +676,7 @@ entries:
     operational_role: availability
     consumer_modules:
       - intelligence/availability.py
-    consumer_note: "Phase 6 (GAP-TRACE-03) resolved: wired to availability.py as long_horizon_flag for MID players (minutes_roll8 < 60 threshold). Redundancy with roll3/roll5 at MID noted; SYNTH-01 to resolve."
+    consumer_note: "wired to availability.py as long_horizon_flag for MID players (minutes_roll8 < 60 threshold). Redundancy with roll3/roll5 at MID noted; SYNTH-01 to resolve."
     threshold_dependencies: []
 
   - signal: minutes_roll8
@@ -736,7 +736,7 @@ entries:
     redundancy: "ownership_count DEF: HIGH REDUNDANCY pair (partial rho=0.794); SYNTH-01 resolution required — likely SUBSTITUTE relationship"
     operational_role: market
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF/MID but not consumed by any intelligence module. Phase 6 alignment required."
+    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF/MID but not consumed by any intelligence module."
     threshold_dependencies: []
 
   - signal: transfers_in
@@ -754,7 +754,7 @@ entries:
     redundancy: "ownership_count MID: HIGH REDUNDANCY pair (partial rho=0.831); SYNTH-01 resolution required"
     operational_role: market
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module. Phase 6 alignment required."
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
     threshold_dependencies: []
 
   - signal: transfers_in
@@ -884,7 +884,7 @@ entries:
     redundancy: "transfers_in DEF: HIGH REDUNDANCY pair (partial rho=0.794)"
     operational_role: market
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF/MID but not consumed by any intelligence module. Phase 6 alignment required."
+    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF/MID but not consumed by any intelligence module."
     threshold_dependencies: []
 
   - signal: ownership_count
@@ -902,7 +902,7 @@ entries:
     redundancy: "transfers_in MID: HIGH REDUNDANCY pair (partial rho=0.831)"
     operational_role: market
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module. Phase 6 alignment required."
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
     threshold_dependencies: []
 
   - signal: ownership_count
@@ -1022,7 +1022,7 @@ entries:
     redundancy: null
     operational_role: fixture
     consumer_modules: []
-    consumer_note: "Phase 6 (GAP-TRACE-02) resolved: fdr_avg removed from all scoring weights in captain.py, fixtures.py, transfers.py. Retained as informational output column in fixtures.py (fdr_window_avg) only — not scored. Reserved for binary moderator role in SYNTH-01."
+    consumer_note: "fdr_avg removed from all scoring weights in captain.py, fixtures.py, transfers.py. Retained as informational output column in fixtures.py (fdr_window_avg) only — not scored. Reserved for binary moderator role in SYNTH-01."
     threshold_dependencies: []
 
   - signal: fdr_avg
@@ -1040,7 +1040,7 @@ entries:
     redundancy: null
     operational_role: fixture
     consumer_modules: []
-    consumer_note: "Phase 6 (GAP-TRACE-02) resolved: fdr_avg removed from all scoring weights. Informational output only."
+    consumer_note: "fdr_avg removed from all scoring weights. Informational output only."
     threshold_dependencies: []
 
   - signal: fdr_avg
@@ -1058,7 +1058,7 @@ entries:
     redundancy: null
     operational_role: fixture
     consumer_modules: []
-    consumer_note: "Phase 6 (GAP-TRACE-02) resolved: fdr_avg removed from all scoring weights. Informational output only."
+    consumer_note: "fdr_avg removed from all scoring weights. Informational output only."
     threshold_dependencies: []
 
   - signal: fdr_avg
@@ -1076,7 +1076,7 @@ entries:
     redundancy: null
     operational_role: fixture
     consumer_modules: []
-    consumer_note: "Phase 6 (GAP-TRACE-02) resolved: fdr_avg removed from all scoring weights. Informational output only."
+    consumer_note: "fdr_avg removed from all scoring weights. Informational output only."
     threshold_dependencies: []
 
   # --- was_home (FIXTURE-002) ---
@@ -1249,7 +1249,7 @@ entries:
     redundancy: "Pooled redundancy with xgc_roll5, goals_conceded_roll3/5, clean_sheets_roll3/5 at DEF/GK (G-EDA8-05); SYNTH-01 to resolve which defensive signal(s) survive"
     operational_role: defensive
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF scope but not consumed by any intelligence module. Phase 6 alignment required."
+    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF scope but not consumed by any intelligence module."
     threshold_dependencies: []
 
   - signal: xgc_roll3
@@ -1267,7 +1267,7 @@ entries:
     redundancy: "Pooled redundancy with defensive signal group at DEF/GK (G-EDA8-05)"
     operational_role: defensive
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module. Phase 6 alignment required."
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
     threshold_dependencies: []
 
   - signal: xgc_roll5
@@ -1321,7 +1321,7 @@ entries:
     redundancy: "Pooled redundancy with xgc_roll3/5 and clean_sheets_roll3/5 at DEF/GK (G-EDA8-05)"
     operational_role: defensive
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module. Phase 6 alignment required."
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
     threshold_dependencies: []
 
   - signal: goals_conceded_roll3
@@ -1393,7 +1393,7 @@ entries:
     redundancy: "Pooled redundancy with xgc_roll3/5 and goals_conceded_roll3/5 at DEF/GK (G-EDA8-05); SYNTH-01 to determine which defensive signal(s) add independent contribution"
     operational_role: defensive
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module. Phase 6 alignment required."
+    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
     threshold_dependencies: []
 
   - signal: clean_sheets_roll3
@@ -1552,7 +1552,7 @@ entries:
       - intelligence/fixtures.py
       - intelligence/captain.py
       - intelligence/transfers.py
-    consumer_note: "Phase 6 (GAP-TRACE-06) resolved: fixtures.py migrated from spine is_dgw to STATE fixture_context. captain.py and transfers.py also consume fixture_context for DGW-based fixture_score component."
+    consumer_note: "fixtures.py migrated from spine is_dgw to STATE fixture_context. captain.py and transfers.py also consume fixture_context for DGW-based fixture_score component."
     threshold_dependencies: []
 
   - signal: fixture_context
@@ -1573,7 +1573,7 @@ entries:
       - intelligence/fixtures.py
       - intelligence/captain.py
       - intelligence/transfers.py
-    consumer_note: "Phase 6 (GAP-TRACE-06) resolved: all three modules now consume fixture_context from STATE."
+    consumer_note: "all three modules now consume fixture_context from STATE."
     threshold_dependencies: []
 
   - signal: fixture_context
@@ -1594,7 +1594,7 @@ entries:
       - intelligence/fixtures.py
       - intelligence/captain.py
       - intelligence/transfers.py
-    consumer_note: "Phase 6 (GAP-TRACE-06) resolved: all three modules now consume fixture_context from STATE."
+    consumer_note: "all three modules now consume fixture_context from STATE."
     threshold_dependencies: []
 
   - signal: fixture_context
@@ -1613,5 +1613,5 @@ entries:
     operational_role: fixture
     consumer_modules:
       - intelligence/captain.py
-    consumer_note: "Phase 6 (GAP-TRACE-06) resolved: captain.py consumes fixture_context for DGW fixture_score component."
+    consumer_note: "captain.py consumes fixture_context for DGW fixture_score component."
     threshold_dependencies: []

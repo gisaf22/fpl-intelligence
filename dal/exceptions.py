@@ -15,6 +15,22 @@ class DataFreshnessError(DALError):
         super().__init__(message)
 
 
+class MartNotBuiltError(DALError):
+    """Raised by load() when the mart parquet is absent or the manifest is missing/failed.
+
+    The caller must run dal.pipeline.run() to produce the artifact before load() can succeed.
+    Catching this exception and continuing is always wrong — there is no mart to read.
+    """
+
+
+class MartSchemaError(DALError):
+    """Raised by load() when the parquet column set does not match the current mart contract.
+
+    Caused by a code change (e.g. FEATURE_REGISTRY column added/removed) that invalidated
+    the cached parquet without changing the source DB hash. Run dal.pipeline.run(force=True).
+    """
+
+
 class ErrorCode(StrEnum):
     """Documented error code vocabulary for DALContractViolation.
 

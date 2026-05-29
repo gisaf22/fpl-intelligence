@@ -32,7 +32,13 @@ from dal.staging import (
 )
 
 # --- exceptions ---
-from dal.exceptions import DALError, DataFreshnessError
+from dal.exceptions import (
+    DALContractViolation,
+    DALError,
+    DataFreshnessError,
+    MartNotBuiltError,
+    MartSchemaError,
+)
 
 __all__ = [
     # primary interface
@@ -56,5 +62,8 @@ __all__ = [
     "get_staged_teams",
     # exceptions
     "DALError",
+    "DALContractViolation",
     "DataFreshnessError",
+    "MartNotBuiltError",
+    "MartSchemaError",
 ]

@@ -40,7 +40,7 @@ features = get_state_features(spine)       # spine + rolling window columns
 - No registry, no signal definitions, no scoring configuration. The DAL is configuration-free.
 
 **Produces:**  
-A `DataFrame` at `(player_id, gw)` grain with guaranteed columns: fixture context, performance history, rolling windows (roll3, roll5, roll8), lag features, BGW/DGW flags, availability signals. Schema is contractual — see [DAL_CONTRACT.md](DAL_CONTRACT.md).
+A `DataFrame` at `(player_id, gw)` grain with guaranteed columns: fixture context, performance history, rolling windows (roll3, roll5, roll8), lag features, BGW/DGW flags, availability signals. Schema is contractual — see `dal/fct/fct_contracts.py` (SPINE_COLS, DTYPES, NULL_RULES).
 
 **What failure looks like:**
 | Failure | Symptom | Source |

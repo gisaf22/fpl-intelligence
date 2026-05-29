@@ -249,12 +249,20 @@ class TestAssertGovernanceCompliance:
         with pytest.raises(ValueError, match="GOVERNANCE VIOLATION"):
             _assert_governance_compliance(manifest)
 
-    def test_missing_governance_metadata_passes(self) -> None:
-        """Signals not in evaluation_metadata.yaml are governance gaps, not violations.
-        Pre-lens signals (goals_scored, assists, etc.) are silently skipped here."""
+    def test_missing_governance_metadata_raises_if_not_allowlisted(self) -> None:
+        """Signals absent from both evaluation_metadata.yaml and _PRE_LENS_SIGNAL_ALLOWLIST must raise."""
+        from signals.lifecycle.schema import GovernanceMetadataError
         from intelligence.scoring.signals import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("unknown_signal_xyz", "DEF")])
+        with pytest.raises(GovernanceMetadataError):
+            _assert_governance_compliance(manifest)
+
+    def test_allowlisted_pre_lens_signal_passes(self) -> None:
+        """Pre-lens signals on _PRE_LENS_SIGNAL_ALLOWLIST pass compliance without an evaluation record."""
+        from intelligence.scoring.signals import _assert_governance_compliance
+
+        manifest = _make_manifest([_make_confirmed("goals_scored", "DEF")])
         _assert_governance_compliance(manifest)  # should not raise
 
     def test_approved_signal_passes(self) -> None:

@@ -3,8 +3,8 @@
 Verifies that the STATE output column set matches the approved representation set:
 1. Rejected column exclusions — xa_roll* and non-minutes roll8 variants are absent.
 2. Column count invariant — STATE produces exactly 13 derived columns (Phase 3 lock).
-3. _COLUMN_META coverage — every derived column has a metadata entry and vice versa.
-4. _COLUMN_META structure — every entry carries the four required governance keys.
+3. FEATURE_REGISTRY coverage — every derived column has a registry entry and vice versa.
+4. FEATURE_REGISTRY structure — every entry carries required governance fields.
 5. Explicitly rejected columns — all 16 REJECTED-BEHAVIORAL columns are absent.
 6. minutes_trend retained — domain-restricted but present.
 """
@@ -12,11 +12,11 @@ Verifies that the STATE output column set matches the approved representation se
 import pandas as pd
 import pytest
 
-from dal.state.player_gameweek_state import (
-    _COLUMN_META,
+from dal.feat.feat_player_gameweek import (
     _ROLL_COLS,
     build_player_gameweek_state,
 )
+from dal.feat.feat_schema import FEATURE_REGISTRY
 
 
 # ---------------------------------------------------------------------------
@@ -121,46 +121,50 @@ def test_derived_column_count_is_13():
 
 
 # ---------------------------------------------------------------------------
-# Test 4 — _COLUMN_META covers every derived column
+# Test 4 — FEATURE_REGISTRY covers every derived column
 # ---------------------------------------------------------------------------
 
-def test_column_meta_covers_all_derived():
-    """_COLUMN_META must have an entry for every column STATE produces."""
+def test_feature_registry_covers_all_derived():
+    """FEATURE_REGISTRY must have an entry for every column STATE produces."""
     spine = _make_spine()
     state = build_player_gameweek_state(spine)
     derived = set(state.columns) - set(spine.columns)
 
-    missing = derived - set(_COLUMN_META)
-    assert not missing, f"Derived columns without _COLUMN_META entries: {sorted(missing)}"
+    missing = derived - set(FEATURE_REGISTRY)
+    assert not missing, f"Derived columns without FEATURE_REGISTRY entries: {sorted(missing)}"
 
 
 # ---------------------------------------------------------------------------
-# Test 5 — _COLUMN_META has no orphan entries
+# Test 5 — FEATURE_REGISTRY has no orphan entries
 # ---------------------------------------------------------------------------
 
-def test_column_meta_no_orphan_entries():
-    """_COLUMN_META must not contain entries for columns STATE does not produce."""
+def test_feature_registry_no_orphan_entries():
+    """FEATURE_REGISTRY must not contain entries for columns STATE does not produce."""
     spine = _make_spine()
     state = build_player_gameweek_state(spine)
     derived = set(state.columns) - set(spine.columns)
 
-    orphan = set(_COLUMN_META) - derived
-    assert not orphan, f"_COLUMN_META entries for columns not in STATE output: {sorted(orphan)}"
+    orphan = set(FEATURE_REGISTRY) - derived
+    assert not orphan, f"FEATURE_REGISTRY entries for columns not in STATE output: {sorted(orphan)}"
 
 
 # ---------------------------------------------------------------------------
-# Test 6 — _COLUMN_META required governance keys
+# Test 6 — FEATURE_REGISTRY required governance fields
 # ---------------------------------------------------------------------------
 
-def test_column_meta_required_keys():
-    """Every _COLUMN_META entry must carry the four required governance keys."""
-    required = {"scope", "causality", "behavioral_reason", "source_gate_decisions"}
+def test_feature_registry_required_fields():
+    """Every FEATURE_REGISTRY entry must carry non-empty gate, scope, causality, and positions."""
     violations = []
-    for col, meta in _COLUMN_META.items():
-        missing = required - set(meta)
-        if missing:
-            violations.append(f"  {col}: missing {sorted(missing)}")
-    assert not violations, "Key violations in _COLUMN_META:\n" + "\n".join(violations)
+    for col, rec in FEATURE_REGISTRY.items():
+        if not rec.gate:
+            violations.append(f"  {col}: gate is empty")
+        if not rec.scope:
+            violations.append(f"  {col}: scope is empty")
+        if not rec.causality:
+            violations.append(f"  {col}: causality is empty")
+        if not rec.positions:
+            violations.append(f"  {col}: positions is empty")
+    assert not violations, "Field violations in FEATURE_REGISTRY:\n" + "\n".join(violations)
 
 
 # ---------------------------------------------------------------------------

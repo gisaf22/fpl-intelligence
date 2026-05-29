@@ -3,7 +3,7 @@
 **Status:** Active  
 **Date:** May 2026  
 **Risks addressed:** SC-3, SC-7, SC-10  
-**Implemented in:** `dal/curated/player_gameweek_spine.py`, `dal/validation/semantics.py`
+**Implemented in:** `dal/fct/fct_player_gameweek.py`, `dal/validation/semantics.py`
 
 ---
 
@@ -33,34 +33,20 @@ This is the same principle applied to all other performance columns: the GW tota
 
 ---
 
-## Decision 2 — FPL metrics (`influence`, `creativity`, `threat`, `ict_index`) use sum, with a required normalization convention
+## Decision 2 — FPL metrics (`influence`, `creativity`, `threat`, `ict_index`) stored as per-fixture mean
 
-**Context:** The pipeline sums `influence`, `creativity`, `threat`, and `ict_index` across DGW fixtures. This was undocumented — the semantics of "summing a per-fixture composite index" were not stated, creating a potential analytical trap for consumers.
+**Context:** These columns were previously summed across DGW fixtures, requiring consumers to normalize by `fixture_count` when comparing across SGW and DGW rows. That consumer responsibility was unenforced and created a systematic DGW inflation bias whenever forgotten.
 
-**Decision:** Sum is declared analytically intentional. Consumers are required to normalize by `fixture_count` when comparing these values across SGW and DGW rows.
+**Decision:** Store as per-fixture mean (`mean` aggregation, not `sum`). SGW value is unchanged (mean of one). DGW value is the average of the two fixtures. DGW and SGW rows are directly comparable without any consumer normalization step.
 
-**Rationale:** These are per-fixture FPL metrics. Summing them across two fixtures preserves the full GW signal contribution. Averaging would understate high-performing DGW weeks (a player with `influence=50` in each fixture would show only 50, not 100). Taking `first` would be arbitrary and lose information from the second fixture.
+**Rationale:** Placing the normalization obligation at the DAL eliminates the risk entirely. A consumer cannot accidentally use the wrong value because there is no unnormalized version in the output. The column contract is unambiguous: `influence` always means per-fixture influence, regardless of fixture count.
 
-The trade-off is that DGW values are nominally larger than SGW values for the same per-fixture performance. This is not a data error — it accurately reflects that the player contributed across two matches. Analytical code that compares influence across GW types must normalize:
-
-```python
-normalized_influence = influence / fixture_count
-```
-
-**Normalization convention (required for DGW comparisons):**
-```
-normalized_influence = influence / fixture_count
-normalized_creativity = creativity / fixture_count
-normalized_threat = threat / fixture_count
-normalized_ict_index = ict_index / fixture_count
-```
-
-Any signal study or lens that uses these columns for cross-GW comparisons must apply this normalization. Failure to normalize creates a systematic DGW inflation bias.
+**Analytical consequence:** For DGW rows, `influence` is now the per-fixture average, not the GW total. A player with `influence=50` in each DGW fixture now shows `influence=50`, not `influence=100`. Any prior analysis that used summed DGW values without normalization was already wrong; any that correctly normalized is unaffected.
 
 **Alternatives considered:**
-- **Mean:** Discarded. Understates high-performing DGW weeks. Obscures the fact that the player played two matches.
-- **First:** Discarded. Arbitrary — no analytical basis for preferring the earlier fixture's metric.
-- **Max:** Discarded. Loses the cumulative contribution from both fixtures.
+- **Sum with consumer normalization (prior approach):** Unenforced, producing silent bias when forgotten. Rejected.
+- **Sum + separate `*_per_fixture` columns:** Two columns for the same concept. Consumers use the wrong one. Rejected.
+- **First:** Loses the second fixture's signal. Rejected.
 
 ---
 
@@ -78,7 +64,7 @@ Raising immediately is the correct behavior. It ensures TGW data cannot enter th
 ```
 fixture_count not in {0, 1, 2} for N rows.
 Triple gameweeks are not supported by the current contract.
-Update DAL_CONTRACT.md before ingesting TGW data.
+Update docs/adr/012-dal-design-rationale.md before ingesting TGW data.
 ```
 
 **Downstream implication:** Before any triple gameweek GW data is ingested, the DAL contract must be amended to define aggregation rules for each column category with three fixtures, update the validation logic, add tests, and gate the ingestion.
@@ -93,7 +79,7 @@ Update DAL_CONTRACT.md before ingesting TGW data.
 | Goals conceded | sum | Additive quantity — total conceded across both fixtures |
 | Clean sheets | count (0/1/2) | Per-fixture binary; count is more informative than sum for this field |
 | Defensive / tactical (starts, penalties, own_goals) | sum | Cumulative fixture-level actions |
-| FPL metrics (influence, creativity, threat, ict_index) | sum | Additive per-fixture; normalize by fixture_count for cross-GW comparisons |
+| FPL metrics (influence, creativity, threat, ict_index) | mean (per-fixture) | DAL normalizes at source — DGW and SGW values directly comparable |
 | Dream team | max (0/1) | Weekly recognition — binary, not cumulative |
 | FDR | avg / min / max | Average preserves comparability; min/max retained without requiring opponent IDs |
 | Market signals (transfers, ownership, balance) | take-once | GW-level values at deadline — not fixture-level |

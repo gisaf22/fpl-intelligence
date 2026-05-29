@@ -3,16 +3,25 @@
 from pathlib import Path
 
 import pytest
-from dal.curated.player_gameweek_spine import build_player_gameweek_spine
-from dal.intermediate.player_fixture import get_player_fixture_base
-from dal.staging import get_staged_player_histories
-from dal.state.player_gameweek_state import build_player_gameweek_state
+from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import get_staged_player_histories, load_staged_entities
+from dal.feat.feat_player_gameweek import build_player_gameweek_state
 from dal.validation import validate_grain_uniqueness
 from dal.exceptions import DALContractViolation
 
 pytestmark = pytest.mark.integration
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
+
+
+def _load_staged():
+    return load_staged_entities(DB_PATH)
+
+
+def _load_spine():
+    staged = _load_staged()
+    return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
 
 
 def test_staging_to_intermediate_no_row_loss():
@@ -25,7 +34,7 @@ def test_staging_to_intermediate_no_row_loss():
     Contract Section 4, Section 9 (join safety tests).
     """
     player_histories = get_staged_player_histories(DB_PATH)
-    player_fixture_base = get_player_fixture_base(DB_PATH)
+    player_fixture_base = get_player_fixture_base(load_staged_entities(DB_PATH))
     assert len(player_fixture_base) == len(player_histories), (
         f"Row count mismatch: staging has {len(player_histories)} rows, "
         f"intermediate has {len(player_fixture_base)} rows. "
@@ -43,8 +52,8 @@ def test_intermediate_to_curated_no_player_loss():
     DGW rows aggregated) — the invariant is player set equality, not row count equality.
     Contract Section 3 (aggregation boundary rule), Section 9 (join safety tests).
     """
-    player_fixture_base = get_player_fixture_base(DB_PATH)
-    spine = build_player_gameweek_spine(DB_PATH)
+    player_fixture_base = get_player_fixture_base(load_staged_entities(DB_PATH))
+    spine = _load_spine()
 
     intermediate_players = set(player_fixture_base["player_id"].unique())
     spine_players = set(spine["player_id"].unique())
@@ -61,7 +70,7 @@ def test_intermediate_to_curated_no_player_loss():
 
 def test_spine_to_state_no_row_loss():
     """State layer has same row count as spine — derivation must not drop rows. Contract Section 4."""
-    spine = build_player_gameweek_spine(DB_PATH)
+    spine = _load_spine()
     state = build_player_gameweek_state(spine)
     assert len(state) == len(spine), (
         f"Row count mismatch between spine and state: "
@@ -72,6 +81,6 @@ def test_spine_to_state_no_row_loss():
 
 def test_spine_to_state_no_fan_out():
     """State layer has unique (player_id, gw) grain — derivation must not produce duplicate rows. Contract Section 2, 4."""
-    spine = build_player_gameweek_spine(DB_PATH)
+    spine = _load_spine()
     state = build_player_gameweek_state(spine)
     validate_grain_uniqueness(state, ["player_id", "gw"], "state")

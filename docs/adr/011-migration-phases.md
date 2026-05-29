@@ -360,13 +360,13 @@ Phase 11 — enforcement
 1. Read `dal/curated/gameweek_context.py` — determine if GW resolution is already available
 2. If not: add `resolve_target_gw(db_path: Path) -> int` to `dal/curated/gameweek_context.py`
 3. Rewrite `report/db.py` to import from `dal.curated.gameweek_context` instead of `dal.staging`
-4. Rewrite or document the `get_staged_player_histories` call — either promote to curated or document the staging exception in `dal/DAL_CONTRACT.md`
+4. Rewrite or document the `get_staged_player_histories` call — either promote to the fct layer or document the staging exception in `docs/adr/006-layer-architecture.md`
 5. Run test suite
 
 **Completion criteria:**
 - `report/db.py` contains no `from dal.staging import` statement
 - `tests/test_integrated_pipeline.py` passes
-- If any staging access is retained: exception documented in `dal/DAL_CONTRACT.md`
+- If any staging access is retained: exception documented in `docs/adr/006-layer-architecture.md`
 
 **Forbidden during this phase:**
 - Moving `report/` to `intelligence/reporting/` — that is Phase 10

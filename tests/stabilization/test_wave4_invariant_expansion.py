@@ -13,7 +13,16 @@ import numpy as np
 import pytest
 from pathlib import Path
 
+from dal.staging import load_staged_entities
+from dal.intermediate.int_player_fixture import get_player_fixture_base
+
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
+
+
+def _load_spine():
+    from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+    staged = load_staged_entities(TEST_DB_PATH)
+    return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
 
 
 # ---------------------------------------------------------------------------
@@ -28,10 +37,9 @@ def test_fixture_context_bgw_rows():
 
     FAILS before fix (BGW rows get "SGW"). PASSES after fix.
     """
-    from dal.curated.player_gameweek_spine import build_player_gameweek_spine
-    from dal.state.player_gameweek_state import build_player_gameweek_state
+    from dal.feat.feat_player_gameweek import build_player_gameweek_state
 
-    spine = build_player_gameweek_spine(TEST_DB_PATH)
+    spine = _load_spine()
     state = build_player_gameweek_state(spine)
 
     bgw_rows = state[state["is_bgw"] == True]
@@ -46,10 +54,9 @@ def test_fixture_context_bgw_rows():
 
 def test_fixture_context_exhaustive():
     """After fix: fixture_context values must be exactly {{'BGW', 'SGW', 'DGW'}}."""
-    from dal.curated.player_gameweek_spine import build_player_gameweek_spine
-    from dal.state.player_gameweek_state import build_player_gameweek_state
+    from dal.feat.feat_player_gameweek import build_player_gameweek_state
 
-    spine = build_player_gameweek_spine(TEST_DB_PATH)
+    spine = _load_spine()
     state = build_player_gameweek_state(spine)
 
     valid = {"BGW", "SGW", "DGW"}
@@ -74,7 +81,7 @@ def test_validate_xgc_001_callable_on_all_positions():
     Note: _validate_contracts keeps the GK-only filter because FPL assigns distinct xgc
     values to different field-player positions within the same fixture.
     """
-    from dal.intermediate.opponent_context import validate_xgc_001
+    from dal.intermediate.int_opponent_context import validate_xgc_001
     from dal.exceptions import DALContractViolation
 
     # GK players in same team/gw/fixture with different xgc — raises correctly
@@ -97,11 +104,11 @@ def test_state_col_contracts_exists():
 
     FAILS before dal/state/contracts.py is created. PASSES after.
     """
-    from dal.state.contracts import STATE_COL_CONTRACTS
+    from dal.feat.feat_contracts import STATE_COL_CONTRACTS
     assert isinstance(STATE_COL_CONTRACTS, dict), "STATE_COL_CONTRACTS must be a dict"
 
     required_keys = {"causality", "warmup_gws", "min_obs_for_reliability", "null_if_no_obs"}
-    from dal.state.player_gameweek_state import _ROLL_COLS
+    from dal.feat.feat_player_gameweek import _ROLL_COLS
     for col_suffix in ["xgi", "minutes"]:
         # roll3 is the primary entry
         roll3_key = f"{col_suffix}_roll3"
@@ -118,7 +125,7 @@ def test_state_col_contracts_exists():
 
 def test_state_col_contracts_covers_fixture_context():
     """fixture_context must be declared in STATE_COL_CONTRACTS with causality=contemporaneous."""
-    from dal.state.contracts import STATE_COL_CONTRACTS
+    from dal.feat.feat_contracts import STATE_COL_CONTRACTS
     assert "fixture_context" in STATE_COL_CONTRACTS, (
         "STATE_COL_CONTRACTS must include 'fixture_context'"
     )
@@ -130,7 +137,7 @@ def test_state_col_contracts_covers_fixture_context():
 
 def test_state_col_contracts_covers_minutes_trend():
     """minutes_trend must be declared in STATE_COL_CONTRACTS with causality=lagged, warmup_gws=4."""
-    from dal.state.contracts import STATE_COL_CONTRACTS
+    from dal.feat.feat_contracts import STATE_COL_CONTRACTS
     assert "minutes_trend" in STATE_COL_CONTRACTS, (
         "STATE_COL_CONTRACTS must include 'minutes_trend'"
     )
@@ -148,8 +155,8 @@ def test_state_col_contracts_covers_all_roll_cols():
     must be declared. Contract Section: FIRST_COLS Semantic Registry / State Layer
     Causality Contract.
     """
-    from dal.state.contracts import STATE_COL_CONTRACTS
-    from dal.state.player_gameweek_state import _ROLL_COLS
+    from dal.feat.feat_contracts import STATE_COL_CONTRACTS
+    from dal.feat.feat_player_gameweek import _ROLL_COLS
 
     required_fields = {"causality", "warmup_gws", "min_obs_for_reliability", "null_if_no_obs"}
 
@@ -181,9 +188,8 @@ def test_gameweek_context_raises_on_gw_gap():
 
     FAILS before fix (no gap detection). PASSES after fix.
     """
-    from dal.curated.gameweek_context import get_gameweek_context
+    from dal.fct.fct_gameweek_context import get_gameweek_context
     from dal.exceptions import DALContractViolation
-    from unittest.mock import patch
     import pandas as pd
 
     # Events with a gap: GW 1, 2, 4 (missing GW 3)
@@ -199,6 +205,5 @@ def test_gameweek_context_raises_on_gw_gap():
          "average_entry_score": None, "highest_score": None, "transfers_made": 0},
     ])
 
-    with patch("dal.curated.gameweek_context.get_staged_events", return_value=events_with_gap):
-        with pytest.raises(DALContractViolation):
-            get_gameweek_context(TEST_DB_PATH)
+    with pytest.raises(DALContractViolation):
+        get_gameweek_context(events_with_gap)

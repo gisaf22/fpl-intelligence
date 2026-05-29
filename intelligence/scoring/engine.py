@@ -1,7 +1,7 @@
 """Scoring engine — pure computation, no I/O.
 
 Inputs:
-  state    — DataFrame from dal.access.get_state_features(spine)
+  state    — DataFrame from dal.build_player_gameweek_state(spine)
   manifest — SignalManifest from intelligence.scoring.signals.load_manifest()
   gw       — target gameweek integer
 
@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 
-from dal.prepared import POSITION_CODE_MAP
+from dal.mart import POSITION_CODE_MAP
 from intelligence.scoring.contracts import PlayerScore, ScorerOutput, SignalManifest
 
 

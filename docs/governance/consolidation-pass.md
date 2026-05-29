@@ -2,7 +2,7 @@
 
 **Program:** Operational Convergence Plan — Consolidation Pass  
 **Issued:** 2026-05-27  
-**Status:** PENDING  
+**Status:** COMPLETE — 2026-05-27  
 **Scope:** Repository surface only — zero analytical, governance, or schema changes  
 **Invariant baseline:** 879 tests passed, 2 skipped (must hold throughout)
 
@@ -72,7 +72,7 @@ ADRs are never archived — they are permanent decision records.
 - `[x]` Verify `docs/navigation-map.md` — 61/61 links resolve ✅
 - `[x]` Grep for doc references in tests — findings below ✅
   - `grep -rn "synth01-design\|synth01-candidate-set\|architecture-execution-plan\|lens-form-readiness\|minutes-stability-xgi-study" tests/ docs/`
-- `[ ]` Working tree — uncommitted changes present (all from 9-phase program); needs baseline commit before pass proceeds
+- `[x]` Working tree — baseline commit d361d66 made (116 files, 9-phase program complete) ✅
 
 ### Grep findings (Phase 0)
 
@@ -94,44 +94,44 @@ All tasks complete, tests green, no blocking broken references found.
 
 ## Phase 1 — Code Annotation Cleanup
 
-**Status:** `[ ] PENDING`  
+**Status:** `[x] COMPLETE — 2026-05-27`  
 **Goal:** Intelligence module surfaces read like current operational code, not a governance journal.  
 **Scope:** `intelligence/` only — `_base.py`, `captain.py`, `transfers.py`, `availability.py`, `value.py`, `fixtures.py`, `weight_registry.py`  
 **Risk:** Removing a comment that encodes a current constraint. Mitigated by conservative retention rule.
 
 ### Tasks
 
-- `[ ]` `intelligence/captain.py` — rewrite module docstring; strip GAP-TRACE/PROVISIONAL/Phase narrative; retain scope constraints
-- `[ ]` `intelligence/transfers.py` — same
-- `[ ]` `intelligence/availability.py` — same
-- `[ ]` `intelligence/value.py` — same
-- `[ ]` `intelligence/fixtures.py` — same
-- `[ ]` `intelligence/_base.py` — strip GAP-TRACE annotations; retain positional/scope comments
-- `[ ]` `intelligence/weight_registry.py` — rewrite module docstring to describe current behavior (loads from YAML; raises on missing)
-- `[ ]` Replace all `# UNJUSTIFIED (threshold-registry.md §X):` with `# threshold not evaluation-derived — see threshold-registry.md §X`
+- `[x]` `intelligence/captain.py` — rewrite module docstring; strip GAP-TRACE/PROVISIONAL/Phase narrative; retain scope constraints ✅
+- `[x]` `intelligence/transfers.py` — same ✅
+- `[x]` `intelligence/availability.py` — same ✅
+- `[x]` `intelligence/value.py` — same ✅
+- `[x]` `intelligence/fixtures.py` — same ✅
+- `[x]` `intelligence/_base.py` — strip GAP-TRACE annotations; retain positional/scope comments ✅
+- `[x]` `intelligence/weight_registry.py` — rewrite module docstring to describe current behavior ✅
+- `[x]` Replace all `# UNJUSTIFIED (threshold-registry.md §X):` with `# threshold not evaluation-derived — see threshold-registry.md §X` ✅
 
 ### Verification
 
-- `grep -rn "GAP-TRACE\|PROVISIONAL-EDITORIAL\|Phase [0-9] will\|blocked until\|Resolution:" intelligence/` → zero results
-- Test suite: 879 passed, 2 skipped
+- `grep -rn "GAP-TRACE\|PROVISIONAL-EDITORIAL\|Phase [0-9] will\|blocked until\|Resolution:" intelligence/` → zero results ✅
+- Test suite: 879 passed, 2 skipped ✅
 
 ---
 
 ## Phase 2 — Document Archival
 
-**Status:** `[ ] PENDING`  
+**Status:** `[x] COMPLETE — 2026-05-27`  
 **Goal:** Working documents and superseded plans move to `docs/archive/`.  
 **Risk:** A test or doc references a moved file. Mitigated by Phase 0 grep check.
 
 ### Tasks
 
-- `[ ]` Create `docs/archive/` directory
-- `[ ]` Create `docs/archive/README.md` with supersession table (see template below)
-- `[ ]` Move `docs/architecture-execution-plan.md` → `docs/archive/`
-- `[ ]` Move `docs/governance/synth01-design.md` → `docs/archive/`
-- `[ ]` Move `docs/governance/synth01-candidate-set.md` → `docs/archive/`
-- `[ ]` Move `docs/studies/lens-form-readiness.md` → `docs/archive/`
-- `[ ]` Move `docs/studies/minutes-stability-xgi-study.md` → `docs/archive/`
+- `[x]` Create `docs/archive/` directory ✅
+- `[x]` Create `docs/archive/README.md` with supersession table ✅
+- `[x]` Move `docs/architecture-execution-plan.md` → `docs/archive/` ✅
+- `[x]` Move `docs/governance/synth01-design.md` → `docs/archive/` ✅
+- `[x]` Move `docs/governance/synth01-candidate-set.md` → `docs/archive/` ✅
+- `[x]` Move `docs/studies/lens-form-readiness.md` → `docs/archive/` ✅
+- `[x]` Move `docs/studies/minutes-stability-xgi-study.md` → `docs/archive/` ✅
 
 ### Archive README template
 
@@ -145,49 +145,51 @@ All tasks complete, tests green, no blocking broken references found.
 
 ### Verification
 
-- All five files exist in `docs/archive/`
-- `docs/archive/README.md` exists with supersession table
-- Test suite: 879 passed, 2 skipped
+- All five files exist in `docs/archive/` ✅
+- `docs/archive/README.md` exists with supersession table ✅
+- Test suite: 879 passed, 2 skipped ✅
 
 ---
 
 ## Phase 3 — Reference Document Updates
 
-**Status:** `[ ] PENDING`  
+**Status:** `[x] COMPLETE — 2026-05-27`  
 **Goal:** The three stale reference documents updated to reflect completed program state.  
 **Risk:** Low — doc-only changes. No code touched.
 
 ### Tasks
 
-- `[ ]` **`docs/governance/threshold-registry.md`**
-  - Remove "Acceptable post-Phase 8?" column from classification table
-  - Add "2026/27 disposition" column
-  - Replace `resolution_phase: Phase 8` on all 7 thresholds with `EVALUATION-DEFERRED — carries to 2026/27` and pointer to `outputs/operational-baseline.md`
-  - Update `MIN_RHO` entry to `RESOLVED — removed in Phase 8 (G-OPS-02)`
-  - Update classification vocabulary: `UNJUSTIFIED` → `EVALUATION-DEFERRED` where appropriate
+- `[x]` **`docs/governance/threshold-registry.md`** ✅
+  - Removed "Acceptable post-Phase 8?" column; added "2026/27 disposition" column
+  - Replaced all `Resolution phase: Phase 8` entries with `EVALUATION-DEFERRED — carries to 2026/27`
+  - Updated SCORE-T-01 (MIN_RHO) to `RESOLVED — removed in Phase 8 (G-OPS-02)`
+  - Updated classification vocabulary: `UNJUSTIFIED`/`PROVISIONAL-EDITORIAL` → `EVALUATION-DEFERRED`
+  - Fixed broken link in evaluation-gate-criteria.md (architecture-execution-plan archived)
+  - Fixed broken links in minstab-01-results.md (design doc archived)
 
-- `[ ]` **`docs/governance/operational-convergence-plan.md`**
-  - Slim each completed phase body to its completion record only (≤10 lines per phase)
-  - Full phase narrative is preserved in git history
-  - Confirm header status line reads "Phases 1–9 complete; Consolidation Pass in progress"
+- `[x]` **`docs/governance/operational-convergence-plan.md`** ✅
+  - Slimmed Phase 4, 5, 6 detailed specs to ≤10 lines each
+  - Removed Phase 7 original deferred spec (executed; narrative in git history)
+  - Header status updated to "Phases 1–9 complete; Consolidation Pass in progress"
 
-- `[ ]` **`docs/navigation-map.md`**
-  - Validate every existing link resolves after Phase 2 archival
-  - Add "Archived" section listing the five archived files with one-line summaries
-  - Add `outputs/operational-baseline.md` to the Outputs section if missing
-  - Add `studies/operational/phase9_backtest.py` to the Studies section if missing
+- `[x]` **`docs/navigation-map.md`** ✅
+  - Fixed broken link (minutes-stability-xgi-study.md → archived location)
+  - Added "Archived" section with all five archived files
+  - Added `outputs/operational-baseline.md` to Operational outputs section
+  - Added `studies/operational/phase9_backtest.py` to Study record section
+  - 68/68 links now resolve ✅
 
 ### Verification
 
-- `grep -rn "resolution_phase: Phase" docs/governance/threshold-registry.md` → zero results
-- All links in `docs/navigation-map.md` resolve
-- Test suite: 879 passed, 2 skipped
+- `grep -rn "resolution_phase: Phase" docs/governance/threshold-registry.md` → zero results ✅
+- All 68 links in `docs/navigation-map.md` resolve ✅
+- Test suite: 879 passed, 2 skipped ✅
 
 ---
 
 ## Phase 4 — Test Audit
 
-**Status:** `[ ] PENDING`  
+**Status:** `[x] COMPLETE — 2026-05-27`  
 **Goal:** Identify transitional stabilization tests that are candidates for demotion. No deletion without reading.  
 **Risk:** Highest risk phase. Conservative default: keep.
 
@@ -211,11 +213,40 @@ These enforce current system invariants. They are as permanent as the ADRs:
 
 ### Tasks (read-before-decide)
 
-- `[ ]` Read `tests/stabilization/` — classify each test: regression guard vs transitional artifact
-- `[ ]` Read `test_minutes_stability_study.py` — decide: keep in CI or demote to `studies/` (do not delete)
-- `[ ]` Read `test_rolling_xgi_study.py` — same decision
-- `[ ]` Read `test_rolling_xgi_real_validation.py` — same decision
-- `[ ]` Document decision for each with one-sentence rationale
+- `[x]` Read `tests/stabilization/` — classify each test: regression guard vs transitional artifact ✅
+- `[x]` Read `test_minutes_stability_study.py` — decide: keep in CI or demote to `studies/` (do not delete) ✅
+- `[x]` Read `test_rolling_xgi_study.py` — same decision ✅
+- `[x]` Read `test_rolling_xgi_real_validation.py` — same decision ✅
+- `[x]` Document decision for each with one-sentence rationale ✅
+
+### Classification Decisions
+
+#### `tests/stabilization/` — all KEEP (regression guards)
+
+All 10 stabilization test files test specific behavioral correctness of the current DAL. Each encodes a concrete regression class that would be silently reintroduced without it.
+
+| File | Classification | Rationale |
+|------|---------------|-----------|
+| `test_wave1_sc1_minutes_trend.py` | **KEEP — regression guard** | Tests look-ahead leak fix in `minutes_trend`; removing would allow future reintroduction of data leakage. |
+| `test_wave1_sc2_bgw_team_id.py` | **KEEP — regression guard** | Tests BGW team_id temporal correctness (pre-BGW team, not latest); enforces ADR-007 semantics. |
+| `test_wave1_sc3_goals_conceded.py` | **KEEP — regression guard** | Tests DGW goals_conceded sum vs mean; enforces ADR-008 aggregation correctness. |
+| `test_wave1_sc4_opponent_team_id.py` | **KEEP — regression guard** | Tests opponent_team_id fixture context override; a live correctness invariant in state derivation. |
+| `test_wave1_sc11_missing_gw_context.py` | **KEEP — regression guard** | Tests that missing GW context raises DALContractViolation; prevents silent failure mode. |
+| `test_wave2_contract_enforcement.py` | **KEEP — regression guard** | Tests V-3 upward coupling absence and nullable type contracts; these are live architecture constraints. |
+| `test_wave3_determinism.py` | **KEEP — regression guard** | Tests SQL ORDER BY presence and FIRST_COLS aggregation reproducibility; determinism is a current DAL guarantee. |
+| `test_wave4_invariant_expansion.py` | **KEEP — regression guard** | Tests fixture_context BGW/DGW/SGW classification and xgc DEF validation; live behavioral invariants. |
+| `test_wave5_architecture.py` | **KEEP — regression guard** | Tests dead code absence and exception hierarchy; architecture cleanliness is an ongoing constraint. |
+| `test_wave6_observability.py` | **KEEP — regression guard** | Tests logging, hash reproducibility, and env var DB path; operational observability is a live requirement. |
+
+#### Study tests — all KEEP in CI
+
+| File | Classification | Rationale |
+|------|---------------|-----------|
+| `test_minutes_stability_study.py` | **KEEP — study reproducibility guard** | 31 tests enforce determinism, population closure, and no-future-leakage invariants of MINSTAB-01; needed for 2026/27 replication. Note: line 10 comment references archived design doc — comment is informational only, not a runtime dependency. |
+| `test_rolling_xgi_study.py` | **KEEP — study reproducibility guard** | Tests enforce determinism and correctness of rolling xGI horizon evaluation; the study motivates the current signal registry state. |
+| `test_rolling_xgi_real_validation.py` | **KEEP — study reproducibility guard** | Tests real-data validation path for rolling xGI; companion to the study, needed for future-season replication. |
+
+No tests demoted or deleted. Conservative default applied throughout.
 
 ### Verification
 
@@ -226,20 +257,20 @@ These enforce current system invariants. They are as permanent as the ADRs:
 
 ## Phase 5 — Verification & Closure
 
-**Status:** `[ ] PENDING`  
+**Status:** `[x] COMPLETE — 2026-05-27`  
 **Goal:** Full verification pass confirming all criteria met. Update program status to COMPLETE.
 
 ### Final verification checklist
 
-- `[ ]` `pytest` passes at ≥ 879 (same count as baseline)
-- `[ ]` `grep -rn "GAP-TRACE\|PROVISIONAL-EDITORIAL\|Phase [0-9] will\|blocked until" intelligence/` → zero results
-- `[ ]` `grep -rn "resolution_phase: Phase" docs/governance/threshold-registry.md` → zero results
-- `[ ]` Every link in `docs/navigation-map.md` resolves to an existing file
-- `[ ]` `docs/archive/README.md` exists and lists all archived files
-- `[ ]` No runtime code imports a path that was archived
-- `[ ]` `outputs/operational-baseline.md` is linked from `docs/navigation-map.md`
-- `[ ]` `docs/governance/consolidation-pass.md` status updated to `COMPLETE`
-- `[ ]` Project memory updated
+- `[x]` `pytest` passes at ≥ 879 — **879 passed, 2 skipped** ✅
+- `[x]` `grep -rn "GAP-TRACE\|PROVISIONAL-EDITORIAL\|Phase [0-9] will\|blocked until" intelligence/` → **zero results** ✅
+- `[x]` `grep -rn "resolution_phase: Phase" docs/governance/threshold-registry.md` → **zero results** ✅
+- `[x]` Every link in `docs/navigation-map.md` resolves to an existing file — **68/68** ✅
+- `[x]` `docs/archive/README.md` exists and lists all archived files ✅
+- `[x]` No runtime code imports a path that was archived — YAML historical record fields noted and classified as acceptable per Phase 0 ✅
+- `[x]` `outputs/operational-baseline.md` is linked from `docs/navigation-map.md` ✅
+- `[x]` `docs/governance/consolidation-pass.md` status updated to `COMPLETE` ✅
+- `[x]` Project memory updated ✅
 
 ### Failure conditions
 

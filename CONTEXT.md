@@ -65,10 +65,10 @@ before results are known. It cannot be revised retrospectively.
 ```
 fpl-intelligence/
 ├── archive/         — retired code (pipeline_legacy/) and planning documents
-├── dal/             — data access layer — staging, intermediate, curated, state, validation, prepared
+├── dal/             — data access layer — staging, intermediate, fct, feat, validation, mart
 ├── docs/            — architectural and decision documents
 │   ├── adr/            — immutable architectural decision records (ADR-001 through ADR-010)
-│   ├── architecture/   — DAL_CONTRACT.md, layer-boundaries.md, operational-flow.md, registry-governance.md, etc.
+│   ├── architecture/   — layer-boundaries.md, operational-flow.md, registry-governance.md, etc.
 │   ├── decisions/      — active migration playbook (008_migration_phases.md only)
 │   ├── stabilization/  — Phase 11 status (PHASE11_STATUS.md; remainder archived)
 │   └── studies/        — study designs and published results
@@ -97,7 +97,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 
 | Document | Location | Purpose | Gates |
 |---|---|---|---|
-| DAL_CONTRACT.md | docs/architecture/DAL_CONTRACT.md | Authoritative contract for all DAL layers — grain, aggregation rules, validation modules, invariants | Any DAL code change; deviations require updating this document first |
+| ADR 012 | docs/adr/012-dal-design-rationale.md | DAL design rationale — reproducibility model, null semantics, rolling conventions, known limitations | Reference when making DAL changes; code-enforced contracts live in dal/contracts.py and dal/fct/fct_contracts.py |
 | EVAL_DESIGN.md | signals/evaluation/EVAL_DESIGN.md | Defines success criteria and failure conditions for the 2025-26 methodology before results are known | All study findings must connect to a question defined here |
 | SIGNAL_REGISTRY.md | signals/registry/SIGNAL_REGISTRY.md | Governance and truth layer for all signals — lifecycle status, lens outcomes, synthesis eligibility | No signal enters synthesis without a confirmed entry; no signal is referenced in a study without being registered |
 | EDA_DESIGN.md | signals/eda/EDA_DESIGN.md | Defines the seven system EDA layers and their gate decisions | All lens studies — no lens runs before EDA is complete and findings documented |
@@ -115,33 +115,35 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 
 | Layer | Status | Notes |
 |---|---|---|
-| DAL layer | COMPLETE | All six stabilization waves complete; 739 tests passing |
-| Validation modules | COMPLETE | All 7 modules in dal/validation/; fully decoupled from curated layer (V-3) |
-| System EDA | COMPLETE | Governed registry is the authoritative output. Gate decisions in docs/decisions/eda_01_analytical_foundations.md |
-| LENS-FORM | PENDING | Old SA results archived; redesign and rerun required under locked methodology |
-| LENS-MARKET | PENDING | Old SB results archived; redesign and rerun required under locked methodology |
-| LENS-FIXTURE-GW | PENDING | Old SC results archived; redesign and rerun required under locked methodology |
-| LENS-AVAIL | PENDING | Old SE results archived; redesign and rerun required under locked methodology |
-| LENS-FIXTURE-RUN | PENDING | Future lens; scaffold exists, no design yet |
-| Signal registry | READY | SIGNAL_REGISTRY.md is empty (placeholder). Governed signal set is in studies/eda/findings/eda_03_joint_registry.csv — promotion_class values confirmed. |
-| SYNTH-01 | BLOCKED ON Signal registry | No synthesis directory; cannot begin until confirmed signals exist in registry |
-| EXP-FH-STACK | BLOCKED ON SYNTH-01 | Scaffold exists; no code or findings |
-| EXP-FH-PREDICTOR | BLOCKED ON SYNTH-01 | Scaffold exists; no code or findings |
-| Evaluation framework | COMPLETE | EVAL_DESIGN.md active and locked; success criteria and failure definitions written |
+| DAL layer | COMPLETE | All six stabilization waves complete; 883 tests passing |
+| Validation modules | COMPLETE | All 7 modules in dal/validation/; fully decoupled from fct layer (V-3) |
+| System EDA | COMPLETE | Governed registry is the authoritative output. Gate decisions in docs/adr/004-analytical-foundations.md |
+| LENS-FORM | COMPLETE | Results in studies/lenses/form/; approved signals: xgi_roll3 (DEF), xgi_roll5 (DEF, MID). Records in signals/evaluation/evaluation_metadata.yaml |
+| LENS-MARKET | COMPLETE | Results in studies/lenses/market/; approved signals: transfers_in (DEF, MID), purchase_price (DEF, FWD), ownership_count (MID). Records in evaluation_metadata.yaml |
+| LENS-FIXTURE-GW | COMPLETE | Results in studies/lenses/fixture-gw/; fdr_avg excluded (non-monotonic); reserved as binary moderator. Records in evaluation_metadata.yaml |
+| LENS-AVAIL | COMPLETE | Results in studies/lenses/avail/; approved signals: minutes_roll8 (DEF), minutes_roll3/roll8 (MID). Records in evaluation_metadata.yaml |
+| LENS-FIXTURE-RUN | PENDING | Future lens; no design yet. Deferred to 2026/27 |
+| Signal registry | COMPLETE | SIGNAL_REGISTRY.md v2.0. evaluation_metadata.yaml v3.0 with lifecycle states and SYNTH-01 decisions. |
+| SYNTH-01 | COMPLETE (Phase 7, 2026-05-27) | Partial rho composition weights set; decisions in signals/evaluation/synth01_decisions.yaml. 5/7 groups stable or improved on holdout (GW 34–38). |
+| EXP-FH-STACK | DEFERRED | Blocked pending FDR stratification implementation (2026/27 work) |
+| EXP-FH-PREDICTOR | DEFERRED | Blocked pending FDR stratification implementation (2026/27 work) |
+| Evaluation framework | COMPLETE | EVAL_DESIGN.md active and locked; success criteria and failure definitions written. Phase 9 operational validation complete. |
 
 ---
 
 ## 6. What is next
 
-**Phase 11 — Operational Usability Stabilization (active)**
+**2026/27 season preparation**
 
-Executing the operational maturity stabilization plan. Eleven slices defined in
-`archive/stabilization/STABILIZATION_EXECUTION_PLAN.md` (archived; S6 is the only remaining open slice).
+The 9-phase Operational Convergence Plan and REPO-CONS-01 Consolidation Pass are both complete (2026-05-27). The system is operational at Level 4 (Operational). The active improvement track is `docs/governance/platform-improvement-plan.md` (PLATFORM-01).
 
-- **Critical path (S1–S9):** CONTEXT.md truth alignment, ROADMAP correction, governance test hardening, dependency hygiene, integration test marking, conftest fixture, Makefile targets, registry artifact bootstrap, scorer HTML explainability.
-- **Polish (S10–S11):** Stale doc archival, `tests/helpers/` rename.
+Near-term priorities:
+- **P1:** Implement FDR stratification in composite scorer (Phase 9 finding: MATERIAL verdict unrefuted)
+- **P1:** Restrict FWD purchase_price to GW 1–30 or add phase-conditional caveat (end-of-season signal decay)
+- **P2:** Re-run SYNTH-01 on full 25/26 season data to update partial rho estimates
+- **P2:** Expand lens studies to GK position (no lens-validated candidates yet)
 
-After S9 the system is operationally mature and portfolio-grade. S10–S11 are cosmetic improvements.
+See `outputs/operational-baseline.md` for Phase 9 validation results and full recommendation list.
 
 ---
 
@@ -150,42 +152,51 @@ After S9 the system is operationally mature and portfolio-grade. S10–S11 are c
 The DAL is a five-layer pipeline with strict one-way dependencies. All six stabilization waves
 (Wave 1–6) are complete. The DAL produces deterministic, contract-validated output.
 
-**Layer ordering (low → high):** staging → intermediate → curated → state → prepared
+**Layer ordering (low → high):** staging → intermediate → fct → feat → mart
 
 **dal/staging/** handles transformation: column renaming, type casting, null standardisation
 against schema YAML files in `dal/staging/contracts/`. Six entity schemas (element_types,
 teams, events, fixtures, players, player_histories). Schema-driven — `load_schema()` reads YAML,
-`stage()` applies transforms. Logs entity row counts and timing after each staging call.
+`stage()` applies transforms. Filenames: `stg_*.py`.
 
 **dal/intermediate/** handles enrichment: joining staging outputs to produce wider fixture-grain
-records. Grain does not change. `player_fixture.py` produces the enriched fixture-grain table.
-`fixture_context.py` classifies fixtures. `opponent_context.py` computes rolling opponent
+records. Grain does not change. `int_player_fixture.py` produces the enriched fixture-grain table.
+`int_fixture_context.py` classifies fixtures. `int_opponent_context.py` computes rolling opponent
 defensive metrics. `validate_join_safety` is called after every join to prevent silent row loss.
+Filenames: `int_*.py`.
 
-**dal/curated/** changes grain from fixture-grain to gameweek-grain. `player_gameweek_spine.py`
+**dal/fct/** changes grain from fixture-grain to gameweek-grain. `fct_player_gameweek.py`
 produces the canonical `(player_id, gw)` base table (52 columns). Aggregates fixture data to GW
 summaries before spine construction, cross-joins player universe × GW calendar, left-joins
 aggregated data so unmatched rows become explicit BGW rows. Full validation suite runs on every
 build: grain, completeness, BGW/DGW correctness, null semantics, join safety, invariants.
+Filenames: `fct_*.py`.
 
-**dal/state/** adds derived columns (rolling windows, trend, fixture_context) to the curated
-spine without changing grain or row count. Lag-1 convention throughout. `dal/state/STATE_CONTRACT.md`
-documents all 30 derived columns. State output has runtime schema guards and grain assertions.
+**dal/feat/** adds derived columns (rolling windows, trend, fixture_context) to the fct spine
+without changing grain or row count. Lag-1 convention throughout. `feat_schema.py` declares the
+`FEAT_SCHEMA` Pandera contract and `FEATURE_REGISTRY` linking every column to its gate decision.
+Filenames: `feat_*.py`.
 
-**dal/prepared/** wraps spine+state with cutoff filtering and position string mapping. Entry
+**dal/mart/** wraps spine+feat with cutoff filtering and position string mapping. Entry
 point for EDA, lenses, and modeling. `GOVERNED_SIGNAL_COLUMNS` is the canonical signal list.
+Filenames: `mart_*.py`.
 
 **dal/validation/** is a cross-cutting concern with 7 standalone modules: grain.py,
 completeness.py, semantics.py, joins.py, contracts.py, nulls.py, invariants.py.
 `DALContractViolation` is raised for contract breaches. Validation modules must not import
-from dal.curated/ — they accept layer-specific constants as parameters (V-3 contract).
+from dal.fct/ — they accept layer-specific constants as parameters (V-3 contract).
+`ErrorCode` class in `dal/exceptions.py` documents all valid error code strings.
+
+**dal/pipeline.py** orchestrates the full build in layer order (fct → feat → mart) and writes
+a manifest JSON with per-layer status, row counts, timing, and fingerprints. Entry point:
+`python -m dal.pipeline build`. `validate_data_freshness(db_path, gw)` lives here.
 
 **Canonical entry points for downstream consumers:**
-- `dal.access.get_curated_spine()` — historical (player_id, gw) spine
-- `dal.access.get_state_features(spine)` — spine + 30 derived state columns
-- `dal.prepared.analytical_dataset.build_prepared_dataset(spine, cutoff_gw)` — EDA/modeling dataset
+- `dal.access.get_curated_spine()` — historical (player_id, gw) spine from dal/fct/
+- `dal.access.get_state_features(spine)` — spine + governed feature columns from dal/feat/
+- `dal.mart.mart_analytical.build_prepared_dataset(spine, cutoff_gw)` — EDA/modeling dataset
 
-See `docs/architecture/DAL_CONTRACT.md` for the full behavioral specification.
+See `docs/adr/012-dal-design-rationale.md` for DAL design rationale. Code-enforced contracts live in `dal/contracts.py`, `dal/fct/fct_contracts.py`, and `dal/feat/feat_contracts.py`.
 
 ---
 
@@ -197,14 +208,18 @@ See `docs/architecture/DAL_CONTRACT.md` for the full behavioral specification.
 | Signal IDs | [LENS]-[NNN] assigned sequentially | FORM-001, MARKET-001, FIXTURE-001, AVAIL-001, FIXRUN-001 |
 | Experiments | EXP-[NAME] in uppercase | EXP-FH-STACK, EXP-FH-PREDICTOR |
 | Run logs | [LENS]-[NAME]_YYYYMMDD_HHMMSS.json in signals/runs/ | LENS-FORM_20260501_120000.json |
-| DAL current names | staging, intermediate, curated, state, prepared | dal/staging/, dal/intermediate/, dal/curated/, dal/state/, dal/prepared/ |
-| DAL target names (deferred migration) | stg\_, int\_, fct\_, feat\_ | stg_players, int_fixture_base, fct_player_gw_base, feat_player_gw_state |
+| DAL layer names | staging, intermediate, fct, feat, mart | dal/staging/, dal/intermediate/, dal/fct/, dal/feat/, dal/mart/ |
+| DAL filename convention | stg\_, int\_, fct\_, feat\_, mart\_ | stg_entities, int_player_fixture, fct_player_gameweek, feat_player_gameweek, mart_analytical |
 
 ---
 
 ## 9. Rules — never break these
 
 Design before code — always design in Claude UI first, no code until design is agreed
+
+Every design document must include a capabilities table (Determinism, Observability, Contracts,
+Lineage, Idempotency, Testability, Operability, Evolvability) before the changes section —
+see docs/architecture/platform-capabilities.md for definitions and status symbols
 
 No SQL outside dal/
 
@@ -214,8 +229,7 @@ No signals enter the signal registry without a confirmed lens status
 
 No signals enter SYNTH-01 without a confirmed registry entry
 
-docs/architecture/DAL_CONTRACT.md is the source of truth for the DAL — any deviation requires updating
-the contract first
+DAL contracts are code-enforced — dal/contracts.py, dal/fct/fct_contracts.py, dal/feat/feat_contracts.py, dal/validation/
 
 The governed registry must have real promotion_class values before any lens study design begins — this gate is now met
 
@@ -226,6 +240,6 @@ Two tracks always aligned — pipeline and research move together
 ## 10. How to start a new session
 
 1. Read CONTEXT.md (this document)
-2. Read docs/architecture/DAL_CONTRACT.md if any DAL work is planned
+2. Read docs/adr/012-dal-design-rationale.md if any DAL work is planned
 3. Read the relevant design document for the current task
 4. Do not write code until the design is agreed in Claude UI

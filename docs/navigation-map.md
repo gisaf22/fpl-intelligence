@@ -23,7 +23,7 @@ intelligence/ → player scoring and weekly reporting
 | [docs/system-purpose.md](system-purpose.md) | What is this system for? What does it not do? |
 | [docs/architecture/system-model.md](architecture/system-model.md) | What is each part of the system responsible for? (3-plane model) |
 | [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) | How does a decision get made, end to end? |
-| [docs/architecture/DAL_CONTRACT.md](architecture/DAL_CONTRACT.md) | What guarantees does the data layer provide? |
+| [docs/adr/012-dal-design-rationale.md](adr/012-dal-design-rationale.md) | What design decisions govern the data layer? (code contracts in `dal/fct/fct_contracts.py`) |
 
 ---
 
@@ -41,12 +41,14 @@ intelligence/ → player scoring and weekly reporting
 
 ### DAL contributor
 
-1. [docs/architecture/DAL_CONTRACT.md](architecture/DAL_CONTRACT.md) — authoritative behavioral contract (grain, aggregation rules, null semantics, invariants)
-2. [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) — what downstream modules may and may not import
-3. [docs/adr/007-bgw-team-semantics.md](adr/007-bgw-team-semantics.md) — BGW team_id temporal rule
-4. [docs/adr/008-dgw-aggregation-rules.md](adr/008-dgw-aggregation-rules.md) — DGW aggregation and normalization
-5. [docs/adr/009-first-cols-ordering.md](adr/009-first-cols-ordering.md) — FIRST_COLS semantic classification
-6. [dal/state/STATE_CONTRACT.md](../dal/state/STATE_CONTRACT.md) — 30 derived state columns: causality, warmup, reliability
+1. `dal/fct/fct_contracts.py` — spine column definitions, dtypes, null rules (code-enforced)
+2. `dal/contracts.py` — grain contract registry (code-enforced)
+3. `dal/feat/feat_contracts.py` + `dal/feat/feat_schema.py` — feature columns and Pandera schema
+4. [docs/adr/012-dal-design-rationale.md](adr/012-dal-design-rationale.md) — design rationale: null semantics, rolling conventions, known limitations
+5. [docs/adr/007-bgw-team-semantics.md](adr/007-bgw-team-semantics.md) — BGW team_id temporal rule
+6. [docs/adr/008-dgw-aggregation-rules.md](adr/008-dgw-aggregation-rules.md) — DGW aggregation and normalization
+7. [docs/adr/009-first-cols-ordering.md](adr/009-first-cols-ordering.md) — FIRST_COLS semantic classification
+8. [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) — what downstream modules may and may not import
 
 ### Research contributor (lens studies, EDA, experiments)
 
@@ -79,13 +81,16 @@ intelligence/ → player scoring and weekly reporting
 
 | Document | Authoritative for |
 |----------|-------------------|
-| [docs/architecture/DAL_CONTRACT.md](architecture/DAL_CONTRACT.md) | All DAL behavior: grain, aggregation rules, null semantics, dtype contracts, BGW/DGW semantics |
+| `dal/fct/fct_contracts.py`, `dal/contracts.py`, `dal/validation/` | All DAL behavior: grain, column contracts, null semantics, dtype contracts, BGW/DGW invariants (code-enforced) |
 | [signals/evaluation/EVAL_DESIGN.md](../signals/evaluation/EVAL_DESIGN.md) | Success criteria and failure conditions for 2025-26 methodology |
 | [signals/registry/SIGNAL_REGISTRY.md](../signals/registry/SIGNAL_REGISTRY.md) | Lifecycle status for every named signal |
 | [docs/research-lifecycle.md](research-lifecycle.md) | Signal lifecycle state definitions and promotion rules |
 | [docs/registry-governance.md](registry-governance.md) | Exploratory vs operational registry semantics; lifecycle gate enforcement |
 | [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) | Allowed and forbidden import patterns for downstream modules |
 | [docs/adr/](adr/) | All immutable architectural decisions (append-only; ADR-001 through ADR-011) |
+| [docs/governance/platform-rubric.md](governance/platform-rubric.md) | Platform maturity & maintainability assessment rubric — 10 categories, scoring methodology, maturity levels |
+| [docs/governance/platform-assessment-2026-05.md](governance/platform-assessment-2026-05.md) | May 2026 platform assessment — Operational (Level 4), score 4.04, top gaps and improvement actions |
+| [docs/governance/platform-improvement-plan.md](governance/platform-improvement-plan.md) | PLATFORM-01 improvement plan — 5 phases addressing assessment findings; no analytical changes |
 
 ### Operational reference
 
@@ -109,11 +114,11 @@ intelligence/ → player scoring and weekly reporting
 
 | Document | Content |
 |----------|---------|
-| [docs/studies/minutes-stability-xgi-study.md](studies/minutes-stability-xgi-study.md) | MINSTAB-01 study design |
 | [docs/studies/rolling-xgi-horizon-study.md](studies/rolling-xgi-horizon-study.md) | Rolling xGI horizon study design |
 | [docs/studies/results/minstab-01-results.md](studies/results/minstab-01-results.md) | MINSTAB-01 published results |
 | [docs/studies/results/rolling-xgi-horizon-study-results.md](studies/results/rolling-xgi-horizon-study-results.md) | Rolling xGI published results |
 | [docs/studies/results/rolling-xgi-real-validation.md](studies/results/rolling-xgi-real-validation.md) | Real validation results |
+| [studies/operational/phase9_backtest.py](../studies/operational/phase9_backtest.py) | Phase 9 operational backtest — holdout validation GW 34–38 |
 
 ### Supplementary / transitional
 
@@ -126,6 +131,24 @@ intelligence/ → player scoring and weekly reporting
 | `archive/research-program.md` | Archived (Phase E) | Scope boundaries absorbed into `system-purpose.md`. |
 | `archive/stabilization/` | Archived | Wave history, risk register, Phase 11 execution plan, Phase 11 slice status. |
 | `archive/DOC_MIGRATION_PLAN.md` | Archived | Documentation architecture migration plan — all six phases complete. |
+
+### Archived (REPO-CONS-01 — 2026-05-27)
+
+Working documents superseded by durable artifacts during the 9-phase program. Read-only historical record. See [docs/archive/README.md](archive/README.md) for the supersession table.
+
+| File | Archived | Summary |
+|------|----------|---------|
+| [docs/archive/architecture-execution-plan.md](archive/architecture-execution-plan.md) | 2026-05-27 | Phase-by-phase execution plan — system is operational, plan complete |
+| [docs/archive/synth01-design.md](archive/synth01-design.md) | 2026-05-27 | SYNTH-01 methodology decisions — superseded by `signals/evaluation/synth01_decisions.yaml` |
+| [docs/archive/synth01-candidate-set.md](archive/synth01-candidate-set.md) | 2026-05-27 | SYNTH-01 candidate set — superseded by `signals/registry/synth01_candidates.yaml` |
+| [docs/archive/lens-form-readiness.md](archive/lens-form-readiness.md) | 2026-05-27 | LENS-FORM readiness assessment — study complete, results in `studies/lenses/` |
+| [docs/archive/minutes-stability-xgi-study.md](archive/minutes-stability-xgi-study.md) | 2026-05-27 | MINSTAB-01 design doc — superseded by `docs/studies/results/minstab-01-results.md` |
+
+### Operational outputs
+
+| File | Content |
+|------|---------|
+| [outputs/operational-baseline.md](../outputs/operational-baseline.md) | Phase 9 validation record — holdout backtest results, 2026/27 recommendations |
 
 ---
 

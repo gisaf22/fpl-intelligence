@@ -1,40 +1,34 @@
 # Operational Weight Registry
 # Version: 2.0
 # Produced: 2026-05-27
-# Revised: 2026-05-27 — Phase 8 Registry Rebuild; SYNTH-01 composition weights in synth01_decisions.yaml
-# Authority: Operational Convergence Plan Phase 6 (architecture); Phase 7 (composition weights)
-# Human-readable context: docs/governance/operational-convergence-plan.md §Phase 6, §Phase 7
+# Revised: 2026-05-27 — registry rebuild; SYNTH-01 composition weights in synth01_decisions.yaml
 #
 # IMPORTANT: Intelligence module weights (captain, value, transfers, fixtures) remain
 # PROVISIONAL-EDITORIAL. They are editorial judgments set before the lens-study methodology
 # was established. SYNTH-01 produced composition weights for DEF/MID signal groups, stored in
 # signals/evaluation/synth01_decisions.yaml. Those weights govern signal composition, not
-# module-level blending. Module weight calibration is deferred to Phase 9 (Operational
-# Validation).
+# module-level blending. Module weight calibration requires a dedicated calibration study.
 #
-# FDR MODERATION — MATERIAL (Phase 7 finding):
+# FDR MODERATION — MATERIAL:
 # SYNTH-01 sensitivity check found that FDR quartile conditioning changes signal rank
 # ordering in >15% of cases for all 3 checked groups (DEF × FORM, MID × FORM, MID × AVAIL).
-# This is a MATERIAL finding flagged for Phase 9. No operational implementation in Phase 8.
-# The fixture_context DGW binary (GAP-TRACE-06) is the current operational FDR proxy.
+# Implementation deferred; fixture_context DGW binary is the current operational FDR proxy.
 #
 # Loading: intelligence/weight_registry.py — hard-fails if a module or weight key
 # is absent from this file. No silent defaults anywhere in the intelligence layer.
 #
-# Phase 6 changes from hardcoded dicts:
-#   - fdr_avg removed from all scoring weights (GAP-TRACE-02; FIXTURE-001 excluded)
-#   - fixture contribution replaced with binary DGW from STATE fixture_context (GAP-TRACE-06)
-#   - FWD scope guard documented for all xgi_roll3/5 consumers (GAP-TRACE-01)
-#   - weights for captain, value, transfers, fixtures all wired here
+# Key decisions reflected here:
+#   - fdr_avg removed from all scoring weights (fdr_avg excluded at all positions in
+#     LENS-FIXTURE-GW — non-monotonic quintile ordering at every position)
+#   - fixture contribution uses binary DGW from STATE fixture_context column
+#     (reads governed STATE column rather than spine is_dgw flag)
+#   - FWD scope guard applied to all xgi_roll3/5 consumers
+#     (xgi_roll3/5 excluded at FWD by lens evaluation — non-monotonic quintile ordering, G2-FAIL)
 
 schema_version: "2.0"
 produced: "2026-05-27"
-authority: "docs/governance/operational-convergence-plan.md §Phase 6, §Phase 7"
-governance_gap: G-OPS-01
-resolution_phase: 9
-resolution_study: operational_validation
 synth01_composition_weights: "signals/evaluation/synth01_decisions.yaml"
-fdr_moderation_status: "MATERIAL — Phase 7 finding; implementation deferred to Phase 9"
+fdr_moderation_status: "MATERIAL — FDR quartile conditioning changes rank ordering in >15% of cases; implementation deferred"
 
 modules:
 
@@ -42,9 +36,9 @@ modules:
     provenance: PROVISIONAL-EDITORIAL
     note: >
       Weights are editorial. form+involvement=65% (output-focused);
-      fixture+minutes=35% (opportunity/availability filter). Weight values
-      unchanged from pre-Phase-6 except fixture_score input replaced
-      (fdr_avg → fixture_context DGW binary; GAP-TRACE-02).
+      fixture+minutes=35% (opportunity/availability filter). fixture_score input uses
+      binary DGW indicator rather than fdr_avg (fdr_avg excluded at all positions
+      in LENS-FIXTURE-GW — non-monotonic quintile ordering).
     weights:
       form_score:
         value: 0.35
@@ -52,23 +46,25 @@ modules:
         signal_id: FORM-002
         note: >
           PROVISIONAL-EDITORIAL. xgi_roll5 is a governed candidate at DEF/MID
-          (LENS-FORM FORM-002). FWD scope guard enforced in code (GAP-TRACE-01;
-          FORM-002 excluded at FWD by G2-FAIL).
+          (LENS-FORM FORM-002). FWD scope guard enforced in code: xgi_roll5
+          excluded at FWD by lens evaluation (non-monotonic quintile ordering, G2-FAIL).
       involvement_score:
         value: 0.30
         signal: xgi_roll3
         signal_id: FORM-001
         note: >
           PROVISIONAL-EDITORIAL. xgi_roll3 governed at DEF/MID (FORM-001).
-          FWD scope guard enforced in code (GAP-TRACE-01; FORM-001 excluded at FWD).
+          FWD scope guard enforced in code: xgi_roll3 excluded at FWD by lens
+          evaluation (non-monotonic quintile ordering, G2-FAIL).
       fixture_score:
         value: 0.20
         signal: fixture_context
         signal_id: null
         note: >
-          Phase 6 replacement for fdr_avg (GAP-TRACE-02). fdr_avg excluded at all
-          positions (FIXTURE-001 G2-FAIL). Now uses binary DGW indicator from STATE
-          fixture_context column (GAP-TRACE-06). Weight value 0.20 retained.
+          Replaced fdr_avg: fdr_avg excluded at all positions in LENS-FIXTURE-GW
+          (non-monotonic quintile ordering). Now uses binary DGW indicator from STATE
+          fixture_context column (reads governed STATE column rather than spine is_dgw).
+          Weight value 0.20 retained.
       minutes_score:
         value: 0.15
         signal: minutes_roll3
@@ -76,7 +72,7 @@ modules:
         note: >
           PROVISIONAL-EDITORIAL. minutes_roll3 is an AVAIL candidate at MID only;
           excluded at DEF/FWD/GK (AVAIL-001). Use as eligibility proxy at all
-          positions is provisional pending Phase 8 calibration (GAP-TRACE-08).
+          positions is provisional — not lens-validated at DEF/FWD/GK.
 
   value:
     provenance: PROVISIONAL-EDITORIAL
@@ -91,14 +87,15 @@ modules:
         note: >
           PROVISIONAL-EDITORIAL. xgi_roll5/purchase_price composite; xgi_roll5
           governed at DEF/MID (FORM-002). FWD scope guard enforced: both xgi_roll5
-          and efficiency numerator zeroed at FWD (GAP-TRACE-01).
+          and efficiency numerator zeroed at FWD (xgi_roll5 excluded at FWD by
+          lens evaluation — non-monotonic quintile ordering, G2-FAIL).
       form_score:
         value: 0.30
         signal: xgi_roll3
         signal_id: FORM-001
         note: >
-          PROVISIONAL-EDITORIAL. FWD scope guard enforced (GAP-TRACE-01;
-          FORM-001 excluded at FWD by G2-FAIL).
+          PROVISIONAL-EDITORIAL. FWD scope guard enforced: xgi_roll3 excluded at
+          FWD by lens evaluation (non-monotonic quintile ordering, G2-FAIL).
       consistency_score:
         value: 0.20
         signal: xgi_roll3_vs_xgi_roll5_divergence
@@ -106,15 +103,16 @@ modules:
         note: >
           PROVISIONAL-EDITORIAL. Inverted absolute divergence |xgi_roll3 - xgi_roll5|;
           low divergence = consistent contributor. FWD scope guard applied to both
-          underlying signals (GAP-TRACE-01).
+          underlying signals (both excluded at FWD by lens evaluation).
 
   fixtures:
     provenance: PROVISIONAL-EDITORIAL
     note: >
-      fdr_opportunity_score removed (GAP-TRACE-02; FIXTURE-001 excluded at all
-      positions). DGW detection migrated from spine is_dgw to STATE fixture_context
-      (GAP-TRACE-06). Remaining weights retained at original values; weighted_composite
-      normalises internally so effective split is team_attack:dgw_bonus = 0.35:0.25.
+      fdr_opportunity_score removed: fdr_avg excluded at all positions in LENS-FIXTURE-GW
+      (non-monotonic quintile ordering). DGW detection reads STATE fixture_context column
+      rather than spine is_dgw for governed column access. Remaining weights retained
+      at original values; weighted_composite normalises internally so effective split
+      is team_attack:dgw_bonus = 0.35:0.25.
     weights:
       team_attack_score:
         value: 0.35
@@ -128,24 +126,25 @@ modules:
         signal: fixture_context
         signal_id: null
         note: >
-          Binary DGW indicator from STATE fixture_context (GAP-TRACE-06 migration).
-          Previously computed from spine is_dgw flag; now reads fixture_context
-          to consume the governed STATE column.
+          Binary DGW indicator from STATE fixture_context column. Reads governed STATE
+          column rather than spine is_dgw flag for consistent column access semantics.
 
   transfers:
     provenance: PROVISIONAL-EDITORIAL
     note: >
       recent_form + momentum = 55% (directional signal); fixture + involvement +
-      minutes = 45% (opportunity/reliability). fixture_score input replaced
-      (fdr_avg → fixture_context DGW binary; GAP-TRACE-02). FWD scope guard applied
-      to all xgi_roll3/5 consumers (GAP-TRACE-01).
+      minutes = 45% (opportunity/reliability). fixture_score uses binary DGW indicator
+      rather than fdr_avg (fdr_avg excluded at all positions in LENS-FIXTURE-GW).
+      FWD scope guard applied to all xgi_roll3/5 consumers (excluded at FWD by lens
+      evaluation — non-monotonic quintile ordering, G2-FAIL).
     weights:
       recent_form_score:
         value: 0.30
         signal: xgi_roll3
         signal_id: FORM-001
         note: >
-          PROVISIONAL-EDITORIAL. FWD scope guard enforced (GAP-TRACE-01).
+          PROVISIONAL-EDITORIAL. FWD scope guard enforced: xgi_roll3 excluded at
+          FWD by lens evaluation (non-monotonic quintile ordering, G2-FAIL).
       form_momentum_score:
         value: 0.25
         signal: xgi_roll3_minus_xgi_roll5
@@ -153,20 +152,22 @@ modules:
         note: >
           PROVISIONAL-EDITORIAL. Momentum = xgi_roll3 - xgi_roll5 (positive when
           recent xgi > medium-term). FWD scope guard: both operands zeroed at FWD
-          (GAP-TRACE-01).
+          (both excluded at FWD by lens evaluation).
       fixture_score:
         value: 0.20
         signal: fixture_context
         signal_id: null
         note: >
-          Phase 6 replacement for fdr_avg (GAP-TRACE-02). Binary DGW indicator
-          from STATE fixture_context. Weight value 0.20 retained.
+          Replaced fdr_avg: fdr_avg excluded at all positions in LENS-FIXTURE-GW
+          (non-monotonic quintile ordering). Binary DGW indicator from STATE
+          fixture_context column. Weight value 0.20 retained.
       involvement_score:
         value: 0.15
         signal: xgi_roll3
         signal_id: FORM-001
         note: >
-          PROVISIONAL-EDITORIAL. FWD scope guard enforced (GAP-TRACE-01).
+          PROVISIONAL-EDITORIAL. FWD scope guard enforced: xgi_roll3 excluded at
+          FWD by lens evaluation (non-monotonic quintile ordering, G2-FAIL).
       minutes_stability_score:
         value: 0.10
         signal: minutes_roll5

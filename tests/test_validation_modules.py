@@ -4,14 +4,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dal.curated.contracts import PERFORMANCE_COLS
+from dal.fct.fct_contracts import PERFORMANCE_COLS
 from dal.exceptions import DALContractViolation
-from dal.validation import (
-    validate_grain_uniqueness,
+from dal.validation import validate_grain_uniqueness, validate_join_safety
+from dal.fct.validation import (
     validate_row_completeness,
     validate_bgw_correctness,
     validate_dgw_correctness,
-    validate_join_safety,
     validate_column_contract,
     validate_null_semantics,
     validate_time_continuity,
@@ -43,7 +42,7 @@ def _make_perf_row(**overrides):
 
 
 def _make_bgw_row(**overrides):
-    # Contract: BGW performance columns must be NULL (pd.NA), not zero — see DAL_CONTRACT.md Section 5
+    # Contract: BGW performance columns must be NULL (pd.NA), not zero — see docs/adr/012-dal-design-rationale.md
     base = dict(
         player_id=1, gw=2,
         is_bgw=True, is_dgw=False,
@@ -181,8 +180,7 @@ class TestValidateBgwCorrectness:
             validate_bgw_correctness(df, performance_cols=PERFORMANCE_COLS)
         assert 'total_points' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'BGW_NONZERO'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'BGW_VIOLATION'
         assert exc.validation == 'validate_bgw_correctness'
         assert exc.n_violations == 1
 
@@ -192,8 +190,7 @@ class TestValidateBgwCorrectness:
             validate_bgw_correctness(df)
         assert 'fdr_avg' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'BGW_NONZERO'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'BGW_VIOLATION'
         assert exc.validation == 'validate_bgw_correctness'
         assert exc.n_violations == 1
 
@@ -203,8 +200,7 @@ class TestValidateBgwCorrectness:
             validate_bgw_correctness(df)
         assert 'fixture_count' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'BGW_NONZERO'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'BGW_VIOLATION'
         assert exc.validation == 'validate_bgw_correctness'
         assert exc.n_violations == 1
 
@@ -214,8 +210,7 @@ class TestValidateBgwCorrectness:
             validate_bgw_correctness(df)
         assert 'was_home' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'BGW_NONZERO'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'BGW_VIOLATION'
         assert exc.validation == 'validate_bgw_correctness'
         assert exc.n_violations == 1
 
@@ -235,8 +230,7 @@ class TestValidateDgwCorrectness:
             validate_dgw_correctness(df)
         assert 'fixture_count' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'DGW_WRONG_COUNT'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'DGW_VIOLATION'
         assert exc.validation == 'validate_dgw_correctness'
         assert exc.n_violations == 1
 
@@ -246,8 +240,7 @@ class TestValidateDgwCorrectness:
             validate_dgw_correctness(df)
         assert 'clean_sheets' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'DGW_WRONG_COUNT'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'DGW_VIOLATION'
         assert exc.validation == 'validate_dgw_correctness'
         assert exc.n_violations == 1
 
@@ -257,8 +250,7 @@ class TestValidateDgwCorrectness:
             validate_dgw_correctness(df)
         assert 'fixture_count' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'DGW_WRONG_COUNT'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'DGW_VIOLATION'
         assert exc.validation == 'validate_dgw_correctness'
         assert exc.n_violations == 1
 
@@ -267,8 +259,7 @@ class TestValidateDgwCorrectness:
         with pytest.raises(DALContractViolation) as exc_info:
             validate_dgw_correctness(df)
         exc = exc_info.value
-        assert exc.error_code == 'DGW_WRONG_COUNT'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'DGW_VIOLATION'
         assert exc.validation == 'validate_dgw_correctness'
         assert exc.n_violations == 1
 
@@ -278,8 +269,7 @@ class TestValidateDgwCorrectness:
             validate_dgw_correctness(df)
         assert 'fdr_avg' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'DGW_WRONG_COUNT'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'DGW_VIOLATION'
         assert exc.validation == 'validate_dgw_correctness'
         assert exc.n_violations == 1
 
@@ -299,7 +289,7 @@ class TestValidateJoinSafety:
         assert '100' in str(exc_info.value)
         assert '90' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'JOIN_ROW_LOSS'
+        assert exc.error_code == 'JOIN_SAFETY'
         assert exc.validation == 'validate_join_safety'
         assert exc.n_violations == 10
 
@@ -308,7 +298,7 @@ class TestValidateJoinSafety:
             validate_join_safety(100, 50, 120, 'left', 'fanout join')
         assert '120' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'JOIN_FANOUT'
+        assert exc.error_code == 'JOIN_SAFETY'
         assert exc.validation == 'validate_join_safety'
         assert exc.n_violations == 20
 
@@ -321,7 +311,7 @@ class TestValidateJoinSafety:
         assert '380' in str(exc_info.value)
         assert '370' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'JOIN_ROW_LOSS'
+        assert exc.error_code == 'JOIN_SAFETY'
         assert exc.validation == 'validate_join_safety'
         assert exc.n_violations == 10
 
@@ -333,7 +323,7 @@ class TestValidateJoinSafety:
             validate_join_safety(100, 80, 90, 'inner', 'bad inner')
         assert '80' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'JOIN_FANOUT'
+        assert exc.error_code == 'JOIN_SAFETY'
         assert exc.validation == 'validate_join_safety'
         assert exc.n_violations == 10
 
@@ -381,7 +371,7 @@ class TestValidateColumnContract:
         assert 'gw' in str(exc_info.value)
         assert 'Missing' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'COLUMN_MISSING'
+        assert exc.error_code == 'MISSING_COLUMNS'
         assert exc.validation == 'validate_column_contract'
         assert exc.n_violations == 1
 
@@ -414,7 +404,7 @@ class TestValidateNullSemantics:
         assert 'player_id' in str(exc_info.value)
         assert 'never_null' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'NULL_SEMANTICS'
+        assert exc.error_code == 'NULL_VIOLATION'
         assert exc.validation == 'validate_null_semantics'
         assert exc.n_violations == 1
 
@@ -435,7 +425,7 @@ class TestValidateNullSemantics:
         assert 'fdr_avg' in str(exc_info.value)
         assert 'BGW' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'NULL_SEMANTICS'
+        assert exc.error_code == 'NULL_VIOLATION'
         assert exc.validation == 'validate_null_semantics'
         assert exc.n_violations == 1
 
@@ -448,7 +438,7 @@ class TestValidateNullSemantics:
             validate_null_semantics(df, {'fdr_avg': 'null_if_bgw'})
         assert 'non-BGW' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'NULL_SEMANTICS'
+        assert exc.error_code == 'NULL_VIOLATION'
         assert exc.validation == 'validate_null_semantics'
         assert exc.n_violations == 1
 
@@ -477,8 +467,7 @@ class TestValidateTimeContinuity:
         assert 'player_id=1' in str(exc_info.value)
         assert '15' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'TIME_GAP'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'TIME_CONTINUITY'
         assert exc.validation == 'validate_time_continuity'
         assert exc.n_violations == 1
 
@@ -491,8 +480,7 @@ class TestValidateTimeContinuity:
             validate_time_continuity(df)
         assert 'player_id=2' in str(exc_info.value)
         exc = exc_info.value
-        assert exc.error_code == 'TIME_GAP'
-        assert exc.layer == 'curated'
+        assert exc.error_code == 'TIME_CONTINUITY'
         assert exc.validation == 'validate_time_continuity'
         assert exc.n_violations == 1
 
@@ -514,7 +502,6 @@ class TestValidateRowCountInvariant:
         assert '191' in str(exc_info.value)
         exc = exc_info.value
         assert exc.error_code == 'ROW_COUNT'
-        assert exc.layer == 'curated'
         assert exc.validation == 'validate_row_count_invariant'
         assert exc.n_violations == 1
 
@@ -526,7 +513,6 @@ class TestValidateRowCountInvariant:
         assert '189' in str(exc_info.value)
         exc = exc_info.value
         assert exc.error_code == 'ROW_COUNT'
-        assert exc.layer == 'curated'
         assert exc.validation == 'validate_row_count_invariant'
         assert exc.n_violations == 1
 
@@ -536,7 +522,7 @@ class TestValidateRowCountInvariant:
 # ---------------------------------------------------------------------------
 
 class TestValidateNoFutureData:
-    # Contract: future GW rows must have NULL (pd.NA) performance — see DAL_CONTRACT.md Section 5
+    # Contract: future GW rows must have NULL (pd.NA) performance — see docs/adr/012-dal-design-rationale.md
     _PERF_COLS = [
         "total_points", "minutes", "goals_scored", "assists", "clean_sheets",
         "yellow_cards", "red_cards", "saves", "bonus", "bps", "xg", "xa", "xgi",
@@ -577,6 +563,5 @@ class TestValidateNoFutureData:
         assert '21' in msg
         exc = exc_info.value
         assert exc.error_code == 'FUTURE_DATA'
-        assert exc.layer == 'curated'
         assert exc.validation == 'validate_no_future_data'
         assert exc.n_violations == 1

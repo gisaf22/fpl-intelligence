@@ -1,22 +1,43 @@
 from __future__ import annotations
 
-from typing import Optional
+from enum import StrEnum
 
 
-class DataFreshnessError(Exception):
+class DALError(Exception):
+    """Base class for all DAL exceptions."""
+
+
+class DataFreshnessError(DALError):
     """Raised when DB data does not meet freshness requirements for the target GW."""
-    pass
+
+    def __init__(self, message: str, *, gw: int) -> None:
+        self.gw = gw
+        super().__init__(message)
 
 
-_VALID_LAYERS = frozenset({"staging", "intermediate", "curated", "state"})
-_VALID_CODES = frozenset({
-    "GRAIN_DUPLICATE", "BGW_NONZERO", "DGW_WRONG_COUNT", "NULL_SEMANTICS",
-    "TIME_GAP", "ROW_COUNT", "FUTURE_DATA", "JOIN_ROW_LOSS", "JOIN_FANOUT",
-    "COLUMN_MISSING", "COLUMN_EXTRA", "DTYPE_MISMATCH",
-})
+class ErrorCode(StrEnum):
+    """Documented error code vocabulary for DALContractViolation.
+
+    All DALContractViolation raises must use one of these constants so that
+    consumers catching the exception know what to expect without reading source code.
+    """
+    GRAIN_DUPLICATE = "GRAIN_DUPLICATE"    # duplicate (player_id, gw) pairs
+    ROW_COUNT       = "ROW_COUNT"          # n_players × n_gws invariant violated
+    MISSING_COLUMNS = "MISSING_COLUMNS"    # required columns absent from layer output
+    COLUMN_EXTRA    = "COLUMN_EXTRA"       # unexpected columns present in layer output
+    DTYPE_MISMATCH  = "DTYPE_MISMATCH"    # column type does not match declared dtype
+    NULL_VIOLATION  = "NULL_VIOLATION"     # never_null column contains nulls
+    JOIN_SAFETY     = "JOIN_SAFETY"        # row loss or fan-out detected after join
+    TIME_CONTINUITY = "TIME_CONTINUITY"   # gap in per-player GW sequence
+    FUTURE_DATA     = "FUTURE_DATA"        # performance data present for future GW
+    BGW_VIOLATION   = "BGW_VIOLATION"      # BGW row has non-null performance value
+    DGW_VIOLATION   = "DGW_VIOLATION"      # DGW row has incorrect fixture counts
 
 
-class DALContractViolation(Exception):
+_VALID_CODES = frozenset(ErrorCode)
+
+
+class DALContractViolation(DALError):
     """Raised when a DAL validation function detects that a contract invariant is broken.
 
     This is a programming error, not a runtime condition.
@@ -30,22 +51,16 @@ class DALContractViolation(Exception):
         self,
         message: str,
         *,
-        layer: Optional[str] = None,
-        validation: Optional[str] = None,
-        n_violations: Optional[int] = None,
-        error_code: Optional[str] = None,
+        validation: str | None = None,
+        n_violations: int | None = None,
+        error_code: ErrorCode | None = None,
     ) -> None:
-        if layer is not None and layer not in _VALID_LAYERS:
-            raise ValueError(
-                f"Invalid layer {layer!r}. Must be one of: {sorted(_VALID_LAYERS)}"
-            )
         if error_code is not None and error_code not in _VALID_CODES:
             raise ValueError(
                 f"Invalid error_code {error_code!r}. Must be one of: {sorted(_VALID_CODES)}"
             )
 
         self.message = message
-        self.layer = layer
         self.validation = validation
         self.n_violations = n_violations
         self.error_code = error_code
@@ -56,8 +71,6 @@ class DALContractViolation(Exception):
         parts = []
         if self.error_code is not None:
             parts.append(f"[{self.error_code}]")
-        if self.layer is not None:
-            parts.append(f"layer={self.layer}")
         if self.validation is not None:
             parts.append(f"validation={self.validation}")
         if self.n_violations is not None:
@@ -70,7 +83,6 @@ class DALContractViolation(Exception):
         return (
             f"DALContractViolation("
             f"message={self.message!r}, "
-            f"layer={self.layer!r}, "
             f"validation={self.validation!r}, "
             f"n_violations={self.n_violations!r}, "
             f"error_code={self.error_code!r}"

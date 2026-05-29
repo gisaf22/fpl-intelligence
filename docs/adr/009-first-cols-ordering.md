@@ -3,7 +3,7 @@
 **Status:** Active  
 **Date:** May 2026  
 **Risks addressed:** SC-9, F-1, F-2  
-**Implemented in:** `dal/curated/contracts.py` (`FIRST_COL_SEMANTICS`), `dal/curated/player_gameweek_spine.py`
+**Implemented in:** `dal/fct/fct_contracts.py` (`FIRST_COL_SEMANTICS`), `dal/fct/fct_player_gameweek.py`
 
 ---
 
@@ -28,7 +28,7 @@ Every column in `FIRST_COLS` is classified into one of four semantic types:
 | `temporally_first` | Takes value from the fixture with the lowest kickoff time | Requires ordering by `kickoff_time`, not `fixture_id` |
 | `representative_arbitrary` | No analytical semantics — any value is acceptable | Documented explicitly; consider whether the column should be DGW-excluded |
 
-The classification is declared in `FIRST_COL_SEMANTICS` in `dal/curated/contracts.py`.
+The classification is declared in `FIRST_COL_SEMANTICS` in `dal/fct/fct_contracts.py`.
 
 For determinism: the fixture-grain frame is sorted by `["player_id", "gw", "fixture_id"]` before any aggregation. This makes "first" mean "lowest fixture_id" consistently and reproducibly.
 

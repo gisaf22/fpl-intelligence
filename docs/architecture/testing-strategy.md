@@ -52,7 +52,7 @@ All stabilization tests are marked `@pytest.mark.integration` — they require t
 
 ### DAL invariant suite — `tests/test_dal_*.py`
 
-Comprehensive per-concern tests run against the constructed test database. These cover the complete set of DAL invariants defined in `docs/architecture/DAL_CONTRACT.md`.
+Comprehensive per-concern tests run against the constructed test database. These cover the complete set of DAL invariants defined in `dal/validation/` and `dal/fct/fct_contracts.py`.
 
 | File(s) | Concern |
 |---------|---------|

@@ -49,7 +49,7 @@
 
 | | |
 |---|---|
-| **Allowed inputs** | `signals.lifecycle.*`; `signals.registry.*`; `dal.curated`, `dal.state`, `dal.prepared` |
+| **Allowed inputs** | `signals.lifecycle.*`; `signals.registry.*`; `dal.fct`, `dal.feat`, `dal.mart` |
 | **Allowed outputs** | Scores, rankings, reports |
 | **Forbidden** | Defining signals; computing analytical metrics; imports from `studies.*`; `dal.staging` access without DAL contract exception |
 

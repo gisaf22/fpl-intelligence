@@ -163,19 +163,19 @@ def test_no_staging_or_intermediate_imports_in_notebooks():
 
 
 # ---------------------------------------------------------------------------
-# G-4 — dal.access and dal.prepared are importable (smoke test)
+# G-4 — dal public API is importable (smoke test)
 # ---------------------------------------------------------------------------
 
-def test_dal_access_importable():
-    """G-4a: dal.access must export get_curated_spine and get_state_features."""
-    from dal.access import get_curated_spine, get_state_features
-    assert callable(get_curated_spine)
-    assert callable(get_state_features)
+def test_dal_public_api_importable():
+    """G-4a: dal must export build_player_gameweek_spine and build_player_gameweek_state."""
+    from dal import build_player_gameweek_spine, build_player_gameweek_state
+    assert callable(build_player_gameweek_spine)
+    assert callable(build_player_gameweek_state)
 
 
 def test_dal_prepared_importable():
     """G-4b: dal.prepared must export build_prepared_dataset and GOVERNED_SIGNAL_COLUMNS."""
-    from dal.prepared.analytical_dataset import (
+    from dal.mart.mart_analytical import (
         GOVERNED_SIGNAL_COLUMNS,
         build_prepared_dataset,
     )

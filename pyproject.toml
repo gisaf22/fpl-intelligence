@@ -3,12 +3,13 @@ name = "fpl-intelligence"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "jsonschema>=4.26.0",
     "nbformat>=5.10.4",
     "numpy>=1.26.0",
     "pandas>=2.3.3",
+    "pandera>=0.19",
     "pydantic>=2.13.1",
     "pyyaml>=6.0.3",
     "scipy>=1.12.0",
@@ -25,6 +26,7 @@ dev-mode-dirs = ["."]
 testpaths = ["tests"]
 markers = [
     "integration: marks tests that require a live database (deselect with '-m not integration')",
+    "unit: marks tests that run without any external dependencies",
 ]
 
 [dependency-groups]

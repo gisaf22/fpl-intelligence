@@ -20,12 +20,9 @@ The failing test:
 import pytest
 import pandas as pd
 from pathlib import Path
-from unittest.mock import patch
 
-from dal.curated.player_gameweek_spine import build_player_gameweek_spine
+from dal.fct.fct_player_gameweek import build_player_gameweek_spine
 from dal.exceptions import DALContractViolation
-
-TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 
 def _make_minimal_player_fixture_base() -> pd.DataFrame:
@@ -120,15 +117,8 @@ def test_missing_gw_context_raises_immediately():
     player_fixture_base = _make_minimal_player_fixture_base()
     gw_context = _make_gw_context_missing_gw5()
 
-    with patch(
-        "dal.curated.player_gameweek_spine.get_player_fixture_base",
-        return_value=player_fixture_base,
-    ), patch(
-        "dal.curated.player_gameweek_spine.get_gameweek_context",
-        return_value=gw_context,
-    ):
-        with pytest.raises(DALContractViolation) as exc_info:
-            build_player_gameweek_spine(TEST_DB_PATH)
+    with pytest.raises(DALContractViolation) as exc_info:
+        build_player_gameweek_spine(player_fixture_base, gw_context)
 
     assert "5" in str(exc_info.value), (
         f"Exception message should name GW 5 as missing. Got: {exc_info.value}"
@@ -141,17 +131,10 @@ def test_missing_gw_context_does_not_return_partial_result():
     gw_context = _make_gw_context_missing_gw5()
 
     result = None
-    with patch(
-        "dal.curated.player_gameweek_spine.get_player_fixture_base",
-        return_value=player_fixture_base,
-    ), patch(
-        "dal.curated.player_gameweek_spine.get_gameweek_context",
-        return_value=gw_context,
-    ):
-        try:
-            result = build_player_gameweek_spine(TEST_DB_PATH)
-        except (DALContractViolation, Exception):
-            pass  # exception is expected
+    try:
+        result = build_player_gameweek_spine(player_fixture_base, gw_context)
+    except (DALContractViolation, Exception):
+        pass  # exception is expected
 
     assert result is None, (
         "build_player_gameweek_spine must not return a partial DataFrame when GW context is missing"

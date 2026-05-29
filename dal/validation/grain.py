@@ -7,16 +7,35 @@ specifying the wrong grain and keeps grain declarations centralised.
 
 from __future__ import annotations
 
+from typing import TypedDict
+
 import pandas as pd
 
 from dal.exceptions import DALContractViolation
 
 
+class GrainContract(TypedDict):
+    pk: list[str]
+
+
+GRAIN_CONTRACTS: dict[str, GrainContract] = {
+    "staging_players":          {"pk": ["player_id"]},
+    "staging_player_histories": {"pk": ["player_id", "fixture_id"]},
+    "staging_fixtures":         {"pk": ["fixture_id"]},
+    "staging_teams":            {"pk": ["team_id"]},
+    "staging_events":           {"pk": ["gw"]},
+    "staging_element_types":    {"pk": ["position_code"]},
+    "gameweek_context":         {"pk": ["gw"]},
+    "player_fixture_base":      {"pk": ["player_id", "gw", "fixture_id"]},
+    "player_gameweek_spine":    {"pk": ["player_id", "gw"]},
+    "player_gameweek_state":    {"pk": ["player_id", "gw"]},
+}
+
+
 def validate_grain_uniqueness(
     df: pd.DataFrame,
-    dataset_name_or_cols,
+    dataset_name_or_cols: str | list[str],
     layer_name: str | None = None,
-    layer: str | None = None,
 ) -> None:
     """Assert no duplicate rows for the declared grain.
 
@@ -26,15 +45,13 @@ def validate_grain_uniqueness(
             or a list of grain column names (legacy — prefer dataset_name).
         layer_name: Optional descriptive name for error messages (used when grain_cols
             are passed directly; ignored when dataset_name is passed).
-        layer: DAL layer for error context ("staging", "intermediate", "curated", "state").
     """
     if isinstance(dataset_name_or_cols, str):
-        from dal.contracts import GRAIN_CONTRACTS
         dataset_name = dataset_name_or_cols
         if dataset_name not in GRAIN_CONTRACTS:
             raise ValueError(
                 f"Unknown dataset_name {dataset_name!r}. "
-                f"Register it in dal/contracts.py before calling validate_grain_uniqueness."
+                f"Register it in dal/validation/grain.py before calling validate_grain_uniqueness."
             )
         grain_cols = GRAIN_CONTRACTS[dataset_name]["pk"]
         label = dataset_name
@@ -55,7 +72,6 @@ def validate_grain_uniqueness(
                 f"{len(dupes)} duplicate ({', '.join(grain_cols)}) pairs\n"
                 f"{dupes.head(10)}"
             ),
-            layer=layer,
             validation='validate_grain_uniqueness',
             n_violations=len(dupes),
             error_code='GRAIN_DUPLICATE',

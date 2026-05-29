@@ -4,24 +4,12 @@ Produces a ranked list of captain options for a target gameweek based on
 recent form, attacking involvement, fixture context, and minutes stability.
 
 Weights are loaded from the governance registry (signals/registry/weight_registry.yaml).
-All weights are PROVISIONAL-EDITORIAL — no analytical derivation exists.
-Resolution: Phase 7 SYNTH-01 will replace with evidence-derived composition values.
 
-## Phase 6 governance changes (2026-05-27)
+Scope constraint: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL;
+haul-concentration effect). FWD players receive neutral 0.5 on form_score and
+involvement_score — zeroed before normalize_within_position.
 
-GAP-TRACE-01 (SCOPE VIOLATION fixed): xgi_roll3 and xgi_roll5 excluded at FWD
-  (FORM-001/002 G2-FAIL; haul-concentration effect). FWD players now get a neutral
-  0.5 on both form_score and involvement_score — zero is substituted before
-  normalize_within_position so all FWD players receive equal treatment on xgi signals.
-
-GAP-TRACE-02 (GOVERNANCE INCONSISTENCY fixed): fdr_avg removed from fixture_score
-  (FIXTURE-001 excluded at all positions). fixture_score now uses binary DGW indicator
-  from STATE fixture_context column (GAP-TRACE-06). Weight value 0.20 retained.
-
-Known remaining governance notes (do not resolve until SYNTH-01):
-- form_score uses xgi_roll5: PROVISIONAL-EDITORIAL; weight 0.35 unjustified (Phase 7)
-- _MIN_MINUTES_ROLL3 = 45.0: UNJUSTIFIED — no evaluation study establishes this
-  eligibility threshold; see threshold-registry.md §CAPT-T-01
+fixture_score uses binary DGW indicator from STATE fixture_context column.
 """
 
 from __future__ import annotations
@@ -39,8 +27,7 @@ from intelligence.weight_registry import get_module_weights
 # Weights loaded from governance registry — fails hard if entry missing.
 _WEIGHTS: dict[str, float] = get_module_weights("captain")
 
-# UNJUSTIFIED (threshold-registry.md §CAPT-T-01): no lens study establishes 45.0
-# as an eligibility cutoff; evidence required: captain precision vs. minutes floor.
+# threshold not evaluation-derived — see threshold-registry.md §CAPT-T-01
 _MIN_MINUTES_ROLL3 = 45.0
 
 _OUTPUT_COLS = [
@@ -85,11 +72,11 @@ def rank_captain_candidates(
     columns (form_score, involvement_score, fixture_score, minutes_score)
     for full explainability.
 
-    Scoring components (registry weights; all PROVISIONAL-EDITORIAL):
-    - form_score      35%: xgi_roll5 (DEF/MID); FWD scope guard → neutral 0.5
-    - involvement_score 30%: xgi_roll3 (DEF/MID); FWD scope guard → neutral 0.5
-    - fixture_score   20%: binary DGW flag from fixture_context (replaces fdr_avg)
-    - minutes_score   15%: minutes_roll3, normalized within position
+    Scoring components (registry weights):
+    - form_score        35%: xgi_roll5; excluded at FWD (FORM-001/002 G2-FAIL) → neutral 0.5
+    - involvement_score 30%: xgi_roll3; excluded at FWD (FORM-001/002 G2-FAIL) → neutral 0.5
+    - fixture_score     20%: binary DGW flag from STATE fixture_context
+    - minutes_score     15%: minutes_roll3, normalized within position
 
     Only players with minutes_roll3 >= 45 are eligible (must be starting).
     """
@@ -106,14 +93,14 @@ def rank_captain_candidates(
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # GAP-TRACE-01: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
+    # xgi_roll3 and xgi_roll5 excluded at FWD: FORM-001/002 G2-FAIL.
     # Zero out xgi signals for FWD players before normalisation; all-zero FWD group
     # returns 0.5 from normalize_within_position (neutral, no xgi contribution at FWD).
     fwd_mask = eligible["position_label"] == "FWD"
     eligible["_xgi_roll5_scored"] = eligible["xgi_roll5"].where(~fwd_mask, 0.0)
     eligible["_xgi_roll3_scored"] = eligible["xgi_roll3"].where(~fwd_mask, 0.0)
 
-    # GAP-TRACE-02 / GAP-TRACE-06: binary DGW flag from STATE fixture_context.
+    # Binary DGW flag from STATE fixture_context column.
     eligible["_fixture_context_dgw"] = (
         eligible["fixture_context"].fillna("SGW") == "DGW"
     ).astype(float)

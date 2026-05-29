@@ -128,4 +128,4 @@ The following hardcoded constants in operational files are **editorial judgment 
 | `signals/registry/SIGNAL_REGISTRY.md` | Per-signal lifecycle governance; lens status; synthesis status; known caveats |
 | `signals/evaluation/evaluation_metadata.yaml` | Machine-readable per-signal-position findings: rho_pooled, CI, block_stability_count, decision_class, lifecycle_state |
 | `docs/foundations/representation-rules.md` | Representation governance — allowed and forbidden transforms per signal family |
-| `docs/architecture-execution-plan.md` | Phase-by-phase execution plan; Phase 6 gate references this document |
+| `docs/archive/architecture-execution-plan.md` | Phase-by-phase execution plan (archived — system complete) |

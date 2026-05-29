@@ -2,7 +2,7 @@
 
 **Status:** ACTIVE  
 **Issued:** 2026-05-26  
-**Revised:** 2026-05-27 — re-sequenced to governance-first; Phases 1–9 complete; Consolidation Pass next  
+**Revised:** 2026-05-27 — re-sequenced to governance-first; Phases 1–9 complete; Consolidation Pass in progress  
 **Author:** Analytics Governance  
 **Classification:** Governance Program Document
 
@@ -180,269 +180,35 @@ Full suite after Phase 6: **879 passed, 2 skipped**.
 
 ---
 
-## Phase 4 — Governance Consolidation
+## Phase 4 — Governance Consolidation ✅ Complete (2026-05-27)
 
-### Objective
+Closed G-OPS-05 and G-OPS-13. Implemented `GovernanceMetadata` dataclass and
+`get_signal_governance()` in `signals/evaluation/governance.py`. Added runtime
+lifecycle/leakage assertions to `intelligence/scoring/signals.py`. Completed
+cross-document consistency audit across five document pairs. Delivered
+`tests/test_evaluation_metadata.py` and `tests/test_runtime_metadata_propagation.py`.
 
-Complete the runtime governance metadata layer. Ensure every governance document is internally consistent and cross-referenced with every other. Close the gap between governance evidence (documented in analytical artifacts) and governance enforcement (implemented in runtime code).
-
-### Why This Phase Exists
-
-Three structural problems remain after the completed phases:
-
-1. `GovernanceMetadata` was designed in the original plan but never implemented. The `get_signal_governance()` function does not exist. The runtime cannot answer "why is this signal here?" — that question can only be answered by reading offline documents.
-
-2. Governance documents were produced independently across phases. The threshold registry, state representation inventory, evaluation metadata, and signal ontology have never been cross-checked for internal consistency. Contradictions between documents may exist.
-
-3. Any signal with `lifecycle_state=excluded` can still be loaded by a runtime consumer without triggering a hard failure. The lifecycle enforcement chain is partially procedural rather than code-enforced.
-
-### Required Tasks
-
-**4.1 — Implement `GovernanceMetadata` schema**
-
-Add a `GovernanceMetadata` dataclass to `signals/lifecycle/schema.py`:
-
-| Field | Type | Source |
-|-------|------|--------|
-| `signal` | str | registry |
-| `position` | str | registry |
-| `lifecycle_state` | str | `evaluation_metadata.yaml` |
-| `downstream_status` | str | `evaluation_metadata.yaml` |
-| `behavioral_reason` | str | `evaluation_metadata.yaml` |
-| `source_gate_decisions` | list[str] | `evaluation_metadata.yaml` |
-| `leakage_risk` | str | `evaluation_metadata.yaml` |
-| `rho_pooled` | float \| None | `evaluation_metadata.yaml` |
-| `ci_lower` | float \| None | `evaluation_metadata.yaml` |
-| `ci_upper` | float \| None | `evaluation_metadata.yaml` |
-
-**4.2 — Implement `get_signal_governance(signal, position) -> GovernanceMetadata`**
-
-In `signals/evaluation/governance.py`:
-- Returns `GovernanceMetadata` for every signal-position pair in `evaluation_metadata.yaml`
-- Raises `GovernanceMetadataError` (not None, not a warning) if the pair is absent
-- Callable from any consumer module for traceability
-
-**4.3 — Add runtime lifecycle assertions to the scoring gate**
-
-In `intelligence/scoring/signals.py`, add assertions at signal load time:
-- `lifecycle_state == "excluded"` → raises `LifecycleViolationError`
-- `downstream_status == "blocked"` → raises `LifecycleViolationError`
-- `leakage_risk == "direct"` → raises `LeakageViolationError`
-
-These must be hard failures, not warnings. A signal that fails these checks must not participate in any scoring computation.
-
-**4.4 — Cross-document consistency audit**
-
-Audit the following pairs for contradictions or gaps:
-
-| Document A | Document B | Check |
-|-----------|-----------|-------|
-| `threshold-registry.md` | `player_gameweek_state.py` | Every inline threshold in STATE has a registry entry |
-| `state-representation-inventory.md` | `_GOVERNED_ROLLING_COLS` in code | Column sets are identical |
-| `evaluation_metadata.yaml` | `synth01-candidate-set.md` | Every candidate in the MD has a matching `lifecycle_state=candidate` entry in YAML |
-| `evaluation_metadata.yaml` | `synth01_candidates.yaml` | rho, CI, and block_stability values match exactly |
-| `threshold-registry.md` | `intelligence/*.py` | Every constant classified in the registry exists at the stated file:line |
-
-Document any inconsistency found. Resolve or record as a named gap with a phase reference.
-
-**4.5 — Write `tests/test_evaluation_metadata.py` and `tests/test_runtime_metadata_propagation.py`**
-
-`test_evaluation_metadata.py` must verify:
-- Every entry in `evaluation_metadata.yaml` has `behavioral_reason`, `source_gate_decisions`, `leakage_risk` populated (no null or empty)
-- Every entry with `lifecycle_state=candidate` has `rho_pooled` not null
-- Every entry with `lifecycle_state=candidate` has a matching entry in `synth01_candidates.yaml`
-
-`test_runtime_metadata_propagation.py` must verify:
-- `get_signal_governance()` returns complete `GovernanceMetadata` for all entries
-- Missing entries raise `GovernanceMetadataError`
-- Loading a signal with `lifecycle_state=excluded` raises `LifecycleViolationError`
-- Loading a signal with `leakage_risk=direct` raises `LeakageViolationError`
-
-### Dependencies
-- Phases 1, 3, 4 (original) complete — all prerequisite governance artifacts exist
-
-### Verification Criteria
-- `GovernanceMetadata` defined in `signals/lifecycle/schema.py`
-- `get_signal_governance()` callable and tested
-- Runtime assertions fire for excluded and blocked signals
-- Cross-document consistency audit complete with no unresolved contradictions
-- Both test files pass
-
-### Failure Conditions
-- `get_signal_governance()` returns None for a missing entry rather than raising
-- Runtime assertions implemented as warnings rather than hard failures
-- Consistency audit skipped or flagged contradictions left unresolved
+Full specification and task breakdown preserved in git history.
 
 ---
 
-## Phase 5 — Signal Traceability Matrix
+## Phase 5 — Signal Traceability Matrix ✅ Complete (2026-05-27)
 
-### Objective
+Produced `signals/registry/signal_traceability.yaml` (80 entries) and
+`docs/governance/signal-traceability-matrix.md` including Consumer Module Map.
+Closed G-OPS-12. Delivered `tests/test_traceability_completeness.py`.
 
-Produce a unified, position-level view of what the system knows about every signal it has evaluated. Make governance legible end-to-end: any stakeholder should be able to look up any signal at any position and read, in one place, what it means, what the evidence says, what role it plays, what its limitations are, and which runtime modules consume it.
-
-### Why This Phase Exists
-
-Governance knowledge is currently fragmented across: `evaluation_metadata.yaml`, `state-representation-inventory.md`, `threshold-registry.md`, `synth01-candidate-set.md`, `signals/registry/SIGNAL_REGISTRY.md`, and the intelligence module code. No single artifact answers the question: "What does the system know about `xgi_roll3` at DEF?" A reader must consult four or five documents to reconstruct the full picture.
-
-This fragmentation is a legibility risk, not just a documentation problem. When SYNTH-01 eventually runs, its decisions will need to be traced back to governance evidence. If that evidence is not consolidated and readable before synthesis begins, the traceability chain breaks at the point where it matters most.
-
-This phase closes that gap by building a governance matrix that is the single authoritative source for the question: *what does the system know about this signal at this position?*
-
-### Required Tasks
-
-**5.1 — Define the traceability matrix schema**
-
-Each entry in the matrix covers one signal × position pair and includes:
-
-| Field | Description |
-|-------|-------------|
-| `signal` | Signal identifier (e.g. `xgi_roll3`) |
-| `position` | Position (DEF / MID / FWD / GK) |
-| `meaning` | Plain-language description of what the signal measures |
-| `scope` | Where the signal is valid (e.g. "DEF/GK only"; "all outfield") |
-| `evaluation_lens` | Which lens study evaluated it |
-| `evaluation_target` | What the lens evaluated against |
-| `lifecycle_state` | `candidate` / `excluded` / `not_applicable` |
-| `downstream_status` | `eligible` / `caveated` / `blocked` |
-| `rho_pooled` | Spearman rho from lens study (null if not evaluated) |
-| `rejection_basis` | For excluded signals: the specific gate failure or governance rule |
-| `caveat` | For caveated signals: the specific limitation |
-| `redundancy` | Known high-redundancy relationships at this position |
-| `operational_role` | What role this signal plays in the intelligence layer (form, availability, market, none) |
-| `consumer_modules` | Which intelligence modules reference this signal |
-| `threshold_dependencies` | Any operational threshold (from threshold-registry.md) that governs use of this signal |
-
-**5.2 — Produce the matrix for all evaluated signals**
-
-Populate the matrix for every signal-position pair in `evaluation_metadata.yaml`. This covers all signals from LENS-FORM, LENS-AVAIL, LENS-MARKET, and LENS-FIXTURE-GW. Both candidates and excluded signals are included — the rejected signals need to be legible too, so that their exclusion basis is findable in one place rather than buried in EDA documents.
-
-Output: `docs/governance/signal-traceability-matrix.md` (human-readable) and `signals/registry/signal_traceability.yaml` (machine-readable).
-
-**5.3 — Extend the matrix to STATE-governed columns not in evaluation metadata**
-
-The following STATE columns are governed but have no lens evaluation entry (they are defensive signals studied at DEF/GK scope under LENS-FORM team context, but their individual gate evaluations are documented in lens study CSVs rather than evaluation_metadata.yaml):
-- `xgc_roll3`, `xgc_roll5` (DEF/GK scope)
-- `goals_conceded_roll3`, `goals_conceded_roll5` (DEF/GK scope)
-- `clean_sheets_roll3`, `clean_sheets_roll5` (DEF/GK scope)
-- `minutes_trend` (availability domain only; PROVISIONAL-EDITORIAL)
-- `fixture_context` (contemporaneous label; candidate)
-
-Add entries for these signals to the matrix. Source their evidence from the state representation inventory and lens study CSVs.
-
-**5.4 — Produce a consumer module map**
-
-Document, for each intelligence module (`captain.py`, `value.py`, `fixtures.py`, `availability.py`, `transfers.py`, `scoring/signals.py`):
-- Which signals it currently consumes (by name)
-- Which STATE columns it reads
-- Which of those signals are governed candidates vs. provisional vs. unjustified
-
-This map is the diagnostic tool for Phase 6 (Operational Alignment). It makes visible any signal that is being consumed without governance authority, or any governed signal that is not being consumed.
-
-Output: a section in `docs/governance/signal-traceability-matrix.md` titled "Consumer Module Map."
-
-**5.5 — Write `tests/test_traceability_completeness.py`**
-
-Assertions:
-- Every signal in `evaluation_metadata.yaml` has a corresponding entry in `signal_traceability.yaml`
-- Every signal in `_GOVERNED_ROLLING_COLS` has a traceability entry
-- Every entry with `lifecycle_state=candidate` has a non-null `operational_role`
-- Every entry with `operational_role` not null has at least one `consumer_module` listed (or a documented note that it is governed but not yet wired)
-
-### Dependencies
-- Phase 4 complete (GovernanceMetadata schema and get_signal_governance() must exist before the matrix can assert runtime-traceability)
-
-### Verification Criteria
-- `signal-traceability-matrix.md` covers all evaluated signal-position pairs
-- `signal_traceability.yaml` is machine-readable and complete
-- Consumer module map covers all 6 intelligence modules
-- `test_traceability_completeness.py` passes
-- A reader can answer "what is `xgi_roll3 DEF` and why is it here?" from one document
-
-### Failure Conditions
-- Matrix populated for candidates only — excluded signals omitted
-- Consumer module map missing any module
-- Machine-readable YAML absent (human-readable MD only is insufficient for Phase 6 automation)
+Full specification and task breakdown preserved in git history.
 
 ---
 
-## Phase 6 — Operational Alignment
+## Phase 6 — Operational Alignment ✅ Complete (2026-05-27)
 
-### Objective
+Replaced all hardcoded weight dicts with registry loads via `intelligence/weight_registry.py`.
+Implemented `intelligence/provenance.py` (`score_provenance()`). Closed G-OPS-01 and G-OPS-13.
+Delivered `tests/test_runtime_consumer_alignment.py` (42 tests). 879 tests, 2 skipped.
 
-Align all intelligence and scoring modules to consume the governed registry rather than hardcoded constants. Implement the `score_provenance()` function. Ensure every runtime consumption decision has a traceable governance source. This phase does not require SYNTH-01 weights — provisional editorial weights are acceptable as placeholders, but the loading architecture must be registry-driven.
-
-### Why This Phase Exists
-
-The intelligence modules currently hardcode weight dicts that are disconnected from the governance registry. Even if the registry correctly documents the governance state, the runtime ignores it. Phase 6 wires the governance layer into the operational layer — not by changing what the weights are, but by changing where they come from. When SYNTH-01 weights are eventually derived (Phase 7), they slot into the registry and propagate automatically to all consumers.
-
-This phase makes the system's architecture **synthesis-ready** without requiring synthesis to have happened yet.
-
-### Required Tasks
-
-**6.1 — Replace hardcoded weight dicts in all intelligence modules**
-
-For each module, replace the editorial weight dict with a registry-derived load:
-
-| Module | Current hardcoded weights | Action |
-|--------|--------------------------|--------|
-| `captain.py:35-43` | `form: 0.35, involvement: 0.30, fixture: 0.20, minutes: 0.15` | Load from registry; retain current values as provisional entries |
-| `value.py:35-39` | `efficiency: 0.50, form: 0.30, consistency: 0.20` | Load from registry; retain current values as provisional |
-| `fixtures.py:38-42` | `fdr_opportunity: 0.40, team_attack: 0.35, dgw_bonus: 0.25` | Load from registry; retain current values as provisional |
-| `availability.py` | Risk thresholds (30.0, 60.0, 20.0) | Retain as `UNJUSTIFIED` with annotations; Phase 9 calibration |
-
-The registry entries for these weights are initially populated with the current editorial values, explicitly marked `PROVISIONAL-EDITORIAL`. The architecture change is in the loading path, not the values.
-
-Weight loading must:
-- Fail hard (not silently default) if a registry entry is missing
-- Log the governance source at load time for traceability
-- Be position-specific where the signal traceability matrix (Phase 5) documents position-specific behavior
-
-**6.2 — Align `intelligence/scoring/signals.py` to governed registry**
-
-Update `signals.py` to:
-- Load signals via the registry exclusively (no direct column name references)
-- Apply `GovernanceMetadata` assertions from Phase 4 at every signal load
-- Block any signal with `lifecycle_state=excluded` or `downstream_status=blocked` from loading
-
-**6.3 — Implement `score_provenance(player_id, gw, module) -> dict`**
-
-Returns, for any player at any GW from any module:
-- Which signals contributed to the score
-- What weight each received
-- What governance source authorized that weight (registry entry reference)
-- The player's STATE values for each contributing signal
-- Any caveats from the signal traceability matrix that apply at that position
-
-This function is the primary tool for operational defensibility in Phase 9. It must be callable without modifying any production code path.
-
-**6.4 — Write `tests/test_runtime_consumer_alignment.py`**
-
-Assertions:
-- No intelligence module contains a hardcoded weight value (pattern test)
-- All modules load weights from the registry
-- `signals.py` rejects excluded lifecycle signals with `LifecycleViolationError`
-- `score_provenance()` returns complete data for a synthetic test case covering all modules
-
-**6.5 — Update the signal traceability matrix consumer module map**
-
-After wiring, update the consumer module map in Phase 5 to reflect the actual post-Phase-6 consumption state. Any signal that was consumed without governance authority and has now been removed must be marked removed with the date.
-
-### Dependencies
-- Phase 5 complete (signal traceability matrix needed to identify all governed signals and their intended consumer modules)
-- Phase 4 complete (GovernanceMetadata and runtime assertions needed before wiring)
-
-### Verification Criteria
-- No intelligence module has a hardcoded weight dict (verified by pattern test)
-- All weights have a registry source traceable to a governance entry
-- `score_provenance()` returns complete data for all modules
-- Full test suite passes (all existing tests plus new tests from Phases 4–6)
-- Signal traceability consumer module map updated to reflect Phase 6 state
-
-### Failure Conditions
-- Any module silently defaults to editorial weights when a registry entry is missing
-- `score_provenance()` returns incomplete data (missing governance references)
-- Phase 6 architecture change leaves any module still reading hardcoded constants
+Full specification and task breakdown preserved in git history.
 
 ---
 
@@ -470,56 +236,6 @@ Evaluated independent contribution of all 14 frozen candidates via partial Spear
 All equal-weight compositions: evidence-derived weights did not improve over equal-weight by ≥0.02 rho in any group; equal weights applied per design doc §Decision 2 protocol.
 
 Full suite after Phase 7: **879 passed, 2 skipped**.
-
----
-
-## Phase 7 — SYNTH-01 Execution (original deferred spec)
-
-**Prerequisite:** Phases 4, 5, and 6 must be complete before Phase 7 begins.
-
-**Rationale for deferral:** SYNTH-01 generates composition weights that make the system harder to interpret and audit. Phases 4–6 ensure the governance foundation is fully legible before composition is introduced. A synthesis layer built on an opaque foundation produces results that cannot be defended. After Phase 6, the system can answer "why is this signal here?" for every signal. SYNTH-01 then extends that to "what does this signal contribute relative to others?" — a question that only makes sense once the individual signals are already traceable.
-
-**Candidate set:** Frozen in `signals/registry/synth01_candidates.yaml` (2026-05-27). 14 entries: 6 DEF, 7 MID, 1 FWD (single-signal only), 0 GK (deferred to LENS-GK).
-
-### Required Tasks (summary — original Phase 5 specification applies)
-
-**7.1 — Evaluate independent contribution**
-
-For each candidate, compute partial Spearman rho against the target, controlling for all other same-lens candidates at the same position. Report `partial_rho`, `partial_ci_lower`, `partial_ci_upper`, `contribution_class` (`primary`, `secondary`, `redundant`).
-
-**7.2 — Resolve high-redundancy pairs**
-
-For `ownership_count × transfers_in` at DEF and MID: compute marginal gain of each signal over the other. Apply protocol from `synth01-candidate-set.md §High-Redundancy Resolution Protocol`:
-- marginal_gain < 0.02 → SUBSTITUTE; retain transfers_in (higher rho at both positions)
-- marginal_gain ≥ 0.02 → COMPLEMENTARY; retain both
-
-**7.3 — Determine composition weights**
-
-Derive normalized weights from partial rho magnitudes. Constraint: no signal receives weight > 0.60. If constrained, document the binding constraint. Produce bootstrap CIs for all weights.
-
-**7.4 — Run moderation sensitivity check**
-
-Test whether FDR quartile materially changes signal rank ordering (> 15% of cases). If material, flag for Phase 8 implementation.
-
-**7.5 — Issue `G-SYNTH1-*` decisions**
-
-For every candidate, issue a formal decision in `signals/evaluation/synth01_decisions.yaml`:
-```
-G-SYNTH1-[NN]: [signal]-[position]
-Decision: APPROVED-PRIMARY | APPROVED-SECONDARY | EXCLUDED-REDUNDANT | EXCLUDED-INSUFFICIENT
-Weight: [value] (CI: [lower]-[upper])
-Evidence: partial_rho=[value]; marginal_gain=[value]
-```
-
-**7.6 — Update `evaluation_metadata.yaml`**
-
-Add `synth01_decision`, `composition_weight`, and `composition_role` to each entry.
-
-### Verification Criteria
-- `G-SYNTH1-*` decisions exist for all 14 candidates
-- No weight is a round number without derivation
-- All SUBSTITUTE pairs resolved
-- `synth01_decisions.yaml` complete
 
 ---
 

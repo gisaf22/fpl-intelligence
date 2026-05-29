@@ -13,7 +13,16 @@ import pandas as pd
 import pytest
 from pathlib import Path
 
+from dal.staging import load_staged_entities
+from dal.intermediate.int_player_fixture import get_player_fixture_base
+
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
+
+
+def _load_spine():
+    from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+    staged = load_staged_entities(TEST_DB_PATH)
+    return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
 
 
 # ---------------------------------------------------------------------------
@@ -25,8 +34,8 @@ def test_staging_sql_contains_order_by_players():
 
     FAILS before fix (no ORDER BY). PASSES after fix.
     """
-    from dal.staging.transformer import _build_query
-    from dal.staging.schema import load_schema
+    from dal.staging.stg_transformer import _build_query
+    from dal.staging.stg_schema import load_schema
     query = _build_query(load_schema("players"))
     assert "ORDER BY" in query, (
         f"players staging query has no ORDER BY — row order is filesystem-defined.\n{query}"
@@ -34,36 +43,36 @@ def test_staging_sql_contains_order_by_players():
 
 
 def test_staging_sql_contains_order_by_player_histories():
-    from dal.staging.transformer import _build_query
-    from dal.staging.schema import load_schema
+    from dal.staging.stg_transformer import _build_query
+    from dal.staging.stg_schema import load_schema
     query = _build_query(load_schema("player_histories"))
     assert "ORDER BY" in query, f"player_histories staging query has no ORDER BY.\n{query}"
 
 
 def test_staging_sql_contains_order_by_fixtures():
-    from dal.staging.transformer import _build_query
-    from dal.staging.schema import load_schema
+    from dal.staging.stg_transformer import _build_query
+    from dal.staging.stg_schema import load_schema
     query = _build_query(load_schema("fixtures"))
     assert "ORDER BY" in query, f"fixtures staging query has no ORDER BY.\n{query}"
 
 
 def test_staging_sql_contains_order_by_teams():
-    from dal.staging.transformer import _build_query
-    from dal.staging.schema import load_schema
+    from dal.staging.stg_transformer import _build_query
+    from dal.staging.stg_schema import load_schema
     query = _build_query(load_schema("teams"))
     assert "ORDER BY" in query, f"teams staging query has no ORDER BY.\n{query}"
 
 
 def test_staging_sql_contains_order_by_events():
-    from dal.staging.transformer import _build_query
-    from dal.staging.schema import load_schema
+    from dal.staging.stg_transformer import _build_query
+    from dal.staging.stg_schema import load_schema
     query = _build_query(load_schema("events"))
     assert "ORDER BY" in query, f"events staging query has no ORDER BY.\n{query}"
 
 
 def test_staging_sql_contains_order_by_element_types():
-    from dal.staging.transformer import _build_query
-    from dal.staging.schema import load_schema
+    from dal.staging.stg_transformer import _build_query
+    from dal.staging.stg_schema import load_schema
     query = _build_query(load_schema("element_types"))
     assert "ORDER BY" in query, f"element_types staging query has no ORDER BY.\n{query}"
 
@@ -80,7 +89,7 @@ def test_first_col_semantics_registry_exists():
 
     FAILS before fix (FIRST_COL_SEMANTICS not defined). PASSES after fix.
     """
-    from dal.curated.contracts import FIRST_COL_SEMANTICS, FIRST_COLS
+    from dal.fct.fct_contracts import FIRST_COL_SEMANTICS, FIRST_COLS
     valid_types = {"invariant_per_gw", "canonical_first_fixture", "temporally_first",
                    "representative_arbitrary"}
     for col in FIRST_COLS:
@@ -106,7 +115,7 @@ def test_invariant_per_gw_assertion_catches_violation():
 
     FAILS before fix (no assertion). PASSES after fix.
     """
-    from dal.curated.player_gameweek_spine import _aggregate_to_gw_grain
+    from dal.fct.fct_player_gameweek import _aggregate_to_gw_grain
     from dal.exceptions import DALContractViolation
 
     df = pd.DataFrame([
@@ -150,9 +159,7 @@ def test_full_pipeline_is_reproducible():
     FAILS if any non-determinism exists (e.g. unordered aggregation, random hashing).
     This test runs on every PR.
     """
-    from dal.curated.player_gameweek_spine import build_player_gameweek_spine
-
-    result1 = build_player_gameweek_spine(TEST_DB_PATH)
-    result2 = build_player_gameweek_spine(TEST_DB_PATH)
+    result1 = _load_spine()
+    result2 = _load_spine()
 
     pd.testing.assert_frame_equal(result1, result2, check_like=False)

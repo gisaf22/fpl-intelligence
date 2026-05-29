@@ -4,21 +4,11 @@ Surfaces players delivering high point returns relative to their FPL cost.
 Deterministic and price-static — does not forecast price changes.
 
 Weights are loaded from the governance registry (signals/registry/weight_registry.yaml).
-All weights are PROVISIONAL-EDITORIAL — no analytical derivation exists.
 
-## Phase 6 governance changes (2026-05-27)
-
-GAP-TRACE-01 (SCOPE VIOLATION fixed): xgi_roll3 and xgi_roll5 excluded at FWD
-  (FORM-001/002 G2-FAIL). FWD scope guard: both xgi signals zeroed before scoring
-  computations so all FWD players receive equal treatment (neutral 0.5 per component).
-  xgi_per_cost output column retains original values for informational display.
-
-Known remaining governance notes (do not resolve until SYNTH-01):
-- efficiency_score uses xgi_roll5/purchase_price: PROVISIONAL-EDITORIAL; weights unjustified
-- form_score uses xgi_roll3: PROVISIONAL-EDITORIAL; MID caveat (naive baseline)
-- consistency_score: no evaluation study assesses xgi momentum specifically
-- _MIN_MINUTES_ROLL5 = 30.0: UNJUSTIFIED — no lens study establishes this threshold;
-  see threshold-registry.md §VAL-T-01
+Scope constraint: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
+FWD players receive neutral 0.5 on efficiency_score, form_score, and consistency_score —
+xgi signals zeroed before scoring computations. xgi_per_cost output column retains
+original values for informational display.
 """
 
 from __future__ import annotations
@@ -39,8 +29,7 @@ _WEIGHTS: dict[str, float] = get_module_weights("value")
 # Minimum price to avoid division edge cases and very unpriced placeholders.
 _MIN_PRICE = 3.5
 
-# UNJUSTIFIED (threshold-registry.md §VAL-T-01): no lens study establishes 30.0
-# as a participation minimum; evidence required: value precision vs. minutes floor.
+# threshold not evaluation-derived — see threshold-registry.md §VAL-T-01
 _MIN_MINUTES_ROLL5 = 30.0
 
 _OUTPUT_COLS = [
@@ -85,7 +74,7 @@ def rank_value_players(
     -------
     DataFrame ranked by value_score descending with explainability columns.
 
-    Scoring components (registry weights; all PROVISIONAL-EDITORIAL):
+    Scoring components (registry weights):
     - efficiency_score  50%: xgi_roll5 / purchase_price, normalized within position
                              FWD scope guard: xgi_roll5 zeroed at FWD → neutral 0.5
     - form_score        30%: xgi_roll3, normalized within position
@@ -120,7 +109,7 @@ def rank_value_players(
         eligible["xgi_roll5"].fillna(0) / eligible["purchase_price"]
     )
 
-    # GAP-TRACE-01: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
+    # xgi_roll3 and xgi_roll5 excluded at FWD: FORM-001/002 G2-FAIL.
     # Zero out xgi signals for FWD players; scoring uses these guarded values.
     fwd_mask = eligible["position_label"] == "FWD"
     xgi_roll5_scored = eligible["xgi_roll5"].fillna(0).where(~fwd_mask, 0.0)

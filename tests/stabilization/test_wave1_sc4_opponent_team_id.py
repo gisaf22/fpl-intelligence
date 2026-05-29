@@ -22,7 +22,7 @@ fixture-derived value.
 import pandas as pd
 import pytest
 
-from dal.intermediate.player_fixture import _resolve_player_side_context
+from dal.intermediate.int_player_fixture import _resolve_player_side_context
 
 
 def _make_fixture_row(was_home: int, home_team_id: int, away_team_id: int,

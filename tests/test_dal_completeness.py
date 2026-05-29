@@ -3,18 +3,25 @@
 from pathlib import Path
 
 import pytest
-from dal.curated.player_gameweek_spine import build_player_gameweek_spine
-from dal.validation import validate_row_count_invariant, validate_time_continuity
+from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+from dal.fct.validation import validate_row_count_invariant, validate_time_continuity
 from dal.exceptions import DALContractViolation
+from dal.staging import load_staged_entities
+from dal.intermediate.int_player_fixture import get_player_fixture_base
 
 pytestmark = pytest.mark.integration
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 
 
+def _load_spine():
+    staged = load_staged_entities(DB_PATH)
+    return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
+
+
 def test_spine_row_count_invariant():
     """Spine has exactly n_players × n_gws rows — BGW rows must be present. Contract Section 2."""
-    spine = build_player_gameweek_spine(DB_PATH)
+    spine = _load_spine()
     n_players = spine["player_id"].nunique()
     n_gws = spine["gw"].nunique()
     validate_row_count_invariant(spine, n_players, n_gws)
@@ -22,13 +29,13 @@ def test_spine_row_count_invariant():
 
 def test_spine_time_continuity():
     """Every player has a contiguous GW sequence with no gaps — BGW rows fill blanks. Contract Section 7."""
-    spine = build_player_gameweek_spine(DB_PATH)
+    spine = _load_spine()
     validate_time_continuity(spine)
 
 
 def test_spine_bgw_rows_present():
     """GWs with fewer than 20 active teams have explicit BGW rows (fixture_count=0) for all players. Contract Section 2, 9."""
-    spine = build_player_gameweek_spine(DB_PATH)
+    spine = _load_spine()
 
     # Identify BGW candidate GWs: GWs where fewer than 20 teams have at least one fixture
     teams_per_gw = spine[spine["fixture_count"] > 0].groupby("gw")["team_id"].nunique()

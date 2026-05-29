@@ -7,7 +7,8 @@ import pandas as pd
 
 def compute_spine_fingerprint(df: pd.DataFrame) -> dict:
     """Return a reproducibility fingerprint for an output spine."""
-    row_hashes = pd.util.hash_pandas_object(df, index=True)
+    sorted_df = df[sorted(df.columns)]
+    row_hashes = pd.util.hash_pandas_object(sorted_df, index=True)
     content_hash = hashlib.sha256(row_hashes.values.tobytes()).hexdigest()
     return {
         "sha256": content_hash,

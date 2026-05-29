@@ -14,15 +14,15 @@ Four core assertions:
    (non-empty list) or a consumer_note explaining the gap.
 """
 
-import ast
 from pathlib import Path
 
 import pytest
 import yaml
 
+from dal.feat.feat_schema import FEATURE_REGISTRY
+
 TRACEABILITY_PATH = Path("signals/registry/signal_traceability.yaml")
 EVAL_META_PATH = Path("signals/evaluation/evaluation_metadata.yaml")
-STATE_PATH = Path("dal/state/player_gameweek_state.py")
 
 
 def _load_traceability() -> list[dict]:
@@ -38,26 +38,8 @@ def _load_eval_meta_signals() -> set[str]:
 
 
 def _load_governed_rolling_cols() -> set[str]:
-    """Parse _GOVERNED_ROLLING_COLS frozenset from player_gameweek_state.py via AST."""
-    source = STATE_PATH.read_text()
-    tree = ast.parse(source)
-    for node in ast.walk(tree):
-        # Handle both plain Assign and annotated AnnAssign
-        if isinstance(node, ast.AnnAssign):
-            if isinstance(node.target, ast.Name) and node.target.id == "_GOVERNED_ROLLING_COLS":
-                value = node.value
-                if isinstance(value, ast.Call) and value.args:
-                    arg = value.args[0]
-                    if isinstance(arg, ast.Set):
-                        return {elt.value for elt in arg.elts if isinstance(elt, ast.Constant)}
-        elif isinstance(node, ast.Assign):
-            for target in node.targets:
-                if isinstance(target, ast.Name) and target.id == "_GOVERNED_ROLLING_COLS":
-                    if isinstance(node.value, ast.Call) and node.value.args:
-                        arg = node.value.args[0]
-                        if isinstance(arg, ast.Set):
-                            return {elt.value for elt in arg.elts if isinstance(elt, ast.Constant)}
-    raise RuntimeError("_GOVERNED_ROLLING_COLS not found in player_gameweek_state.py")
+    """Return the governed column set from FEATURE_REGISTRY — the single source of truth."""
+    return set(FEATURE_REGISTRY.keys())
 
 
 # ---------------------------------------------------------------------------

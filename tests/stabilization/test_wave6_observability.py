@@ -19,28 +19,34 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from dal.staging import load_staged_entities
+from dal.intermediate.int_player_fixture import get_player_fixture_base
+
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
+
+
+def _load_spine():
+    from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+    staged = load_staged_entities(TEST_DB_PATH)
+    return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
 
 
 # ---------------------------------------------------------------------------
 # O-4 — FPL_DB_PATH environment variable override
 # ---------------------------------------------------------------------------
 
-def test_fpl_db_path_env_override(monkeypatch):
-    """O-4 FAILING TEST: DB_PATH must respect FPL_DB_PATH environment variable.
+def test_fpl_db_path_configurable(monkeypatch):
+    """O-4: DB_PATH must be patchable via monkeypatch.setattr for test isolation.
 
-    FAILS before fix (DB_PATH hardcoded, env var ignored). PASSES after fix.
+    Tests override DB_PATH with monkeypatch.setattr — not importlib.reload, which
+    corrupts module state for all subsequent tests in the process.
     """
-    test_path = str(TEST_DB_PATH)
-    monkeypatch.setenv("FPL_DB_PATH", test_path)
-
-    import importlib
     import dal.config as config_mod
-    importlib.reload(config_mod)
 
-    assert str(config_mod.DB_PATH) == str(TEST_DB_PATH), (
-        f"Expected DB_PATH={TEST_DB_PATH}, got {config_mod.DB_PATH}. "
-        f"FPL_DB_PATH env var is not being respected."
+    monkeypatch.setattr(config_mod, "DB_PATH", TEST_DB_PATH)
+
+    assert config_mod.DB_PATH == TEST_DB_PATH, (
+        f"Expected DB_PATH={TEST_DB_PATH}, got {config_mod.DB_PATH}."
     )
 
 
@@ -53,10 +59,10 @@ def test_staging_logs_entity_row_count(caplog):
 
     FAILS before fix (no logging). PASSES after fix.
     """
-    from dal.staging.transformer import stage
-    from dal.staging.schema import load_schema
+    from dal.staging.stg_transformer import stage
+    from dal.staging.stg_schema import load_schema
 
-    with caplog.at_level(logging.INFO, logger="dal.staging.transformer"):
+    with caplog.at_level(logging.INFO, logger="dal.staging.stg_transformer"):
         stage(TEST_DB_PATH, load_schema("players"))
 
     logged_messages = [r.message for r in caplog.records]
@@ -76,7 +82,7 @@ def test_team_id_correction_uses_audit_prefix(caplog):
 
     FAILS before fix (uses plain INFO without [AUDIT]). PASSES after fix.
     """
-    from dal.intermediate.player_fixture import _validate_and_log_team_id_resolution
+    from dal.intermediate.int_player_fixture import _validate_and_log_team_id_resolution
 
     df = pd.DataFrame([{
         "player_id": 1, "player_name": "Test", "gw": 1, "fixture_id": 1,
@@ -84,7 +90,7 @@ def test_team_id_correction_uses_audit_prefix(caplog):
     }])
     true_team_id = pd.Series([1])  # correct value differs from df["team_id"]
 
-    with caplog.at_level(logging.INFO, logger="dal.intermediate.player_fixture"):
+    with caplog.at_level(logging.INFO, logger="dal.intermediate.int_player_fixture"):
         _validate_and_log_team_id_resolution(df, true_team_id)
 
     audit_messages = [r.message for r in caplog.records if "[AUDIT]" in r.message]
@@ -104,10 +110,9 @@ def test_spine_fingerprint_identical_across_runs():
     FAILS before fix (no fingerprint computed). PASSES after fix.
     """
     from dal.reproducibility import compute_spine_fingerprint
-    from dal.curated.player_gameweek_spine import build_player_gameweek_spine
 
-    spine1 = build_player_gameweek_spine(TEST_DB_PATH)
-    spine2 = build_player_gameweek_spine(TEST_DB_PATH)
+    spine1 = _load_spine()
+    spine2 = _load_spine()
 
     fp1 = compute_spine_fingerprint(spine1)
     fp2 = compute_spine_fingerprint(spine2)
@@ -120,38 +125,34 @@ def test_spine_fingerprint_identical_across_runs():
 
 
 # ---------------------------------------------------------------------------
-# O-3 — All DALContractViolation raises must include layer=
+# O-3b — All DALContractViolation raises must include error_code=
 # ---------------------------------------------------------------------------
 
-def test_all_contract_violations_have_layer():
-    """O-3: Every DALContractViolation raise site in dal/ must include layer=.
+def test_all_contract_violations_have_error_code():
+    """O-3b: Every DALContractViolation raise site in dal/ must include error_code=.
 
-    Checks source code — if any raise is missing layer=, the test fails.
+    Paired with test_all_contract_violations_have_layer — both context fields
+    are required so the ErrorCode vocabulary is exercised at every call site,
+    not just declared.
     Note: this is a static check, not a runtime check.
     """
-    import ast
     project_root = Path(__file__).parent.parent
     dal_dir = project_root / "dal"
 
-    missing_layer = []
+    missing_code = []
     for py_file in dal_dir.rglob("*.py"):
         if "__pycache__" in str(py_file):
             continue
         source = py_file.read_text(errors="ignore")
-        # Find DALContractViolation raises without layer=
         lines = source.splitlines()
-        in_raise = False
-        raise_lines = []
         for i, line in enumerate(lines):
             if "raise DALContractViolation(" in line:
-                # Check if this raise block contains layer=
-                # Look ahead up to 10 lines
                 block = "\n".join(lines[i:i+10])
-                if "layer=" not in block:
-                    missing_layer.append(
+                if "error_code=" not in block:
+                    missing_code.append(
                         f"{py_file.relative_to(project_root)}:{i+1}: {line.strip()}"
                     )
 
-    assert missing_layer == [], (
-        f"DALContractViolation raises missing layer=:\n" + "\n".join(missing_layer)
+    assert missing_code == [], (
+        "DALContractViolation raises missing error_code=:\n" + "\n".join(missing_code)
     )

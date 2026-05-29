@@ -6,22 +6,9 @@ modeling. Opponent defensive weakness is proxied through recent team-level
 concession rates derived from the curated spine.
 
 Weights are loaded from the governance registry (signals/registry/weight_registry.yaml).
-All weights are PROVISIONAL-EDITORIAL — no analytical derivation exists.
 
-## Phase 6 governance changes (2026-05-27)
-
-GAP-TRACE-02 (GOVERNANCE INCONSISTENCY fixed): fdr_avg removed from scoring weights.
-  fdr_opportunity_score component removed entirely (fdr_avg excluded at all positions;
-  FIXTURE-001 G2-FAIL). Remaining two components (team_attack_score, dgw_bonus_score)
-  retained at original values; weighted_composite normalises to an effective 0.58:0.42
-  split. fdr_window_avg kept as an informational output column only.
-
-GAP-TRACE-06 (GOVERNED BUT NOT WIRED fixed): DGW detection migrated from spine
-  is_dgw flag to STATE fixture_context column (DGW/BGW/SGW classification).
-
-Known remaining governance notes (do not resolve until SYNTH-01):
-- team_attack_score: no lens evaluation — goals_scored is a team-level proxy
-- _MIN_MINUTES_ROLL5 = 30.0: UNJUSTIFIED (threshold-registry.md §FIX-T-01)
+fdr_avg excluded from scoring at all positions (FIXTURE-001 G2-FAIL); retained as
+informational output only. DGW detection uses STATE fixture_context column.
 """
 
 from __future__ import annotations
@@ -37,13 +24,11 @@ from intelligence._base import (
 from intelligence.weight_registry import get_module_weights
 
 # Weights loaded from governance registry — fails hard if entry missing.
-# Note: fdr_opportunity_score removed in Phase 6 (GAP-TRACE-02).
 _WEIGHTS: dict[str, float] = get_module_weights("fixtures")
 
 _FDR_NEUTRAL = 3.0
 
-# UNJUSTIFIED (threshold-registry.md §FIX-T-01): no lens study establishes 30.0
-# as a participation minimum for fixture opportunity.
+# threshold not evaluation-derived — see threshold-registry.md §FIX-T-01
 _MIN_MINUTES_ROLL5 = 30.0
 
 _OUTPUT_COLS = [
@@ -121,12 +106,12 @@ def rank_fixture_opportunities(
     DataFrame ranked by fixture_opportunity_score descending with explainability
     columns.
 
-    Scoring components (registry weights; PROVISIONAL-EDITORIAL):
+    Scoring components (registry weights):
     - team_attack_score  (58% effective): team's rolling goals scored
-    - dgw_bonus_score    (42% effective): DGW presence in window from fixture_context
+    - dgw_bonus_score    (42% effective): DGW presence in window from STATE fixture_context
 
     fdr_window_avg is computed and retained as an informational output only —
-    it no longer contributes to fixture_opportunity_score (GAP-TRACE-02).
+    it does not contribute to fixture_opportunity_score (FIXTURE-001 excluded at all positions).
 
     Only players with minutes_roll5 >= 30 at target_gw are included.
     """
@@ -143,7 +128,7 @@ def rank_fixture_opportunities(
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # Fixture window: compute per-player DGW presence (from fixture_context, GAP-TRACE-06)
+    # Fixture window: compute per-player DGW presence from STATE fixture_context
     # and mean FDR (informational only, not scored).
     window_gws = list(range(target_gw, target_gw + horizon))
     window_df = features[features["gw"].isin(window_gws)][

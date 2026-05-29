@@ -1,6 +1,6 @@
 """State layer tests — rolling window edge cases.
 
-Contract: DAL_CONTRACT.md Section 3 (State layer rolling window specification).
+Contract: docs/adr/012-dal-design-rationale.md (rolling window conventions).
 
 Edge cases tested:
 1. Earliest GW < 6: partial rolling windows (fewer than full 5-GW history)
@@ -13,12 +13,19 @@ import pandas as pd
 import pandas.testing as tm
 import pytest
 
-from dal.curated.player_gameweek_spine import build_player_gameweek_spine
-from dal.state.player_gameweek_state import build_player_gameweek_state
+from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+from dal.feat.feat_player_gameweek import build_player_gameweek_state
+from dal.staging import load_staged_entities
+from dal.intermediate.int_player_fixture import get_player_fixture_base
 
 pytestmark = pytest.mark.integration
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
+
+
+def _load_spine():
+    staged = load_staged_entities(DB_PATH)
+    return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
 
 
 class TestRollingWindowsEarlyGW:
@@ -26,7 +33,7 @@ class TestRollingWindowsEarlyGW:
 
     def test_roll5_at_gw5_uses_4_prior_values(self):
         """At GW 5, roll5 looks at GWs 1-4 (4 prior values, not 5)."""
-        spine = build_player_gameweek_spine(DB_PATH)
+        spine = _load_spine()
         state = build_player_gameweek_state(spine)
 
         # Filter to GW 5
@@ -42,7 +49,7 @@ class TestRollingWindowsEarlyGW:
 
     def test_roll3_at_gw3_uses_2_prior_values(self):
         """At GW 3, roll3 looks at GWs 1-2 (2 prior values, not 3)."""
-        spine = build_player_gameweek_spine(DB_PATH)
+        spine = _load_spine()
         state = build_player_gameweek_state(spine)
 
         gw3 = state[state["gw"] == 3].copy()
@@ -50,7 +57,7 @@ class TestRollingWindowsEarlyGW:
 
     def test_roll5_at_gw2_uses_1_prior_value(self):
         """At GW 2, roll5 looks at GW 1 (1 prior value). min_periods=1 allows computation."""
-        spine = build_player_gameweek_spine(DB_PATH)
+        spine = _load_spine()
         state = build_player_gameweek_state(spine)
 
         gw2 = state[state["gw"] == 2].copy()
@@ -62,7 +69,7 @@ class TestRollingWindowsWithBGW:
 
     def test_bgw_nulls_skipped_not_counted(self):
         """BGW NULL values are skipped in rolling window; don't count toward window size."""
-        spine = build_player_gameweek_spine(DB_PATH)
+        spine = _load_spine()
         state = build_player_gameweek_state(spine)
 
         # Find a player with a BGW in early GWs
@@ -92,7 +99,7 @@ class TestRollingWindowsWithBGW:
 
     def test_bgw_does_not_prevent_rolling_computation(self):
         """If a player has 1 SGW + 1 BGW in a 5-GW window, roll5 computes from the 1 SGW."""
-        spine = build_player_gameweek_spine(DB_PATH)
+        spine = _load_spine()
         state = build_player_gameweek_state(spine)
 
         # Find a player with both BGW and SGW rows
@@ -127,7 +134,7 @@ class TestRollingWindowsWithDGW:
 
     def test_dgw_aggregated_performance_in_rolling(self):
         """DGW performance (summed across 2 fixtures) is used in rolling windows."""
-        spine = build_player_gameweek_spine(DB_PATH)
+        spine = _load_spine()
         state = build_player_gameweek_state(spine)
 
         # Find a player with DGW
@@ -163,7 +170,7 @@ class TestRollingWindowsWithDGW:
 
     def test_dgw_minutes_sum_in_rolling(self):
         """DGW minutes (summed) are correctly used in rolling windows."""
-        spine = build_player_gameweek_spine(DB_PATH)
+        spine = _load_spine()
         state = build_player_gameweek_state(spine)
 
         spine_with_dgw = spine[spine["is_dgw"] == True].copy()
@@ -200,7 +207,7 @@ class TestRollingWindowsLag1Convention:
 
     def test_roll5_at_gw_n_uses_gw_n_minus_1_back(self):
         """Roll5 at GW N looks at GW N-1, N-2, ..., N-5 (not GW N)."""
-        spine = build_player_gameweek_spine(DB_PATH)
+        spine = _load_spine()
         state = build_player_gameweek_state(spine)
 
         # Manually verify lag-1 for a specific player at a specific GW

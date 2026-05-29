@@ -35,6 +35,6 @@ information, and exits with a non-zero code on any failure. See [examples/quicks
 - [docs/architecture/operational-flow.md](docs/architecture/operational-flow.md) — 3-command execution sequence and operational entry points
 - [docs/research-lifecycle.md](docs/research-lifecycle.md) — signal lifecycle states and promotion criteria
 - [docs/registry-governance.md](docs/registry-governance.md) — exploratory vs operational registries, runtime enforcement
-- [docs/architecture/DAL_CONTRACT.md](docs/architecture/DAL_CONTRACT.md) — authoritative DAL behavioral contract
+- [docs/adr/012-dal-design-rationale.md](docs/adr/012-dal-design-rationale.md) — DAL design rationale (code contracts in `dal/fct/fct_contracts.py`, `dal/contracts.py`)
 - [docs/architecture/layer-boundaries.md](docs/architecture/layer-boundaries.md) — component ownership and dependency rules
 - [docs/architecture/](docs/architecture/) — full architecture reference

@@ -7,7 +7,7 @@ from pathlib import Path
 from signals.lifecycle.schema import RESEARCH_REGISTRY_PATH
 
 
-DEFAULT_REGISTRY_BUILD_OUTPUT_ROOT = Path("outputs/registry")
+DEFAULT_REGISTRY_BUILD_OUTPUT_ROOT = Path(__file__).parent.parent.parent / "outputs/registry"
 
 # The registry builder is a research tool: it reads the EDA registry and packages it.
 # It is not an operational consumer and does not enforce lifecycle gating.

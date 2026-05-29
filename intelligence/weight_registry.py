@@ -1,12 +1,7 @@
 """Weight registry loader for operational intelligence modules.
 
-Single source of truth for all module composition weights. Reads from
-signals/registry/weight_registry.yaml — the governance-controlled file that
-marks every weight as PROVISIONAL-EDITORIAL until SYNTH-01 (Phase 7) produces
-evidence-derived replacements.
-
-Hard-fails if a module or weight entry is missing from the registry. No silent
-defaults or fallbacks — any absent entry is a governance gap requiring resolution.
+Loads module composition weights from signals/registry/weight_registry.yaml.
+Raises on any missing module or weight entry — no silent defaults or fallbacks.
 """
 
 from __future__ import annotations

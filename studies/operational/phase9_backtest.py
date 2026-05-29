@@ -19,7 +19,6 @@ Usage:
 
 from __future__ import annotations
 
-import os
 import warnings
 from datetime import datetime
 from pathlib import Path
@@ -29,9 +28,14 @@ import pandas as pd
 import yaml
 from scipy.stats import spearmanr
 
-from dal.access import get_curated_spine, get_state_features
+from dal import (
+    build_player_gameweek_spine,
+    build_player_gameweek_state,
+    get_player_fixture_base,
+    load_staged_entities,
+)
 
-DB_PATH = Path(os.environ.get("FPL_DB_PATH", "~/.fpl/fpl.db")).expanduser()
+from dal.config import DB_PATH
 OUT_PATH = Path("outputs/phase9_backtest_results.yaml")
 RUNS_DIR = Path("studies/runs")
 
@@ -354,8 +358,9 @@ def print_summary(results: dict) -> None:
 
 if __name__ == "__main__":
     print(f"Loading state from {DB_PATH} ...")
-    spine = get_curated_spine(DB_PATH)
-    state = get_state_features(spine)
+    staged = load_staged_entities(DB_PATH)
+    spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
+    state = build_player_gameweek_state(spine)
     print(f"  {len(state):,} rows  |  GW {state['gw'].min()}–{state['gw'].max()}  |  {state['player_id'].nunique()} players")
 
     results = run_backtest(state)

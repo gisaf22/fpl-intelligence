@@ -13,9 +13,9 @@
 dal/               ground truth
   staging/
   intermediate/
-  curated/
-  state/
-  prepared/
+  fct/
+  feat/
+  mart/
 
 studies/           measurement layer
   kernels/         domain-agnostic statistical utilities
@@ -76,7 +76,7 @@ Studies write results to files. Downstream layers read those files by path. No l
 
 ### DAL access levels
 
-`intelligence/` reads from `dal.curated`, `dal.state`, or `dal.prepared`. Access to `dal.staging` from `intelligence/` requires explicit justification documented in the consuming module and an entry in the DAL contract.
+`intelligence/` reads from `dal.fct`, `dal.feat`, or `dal.mart`. Access to `dal.staging` from `intelligence/` requires explicit justification documented in the consuming module.
 
 ### studies/ organised by subject, not epistemology
 
@@ -155,7 +155,7 @@ Tests in `tests/` that import from `core/` must be updated in the same commit as
 
 - Everything inside `dal/` — the 5-layer pipeline, validation, contracts, reproducibility
 - Naming conventions (LENS-[NAME], FORM-[NNN], EXP-[NAME])
-- Governance documents (DAL_CONTRACT.md, EVAL_DESIGN.md, SIGNAL_REGISTRY.md, LENS_DESIGN.md variants)
+- Governance documents (EVAL_DESIGN.md, SIGNAL_REGISTRY.md, LENS_DESIGN.md variants)
 - Test structure in `tests/`
 - The `docs/` hierarchy
 

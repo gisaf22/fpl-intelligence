@@ -79,7 +79,7 @@ def test_opponent_context_at_intermediate_layer():
 
     FAILS before fix (module is at dal.state). PASSES after fix.
     """
-    from dal.intermediate.opponent_context import build_player_opponent_defensive_context
+    from dal.intermediate.int_opponent_context import build_player_opponent_defensive_context
     assert callable(build_player_opponent_defensive_context)
 
 

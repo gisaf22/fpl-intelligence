@@ -18,7 +18,7 @@ import pandas as pd
 _REQUIRED_STATE_COLS: frozenset[str] = frozenset([
     "minutes_roll3",
     "minutes_roll5",
-    "minutes_roll8",        # GAP-TRACE-03: AVAIL-003 candidate at DEF (rho=0.219) and MID (rho=0.222)
+    "minutes_roll8",        # minutes_roll8: DEF/MID only (AVAIL-003; DEF rho=0.219, MID rho=0.222)
     "xgi_roll3",
     "xgi_roll5",
     "xgc_roll3",
@@ -26,7 +26,7 @@ _REQUIRED_STATE_COLS: frozenset[str] = frozenset([
     "goals_conceded_roll3",
     "goals_conceded_roll5",
     "minutes_trend",
-    "fixture_context",      # GAP-TRACE-06: governed STATE column for DGW/BGW/SGW classification
+    "fixture_context",      # STATE column for DGW/BGW/SGW classification
 ])
 
 # Spine columns required by intelligence functions.

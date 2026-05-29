@@ -40,8 +40,7 @@ All downstream analytics operate on a set of guarantees provided by the DAL:
 - **Null semantics.** NULL means context does not exist; zero means an observed outcome of
   zero. These are never interchangeable.
 
-These guarantees are contractual. Any DAL code change must preserve them. See
-[docs/architecture/DAL_CONTRACT.md](architecture/DAL_CONTRACT.md) for the full specification.
+These guarantees are contractual. Any DAL code change must preserve them. Code contracts are in `dal/fct/fct_contracts.py` and `dal/validation/`; rationale is in [docs/adr/012-dal-design-rationale.md](adr/012-dal-design-rationale.md).
 
 ## Research versus intelligence
 

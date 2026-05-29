@@ -7,7 +7,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from dal.access import get_curated_spine, get_state_features
+from dal import build_player_gameweek_spine, build_player_gameweek_state
+from dal.staging import load_staged_entities
+from dal.intermediate.int_player_fixture import get_player_fixture_base
 from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
 from intelligence.scoring.engine import NoDataForGameweek, score
 
@@ -20,8 +22,9 @@ TEST_DB = Path(__file__).parent / "fixtures" / "test.db"
 
 @pytest.fixture(scope="module")
 def state():
-    spine = get_curated_spine(TEST_DB)
-    return get_state_features(spine)
+    staged = load_staged_entities(TEST_DB)
+    spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
+    return build_player_gameweek_state(spine)
 
 
 @pytest.fixture(scope="module")
@@ -87,7 +90,7 @@ def test_negative_rho_inverts_rank(state):
         positions_covered={"GK": ["goals_conceded"]},
     )
     gw_data = state[state["gw"] == 1].copy()
-    from dal.prepared import POSITION_CODE_MAP
+    from dal.mart import POSITION_CODE_MAP
     gw_data["_position"] = gw_data["position_code"].map(POSITION_CODE_MAP)
     gk_data = gw_data[gw_data["_position"] == "GK"]
 

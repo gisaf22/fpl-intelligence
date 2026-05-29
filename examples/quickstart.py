@@ -7,20 +7,22 @@ Usage:
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
+from dal import (
+    build_player_gameweek_spine,
+    build_player_gameweek_state,
+    get_player_fixture_base,
+    load_staged_entities,
+)
+from dal.config import DB_PATH as _DEFAULT_DB_PATH
+
 
 def resolve_db_path() -> Path:
-    # CLI argument takes precedence over env var; env var falls back to DAL default.
     if len(sys.argv) > 1:
         return Path(sys.argv[1]).expanduser()
-    env = os.environ.get("FPL_DB_PATH")
-    if env:
-        return Path(env).expanduser()
-    # Let the DAL config supply its own default (~/.fpl/fpl.db).
-    return None
+    return _DEFAULT_DB_PATH
 
 
 def main() -> None:
@@ -28,10 +30,10 @@ def main() -> None:
 
     # ── Spine ──────────────────────────────────────────────────────────────
     try:
-        from dal.access import get_curated_spine
-        spine = get_curated_spine(db_path) if db_path else get_curated_spine()
+        staged = load_staged_entities(db_path)
+        spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
     except Exception as exc:
-        sys.exit(f"ERROR: get_curated_spine failed — {exc}")
+        sys.exit(f"ERROR: spine build failed — {exc}")
 
     print(f"Spine shape:    {spine.shape}")
     print(spine.head(3).to_string())
@@ -39,10 +41,9 @@ def main() -> None:
 
     # ── State features ─────────────────────────────────────────────────────
     try:
-        from dal.access import get_state_features
-        state = get_state_features(spine)
+        state = build_player_gameweek_state(spine)
     except Exception as exc:
-        sys.exit(f"ERROR: get_state_features failed — {exc}")
+        sys.exit(f"ERROR: state build failed — {exc}")
 
     print(f"State shape:    {state.shape}")
     print(f"State columns:  {list(state.columns)}")
@@ -51,7 +52,7 @@ def main() -> None:
     # ── Summary ────────────────────────────────────────────────────────────
     gw_min, gw_max = int(spine["gw"].min()), int(spine["gw"].max())
     player_count = spine["player_id"].nunique()
-    feature_count = state.shape[1] - spine.shape[1]   # net-new columns added by state layer
+    feature_count = state.shape[1] - spine.shape[1]
 
     print("── Summary ──────────────────────────────────────────")
     print(f"  Gameweek range : GW{gw_min} – GW{gw_max}")

@@ -6,16 +6,21 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from dal.intermediate.opponent_context import (
+from dal.intermediate.int_opponent_context import (
     build_player_opponent_defensive_context,
     validate_xgc_001,
 )
-from dal.intermediate.player_fixture import get_player_fixture_base
+from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
 from dal.exceptions import DALContractViolation
 
 pytestmark = pytest.mark.integration
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
+
+
+def _load_staged():
+    return load_staged_entities(DB_PATH)
 
 _REQUIRED_COLS = [
     "player_id",
@@ -63,13 +68,13 @@ def _make_analytics(rows: list[dict]) -> pd.DataFrame:
 
 
 def test_build_player_opponent_defensive_context_column_presence():
-    df = build_player_opponent_defensive_context(get_player_fixture_base(DB_PATH))
+    df = build_player_opponent_defensive_context(get_player_fixture_base(_load_staged()))
     for col in _REQUIRED_COLS:
         assert col in df.columns, f"Missing column: {col}"
 
 
 def test_build_player_opponent_defensive_context_grain_unique():
-    df = build_player_opponent_defensive_context(get_player_fixture_base(DB_PATH))
+    df = build_player_opponent_defensive_context(get_player_fixture_base(_load_staged()))
     assert not df.duplicated(subset=["player_id", "gw"]).any()
 
 
@@ -149,7 +154,7 @@ def test_xgc_correctness_uses_only_90min_players():
 
 def test_build_player_opponent_defensive_context_no_look_ahead():
     """Roll3 stat at GW 4 for any team must not include GW 4 data (reflects GWs 1-3 only)."""
-    analytics = get_player_fixture_base(DB_PATH)
+    analytics = get_player_fixture_base(_load_staged())
 
     team_def = (
         analytics.groupby(["team_id", "gw"], as_index=False)
@@ -190,7 +195,7 @@ def test_build_player_opponent_defensive_context_no_look_ahead():
 
 def test_build_player_opponent_defensive_context_dgw_max_aggregation():
     """For a DGW player, opponent_goals_conceded_roll3 equals max across fixtures, not mean."""
-    analytics = get_player_fixture_base(DB_PATH)
+    analytics = get_player_fixture_base(_load_staged())
     result = build_player_opponent_defensive_context(analytics)
 
     fixture_counts = analytics.groupby(["player_id", "gw"])["fixture_id"].count()
@@ -232,7 +237,7 @@ def test_build_player_opponent_defensive_context_dgw_max_aggregation():
 
 def test_team_id_resolution_igor_loan():
     """Igor played on loan at West Ham (19) in GWs 4-23; Brighton (6) before and after."""
-    df = get_player_fixture_base(DB_PATH)
+    df = get_player_fixture_base(_load_staged())
     igor = df[df["player_name"] == "Igor"]
     assert not igor.empty, "Igor not found in analytics"
 
@@ -251,7 +256,7 @@ def test_team_id_resolution_igor_loan():
 
 def test_team_id_resolution_guehi_january_transfer():
     """Guéhi was at Crystal Palace (8) through GW22; Man City (13) from GW23."""
-    df = get_player_fixture_base(DB_PATH)
+    df = get_player_fixture_base(_load_staged())
     guehi = df[df["player_name"] == "Guéhi"]
     assert not guehi.empty, "Guéhi not found in analytics"
 
@@ -270,7 +275,7 @@ def test_team_id_resolution_guehi_january_transfer():
 
 def test_team_id_resolution_brentford_gw26():
     """Brentford player at GW26 has team_id == 5 (fixture_id join, not dict snapshot)."""
-    df = get_player_fixture_base(DB_PATH)
+    df = get_player_fixture_base(_load_staged())
     brentford_gw26 = df[(df["gw"] == 26) & (df["team_id"] == 5)]
     assert not brentford_gw26.empty, "No Brentford (team_id=5) players found at GW26"
     assert (brentford_gw26["team_id"] == 5).all(), (
@@ -280,7 +285,7 @@ def test_team_id_resolution_brentford_gw26():
 
 def test_team_id_resolution_column_contract():
     """Output columns are identical to pre-enrichment contract; no intermediate columns leak."""
-    df = get_player_fixture_base(DB_PATH)
+    df = get_player_fixture_base(_load_staged())
     for col in [
         "player_id", "player_name", "gw", "fixture_id", "position_code", "position_label",
         "team_id", "opponent_team_id", "was_home", "fixture_difficulty", "total_points",
@@ -294,7 +299,7 @@ def test_team_id_resolution_column_contract():
 
 def test_team_id_resolution_stable_player_unaffected():
     """A player who never transferred keeps the same team_id across all GWs."""
-    df = get_player_fixture_base(DB_PATH)
+    df = get_player_fixture_base(_load_staged())
     # Raya (player_id=1) has been at Arsenal (team_id=1) all season
     raya = df[df["player_id"] == 1]
     assert not raya.empty, "Raya (player_id=1) not found in analytics"
@@ -305,8 +310,8 @@ def test_team_id_resolution_stable_player_unaffected():
 
 def test_team_id_resolution_discrepancy_logging(caplog):
     """get_player_fixture_base emits at least one [team_id resolution] log on real data."""
-    with caplog.at_level("INFO", logger="dal.intermediate.player_fixture"):
-        get_player_fixture_base(DB_PATH)
+    with caplog.at_level("INFO", logger="dal.intermediate.int_player_fixture"):
+        get_player_fixture_base(_load_staged())
 
     assert any("[AUDIT]" in message and "team_id" in message for message in caplog.messages), (
         "Expected at least one [AUDIT] team_id correction log message"
@@ -328,7 +333,7 @@ def test_contract_xgc_001_raises_in_build_player_opponent_defensive_context():
 
 def test_build_player_opponent_defensive_context_dgw_fixture_difficulty_avg():
     """For a DGW player, fixture_difficulty_avg equals mean of FDR values across fixtures."""
-    analytics = get_player_fixture_base(DB_PATH)
+    analytics = get_player_fixture_base(_load_staged())
     result = build_player_opponent_defensive_context(analytics)
 
     fixture_counts = analytics.groupby(["player_id", "gw"])["fixture_id"].count()

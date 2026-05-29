@@ -16,7 +16,6 @@ Gate decisions produced: G-EDA8-01 through G-EDA8-10.
 from __future__ import annotations
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -24,9 +23,14 @@ import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
 
-from dal.access import get_curated_spine, get_state_features
+from dal import (
+    build_player_gameweek_spine,
+    build_player_gameweek_state,
+    get_player_fixture_base,
+    load_staged_entities,
+)
 
-DB_PATH = Path(os.environ.get("FPL_DB_PATH", "~/.fpl/fpl.db")).expanduser()
+from dal.config import DB_PATH
 RUNS_DIR = Path("studies/runs")
 
 # EDA_08_DESIGN.md §3 — inherited from EVAL_DESIGN.md v2.2
@@ -658,8 +662,9 @@ def run(db_path: Path = DB_PATH) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading DAL data from {db_path}...")
-    spine = get_curated_spine(db_path)
-    state = get_state_features(spine)
+    staged = load_staged_entities(db_path)
+    spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
+    state = build_player_gameweek_state(spine)
 
     # Lag-1 target: total_points at GW N+1
     state = state.sort_values(["player_id", "gw"]).copy()

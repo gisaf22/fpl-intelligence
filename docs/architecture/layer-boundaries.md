@@ -35,15 +35,16 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 |---|---|
 | `staging/` | Column rename, type cast, null standardisation — no joins, no aggregation |
 | `intermediate/` | Join staging outputs into enriched fixture-grain records |
-| `curated/` | Aggregate fixture-grain to gameweek-grain; complete spine with BGW rows |
-| `state/` | Derive rolling windows, lag features, and trend signals |
-| `validation/` | Shared assertion modules called by any layer — never embedded in transformation code |
+| `fct/` | Aggregate fixture-grain to gameweek-grain; complete spine with BGW rows |
+| `feat/` | Derive rolling windows, lag features, and trend signals |
+| `mart/` | Filter to cutoff GW, add position label — governed analytical output |
+| `validation/` | Cross-cutting assertion modules (grain uniqueness, join safety) — never embedded in transformation code |
 
 **Does not own:** Signal characterisation, signal scoring, analytical methodology, ML feature engineering.
 
-**Contract:** [docs/architecture/DAL_CONTRACT.md](DAL_CONTRACT.md). Code must match the contract; the contract is not derived from the code.
+**Contract:** `dal/fct/fct_contracts.py`, `dal/feat/feat_schema.py`, `dal/validation/` — code-enforced. Rationale in [ADR-012-dal-design-rationale](../adr/012-dal-design-rationale.md).
 
-**Consumers:** All downstream layers. Canonical entry points: `dal.access.get_curated_spine` and `dal.access.get_state_features`. Direct imports from `dal.staging` or `dal.intermediate` are forbidden outside the DAL. See [DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](DOWNSTREAM_DEPENDENCY_GOVERNANCE.md).
+**Consumers:** All downstream layers. Canonical entry point: `dal.get_analytics_dataset(db_path) -> MartResult`. Direct imports from `dal.staging`, `dal.intermediate`, `dal.fct`, or `dal.feat` are forbidden outside the DAL. See [ADR-013-mart-access-interface](../adr/013-mart-access-interface.md) and [DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](DOWNSTREAM_DEPENDENCY_GOVERNANCE.md).
 
 ---
 
@@ -109,8 +110,9 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 | All SQL queries | `dal/` |
 | Raw data transformation | `dal/staging/` |
 | Fixture context enrichment | `dal/intermediate/` |
-| Canonical `(player_id, gw)` spine | `dal/curated/` |
-| Rolling/lag feature derivation | `dal/state/` |
+| Canonical `(player_id, gw)` spine | `dal/fct/` |
+| Rolling/lag feature derivation | `dal/feat/` |
+| Governed analytical output (mart) | `dal/mart/` |
 | Validation assertions | `dal/validation/` |
 | Dataset-level signal characterisation | `studies/eda/` |
 | Per-group signal methodology and results | `studies/lenses/` |
@@ -129,7 +131,7 @@ No two components share ownership of any row in this table. If a proposed change
 
 **SQL only in `dal/`.** No SQL outside `dal/`. Research and intelligence layers read DAL output DataFrames — they do not query the source database.
 
-**Single canonical base table.** The curated layer output is the only permitted source for all downstream analytics. Using intermediate-layer data or fixture-grain data to compute GW-level targets is a contract violation.
+**Single canonical base table.** The mart layer output (`dal.get_analytics_dataset`) is the only permitted source for all downstream analytics. Using intermediate-layer, fixture-grain, or raw fct/feat data to compute GW-level targets is a contract violation.
 
 **Studies do not define signals.** Classification, lifecycle assignment, and signal IDs are determined by the study that produces the evidence and stored in the registry. Studies write artifacts; `signals/registry/` ingests them.
 

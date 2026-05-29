@@ -3,7 +3,7 @@
 **Status:** Active  
 **Date:** May 2026  
 **Risk addressed:** SC-2  
-**Implemented in:** `dal/curated/player_gameweek_spine.py` — `_apply_bgw_defaults`
+**Implemented in:** `dal/fct/fct_player_gameweek.py` — `_apply_bgw_defaults`
 
 ---
 

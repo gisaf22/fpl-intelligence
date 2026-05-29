@@ -15,7 +15,7 @@ Verifies every implicit assumption STATE makes about CURATED output:
 import pandas as pd
 import pytest
 
-from dal.state.player_gameweek_state import (
+from dal.feat.feat_player_gameweek import (
     build_player_gameweek_state,
     _ROLL_COLS,
     _REQUIRED_INPUT_COLS,

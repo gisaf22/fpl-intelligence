@@ -18,9 +18,9 @@ def validate_join_safety(
                     f"got {result_n}"
                 ),
                 validation="validate_join_safety",
-                layer=None,
+
                 n_violations=left_n - result_n,
-                error_code='JOIN_ROW_LOSS',
+                error_code='JOIN_SAFETY',
             )
         if result_n > left_n:
             raise DALContractViolation(
@@ -29,9 +29,9 @@ def validate_join_safety(
                     f"got {result_n}"
                 ),
                 validation="validate_join_safety",
-                layer=None,
+
                 n_violations=result_n - left_n,
-                error_code='JOIN_FANOUT',
+                error_code='JOIN_SAFETY',
             )
 
     elif join_type == 'inner':
@@ -46,9 +46,9 @@ def validate_join_safety(
                     f"{expected_max} rows, got {result_n}"
                 ),
                 validation="validate_join_safety",
-                layer=None,
+
                 n_violations=result_n - expected_max,
-                error_code='JOIN_FANOUT',
+                error_code='JOIN_SAFETY',
             )
 
     elif join_type == 'cross':
@@ -60,9 +60,9 @@ def validate_join_safety(
                     f"({left_n} × {right_n}), got {result_n}"
                 ),
                 validation="validate_join_safety",
-                layer=None,
+
                 n_violations=expected - result_n,
-                error_code='JOIN_ROW_LOSS',
+                error_code='JOIN_SAFETY',
             )
         if result_n > expected:
             raise DALContractViolation(
@@ -71,9 +71,9 @@ def validate_join_safety(
                     f"({left_n} × {right_n}), got {result_n}"
                 ),
                 validation="validate_join_safety",
-                layer=None,
+
                 n_violations=result_n - expected,
-                error_code='JOIN_FANOUT',
+                error_code='JOIN_SAFETY',
             )
 
     else:

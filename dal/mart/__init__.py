@@ -1,0 +1,23 @@
+"""Analytical mart — governed output layer for analytics consumers.
+
+Primary interface:
+    get_analytics_dataset(db_path, data_cutoff_gw) -> MartResult
+
+Internal builders (for pipeline.py and tests only):
+    build_prepared_dataset, GOVERNED_SIGNAL_COLUMNS, POSITION_CODE_MAP
+"""
+
+from dal.mart.mart_access import MartResult, get_analytics_dataset
+from dal.mart.mart_analytical import (
+    GOVERNED_SIGNAL_COLUMNS,
+    POSITION_CODE_MAP,
+    build_prepared_dataset,
+)
+
+__all__ = [
+    "get_analytics_dataset",
+    "MartResult",
+    "GOVERNED_SIGNAL_COLUMNS",
+    "POSITION_CODE_MAP",
+    "build_prepared_dataset",
+]

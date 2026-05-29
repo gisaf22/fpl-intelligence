@@ -11,7 +11,6 @@ Output: signals/evaluation/synth01_decisions.yaml
 
 from __future__ import annotations
 
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -21,9 +20,14 @@ import yaml
 from scipy.stats import spearmanr
 from numpy.linalg import lstsq
 
-from dal.access import get_curated_spine, get_state_features
+from dal import (
+    build_player_gameweek_spine,
+    build_player_gameweek_state,
+    get_player_fixture_base,
+    load_staged_entities,
+)
 
-DB_PATH = Path(os.environ.get("FPL_DB_PATH", "~/.fpl/fpl.db")).expanduser()
+from dal.config import DB_PATH
 OUT_PATH = Path("signals/evaluation/synth01_decisions.yaml")
 RUNS_DIR = Path("studies/runs")
 
@@ -294,8 +298,9 @@ def run(db_path: Path = DB_PATH) -> Path:
     run_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading DAL data from {db_path} ...")
-    spine = get_curated_spine(db_path)
-    state = get_state_features(spine)
+    staged = load_staged_entities(db_path)
+    spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
+    state = build_player_gameweek_state(spine)
 
     state = state.sort_values(["player_id", "gw"]).copy()
     state["total_points_next_gw"] = state.groupby("player_id")["total_points"].shift(-1)

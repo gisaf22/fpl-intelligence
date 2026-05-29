@@ -11,7 +11,12 @@ import json
 import sys
 from pathlib import Path
 
-from dal.access import get_curated_spine, get_state_features
+from dal import (
+    build_player_gameweek_spine,
+    build_player_gameweek_state,
+    get_player_fixture_base,
+    load_staged_entities,
+)
 from intelligence.scoring.contracts import ScorerInput, ScorerOutput
 from intelligence.scoring.engine import NoDataForGameweek, score
 from intelligence.scoring.renderer import render
@@ -34,8 +39,10 @@ def run_scorer(input: ScorerInput) -> Path:
     Returns the path to the written HTML file.
     Raises NoDataForGameweek (caught by main) if GW has no data.
     """
-    spine = get_curated_spine(input.db_path)
-    state = get_state_features(spine)
+    staged = load_staged_entities(input.db_path)
+    player_fixture = get_player_fixture_base(staged)
+    spine = build_player_gameweek_spine(player_fixture, staged.events)
+    state = build_player_gameweek_state(spine)
 
     manifest = load_manifest_from_path(input.registry_path)
     raw_output = score(state, manifest, input.gw)

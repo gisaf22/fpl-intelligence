@@ -21,6 +21,27 @@ _LEAKAGE_ROLES: frozenset[str] = frozenset({"points_component"})
 # layer_role values that are outcome-components (mechanistically tautological to the target)
 _OUTCOME_COMPONENT_ROLES: frozenset[str] = frozenset({"contribution_index"})
 
+# Signals that predate the lens-study methodology and have no evaluation_metadata.yaml record.
+# These are raw FPL stats promoted via the signal registry before LENS-FORM/AVAIL/MARKET ran.
+# Any signal absent from both this set and evaluation_metadata.yaml is an ungoverned signal —
+# it must be either added to this allowlist (with justification) or evaluated through a lens.
+_PRE_LENS_SIGNAL_ALLOWLIST: frozenset[str] = frozenset({
+    "assists",
+    "clean_sheets",
+    "creativity",
+    "goals_conceded",
+    "goals_scored",
+    "ict_index",
+    "influence",
+    "saves",
+    "threat",
+    "xa",
+    "xg",
+    "xgc",
+    "xgi",
+    "yellow_cards",
+})
+
 def _exclusion_reason(row: dict) -> str | None:
     """Return a human-readable exclusion reason, or None if the signal is clear."""
     caveat = str(row.get("interpretation_caveat") or "").lower()
@@ -40,9 +61,8 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
     no leakage or outcome-component exclusion, rho_pooled is non-null.
 
     Gate is CI-based (rho_pooled non-null = signal cleared the CI gate during
-    lens evaluation). MIN_RHO was removed in Phase 8 (G-OPS-02 resolution):
-    SYNTH-01 approved three signals with rho < 0.15 via partial rho, confirming
-    the magnitude threshold was not evidence-derived.
+    lens evaluation). MIN_RHO was removed after SYNTH-01 approved three signals with
+    rho < 0.15 via partial rho, confirming the magnitude threshold was not evidence-derived.
 
     All other core/review signals go to caveated with the exclusion reason.
     positions_covered reflects only confirmed signals.
@@ -107,14 +127,15 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
     """Raise if any confirmed signal violates evaluation governance.
 
     Checks each confirmed signal against evaluation_metadata.yaml. Three
-    hard-fail conditions (per Phase 2, operational-convergence-plan.md):
+    hard-fail conditions (per operational-convergence-plan.md governance pass):
       1. leakage_risk == "direct"       — signal is a scoring-target component
       2. lifecycle_state == "excluded"  — signal was rejected in lens evaluation
       3. downstream_status == "blocked" — evaluation blocked advancement
 
-    Signals not present in evaluation_metadata.yaml are silently skipped —
-    they predate the lens-study methodology and are governed separately.
-    Only signals WITH evaluation records are subject to enforcement here.
+    Signals on _PRE_LENS_SIGNAL_ALLOWLIST are exempt — they predate the lens
+    methodology and have no evaluation_metadata.yaml record by design.
+    Any signal absent from both the allowlist and evaluation_metadata.yaml raises
+    GovernanceMetadataError: it is ungoverned and must not enter the scoring manifest.
     """
     from signals.evaluation.governance import get_signal_governance
     from signals.lifecycle.lifecycle import LeakageViolationError, LifecycleViolationError
@@ -124,8 +145,8 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
         try:
             gov = get_signal_governance(sig.signal, sig.position)
         except GovernanceMetadataError:
-            # Signal has no lens evaluation record — governance gap, not a violation.
-            # Pre-lens signals (goals_scored, assists, etc.) fall here.
+            if sig.signal not in _PRE_LENS_SIGNAL_ALLOWLIST:
+                raise
             continue
 
         if gov.leakage_risk == "direct":

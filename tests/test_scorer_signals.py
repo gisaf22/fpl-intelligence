@@ -8,7 +8,8 @@ import pandas as pd
 import pytest
 
 from signals.lifecycle.loader import load_registry
-from intelligence.scoring.signals import load_manifest, load_manifest_from_path
+from signals.lifecycle.schema import GovernanceMetadataError
+from intelligence.scoring.signals import load_manifest, load_manifest_from_path, _PRE_LENS_SIGNAL_ALLOWLIST
 
 REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
 
@@ -131,3 +132,51 @@ def test_no_confirmed_signal_has_null_rho(registry, manifest):
             assert pd.notna(row["rho_pooled"]), (
                 f"Confirmed signal {key} has null rho_pooled in registry"
             )
+
+
+def test_ungoverned_signal_raises_governance_error(registry):
+    """Signal absent from both evaluation_metadata.yaml and the allowlist must raise GovernanceMetadataError.
+
+    Injects a synthetic confirmed signal with a made-up name to verify the allowlist
+    check fires rather than silently continuing.
+    """
+    from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
+    from intelligence.scoring.signals import _assert_governance_compliance
+
+    fake_signal = ConfirmedSignal(
+        signal="ungoverned_synthetic_signal",
+        position="DEF",
+        rho_pooled=0.15,
+        direction=1,
+        promotion_class="core_signal",
+    )
+    fake_manifest = SignalManifest(
+        confirmed=[fake_signal],
+        caveated=[],
+        positions_covered={"DEF": ["ungoverned_synthetic_signal"]},
+    )
+    with pytest.raises(GovernanceMetadataError):
+        _assert_governance_compliance(fake_manifest)
+
+
+def test_allowlist_signals_pass_governance_without_evaluation_record(registry):
+    """Pre-lens signals on _PRE_LENS_SIGNAL_ALLOWLIST pass governance compliance without an evaluation record."""
+    from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
+    from intelligence.scoring.signals import _assert_governance_compliance
+
+    # pick one allowlist signal per position to exercise the bypass
+    for signal_name in list(_PRE_LENS_SIGNAL_ALLOWLIST)[:3]:
+        test_signal = ConfirmedSignal(
+            signal=signal_name,
+            position="DEF",
+            rho_pooled=0.10,
+            direction=1,
+            promotion_class="core_signal",
+        )
+        manifest = SignalManifest(
+            confirmed=[test_signal],
+            caveated=[],
+            positions_covered={"DEF": [signal_name]},
+        )
+        # Must not raise
+        _assert_governance_compliance(manifest)

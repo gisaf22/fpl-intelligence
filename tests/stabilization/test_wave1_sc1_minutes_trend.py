@@ -18,8 +18,8 @@ The test asserts "falling" — this FAILS before the fix and PASSES after.
 import pandas as pd
 import pytest
 
-from dal.state.player_gameweek_state import build_player_gameweek_state
-from dal.curated.contracts import SPINE_COLS, DTYPES, NULL_RULES
+from dal.feat.feat_player_gameweek import build_player_gameweek_state
+from dal.fct.fct_contracts import SPINE_COLS, DTYPES, NULL_RULES
 
 
 def _make_synthetic_spine(minutes_by_gw: list[int | None]) -> pd.DataFrame:

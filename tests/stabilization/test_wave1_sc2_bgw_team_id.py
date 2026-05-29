@@ -22,9 +22,16 @@ FAILS before fix (returns 2). PASSES after fix (returns 1).
 import pytest
 from pathlib import Path
 
-from dal.curated.player_gameweek_spine import build_player_gameweek_spine
+from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+from dal.staging import load_staged_entities
+from dal.intermediate.int_player_fixture import get_player_fixture_base
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
+
+
+def _load_spine():
+    staged = load_staged_entities(TEST_DB_PATH)
+    return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
 
 P3_ID = 103
 BGW_GW = 3
@@ -45,7 +52,7 @@ def test_bgw_team_id_uses_pre_transfer_team():
 
     FAILS before fix (returns 2). PASSES after fix (returns 1).
     """
-    spine = build_player_gameweek_spine(TEST_DB_PATH)
+    spine = _load_spine()
 
     bgw_row = spine[(spine["player_id"] == P3_ID) & (spine["gw"] == BGW_GW)]
     assert len(bgw_row) == 1, f"Expected exactly 1 BGW row for P3 GW{BGW_GW}"
@@ -65,7 +72,7 @@ def test_bgw_team_id_post_transfer_is_correct():
     P1 (always T1) and P2 (always T2) should have consistent team_id in their BGW rows too.
     P1 has BGW in GW3 (T1 has no fixture). P1's team should be 1 throughout.
     """
-    spine = build_player_gameweek_spine(TEST_DB_PATH)
+    spine = _load_spine()
 
     # P1 has BGW in GW3, always T1
     p1_bgw = spine[(spine["player_id"] == 101) & (spine["gw"] == 3)]
@@ -79,5 +86,5 @@ def test_bgw_team_id_post_transfer_is_correct():
 
 def test_spine_has_correct_row_count():
     """Golden DB: 3 players × 5 GWs = 15 rows exactly."""
-    spine = build_player_gameweek_spine(TEST_DB_PATH)
+    spine = _load_spine()
     assert len(spine) == 15, f"Expected 15 rows (3 players × 5 GWs), got {len(spine)}"

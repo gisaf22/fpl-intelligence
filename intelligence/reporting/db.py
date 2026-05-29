@@ -4,5 +4,5 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from dal.access import validate_data_freshness  # noqa: F401
-from dal.curated.gameweek_context import resolve_target_gw  # noqa: F401
+from dal import validate_data_freshness  # noqa: F401
+from dal.fct.fct_gameweek_context import resolve_target_gw  # noqa: F401

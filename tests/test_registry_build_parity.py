@@ -29,6 +29,8 @@ from signals.lifecycle import load_registry
 from signals.registry.assembly import assemble_registry_from_sections
 from signals.registry.config import assign_gw_block
 from studies.experiments.registry_sections_study import SectionBuildConfig, compute_relationship_sections
+from dal.staging import load_staged_entities
+from dal.intermediate.int_player_fixture import get_player_fixture_base
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 
@@ -66,10 +68,11 @@ def computed_registry(seed_registry: pd.DataFrame) -> pd.DataFrame:
     if not DB_PATH.exists():
         pytest.skip(f"live DB not found at {DB_PATH}; skipping integration tests")
 
-    from dal.curated.player_gameweek_spine import build_player_gameweek_spine
+    from dal.fct.fct_player_gameweek import build_player_gameweek_spine
     from signals.registry.builder import _build_registry_population
 
-    spine = build_player_gameweek_spine(DB_PATH)
+    staged = load_staged_entities(DB_PATH)
+    spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
     prepared = _build_registry_population(spine, data_cutoff_gw=GW_MAX)
 
     # Restrict to GW_MIN–GW_MAX window.

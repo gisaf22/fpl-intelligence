@@ -88,7 +88,9 @@ FIRST_COLS = [
     "was_home",
 ]
 
-# Columns aggregated by summing across fixtures per (player_id, gw)
+# Columns aggregated by summing across fixtures per (player_id, gw).
+# goals_conceded is here (not MEAN_COLS) because it's additive: a team that concedes 1 in each
+# of 2 DGW fixtures conceded 2 total — the sum is meaningful, the per-fixture mean is not.
 SUM_COLS = [
     "total_points",
     "minutes",

@@ -3,7 +3,7 @@
 get_analytics_dataset() is the canonical replacement for the deleted dal.access module.
 Callers do not need to know the internal layer sequence (staging → intermediate → fct → feat → mart).
 
-See ADR-013 for the decision record.
+Callers that want the persisted artifact (after a pipeline run) should use dal.pipeline.load().
 """
 
 from __future__ import annotations

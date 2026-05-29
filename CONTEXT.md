@@ -66,8 +66,7 @@ before results are known. It cannot be revised retrospectively.
 fpl-intelligence/
 ├── archive/         — retired code (pipeline_legacy/) and planning documents
 ├── dal/             — data access layer — staging, intermediate, fct, feat, validation, mart
-├── docs/            — architectural and decision documents
-│   ├── adr/            — immutable architectural decision records (ADR-001 through ADR-010)
+├── docs/            — architectural and governance documents
 │   ├── architecture/   — layer-boundaries.md, operational-flow.md, registry-governance.md, etc.
 │   ├── decisions/      — active migration playbook (008_migration_phases.md only)
 │   ├── stabilization/  — Phase 11 status (PHASE11_STATUS.md; remainder archived)

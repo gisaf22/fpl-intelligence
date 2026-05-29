@@ -38,7 +38,7 @@ No future data leaks into any row of the spine.
 
 ## EDA-1 — Target distribution and analytical method
 
-**Status:** Locked in ADR-004 (`docs/adr/004-analytical-foundations.md`)
+**Status:** Locked (see commit history for decision rationale)
 
 **Finding:** `total_points` is right-skewed across all positions (overall skew=1.58,
 kurtosis=2.80). The distribution violates the normality assumption required for Pearson
@@ -71,7 +71,7 @@ without an indicator is not permitted.
 
 ## EDA-2 — Signal space and structural exclusions
 
-**Status:** Locked in ADR-005 (`docs/adr/005-signal-exclusions.md`)
+**Status:** Locked (see commit history for decision rationale)
 
 **Finding:** 15 signal-position pairs are structurally excluded from association analysis.
 These are not data quality issues — they are structural: the signal cannot vary for that

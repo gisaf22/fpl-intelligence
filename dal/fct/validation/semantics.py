@@ -70,7 +70,7 @@ def validate_dgw_correctness(df: pd.DataFrame) -> None:
             df, ~df['fixture_count'].isin([0, 1, 2]),
             (
                 "fixture_count not in {0, 1, 2} — triple gameweeks not supported. "
-                "Update docs/adr/012-dal-design-rationale.md before ingesting TGW data."
+                "Extend SUM_COLS aggregation logic and validate DGW contract before ingesting TGW data."
             ),
             "validate_dgw_correctness", "DGW_VIOLATION",
         )

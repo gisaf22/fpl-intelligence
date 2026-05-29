@@ -64,7 +64,7 @@ G-EDA0-03).
 
 **Qualified-start threshold:** `minutes >= 60` at GW N (G-EDA1-04).
 
-**Rationale:** Primary population confirmed in ADR-004. EDA-4 showed population robustness
+**Rationale:** Primary population confirmed by EDA-1 (n=5,879, GW6-33, minutes≥60). EDA-4 showed population robustness
 is stable — delta_rho = 0 between primary and minimal population definitions for all 110
 tested signal-position pairs (G-EDA4-01, G-EDA4-02). No position-specific override is
 warranted.
@@ -86,7 +86,7 @@ includes all GK appearances. No adjustment needed for GK population.
 
 - Lower bound GW 3: rolling window warmup — GW 1-2 excluded because 3-GW rolling features
   are undefined or unreliable for these rows (G-EDA0-02, G-EDA1-03).
-- Upper bound GW 33: GW 34 excluded per ADR-004 (14 of 20 teams with a fixture — unequal
+- Upper bound GW 33: GW 34 excluded (14 of 20 teams with a fixture — unequal
   exposure; G-EDA1-02).
 - FORM-002 and FORM-005 (5-GW windows) require GW 6+ for valid values. These signals use
   GW 6-33 for correlation analysis. GW 3-5 rows are present in the dataset for alignment
@@ -120,7 +120,7 @@ it to 7 GWs. This is noted in the run artefact per block.
 **Method:** Spearman rank correlation (G-EDA1-01).
 
 **Rationale:** `total_points` is right-skewed (skew=1.58, kurt=2.80). Pearson is not
-appropriate. Spearman is justified at STRONG_EVIDENCE level per ADR-004.
+appropriate. Spearman is justified at STRONG_EVIDENCE level (skew=1.58 from EDA-1).
 
 **Resampling unit for bootstrap:** Gameweek-level observations, not player-level.
 One bootstrap sample = resample with replacement from the set of (player, GW) observation

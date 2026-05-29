@@ -91,7 +91,8 @@ def _build_player_info(df: pd.DataFrame) -> pd.DataFrame:
 
     Returns a frame indexed by (player_id, gw) covering all non-BGW GWs. Used in
     _apply_bgw_defaults to look up the most recent pre-BGW team for each BGW row
-    (BGW team_id semantic rule — docs/adr/007-bgw-team-semantics.md).
+    BGW team_id must reflect the player's team as of the most recent non-BGW GW strictly
+    before the blank — not their eventual season-end team — to preserve temporal causality.
 
     Columns returned: player_name, position_code, position_label, team_id, purchase_price.
     The index is reset; caller uses merge-as-of to find the last known state per player.
@@ -134,7 +135,8 @@ def _apply_bgw_defaults(
 
     player_info is a sorted (player_id, gw) frame from non-BGW GWs. For each BGW row,
     we find the most recent non-BGW GW at or before that GW per player (merge-as-of),
-    giving causally correct team_id per the BGW team_id rule in docs/adr/007-bgw-team-semantics.md.
+    giving causally correct team_id — the player's team as of the most recent non-BGW GW
+    strictly before the blank, not their eventual season-end team.
     """
     result.loc[bgw_mask, "fixture_count"] = 0
     result.loc[bgw_mask, "is_dgw"] = False

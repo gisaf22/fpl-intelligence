@@ -42,9 +42,9 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 
 **Does not own:** Signal characterisation, signal scoring, analytical methodology, ML feature engineering.
 
-**Contract:** `dal/fct/fct_contracts.py`, `dal/feat/feat_schema.py`, `dal/validation/` — code-enforced. Rationale in [ADR-012-dal-design-rationale](../adr/012-dal-design-rationale.md).
+**Contract:** `dal/fct/fct_contracts.py`, `dal/feat/feat_schema.py`, `dal/validation/` — code-enforced.
 
-**Consumers:** All downstream layers. Canonical entry point: `dal.get_analytics_dataset(db_path) -> MartResult`. Direct imports from `dal.staging`, `dal.intermediate`, `dal.fct`, or `dal.feat` are forbidden outside the DAL. See [ADR-013-mart-access-interface](../adr/013-mart-access-interface.md) and [DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](DOWNSTREAM_DEPENDENCY_GOVERNANCE.md).
+**Consumers:** All downstream layers. Canonical entry point: `dal.get_analytics_dataset(db_path) -> MartResult`. Direct imports from `dal.staging`, `dal.intermediate`, `dal.fct`, or `dal.feat` are forbidden outside the DAL. See [DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](DOWNSTREAM_DEPENDENCY_GOVERNANCE.md).
 
 ---
 

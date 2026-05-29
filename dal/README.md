@@ -25,8 +25,6 @@ signals = result.signals   # governed signal columns (from FEATURE_REGISTRY)
 
 `data_cutoff_gw` defaults to the max GW in the spine. Pass it explicitly for retrospective analysis.
 
-See [ADR-013](../docs/adr/013-mart-access-interface.md) for the access interface decision.
-
 ## Contracts
 
 All contracts are code-enforced:
@@ -40,4 +38,4 @@ All contracts are code-enforced:
 | `dal/validation/` | Cross-cutting validators (grain uniqueness, join safety) |
 | `dal/exceptions.py` | `ErrorCode` vocabulary, `DALContractViolation` |
 
-Design rationale (null semantics, rolling window conventions, causality classes, known limitations): [ADR-012-dal-design-rationale](../docs/adr/012-dal-design-rationale.md).
+**Null semantics invariant:** NULL = context does not exist (no fixture, no opponent). Zero = observed outcome of zero. Never conflate — `fdr_avg=NULL` for a BGW row is not the same as `total_points=0` for a player who played and scored nothing.

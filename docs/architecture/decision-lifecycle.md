@@ -30,9 +30,8 @@ The DAL reads from the source database (`fpl.db`) and produces the canonical `(p
 
 **Entry point:**
 ```python
-from dal.access import get_curated_spine, get_state_features
-spine    = get_curated_spine(db_path)      # (player_id, gw) grain, all GWs
-features = get_state_features(spine)       # spine + rolling window columns
+from dal.pipeline import load as load_mart
+features = load_mart().mart   # (player_id, gw) grain + rolling window columns
 ```
 
 **Depends on:**  
@@ -194,7 +193,7 @@ The system produces correct, auditable, deterministic outputs — but without me
 
 ```bash
 # Prepare the DAL (Stage 1)
-make prepare          # python -m dal.access --db fpl.db
+python -m dal.pipeline run   # build mart.parquet + manifest
 
 # Build the registry (Control Plane — offline)
 make build-registry   # python -m signals.registry.runner --gw N

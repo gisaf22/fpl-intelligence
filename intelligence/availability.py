@@ -19,7 +19,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from intelligence._base import (
+from intelligence.intelligence_contracts import (
     IntelligenceInputError,
     validate_intelligence_inputs,
 )

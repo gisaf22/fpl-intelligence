@@ -61,7 +61,7 @@ registry artifact, not hidden in code constants.
 Each output function accepts a features DataFrame produced by the canonical DAL entry points:
 
 ```python
-from dal.access import get_curated_spine, get_state_features
+from dal.pipeline import load as load_mart
 from intelligence import (
     rank_captain_candidates,
     rank_transfer_targets,
@@ -70,8 +70,7 @@ from intelligence import (
     rank_fixture_opportunities,
 )
 
-spine    = get_curated_spine(db_path)
-features = get_state_features(spine)
+features = load_mart().mart
 
 captains  = rank_captain_candidates(features, target_gw=28)
 transfers = rank_transfer_targets(features, target_gw=28)

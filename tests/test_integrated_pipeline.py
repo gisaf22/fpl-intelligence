@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.reporting.db import resolve_target_gw, validate_data_freshness
+from intelligence.reporting.weekly_report_runner import resolve_target_gw, validate_data_freshness
 from dal.exceptions import DataFreshnessError
 
 pytestmark = pytest.mark.integration

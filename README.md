@@ -19,7 +19,7 @@ FPL_DB_PATH=/path/to/fpl.db python examples/quickstart.py
 python examples/quickstart.py /path/to/fpl.db
 ```
 
-The script calls `get_curated_spine` and `get_state_features`, prints shape and column
+The script calls `dal.pipeline.load()`, prints shape and column
 information, and exits with a non-zero code on any failure. See [examples/quickstart.py](examples/quickstart.py) for details.
 
 ## Layer Boundaries

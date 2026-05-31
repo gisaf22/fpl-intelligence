@@ -3,7 +3,7 @@
 Surfaces players delivering high point returns relative to their FPL cost.
 Deterministic and price-static — does not forecast price changes.
 
-Weights are loaded from the governance registry (signals/registry/weight_registry.yaml).
+Weights are loaded from the governance registry (signals/characterisation/weight_registry.yaml).
 
 Scope constraint: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
 FWD players receive neutral 0.5 on efficiency_score, form_score, and consistency_score —
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from intelligence._base import (
+from intelligence.intelligence_contracts import (
     IntelligenceInputError,
     normalize_within_position,
     validate_intelligence_inputs,

@@ -12,7 +12,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from intelligence._base import (
+from intelligence.intelligence_contracts import (
     IntelligenceInputError,
     normalize_within_position,
     validate_intelligence_inputs,

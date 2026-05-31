@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-from signals.lifecycle import load_registry, validate_registry_contract
-from signals.registry.assembly import assemble_registry_from_sections
+from signals.governance import load_registry, validate_registry_contract
+from signals.characterisation.registry_assembler import assemble_registry_from_sections
 
 
 def _split_current_registry(registry: pd.DataFrame):

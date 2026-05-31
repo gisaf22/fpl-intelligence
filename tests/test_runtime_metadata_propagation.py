@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from signals.lifecycle.schema import (
+from signals.governance.schema import (
     GovernanceMetadata,
     GovernanceMetadataError,
     LEAKAGE_RISK_VALUES,
@@ -85,7 +85,7 @@ class TestGovernanceMetadataSchema:
 
 class TestGetSignalGovernance:
     def test_known_approved_signal(self) -> None:
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("xgi_roll3", "DEF")
         assert gov.signal == "xgi_roll3"
@@ -99,7 +99,7 @@ class TestGetSignalGovernance:
         assert gov.ci_upper == pytest.approx(0.161)
 
     def test_known_excluded_signal(self) -> None:
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("fdr_avg", "DEF")
         assert gov.lifecycle_state == "excluded"
@@ -107,7 +107,7 @@ class TestGetSignalGovernance:
         assert gov.leakage_risk == "none"
 
     def test_evaluation_circularity_signal(self) -> None:
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("points_roll3", "DEF")
         assert gov.leakage_risk == "evaluation_circularity"
@@ -116,7 +116,7 @@ class TestGetSignalGovernance:
         assert "G-EDA7-02" in " ".join(gov.source_gate_decisions)
 
     def test_points_roll5_mid_conditional(self) -> None:
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("points_roll5", "MID")
         assert gov.leakage_risk == "evaluation_circularity"
@@ -124,7 +124,7 @@ class TestGetSignalGovernance:
         assert gov.downstream_status == "blocked"
 
     def test_not_applicable_signal(self) -> None:
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("xgi_roll3", "GK")
         assert gov.lifecycle_state == "not_applicable"
@@ -132,33 +132,33 @@ class TestGetSignalGovernance:
         assert "G-EDA3-01" in " ".join(gov.source_gate_decisions)
 
     def test_synth01_approved_purchase_price_def(self) -> None:
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("purchase_price", "DEF")
         assert gov.lifecycle_state == "approved"
         assert gov.downstream_status == "approved"
 
     def test_missing_signal_raises(self) -> None:
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         with pytest.raises(GovernanceMetadataError, match="No evaluation metadata"):
             get_signal_governance("nonexistent_signal", "DEF")
 
     def test_missing_position_raises(self) -> None:
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         with pytest.raises(GovernanceMetadataError, match="No evaluation metadata"):
             get_signal_governance("xgi_roll3", "UNKNOWN_POS")
 
     def test_behavioral_reason_populated(self) -> None:
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("transfers_in", "MID")
         assert gov.behavioral_reason
         assert len(gov.behavioral_reason) > 10
 
     def test_source_gate_decisions_populated(self) -> None:
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("transfers_in", "MID")
         assert len(gov.source_gate_decisions) >= 2
@@ -173,7 +173,7 @@ class TestGetSignalGovernance:
 class TestMultiLensDisambiguation:
     def test_minutes_roll3_mid_returns_approved(self) -> None:
         """FORM-006 MID is excluded; AVAIL-001 MID is approved (G-SYNTH1-09) — should return approved."""
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("minutes_roll3", "MID")
         assert gov.lifecycle_state == "approved"
@@ -182,7 +182,7 @@ class TestMultiLensDisambiguation:
 
     def test_minutes_roll3_def_returns_excluded(self) -> None:
         """Both FORM-006 DEF and AVAIL-001 DEF are excluded — should return excluded."""
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("minutes_roll3", "DEF")
         assert gov.lifecycle_state == "excluded"
@@ -190,7 +190,7 @@ class TestMultiLensDisambiguation:
     def test_minutes_roll3_gk_not_applicable_over_excluded(self) -> None:
         """FORM-006 GK is not_applicable; AVAIL-001 GK is excluded.
         Excluded is more informative (was studied but rejected) — prefer excluded."""
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         gov = get_signal_governance("minutes_roll3", "GK")
         assert gov.lifecycle_state == "excluded"
@@ -222,20 +222,20 @@ def _make_manifest(confirmed: list) -> object:
 
 class TestAssertGovernanceCompliance:
     def test_valid_candidate_passes(self) -> None:
-        from intelligence.scoring.signals import _assert_governance_compliance
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("xgi_roll3", "DEF")])
         _assert_governance_compliance(manifest)  # should not raise
 
     def test_excluded_signal_raises(self) -> None:
-        from intelligence.scoring.signals import _assert_governance_compliance
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("fdr_avg", "DEF")])
         with pytest.raises(ValueError, match="GOVERNANCE VIOLATION"):
             _assert_governance_compliance(manifest)
 
     def test_evaluation_circularity_signal_raises(self) -> None:
-        from intelligence.scoring.signals import _assert_governance_compliance
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("points_roll3", "DEF")])
         with pytest.raises(ValueError, match="GOVERNANCE VIOLATION"):
@@ -243,7 +243,7 @@ class TestAssertGovernanceCompliance:
 
     def test_blocked_downstream_raises(self) -> None:
         """purchase_price GK is blocked — should hard-fail."""
-        from intelligence.scoring.signals import _assert_governance_compliance
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("purchase_price", "GK")])
         with pytest.raises(ValueError, match="GOVERNANCE VIOLATION"):
@@ -251,8 +251,8 @@ class TestAssertGovernanceCompliance:
 
     def test_missing_governance_metadata_raises_if_not_allowlisted(self) -> None:
         """Signals absent from both evaluation_metadata.yaml and _PRE_LENS_SIGNAL_ALLOWLIST must raise."""
-        from signals.lifecycle.schema import GovernanceMetadataError
-        from intelligence.scoring.signals import _assert_governance_compliance
+        from signals.governance.schema import GovernanceMetadataError
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("unknown_signal_xyz", "DEF")])
         with pytest.raises(GovernanceMetadataError):
@@ -260,20 +260,20 @@ class TestAssertGovernanceCompliance:
 
     def test_allowlisted_pre_lens_signal_passes(self) -> None:
         """Pre-lens signals on _PRE_LENS_SIGNAL_ALLOWLIST pass compliance without an evaluation record."""
-        from intelligence.scoring.signals import _assert_governance_compliance
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("goals_scored", "DEF")])
         _assert_governance_compliance(manifest)  # should not raise
 
     def test_approved_signal_passes(self) -> None:
         """purchase_price DEF is approved by SYNTH-01 (G-SYNTH1-06) — should pass compliance."""
-        from intelligence.scoring.signals import _assert_governance_compliance
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("purchase_price", "DEF")])
         _assert_governance_compliance(manifest)  # should not raise
 
     def test_empty_manifest_passes(self) -> None:
-        from intelligence.scoring.signals import _assert_governance_compliance
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([])
         _assert_governance_compliance(manifest)  # should not raise
@@ -289,7 +289,7 @@ class TestYAMLCompleteness:
         import yaml
         from pathlib import Path
 
-        path = Path("signals/evaluation/evaluation_metadata.yaml")
+        path = Path("signals/governance/evaluation_metadata.yaml")
         with path.open() as fh:
             data = yaml.safe_load(fh)
         return data["evaluation_findings"]
@@ -327,7 +327,7 @@ class TestYAMLCompleteness:
                 )
 
     def test_all_positions_have_downstream_status(self) -> None:
-        from signals.lifecycle.schema import DOWNSTREAM_STATUS_VALUES
+        from signals.governance.schema import DOWNSTREAM_STATUS_VALUES
 
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
@@ -394,15 +394,15 @@ class TestGetSignalGovernanceCompleteness:
         import yaml
         from pathlib import Path
 
-        path = Path("signals/evaluation/evaluation_metadata.yaml")
+        path = Path("signals/governance/evaluation_metadata.yaml")
         with path.open() as fh:
             data = yaml.safe_load(fh)
         return data["evaluation_findings"]
 
     def test_all_yaml_entries_resolvable(self) -> None:
         """Every signal-position pair in YAML is resolvable by get_signal_governance()."""
-        from signals.evaluation.governance import get_signal_governance
-        from signals.lifecycle.schema import GovernanceMetadata
+        from signals.governance.governance import get_signal_governance
+        from signals.governance.schema import GovernanceMetadata
 
         failures = []
         for entry in self._load_yaml():
@@ -421,7 +421,7 @@ class TestGetSignalGovernanceCompleteness:
 
     def test_returned_metadata_has_all_required_fields(self) -> None:
         """Every returned GovernanceMetadata has all required fields populated."""
-        from signals.evaluation.governance import get_signal_governance
+        from signals.governance.governance import get_signal_governance
 
         failures = []
         for entry in self._load_yaml():
@@ -451,8 +451,8 @@ class TestGetSignalGovernanceCompleteness:
 
     def test_candidate_entries_have_rho_pooled(self) -> None:
         """Every candidate lifecycle entry has rho_pooled not None in returned metadata."""
-        from signals.evaluation.governance import get_signal_governance
-        from signals.lifecycle.schema import GovernanceMetadataError
+        from signals.governance.governance import get_signal_governance
+        from signals.governance.schema import GovernanceMetadataError
 
         failures = []
         for entry in self._load_yaml():
@@ -497,8 +497,8 @@ class TestViolationErrorTypes:
 
     def test_excluded_signal_raises_lifecycle_violation_error(self) -> None:
         """lifecycle_state=excluded raises LifecycleViolationError (not just ValueError)."""
-        from intelligence.scoring.signals import _assert_governance_compliance
-        from signals.lifecycle.lifecycle import LifecycleViolationError
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from signals.governance.lifecycle import LifecycleViolationError
 
         manifest = self._make_manifest([self._make_confirmed("fdr_avg", "DEF")])
         with pytest.raises(LifecycleViolationError, match="GOVERNANCE VIOLATION"):
@@ -506,8 +506,8 @@ class TestViolationErrorTypes:
 
     def test_blocked_downstream_raises_lifecycle_violation_error(self) -> None:
         """downstream_status=blocked raises LifecycleViolationError (not just ValueError)."""
-        from intelligence.scoring.signals import _assert_governance_compliance
-        from signals.lifecycle.lifecycle import LifecycleViolationError
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from signals.governance.lifecycle import LifecycleViolationError
 
         manifest = self._make_manifest([self._make_confirmed("purchase_price", "GK")])
         with pytest.raises(LifecycleViolationError, match="GOVERNANCE VIOLATION"):
@@ -521,9 +521,9 @@ class TestViolationErrorTypes:
         """
         from unittest.mock import patch
 
-        from intelligence.scoring.signals import _assert_governance_compliance
-        from signals.lifecycle.lifecycle import LeakageViolationError
-        from signals.lifecycle.schema import GovernanceMetadata
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from signals.governance.lifecycle import LeakageViolationError
+        from signals.governance.schema import GovernanceMetadata
 
         synthetic_gov = GovernanceMetadata(
             signal="bonus_roll3",
@@ -541,7 +541,7 @@ class TestViolationErrorTypes:
         )
         manifest = self._make_manifest([self._make_confirmed("bonus_roll3", "DEF")])
         with patch(
-            "signals.evaluation.governance.get_signal_governance",
+            "signals.governance.governance.get_signal_governance",
             return_value=synthetic_gov,
         ):
             with pytest.raises(LeakageViolationError, match="GOVERNANCE VIOLATION"):
@@ -549,10 +549,10 @@ class TestViolationErrorTypes:
 
     def test_lifecycle_violation_error_is_value_error(self) -> None:
         """LifecycleViolationError is a subclass of ValueError (backward compatibility)."""
-        from signals.lifecycle.lifecycle import LifecycleViolationError
+        from signals.governance.lifecycle import LifecycleViolationError
         assert issubclass(LifecycleViolationError, ValueError)
 
     def test_leakage_violation_error_is_value_error(self) -> None:
         """LeakageViolationError is a subclass of ValueError (backward compatibility)."""
-        from signals.lifecycle.lifecycle import LeakageViolationError
+        from signals.governance.lifecycle import LeakageViolationError
         assert issubclass(LeakageViolationError, ValueError)

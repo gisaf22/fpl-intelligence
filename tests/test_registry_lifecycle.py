@@ -14,12 +14,12 @@ from pathlib import Path
 
 import pytest
 
-from signals.lifecycle.lifecycle import (
+from signals.governance.lifecycle import (
     LifecycleViolationError,
     assert_operational_safe,
     is_exploratory_path,
 )
-from signals.lifecycle.loader import load_registry
+from signals.governance.registry_loader import load_registry
 
 # The authoritative EDA output — exploratory state by definition
 RESEARCH_REGISTRY = Path("studies/eda/findings/eda_03_joint_registry.csv")
@@ -99,7 +99,7 @@ class TestAssertOperationalSafe:
 class TestScorerLifecycleEnforcement:
     def test_load_manifest_from_path_rejects_exploratory_registry(self):
         """Scorer must not consume EDA findings directly."""
-        from intelligence.scoring.signals import load_manifest_from_path
+        from intelligence.scoring.signal_selector import load_manifest_from_path
 
         with pytest.raises(LifecycleViolationError, match="exploratory"):
             load_manifest_from_path(RESEARCH_REGISTRY)
@@ -112,7 +112,7 @@ class TestScorerLifecycleEnforcement:
         but excluded in evaluation_metadata.yaml). That is correct governance behavior
         — the test verifies only that any error is NOT about the path being exploratory.
         """
-        from intelligence.scoring.signals import load_manifest_from_path
+        from intelligence.scoring.signal_selector import load_manifest_from_path
 
         registry_path = tmp_path / "registry.csv"
         shutil.copy(RESEARCH_REGISTRY, registry_path)
@@ -135,14 +135,14 @@ class TestScorerLifecycleEnforcement:
 class TestReportRunnerLifecycleEnforcement:
     def test_run_week_rejects_exploratory_registry(self, tmp_path):
         """Report runner must not consume EDA findings directly."""
-        from intelligence.reporting.runner import run_week
+        from intelligence.reporting.weekly_report_runner import run_week
 
         with pytest.raises(LifecycleViolationError, match="exploratory"):
             run_week(gw=36, registry_path=RESEARCH_REGISTRY, output_dir=tmp_path / "gw36")
 
     def test_run_week_rejects_exploratory_before_output_is_created(self, tmp_path):
         """Lifecycle gate fires before any output directory is created."""
-        from intelligence.reporting.runner import run_week
+        from intelligence.reporting.weekly_report_runner import run_week
 
         output_dir = tmp_path / "gw36"
         with pytest.raises(LifecycleViolationError):
@@ -152,7 +152,7 @@ class TestReportRunnerLifecycleEnforcement:
 
     def test_run_week_accepts_non_exploratory_registry(self, tmp_path):
         """Report runner proceeds when registry path is not exploratory."""
-        from intelligence.reporting.runner import run_week
+        from intelligence.reporting.weekly_report_runner import run_week
 
         registry_path = tmp_path / "registry.csv"
         shutil.copy(RESEARCH_REGISTRY, registry_path)
@@ -163,7 +163,7 @@ class TestReportRunnerLifecycleEnforcement:
 
     def test_gw_validation_fires_before_lifecycle_check(self, tmp_path):
         """gw <= 0 raises ValueError, not LifecycleViolationError."""
-        from intelligence.reporting.runner import run_week
+        from intelligence.reporting.weekly_report_runner import run_week
 
         with pytest.raises(ValueError, match="gw must be positive"):
             run_week(gw=0, registry_path=RESEARCH_REGISTRY, output_dir=tmp_path)
@@ -188,7 +188,7 @@ class TestResearchConsumerFlexibility:
 
     def test_load_registry_default_is_research_registry(self):
         """The no-arg default should load the research registry, not an operational one."""
-        from signals.lifecycle.schema import RESEARCH_REGISTRY_PATH
+        from signals.governance.schema import RESEARCH_REGISTRY_PATH
 
         registry = load_registry()
         research = load_registry(RESEARCH_REGISTRY_PATH)

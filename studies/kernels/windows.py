@@ -40,7 +40,7 @@ def assert_no_future_leakage(features: pd.DataFrame, eval_gw: int) -> None:
 
     Checks that the features frame contains the rolling columns that the state
     layer produces via shift(1). If these columns are absent, the features frame
-    was not produced by get_state_features() and temporal integrity is unverified.
+    was not produced by dal.pipeline.load() and temporal integrity is unverified.
 
     Raises
     ------
@@ -56,6 +56,6 @@ def assert_no_future_leakage(features: pd.DataFrame, eval_gw: int) -> None:
     if missing:
         raise ValueError(
             f"assert_no_future_leakage: missing rolling columns {sorted(missing)} for "
-            f"gw={eval_gw}. Features must come from get_state_features() to guarantee "
+            f"gw={eval_gw}. Features must come from dal.pipeline.load().mart to guarantee "
             "temporal integrity (lag-1 rolling windows)."
         )

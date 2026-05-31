@@ -68,8 +68,6 @@ fpl-intelligence/
 ├── dal/             — data access layer — staging, intermediate, fct, feat, validation, mart
 ├── docs/            — architectural and governance documents
 │   ├── architecture/   — layer-boundaries.md, operational-flow.md, registry-governance.md, etc.
-│   ├── decisions/      — active migration playbook (008_migration_phases.md only)
-│   ├── stabilization/  — Phase 11 status (PHASE11_STATUS.md; remainder archived)
 │   └── studies/        — study designs and published results
 ├── examples/        — quickstart script for DAL end-to-end validation
 ├── intelligence/    — operational intelligence layer
@@ -96,17 +94,15 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 
 | Document | Location | Purpose | Gates |
 |---|---|---|---|
-| ADR 012 | docs/adr/012-dal-design-rationale.md | DAL design rationale — reproducibility model, null semantics, rolling conventions, known limitations | Reference when making DAL changes; code-enforced contracts live in dal/contracts.py and dal/fct/fct_contracts.py |
 | EVAL_DESIGN.md | signals/evaluation/EVAL_DESIGN.md | Defines success criteria and failure conditions for the 2025-26 methodology before results are known | All study findings must connect to a question defined here |
 | SIGNAL_REGISTRY.md | signals/registry/SIGNAL_REGISTRY.md | Governance and truth layer for all signals — lifecycle status, lens outcomes, synthesis eligibility | No signal enters synthesis without a confirmed entry; no signal is referenced in a study without being registered |
-| EDA_DESIGN.md | signals/eda/EDA_DESIGN.md | Defines the seven system EDA layers and their gate decisions | All lens studies — no lens runs before EDA is complete and findings documented |
-| EDA_NOTEBOOKS.md | signals/eda/EDA_NOTEBOOKS.md | Complete brief for each EDA notebook with questionnaire items | Each EDA notebook run — provides the execution specification |
+| EDA_08_DESIGN.md | studies/eda/EDA_08_DESIGN.md | Defines the seven system EDA layers and their gate decisions | All lens studies — no lens runs before EDA is complete and findings documented |
 | CONTEXT.md | CONTEXT.md | Current project state, structure, and rules for new sessions | New session orientation |
 | DOWNSTREAM_DEPENDENCY_GOVERNANCE.md | docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md | Allowed and forbidden downstream import patterns; enforced by tests/test_downstream_governance.py | Any new signals/registry module that accesses data |
-| LENS_DESIGN.md (LENS-FORM) | signals/lenses/form/LENS_DESIGN.md | Study design for rolling output and attacking threat signals | LENS-FORM execution — study cannot run without agreed design; pending rerun under locked methodology |
-| LENS_DESIGN.md (LENS-MARKET) | signals/lenses/market/LENS_DESIGN.md | Study design for transfer and ownership signals | LENS-MARKET execution; pending rerun under locked methodology |
-| LENS_DESIGN.md (LENS-FIXTURE-GW) | signals/lenses/fixture-gw/LENS_DESIGN.md | Study design for single-gameweek fixture difficulty signals | LENS-FIXTURE-GW execution; pending rerun under locked methodology |
-| LENS_DESIGN.md (LENS-AVAIL) | signals/lenses/avail/LENS_DESIGN.md | Study design for minutes consistency and trend signals | LENS-AVAIL execution; pending rerun under locked methodology |
+| LENS_DESIGN.md (LENS-FORM) | studies/lenses/form/LENS_DESIGN.md | Study design for rolling output and attacking threat signals | LENS-FORM execution — study cannot run without agreed design; pending rerun under locked methodology |
+| LENS_DESIGN.md (LENS-MARKET) | studies/lenses/market/LENS_DESIGN.md | Study design for transfer and ownership signals | LENS-MARKET execution; pending rerun under locked methodology |
+| LENS_DESIGN.md (LENS-FIXTURE-GW) | studies/lenses/fixture_gw/LENS_DESIGN.md | Study design for single-gameweek fixture difficulty signals | LENS-FIXTURE-GW execution; pending rerun under locked methodology |
+| LENS_DESIGN.md (LENS-AVAIL) | studies/lenses/avail/LENS_DESIGN.md | Study design for minutes consistency and trend signals | LENS-AVAIL execution; pending rerun under locked methodology |
 
 ---
 
@@ -115,8 +111,8 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 | Layer | Status | Notes |
 |---|---|---|
 | DAL layer | COMPLETE | All six stabilization waves complete; 883 tests passing |
-| Validation modules | COMPLETE | All 7 modules in dal/validation/; fully decoupled from fct layer (V-3) |
-| System EDA | COMPLETE | Governed registry is the authoritative output. Gate decisions in docs/adr/004-analytical-foundations.md |
+| Validation modules | COMPLETE | 7 modules split across dal/validation/ (grain.py, joins.py) and dal/fct/validation/ (completeness.py, contracts.py, invariants.py, nulls.py, semantics.py); fully decoupled from fct layer (V-3) |
+| System EDA | COMPLETE | Governed registry is the authoritative output. Gate decisions in studies/eda/findings/EDA_FINDINGS.md |
 | LENS-FORM | COMPLETE | Results in studies/lenses/form/; approved signals: xgi_roll3 (DEF), xgi_roll5 (DEF, MID). Records in signals/evaluation/evaluation_metadata.yaml |
 | LENS-MARKET | COMPLETE | Results in studies/lenses/market/; approved signals: transfers_in (DEF, MID), purchase_price (DEF, FWD), ownership_count (MID). Records in evaluation_metadata.yaml |
 | LENS-FIXTURE-GW | COMPLETE | Results in studies/lenses/fixture-gw/; fdr_avg excluded (non-monotonic); reserved as binary moderator. Records in evaluation_metadata.yaml |
@@ -180,22 +176,23 @@ Filenames: `feat_*.py`.
 point for EDA, lenses, and modeling. `GOVERNED_SIGNAL_COLUMNS` is the canonical signal list.
 Filenames: `mart_*.py`.
 
-**dal/validation/** is a cross-cutting concern with 7 standalone modules: grain.py,
-completeness.py, semantics.py, joins.py, contracts.py, nulls.py, invariants.py.
+**dal/validation/** is a cross-cutting concern with 7 standalone modules split across two locations:
+`dal/validation/` holds grain.py and joins.py; `dal/fct/validation/` holds completeness.py,
+contracts.py, invariants.py, nulls.py, semantics.py.
 `DALContractViolation` is raised for contract breaches. Validation modules must not import
 from dal.fct/ — they accept layer-specific constants as parameters (V-3 contract).
 `ErrorCode` class in `dal/exceptions.py` documents all valid error code strings.
 
-**dal/pipeline.py** orchestrates the full build in layer order (fct → feat → mart) and writes
+**dal/pipeline.py** orchestrates the full build in layer order (staging → intermediate → fct → feat → mart) and writes
 a manifest JSON with per-layer status, row counts, timing, and fingerprints. Entry point:
-`python -m dal.pipeline build`. `validate_data_freshness(db_path, gw)` lives here.
+`python -m dal.pipeline run`. `validate_data_freshness(db_path, gw)` lives here.
 
 **Canonical entry points for downstream consumers:**
-- `dal.access.get_curated_spine()` — historical (player_id, gw) spine from dal/fct/
-- `dal.access.get_state_features(spine)` — spine + governed feature columns from dal/feat/
-- `dal.mart.mart_analytical.build_prepared_dataset(spine, cutoff_gw)` — EDA/modeling dataset
+- `dal.pipeline.run(db_path, force, data_cutoff_gw)` — build all layers, write mart.parquet + manifest
+- `dal.pipeline.load(db_path)` → `MartResult` — read persisted mart parquet (call run() first)
+- `MartResult` carries: mart DataFrame, signals tuple, gw_range, data_cutoff_gw
 
-See `docs/adr/012-dal-design-rationale.md` for DAL design rationale. Code-enforced contracts live in `dal/contracts.py`, `dal/fct/fct_contracts.py`, and `dal/feat/feat_contracts.py`.
+Code-enforced contracts live in `dal/fct/fct_contracts.py` and `dal/feat/feat_contracts.py`.
 
 ---
 
@@ -228,7 +225,7 @@ No signals enter the signal registry without a confirmed lens status
 
 No signals enter SYNTH-01 without a confirmed registry entry
 
-DAL contracts are code-enforced — dal/contracts.py, dal/fct/fct_contracts.py, dal/feat/feat_contracts.py, dal/validation/
+DAL contracts are code-enforced — dal/fct/fct_contracts.py, dal/feat/feat_contracts.py, dal/validation/
 
 The governed registry must have real promotion_class values before any lens study design begins — this gate is now met
 
@@ -239,6 +236,6 @@ Two tracks always aligned — pipeline and research move together
 ## 10. How to start a new session
 
 1. Read CONTEXT.md (this document)
-2. Read docs/adr/012-dal-design-rationale.md if any DAL work is planned
+2. Read dal/pipeline.py docstring for DAL entry points; read dal/fct/fct_contracts.py and dal/feat/feat_contracts.py for contract enforcement if any DAL work is planned
 3. Read the relevant design document for the current task
 4. Do not write code until the design is agreed in Claude UI

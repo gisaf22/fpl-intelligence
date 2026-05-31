@@ -234,8 +234,8 @@ class TestLifecycleEnforcement:
 
     def test_excluded_signal_raises_lifecycle_violation(self) -> None:
         """A signal with lifecycle_state=excluded must not pass governance compliance."""
-        from signals.evaluation.governance import get_signal_governance
-        from signals.lifecycle.schema import GovernanceMetadataError
+        from signals.governance.governance import get_signal_governance
+        from signals.governance.schema import GovernanceMetadataError
 
         # Find an excluded signal from the evaluation metadata to use as the test case.
         # xgi_roll3 excluded at FWD (FORM-001 G2-FAIL: non-monotonic quintile ordering).
@@ -250,21 +250,21 @@ class TestLifecycleEnforcement:
                 "not excluded — test requires an excluded signal"
             )
 
-        from intelligence.scoring.signals import _assert_governance_compliance
-        from signals.lifecycle.lifecycle import LifecycleViolationError
+        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from signals.governance.lifecycle import LifecycleViolationError
 
         manifest = self._make_manifest_with_signal("xgi_roll3", "FWD")
         with pytest.raises(LifecycleViolationError):
             _assert_governance_compliance(manifest)
 
     def test_exploratory_path_raises_lifecycle_violation(self) -> None:
-        from signals.lifecycle.lifecycle import LifecycleViolationError, assert_operational_safe
+        from signals.governance.lifecycle import LifecycleViolationError, assert_operational_safe
 
         with pytest.raises(LifecycleViolationError):
             assert_operational_safe("studies/eda/some_registry.csv")
 
     def test_operational_path_passes(self) -> None:
-        from signals.lifecycle.lifecycle import assert_operational_safe
+        from signals.governance.lifecycle import assert_operational_safe
 
         # Should not raise for a non-exploratory path
         assert_operational_safe("outputs/registry/joint_registry.csv")

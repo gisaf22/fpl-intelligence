@@ -3,12 +3,12 @@
 import pandas as pd
 import pytest
 
-from signals.lifecycle.promotion import (
+from signals.governance.promotion import (
     PROMOTION_CLASS_VALUES,
     assign_promotion_class,
 )
 
-from signals.lifecycle.schema import RESEARCH_REGISTRY_PATH as DEFAULT_REGISTRY_PATH
+from signals.governance.schema import RESEARCH_REGISTRY_PATH as DEFAULT_REGISTRY_PATH
 
 
 # --- integration: counts locked against the governed registry CSV ---

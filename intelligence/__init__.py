@@ -12,9 +12,8 @@ flag_availability_risk    -- minutes stability and availability warnings
 rank_fixture_opportunities -- favorable near-term fixture windows
 
 All functions accept a features DataFrame produced by:
-    staged   = load_staged_entities(db_path)
-    spine    = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
-    features = build_player_gameweek_state(spine)
+    from dal.pipeline import load as load_mart
+    features = load_mart().mart
 
 See docs/operational-intelligence.md for design rationale and limitations.
 """

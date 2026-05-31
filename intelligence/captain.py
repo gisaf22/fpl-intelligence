@@ -3,7 +3,7 @@
 Produces a ranked list of captain options for a target gameweek based on
 recent form, attacking involvement, fixture context, and minutes stability.
 
-Weights are loaded from the governance registry (signals/registry/weight_registry.yaml).
+Weights are loaded from the governance registry (signals/characterisation/weight_registry.yaml).
 
 Scope constraint: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL;
 haul-concentration effect). FWD players receive neutral 0.5 on form_score and
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from intelligence._base import (
+from intelligence.intelligence_contracts import (
     IntelligenceInputError,
     normalize_within_position,
     validate_intelligence_inputs,
@@ -59,7 +59,7 @@ def rank_captain_candidates(
     ----------
     features:
         Full DAL state output — spine + state columns at (player_id, gw) grain.
-        Produced by get_state_features(get_curated_spine(db_path)).
+        Produced by dal.pipeline.load().mart.
     target_gw:
         The gameweek being prepared for. State at target_gw reflects rolling
         windows through the prior gameweek (lag-1 convention).

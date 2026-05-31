@@ -13,7 +13,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from signals.lifecycle import load_registry
+from signals.governance import load_registry
 from intelligence.reporting.signal_intelligence import (
     CONTEXT_NOTE_COLUMNS,
     CONTEXT_CONDITION_LAYERS,

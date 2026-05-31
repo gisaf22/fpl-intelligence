@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 
-# --- inlined from signals.lifecycle.schema ---
+# --- inlined from signals.governance.schema ---
 MATCH_LEVEL_SIGNALS: frozenset[str] = frozenset(
     {
         "was_home",

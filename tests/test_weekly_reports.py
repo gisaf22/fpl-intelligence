@@ -1,6 +1,6 @@
 import pandas as pd
 
-from signals.lifecycle import load_registry
+from signals.governance import load_registry
 from intelligence.reporting.reports import (
     build_signal_summary,
     build_stable_performance_signals,

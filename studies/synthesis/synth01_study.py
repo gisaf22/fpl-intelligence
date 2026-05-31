@@ -6,7 +6,7 @@ same-position × same-lens candidates. Resolves redundancy pairs and
 within-window families via marginal gain test. Derives composition weights
 with bootstrap CIs. Runs FDR moderation sensitivity check.
 
-Output: signals/evaluation/synth01_decisions.yaml
+Output: signals/governance/synth01_decisions.yaml
 """
 
 from __future__ import annotations
@@ -20,15 +20,9 @@ import yaml
 from scipy.stats import spearmanr
 from numpy.linalg import lstsq
 
-from dal import (
-    build_player_gameweek_spine,
-    build_player_gameweek_state,
-    get_player_fixture_base,
-    load_staged_entities,
-)
-
 from dal.config import DB_PATH
-OUT_PATH = Path("signals/evaluation/synth01_decisions.yaml")
+from dal.pipeline import load as load_mart
+OUT_PATH = Path("signals/governance/synth01_decisions.yaml")
 RUNS_DIR = Path("studies/runs")
 
 N_BOOTSTRAP = 2000
@@ -298,9 +292,7 @@ def run(db_path: Path = DB_PATH) -> Path:
     run_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading DAL data from {db_path} ...")
-    staged = load_staged_entities(db_path)
-    spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
-    state = build_player_gameweek_state(spine)
+    state = load_mart(db_path=db_path).mart
 
     state = state.sort_values(["player_id", "gw"]).copy()
     state["total_points_next_gw"] = state.groupby("player_id")["total_points"].shift(-1)
@@ -500,7 +492,7 @@ def run(db_path: Path = DB_PATH) -> Path:
         "version": "synth01",
         "produced": datetime.now().strftime("%Y-%m-%d"),
         "authority": "Operational Convergence Plan Phase 7",
-        "candidate_registry": "signals/registry/synth01_candidates.yaml",
+        "candidate_registry": "signals/characterisation/synth01_candidates.yaml",
         "design_doc": "docs/governance/synth01-design.md",
         "total_decisions": len(all_decisions),
         "approved_count": len(approved),

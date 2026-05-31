@@ -14,9 +14,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from signals.lifecycle import load_registry, validate_registry_contract
-from signals.lifecycle.lifecycle import assert_operational_safe
-from intelligence.reporting.insights import write_insight_cards
+from dal.staging import validate_data_freshness  # noqa: F401
+from dal.fct.fct_gameweek_context import resolve_target_gw  # noqa: F401
+from signals.governance import load_registry, validate_registry_contract
+from intelligence.reporting.insight_card_writer import write_insight_cards
 from intelligence.reporting.reports import write_weekly_markdown_report, write_weekly_report_tables
 from intelligence.reporting.signal_intelligence import write_signal_intelligence
 from intelligence.reporting.snapshots import write_snapshot_changes
@@ -65,10 +66,9 @@ def run_week(gw: int, registry_path: str | Path, output_dir: str | Path | None =
         raise ValueError(f"gw must be positive, got {gw}")
 
     registry_path = Path(registry_path)
-    assert_operational_safe(registry_path)
     target_dir = Path(output_dir) if output_dir is not None else default_output_dir(gw)
 
-    registry = load_registry(registry_path)
+    registry = load_registry(registry_path, operational=True)
     validate_registry_contract(registry)
 
     target_dir.mkdir(parents=True, exist_ok=True)

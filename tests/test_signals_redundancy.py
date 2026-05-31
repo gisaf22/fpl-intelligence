@@ -299,12 +299,12 @@ class TestAlgebraicDecompositions:
             assert isinstance(comp_b, str)
 
     def test_referenced_signals_exist_in_governed_set(self):
-        from signals.registry.population import GOVERNED_SIGNAL_COLUMNS
-        governed = set(GOVERNED_SIGNAL_COLUMNS)
+        from signals.characterisation.population import REGISTRY_BUILD_INPUT_COLUMNS
+        governed = set(REGISTRY_BUILD_INPUT_COLUMNS)
         for derived, comp_a, comp_b in ALGEBRAIC_DECOMPOSITIONS:
-            assert derived in governed, f"{derived!r} not in GOVERNED_SIGNAL_COLUMNS"
-            assert comp_a in governed, f"{comp_a!r} not in GOVERNED_SIGNAL_COLUMNS"
-            assert comp_b in governed, f"{comp_b!r} not in GOVERNED_SIGNAL_COLUMNS"
+            assert derived in governed, f"{derived!r} not in REGISTRY_BUILD_INPUT_COLUMNS"
+            assert comp_a in governed, f"{comp_a!r} not in REGISTRY_BUILD_INPUT_COLUMNS"
+            assert comp_b in governed, f"{comp_b!r} not in REGISTRY_BUILD_INPUT_COLUMNS"
 
     def test_ict_index_decomposition_present(self):
         derived = {entry[0] for entry in ALGEBRAIC_DECOMPOSITIONS}

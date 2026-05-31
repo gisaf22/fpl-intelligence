@@ -1,8 +1,7 @@
 """Shared utilities for the operational intelligence layer.
 
 All intelligence outputs consume only:
-- DAL state features (via get_state_features)
-- Curated spine columns (via get_curated_spine)
+- DAL mart (via dal.pipeline.load().mart)
 
 Research artifacts (studies/eda/, exploratory registries) must not enter here.
 """
@@ -56,8 +55,7 @@ def validate_intelligence_inputs(features: pd.DataFrame, caller: str) -> None:
     if missing:
         raise IntelligenceInputError(
             f"{caller}: missing required columns: {sorted(missing)}. "
-            "Intelligence outputs must consume DAL state features produced by "
-            "get_state_features(get_curated_spine(db_path))."
+            "Intelligence outputs must consume DAL mart from dal.pipeline.load().mart."
         )
 
 

@@ -9,7 +9,7 @@ from typing import Any
 
 import pandas as pd
 
-# inlined from signals.lifecycle.schema
+# inlined from signals.governance.schema
 SIGNAL_LAYER_VALUES: frozenset[str] = frozenset(
     {
         "exposure",

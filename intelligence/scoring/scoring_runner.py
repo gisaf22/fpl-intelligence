@@ -11,16 +11,11 @@ import json
 import sys
 from pathlib import Path
 
-from dal import (
-    build_player_gameweek_spine,
-    build_player_gameweek_state,
-    get_player_fixture_base,
-    load_staged_entities,
-)
+from dal.pipeline import load as load_mart
 from intelligence.scoring.contracts import ScorerInput, ScorerOutput
 from intelligence.scoring.engine import NoDataForGameweek, score
 from intelligence.scoring.renderer import render
-from intelligence.scoring.signals import load_manifest_from_path
+from intelligence.scoring.signal_selector import load_manifest_from_path
 
 
 def _load_registry_meta(registry_path: Path) -> dict:
@@ -39,10 +34,7 @@ def run_scorer(input: ScorerInput) -> Path:
     Returns the path to the written HTML file.
     Raises NoDataForGameweek (caught by main) if GW has no data.
     """
-    staged = load_staged_entities(input.db_path)
-    player_fixture = get_player_fixture_base(staged)
-    spine = build_player_gameweek_spine(player_fixture, staged.events)
-    state = build_player_gameweek_state(spine)
+    state = load_mart(db_path=input.db_path).mart
 
     manifest = load_manifest_from_path(input.registry_path)
     raw_output = score(state, manifest, input.gw)

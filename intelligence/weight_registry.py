@@ -1,6 +1,6 @@
 """Weight registry loader for operational intelligence modules.
 
-Loads module composition weights from signals/registry/weight_registry.yaml.
+Loads module composition weights from signals/governance/weight_registry.yaml.
 Raises on any missing module or weight entry — no silent defaults or fallbacks.
 """
 
@@ -12,7 +12,7 @@ from typing import Dict
 
 import yaml
 
-_WEIGHT_REGISTRY_PATH = Path("signals/registry/weight_registry.yaml")
+_WEIGHT_REGISTRY_PATH = Path("signals/governance/weight_registry.yaml")
 
 
 class WeightRegistryError(KeyError):

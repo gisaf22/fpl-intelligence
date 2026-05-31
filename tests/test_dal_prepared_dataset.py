@@ -5,9 +5,9 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from signals.registry.builder import _build_registry_population as build_prepared_dataset
-from signals.registry.population import (
-    GOVERNED_SIGNAL_COLUMNS,
+from signals.characterisation.population_builder import _build_registry_population as build_prepared_dataset
+from signals.characterisation.population import (
+    REGISTRY_BUILD_INPUT_COLUMNS,
     MINUTES_THRESHOLD,
     OUTPUT_COLUMNS,
     POSITION_CODE_MAP,
@@ -133,7 +133,7 @@ def test_output_columns_include_required_fields():
 def test_output_includes_all_governed_signal_columns():
     spine = _make_spine()
     result = build_prepared_dataset(spine, data_cutoff_gw=5)
-    for col in GOVERNED_SIGNAL_COLUMNS:
+    for col in REGISTRY_BUILD_INPUT_COLUMNS:
         assert col in result.columns, f"missing governed signal column: {col}"
 
 

@@ -1,4 +1,4 @@
-"""Validation tests for signals/evaluation/evaluation_metadata.yaml.
+"""Validation tests for signals/governance/evaluation_metadata.yaml.
 
 Verifies schema completeness and vocabulary conformance for the structured
 evaluation findings. Does not test rho values — those are sourced from lens
@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-EVAL_META_PATH = Path("signals/evaluation/evaluation_metadata.yaml")
+EVAL_META_PATH = Path("signals/governance/evaluation_metadata.yaml")
 
 _REQUIRED_POSITION_KEYS = frozenset(
     {"rho_pooled", "rho_ci_lower", "rho_ci_upper", "block_stability_count",
@@ -221,7 +221,7 @@ def test_block_stability_count_in_range():
 # Phase 4 — Governance Consolidation
 # ---------------------------------------------------------------------------
 
-_SYNTH01_CANDIDATES_PATH = Path("signals/registry/synth01_candidates.yaml")
+_SYNTH01_CANDIDATES_PATH = Path("signals/characterisation/synth01_candidates.yaml")
 
 
 def _load_synth01() -> list[dict]:

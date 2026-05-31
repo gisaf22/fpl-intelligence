@@ -21,8 +21,8 @@ import yaml
 
 from dal.feat.feat_schema import FEATURE_REGISTRY
 
-TRACEABILITY_PATH = Path("signals/registry/signal_traceability.yaml")
-EVAL_META_PATH = Path("signals/evaluation/evaluation_metadata.yaml")
+TRACEABILITY_PATH = Path("signals/characterisation/signal_traceability.yaml")
+EVAL_META_PATH = Path("signals/governance/evaluation_metadata.yaml")
 
 
 def _load_traceability() -> list[dict]:

@@ -28,14 +28,8 @@ import pandas as pd
 import yaml
 from scipy.stats import spearmanr
 
-from dal import (
-    build_player_gameweek_spine,
-    build_player_gameweek_state,
-    get_player_fixture_base,
-    load_staged_entities,
-)
-
 from dal.config import DB_PATH
+from dal.pipeline import load as load_mart
 OUT_PATH = Path("outputs/phase9_backtest_results.yaml")
 RUNS_DIR = Path("studies/runs")
 
@@ -358,9 +352,7 @@ def print_summary(results: dict) -> None:
 
 if __name__ == "__main__":
     print(f"Loading state from {DB_PATH} ...")
-    staged = load_staged_entities(DB_PATH)
-    spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
-    state = build_player_gameweek_state(spine)
+    state = load_mart(db_path=DB_PATH).mart
     print(f"  {len(state):,} rows  |  GW {state['gw'].min()}–{state['gw'].max()}  |  {state['player_id'].nunique()} players")
 
     results = run_backtest(state)

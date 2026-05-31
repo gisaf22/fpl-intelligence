@@ -15,7 +15,7 @@ This is not an accident — it is a design requirement. The system answers an em
 ## Scoring pipeline
 
 ```
-DAL state features (dal.access.get_state_features)
+DAL mart (dal.pipeline.load().mart)
     ↓
 Governed registry artifact (outputs/registry/gw{N}/registry.csv)
     ↓

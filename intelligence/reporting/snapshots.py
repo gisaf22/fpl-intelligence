@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from signals.lifecycle.schema import PRIMARY_KEY_COLUMNS
+from signals.governance.schema import PRIMARY_KEY_COLUMNS
 
 
 SNAPSHOT_COMPARE_FIELDS: tuple[str, ...] = (

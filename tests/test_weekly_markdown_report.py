@@ -1,7 +1,7 @@
 import pandas as pd
 
-from signals.lifecycle import load_registry
-from intelligence.reporting.insights import build_insight_cards
+from signals.governance import load_registry
+from intelligence.reporting.insight_card_writer import build_insight_cards
 from intelligence.reporting.reports import (
     build_signal_summary,
     build_stable_performance_signals,

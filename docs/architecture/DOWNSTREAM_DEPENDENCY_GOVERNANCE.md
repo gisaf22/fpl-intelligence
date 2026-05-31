@@ -7,35 +7,26 @@ migration (Decision 007/008). Replaced with `signals.lifecycle.*` and `studies.k
 
 | Source | Module | What it provides |
 |--------|--------|-----------------|
-| **Curated spine** | `dal.curated.player_gameweek_spine` | `(player_id, gw)` grain — 52 columns of historical performance, fixture context, and market data. Canonical historical truth. |
-| **State features** | `dal.state.player_gameweek_state` | Spine + 30 derived columns: rolling windows (roll3/roll5), `minutes_trend`, `fixture_context`. Canonical analytical feature source. |
-| **Prepared dataset** | `dal.prepared.analytical_dataset` | State output filtered to a cutoff GW, with string `position` column. Entry point for EDA, stability, and redundancy analysis. |
+| **Mart** | `dal.pipeline.load()` | Full analytical dataset at `(player_id, gw)` grain — spine + governed feature columns, filtered to cutoff GW. Returns a `MartResult`. |
+| **MartResult** | `dal.mart.mart_access.MartResult` | Typed result: `mart` DataFrame, `signals` tuple, `gw_range`, `data_cutoff_gw`. |
 
 ## Allowed downstream dependencies
 
 Downstream modules (signals/, studies/, intelligence/) may import:
 
 ```python
-# Convenience helpers (canonical entry points)
-from dal.access import get_curated_spine, get_state_features
-from dal import get_curated_spine, get_state_features
-
-# Direct spine/state constructors
-from dal.curated.player_gameweek_spine import build_player_gameweek_spine
-from dal.state.player_gameweek_state import build_player_gameweek_state
-
-# Prepared dataset (EDA / modeling)
-from dal.prepared.analytical_dataset import build_prepared_dataset, GOVERNED_SIGNAL_COLUMNS
+# Canonical entry point — always use this to load data
+from dal.pipeline import load as load_mart   # returns MartResult
+from dal.pipeline import run                 # build mart.parquet + manifest (ops/CI only)
+from dal.mart.mart_access import MartResult  # type annotation
 
 # DB path
 from dal.config import DB_PATH
 
 # Signal governance — lifecycle enforcement, promotion, schema validation
-# (migrated from core.governance.* per Decision 007)
 from signals.lifecycle import lifecycle, loader, promotion, schema, semantics, validation
 
 # Statistical kernels — domain-agnostic utilities
-# (migrated from core.signals.*, core.relationships.*, core.target.* per Decision 007)
 from studies.kernels.*
 ```
 
@@ -76,4 +67,4 @@ Static checks are in [tests/test_downstream_governance.py](../../tests/test_down
 | G-1 | `pipeline.*` imports in .py files and notebooks |
 | G-2 | `sqlite3` / `pd.read_sql` outside DAL |
 | G-3 | `dal.staging` / `dal.intermediate` imports outside DAL and tests |
-| G-4 | Smoke test that `dal.access` and `dal.prepared` are importable |
+| G-4 | Smoke test that `dal.pipeline.run` and `dal.pipeline.load` are importable |

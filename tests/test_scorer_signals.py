@@ -7,9 +7,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from signals.lifecycle.loader import load_registry
-from signals.lifecycle.schema import GovernanceMetadataError
-from intelligence.scoring.signals import load_manifest, load_manifest_from_path, _PRE_LENS_SIGNAL_ALLOWLIST
+from signals.governance.registry_loader import load_registry
+from signals.governance.schema import GovernanceMetadataError
+from intelligence.scoring.signal_selector import load_manifest, load_manifest_from_path, _PRE_LENS_SIGNAL_ALLOWLIST
 
 REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
 
@@ -141,7 +141,7 @@ def test_ungoverned_signal_raises_governance_error(registry):
     check fires rather than silently continuing.
     """
     from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
-    from intelligence.scoring.signals import _assert_governance_compliance
+    from intelligence.scoring.signal_selector import _assert_governance_compliance
 
     fake_signal = ConfirmedSignal(
         signal="ungoverned_synthetic_signal",
@@ -162,7 +162,7 @@ def test_ungoverned_signal_raises_governance_error(registry):
 def test_allowlist_signals_pass_governance_without_evaluation_record(registry):
     """Pre-lens signals on _PRE_LENS_SIGNAL_ALLOWLIST pass governance compliance without an evaluation record."""
     from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
-    from intelligence.scoring.signals import _assert_governance_compliance
+    from intelligence.scoring.signal_selector import _assert_governance_compliance
 
     # pick one allowlist signal per position to exercise the bypass
     for signal_name in list(_PRE_LENS_SIGNAL_ALLOWLIST)[:3]:

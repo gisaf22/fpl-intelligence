@@ -9,14 +9,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
 
-from dal import (
-    build_player_gameweek_spine,
-    build_player_gameweek_state,
-    get_player_fixture_base,
-    load_staged_entities,
-)
-
 from dal.config import DB_PATH
+from dal.pipeline import load as load_mart
 RUNS_DIR = Path("studies/runs")
 
 # LENS_DESIGN.md §2 — registered signals, valid positions, GW lower bounds
@@ -258,9 +252,7 @@ def run(db_path: Path = DB_PATH) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading DAL data from {db_path}...")
-    staged = load_staged_entities(db_path)
-    spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
-    state = build_player_gameweek_state(spine)
+    state = load_mart(db_path=db_path).mart
 
     # Build lag-1 target within player groups (LENS_DESIGN.md §3, G-EDA0-01)
     state = state.sort_values(["player_id", "gw"]).copy()

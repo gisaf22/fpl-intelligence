@@ -20,7 +20,7 @@ import pandas as pd
 
 from intelligence.weight_registry import get_module_weights, get_weight_metadata
 
-_TRACEABILITY_PATH = Path("signals/registry/signal_traceability.yaml")
+_TRACEABILITY_PATH = Path("signals/characterisation/signal_traceability.yaml")
 
 # Map from module name → component → list of STATE columns that feed the component.
 # Encodes the computational relationship between weight components and STATE values.
@@ -157,7 +157,7 @@ def score_provenance(
             "signals": state_cols,
             "state_values": state_values,
             "registry_source": (
-                f"signals/registry/weight_registry.yaml "
+                f"signals/characterisation/weight_registry.yaml "
                 f"§modules.{module}.weights.{component}"
             ),
             "signal_id": meta.get("signal_id"),
@@ -171,7 +171,7 @@ def score_provenance(
         "module": module,
         "position": position,
         "registry_source": (
-            f"signals/registry/weight_registry.yaml §modules.{module}"
+            f"signals/characterisation/weight_registry.yaml §modules.{module}"
         ),
         "signals": signals_provenance,
     }

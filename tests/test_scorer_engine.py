@@ -7,7 +7,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from dal import build_player_gameweek_spine, build_player_gameweek_state
+from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+from dal.feat.feat_player_gameweek import build_player_gameweek_state
 from dal.staging import load_staged_entities
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
@@ -132,8 +133,8 @@ def test_players_ranked_within_position(state):
 
 def test_excluded_signals_absent_from_composite(state):
     """bonus and bps must not appear in signal_normalised of any player score."""
-    from signals.lifecycle.loader import load_registry
-    from intelligence.scoring.signals import load_manifest
+    from signals.governance.registry_loader import load_registry
+    from intelligence.scoring.signal_selector import load_manifest
 
     registry = load_registry(Path("studies/eda/findings/eda_03_joint_registry.csv"))
     manifest = load_manifest(registry)

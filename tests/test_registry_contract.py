@@ -1,6 +1,6 @@
 import pytest
 
-from signals.lifecycle import (
+from signals.governance import (
     RegistryValidationError,
     load_registry,
     validate_registry_contract,

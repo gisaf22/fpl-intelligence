@@ -28,7 +28,6 @@ import hashlib
 import json
 import os
 import time
-import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -386,24 +385,6 @@ def load(
 
 
 # ---------------------------------------------------------------------------
-# Deprecated alias
-# ---------------------------------------------------------------------------
-
-def build(
-    db_path: Path = DB_PATH,
-    force: bool = False,
-    manifest_path: Path | None = None,
-) -> dict:
-    """Deprecated — use run() instead. Will be removed in a future release."""
-    warnings.warn(
-        "dal.pipeline.build() is deprecated. Use dal.pipeline.run() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return run(db_path=db_path, force=force, manifest_path=manifest_path)
-
-
-# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -441,13 +422,6 @@ if __name__ == "__main__":
         except (MartNotBuiltError, MartSchemaError) as exc:
             print(f"ERROR: {exc}", file=sys.stderr)
             sys.exit(1)
-
-    elif cmd == "build":
-        print("WARNING: 'build' is deprecated — use 'run' instead.", file=sys.stderr)
-        result = build()
-        _print_manifest(result)
-        failed = [n for n, i in result.get("layers", {}).items() if i.get("status") != "OK"]
-        sys.exit(1 if failed else 0)
 
     else:
         print("Usage: python -m dal.pipeline [run|load] [--force]")

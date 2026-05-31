@@ -25,9 +25,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from signals.lifecycle import load_registry
-from signals.registry.assembly import assemble_registry_from_sections
-from signals.registry.config import assign_gw_block
+from signals.governance import load_registry
+from signals.characterisation.registry_assembler import assemble_registry_from_sections
+from signals.characterisation.config import assign_gw_block
 from studies.experiments.registry_sections_study import SectionBuildConfig, compute_relationship_sections
 from dal.staging import load_staged_entities
 from dal.intermediate.int_player_fixture import get_player_fixture_base
@@ -69,7 +69,7 @@ def computed_registry(seed_registry: pd.DataFrame) -> pd.DataFrame:
         pytest.skip(f"live DB not found at {DB_PATH}; skipping integration tests")
 
     from dal.fct.fct_player_gameweek import build_player_gameweek_spine
-    from signals.registry.builder import _build_registry_population
+    from signals.characterisation.population_builder import _build_registry_population
 
     staged = load_staged_entities(DB_PATH)
     spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)

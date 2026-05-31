@@ -4,7 +4,7 @@ Identifies strong incoming transfer candidates based on rising form, fixture
 context, involvement, and minutes stability. Does not model price movements,
 ownership shifts, or market dynamics.
 
-Weights are loaded from the governance registry (signals/registry/weight_registry.yaml).
+Weights are loaded from the governance registry (signals/characterisation/weight_registry.yaml).
 
 Scope constraint: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
 FWD players receive neutral 0.5 on recent_form_score, form_momentum_score, and
@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from intelligence._base import (
+from intelligence.intelligence_contracts import (
     IntelligenceInputError,
     normalize_within_position,
     validate_intelligence_inputs,

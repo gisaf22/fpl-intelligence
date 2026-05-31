@@ -1,0 +1,269 @@
+# SYNTH-01 Candidate Registry
+#
+# Status: FROZEN
+# Frozen at: 2026-05-27
+# Authority: docs/governance/synth01-candidate-set.md (Phase 4 — SYNTH-01 Readiness)
+# Source: signals/governance/evaluation_metadata.yaml
+#   Extraction criterion: lifecycle_state=candidate AND downstream_status in [eligible, caveated]
+#
+# IMMUTABLE — do not modify after Phase 4 completes.
+# Any change to this file requires a documented Phase 4 restart and a new frozen_at timestamp.
+# Changes must be approved and recorded in docs/governance/synth01-candidate-set.md.
+
+frozen_at: "2026-05-27"
+frozen_by: "Phase 4 — SYNTH-01 Readiness"
+source_doc: "docs/governance/synth01-candidate-set.md"
+design_doc: "docs/governance/synth01-design.md"
+candidate_count: 14
+modification_policy: "IMMUTABLE — any change requires documented Phase 4 restart"
+
+candidates:
+
+  # ---------------------------------------------------------------------------
+  # DEF — 6 candidates
+  # ---------------------------------------------------------------------------
+
+  - signal: xgi_roll3
+    position: DEF
+    lens: FORM
+    target: total_points
+    signal_id: FORM-001
+    rho_pooled: 0.123
+    ci_lower: 0.084
+    ci_upper: 0.161
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: eligible
+    promotion_class: form_signal
+    redundancy_notes: "Within-family pair with xgi_roll5 DEF. SYNTH-01 marginal gain test required."
+
+  - signal: xgi_roll5
+    position: DEF
+    lens: FORM
+    target: total_points
+    signal_id: FORM-002
+    rho_pooled: 0.113
+    ci_lower: 0.071
+    ci_upper: 0.155
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: eligible
+    promotion_class: form_signal
+    redundancy_notes: "Within-family pair with xgi_roll3 DEF. SYNTH-01 marginal gain test required."
+
+  - signal: minutes_roll8
+    position: DEF
+    lens: AVAIL
+    target: played_next_gw
+    signal_id: AVAIL-003
+    rho_pooled: 0.219
+    ci_lower: 0.174
+    ci_upper: 0.261
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: eligible
+    promotion_class: availability_signal
+    redundancy_notes: "No within-family pair at DEF — minutes_roll3/5 excluded at DEF (non-monotonic)."
+
+  - signal: transfers_in
+    position: DEF
+    lens: MARKET
+    target: total_points
+    signal_id: MARKET-001
+    rho_pooled: 0.187
+    ci_lower: 0.146
+    ci_upper: 0.226
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: eligible
+    promotion_class: market_signal
+    redundancy_notes: "HIGH REDUNDANCY pair with ownership_count DEF (pairwise rho=0.794). Marginal gain test required; tiebreak favours transfers_in (higher rho)."
+
+  - signal: ownership_count
+    position: DEF
+    lens: MARKET
+    target: total_points
+    signal_id: MARKET-003
+    rho_pooled: 0.156
+    ci_lower: 0.117
+    ci_upper: 0.196
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: eligible
+    promotion_class: market_signal
+    redundancy_notes: "HIGH REDUNDANCY pair with transfers_in DEF (pairwise rho=0.794). Marginal gain test required; tiebreak favours transfers_in (higher rho)."
+
+  - signal: purchase_price
+    position: DEF
+    lens: MARKET
+    target: total_points
+    signal_id: MARKET-004
+    rho_pooled: 0.121
+    ci_lower: 0.082
+    ci_upper: 0.162
+    block_stability_count: 2
+    block_stability_total: 3
+    downstream_status: caveated
+    promotion_class: market_signal
+    caveat: "G3-WEAK: 2/3 temporal blocks. Borderline temporal stability. SYNTH-01 to confirm independent contribution via partial rho."
+
+  # ---------------------------------------------------------------------------
+  # MID — 7 candidates
+  # ---------------------------------------------------------------------------
+
+  - signal: xgi_roll3
+    position: MID
+    lens: FORM
+    target: total_points
+    signal_id: FORM-001
+    rho_pooled: 0.144
+    ci_lower: 0.107
+    ci_upper: 0.182
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: caveated
+    promotion_class: form_signal
+    caveat: "Does not clear naive baseline (points_roll5 MID rho=0.158 vs xgi_roll3 MID rho=0.144). Naive baseline excluded from SYNTH-01 on leakage grounds (G-EDA7-02). Independence test required."
+    redundancy_notes: "Within-family pair with xgi_roll5 MID. SYNTH-01 marginal gain test required."
+
+  - signal: xgi_roll5
+    position: MID
+    lens: FORM
+    target: total_points
+    signal_id: FORM-002
+    rho_pooled: 0.157
+    ci_lower: 0.118
+    ci_upper: 0.197
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: caveated
+    promotion_class: form_signal
+    caveat: "Borderline below naive baseline (points_roll5 MID rho=0.158 vs xgi_roll5 MID rho=0.157; gap within CI noise). Naive baseline excluded from SYNTH-01 (G-EDA7-02). Independence test required."
+    redundancy_notes: "Within-family pair with xgi_roll3 MID. SYNTH-01 marginal gain test required."
+
+  - signal: minutes_roll3
+    position: MID
+    lens: AVAIL
+    target: played_next_gw
+    signal_id: AVAIL-001
+    rho_pooled: 0.232
+    ci_lower: 0.198
+    ci_upper: 0.269
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: eligible
+    promotion_class: availability_signal
+    redundancy_notes: "Within-family pair with minutes_roll5, minutes_roll8 at MID. SYNTH-01 marginal gain test required for all three windows."
+
+  - signal: minutes_roll5
+    position: MID
+    lens: AVAIL
+    target: played_next_gw
+    signal_id: AVAIL-002
+    rho_pooled: 0.227
+    ci_lower: 0.190
+    ci_upper: 0.265
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: eligible
+    promotion_class: availability_signal
+    redundancy_notes: "Within-family pair with minutes_roll3, minutes_roll8 at MID. SYNTH-01 marginal gain test required."
+
+  - signal: minutes_roll8
+    position: MID
+    lens: AVAIL
+    target: played_next_gw
+    signal_id: AVAIL-003
+    rho_pooled: 0.222
+    ci_lower: 0.180
+    ci_upper: 0.261
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: eligible
+    promotion_class: availability_signal
+    redundancy_notes: "Within-family pair with minutes_roll3, minutes_roll5 at MID. SYNTH-01 marginal gain test required."
+
+  - signal: transfers_in
+    position: MID
+    lens: MARKET
+    target: total_points
+    signal_id: MARKET-001
+    rho_pooled: 0.190
+    ci_lower: 0.153
+    ci_upper: 0.230
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: eligible
+    promotion_class: market_signal
+    redundancy_notes: "HIGH REDUNDANCY pair with ownership_count MID (pairwise rho=0.831). Marginal gain test required; tiebreak favours transfers_in (higher rho)."
+
+  - signal: ownership_count
+    position: MID
+    lens: MARKET
+    target: total_points
+    signal_id: MARKET-003
+    rho_pooled: 0.168
+    ci_lower: 0.130
+    ci_upper: 0.205
+    block_stability_count: 3
+    block_stability_total: 3
+    downstream_status: eligible
+    promotion_class: market_signal
+    redundancy_notes: "HIGH REDUNDANCY pair with transfers_in MID (pairwise rho=0.831). Marginal gain test required; tiebreak favours transfers_in (higher rho)."
+
+  # ---------------------------------------------------------------------------
+  # FWD — 1 candidate (single-signal qualified score only; no composite synthesis)
+  # ---------------------------------------------------------------------------
+
+  - signal: purchase_price
+    position: FWD
+    lens: MARKET
+    target: total_points
+    signal_id: MARKET-004
+    rho_pooled: 0.155
+    ci_lower: 0.077
+    ci_upper: 0.237
+    block_stability_count: 2
+    block_stability_total: 3
+    downstream_status: caveated
+    promotion_class: market_signal
+    caveat: "G3-WEAK: 2/3 temporal blocks. Sole FWD candidate — no composite synthesis possible at FWD (below 2-candidate minimum). Retained as single-signal qualified score only."
+    synthesis_note: "NOT evaluated by SYNTH-01 composite analysis. Qualifies as a single-signal availability-weighted score for FWD intelligence consumers. Intelligence modules must acknowledge the G3-WEAK caveat."
+
+  # ---------------------------------------------------------------------------
+  # GK — 0 candidates; deferred
+  # ---------------------------------------------------------------------------
+  # GK synthesis is not in scope for SYNTH-01.
+  # No evaluation_metadata.yaml entry carries lifecycle_state=candidate at GK.
+  # See docs/governance/synth01-design.md §GK Scope Decision for full rationale.
+  # Action: Deferred pending dedicated LENS-GK study (post-Phase-6).
+
+excluded_positions:
+  FWD:
+    synthesis_eligible: false
+    candidate_count: 1
+    reason: "Only 1 candidate (purchase_price FWD). Below 2-candidate minimum for composite synthesis."
+    action: "Retained as single-signal qualified score. Not evaluated by SYNTH-01 composition analysis."
+
+  GK:
+    synthesis_eligible: false
+    candidate_count: 0
+    reason: "No candidates in evaluation_metadata.yaml from any lens (FORM, AVAIL, MARKET, FIXTURE-GW)."
+    action: "Deferred. Requires dedicated LENS-GK study. See synth01-design.md §GK Scope Decision."
+
+high_redundancy_pairs:
+  - signal_a: ownership_count
+    signal_b: transfers_in
+    position: DEF
+    pairwise_rho: 0.794
+    source: "studies/eda/findings/eda_06_pairwise_rho.csv"
+    classification: HIGH_REDUNDANCY
+    resolution_method: "SYNTH-01 marginal gain test. Tiebreak: retain transfers_in (rho 0.187 > 0.156)."
+
+  - signal_a: ownership_count
+    signal_b: transfers_in
+    position: MID
+    pairwise_rho: 0.831
+    source: "studies/eda/findings/eda_06_pairwise_rho.csv"
+    classification: HIGH_REDUNDANCY
+    resolution_method: "SYNTH-01 marginal gain test. Tiebreak: retain transfers_in (rho 0.190 > 0.168)."

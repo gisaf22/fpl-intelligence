@@ -1,12 +1,12 @@
 import pandas as pd
 import pytest
 
-from signals.lifecycle import (
+from signals.governance import (
     enrich_signal_layers,
     load_registry,
     validate_registry_contract,
 )
-from signals.lifecycle.promotion import enrich_promotion_class
+from signals.governance.promotion import enrich_promotion_class
 
 
 SEMANTIC_COLUMNS = {
@@ -101,7 +101,7 @@ def test_enrich_promotion_class_assigns_null_to_blocked_rows():
 
 
 def test_enrich_promotion_class_assigns_governed_value_to_non_blocked_rows():
-    from signals.lifecycle.promotion import PROMOTION_CLASS_VALUES
+    from signals.governance.promotion import PROMOTION_CLASS_VALUES
 
     registry = load_registry().drop(columns=["promotion_class"])
     enriched = _full_enrich(registry)

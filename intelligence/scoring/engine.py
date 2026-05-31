@@ -1,8 +1,8 @@
 """Scoring engine — pure computation, no I/O.
 
 Inputs:
-  state    — DataFrame from dal.build_player_gameweek_state(spine)
-  manifest — SignalManifest from intelligence.scoring.signals.load_manifest()
+  state    — DataFrame from dal.pipeline.load().mart
+  manifest — SignalManifest from intelligence.scoring.signal_selector.load_manifest()
   gw       — target gameweek integer
 
 Output:

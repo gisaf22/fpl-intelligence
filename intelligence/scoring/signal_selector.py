@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from intelligence.scoring.contracts import CaveatedSignal, ConfirmedSignal, SignalManifest
+from signals.governance.schema import PRE_LENS_SIGNAL_ALLOWLIST as _PRE_LENS_SIGNAL_ALLOWLIST
 
 # Promotion classes eligible for scoring
 _SCORING_CLASSES: frozenset[str] = frozenset({"core_signal", "review_signal"})
@@ -20,27 +21,6 @@ _LEAKAGE_ROLES: frozenset[str] = frozenset({"points_component"})
 
 # layer_role values that are outcome-components (mechanistically tautological to the target)
 _OUTCOME_COMPONENT_ROLES: frozenset[str] = frozenset({"contribution_index"})
-
-# Signals that predate the lens-study methodology and have no evaluation_metadata.yaml record.
-# These are raw FPL stats promoted via the signal registry before LENS-FORM/AVAIL/MARKET ran.
-# Any signal absent from both this set and evaluation_metadata.yaml is an ungoverned signal —
-# it must be either added to this allowlist (with justification) or evaluated through a lens.
-_PRE_LENS_SIGNAL_ALLOWLIST: frozenset[str] = frozenset({
-    "assists",
-    "clean_sheets",
-    "creativity",
-    "goals_conceded",
-    "goals_scored",
-    "ict_index",
-    "influence",
-    "saves",
-    "threat",
-    "xa",
-    "xg",
-    "xgc",
-    "xgi",
-    "yellow_cards",
-})
 
 def _exclusion_reason(row: dict) -> str | None:
     """Return a human-readable exclusion reason, or None if the signal is clear."""
@@ -137,9 +117,9 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
     Any signal absent from both the allowlist and evaluation_metadata.yaml raises
     GovernanceMetadataError: it is ungoverned and must not enter the scoring manifest.
     """
-    from signals.evaluation.governance import get_signal_governance
-    from signals.lifecycle.lifecycle import LeakageViolationError, LifecycleViolationError
-    from signals.lifecycle.schema import GovernanceMetadataError
+    from signals.governance.governance import get_signal_governance
+    from signals.governance.lifecycle import LeakageViolationError, LifecycleViolationError
+    from signals.governance.schema import GovernanceMetadataError
 
     for sig in manifest.confirmed:
         try:
@@ -176,11 +156,9 @@ def load_manifest_from_path(registry_path: str | Path) -> SignalManifest:
     registry path is an exploratory-state artifact (studies/eda/).
     Also asserts evaluation governance compliance for all confirmed signals.
     """
-    from signals.lifecycle.lifecycle import assert_operational_safe
-    from signals.lifecycle.loader import load_registry
+    from signals.governance.registry_loader import load_registry
 
-    assert_operational_safe(registry_path)
-    registry = load_registry(registry_path)
+    registry = load_registry(registry_path, operational=True)
     manifest = load_manifest(registry)
     _assert_governance_compliance(manifest)
     return manifest

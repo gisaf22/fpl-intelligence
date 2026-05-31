@@ -107,7 +107,7 @@ def test_manifest_hash_differs_on_content_change(tmp_path: Path) -> None:
 def test_manifest_written_after_successful_build(db_path: Path, tmp_path: Path) -> None:
     """build() must write a manifest JSON file adjacent to the source DB."""
     import shutil
-    from dal.pipeline import build
+    from dal.pipeline import run as build
 
     local_db = tmp_path / "fpl.db"
     shutil.copy(db_path, local_db)
@@ -122,7 +122,7 @@ def test_manifest_written_after_successful_build(db_path: Path, tmp_path: Path) 
 def test_manifest_contains_required_fields(db_path: Path, tmp_path: Path) -> None:
     """Manifest must include run_id, source_db_hash, gw_range, and layers dict."""
     import shutil
-    from dal.pipeline import build
+    from dal.pipeline import run as build
 
     local_db = tmp_path / "fpl.db"
     shutil.copy(db_path, local_db)
@@ -137,7 +137,7 @@ def test_manifest_contains_required_fields(db_path: Path, tmp_path: Path) -> Non
 def test_manifest_records_per_layer_fingerprint(db_path: Path, tmp_path: Path) -> None:
     """fct layer entry in manifest must include a fingerprint from reproducibility.py."""
     import shutil
-    from dal.pipeline import build
+    from dal.pipeline import run as build
 
     local_db = tmp_path / "fpl.db"
     shutil.copy(db_path, local_db)
@@ -153,7 +153,7 @@ def test_manifest_records_per_layer_fingerprint(db_path: Path, tmp_path: Path) -
 def test_cache_hit_skips_rebuild(db_path: Path, tmp_path: Path) -> None:
     """Second build() call with same source hash must return cached manifest without rebuilding."""
     import shutil
-    from dal.pipeline import build
+    from dal.pipeline import run as build
 
     local_db = tmp_path / "fpl.db"
     shutil.copy(db_path, local_db)
@@ -172,7 +172,7 @@ def test_cache_hit_skips_rebuild(db_path: Path, tmp_path: Path) -> None:
 def test_force_true_rebuilds_despite_cache(db_path: Path, tmp_path: Path) -> None:
     """force=True must rebuild even when source hash is unchanged."""
     import shutil
-    from dal.pipeline import build
+    from dal.pipeline import run as build
 
     local_db = tmp_path / "fpl.db"
     shutil.copy(db_path, local_db)
@@ -187,7 +187,7 @@ def test_force_true_rebuilds_despite_cache(db_path: Path, tmp_path: Path) -> Non
 @pytest.mark.unit
 def test_failed_layer_stops_pipeline(tmp_path: Path) -> None:
     """If fct raises, the manifest records FAIL for fct and feat/mart are not attempted."""
-    from dal.pipeline import build
+    from dal.pipeline import run as build
 
     db = tmp_path / "fpl.db"
     db.write_bytes(b"stub")
@@ -216,7 +216,7 @@ def test_failed_layer_stops_pipeline(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_failed_layer_records_error_message(tmp_path: Path) -> None:
     """Manifest must include the exception message when a layer fails."""
-    from dal.pipeline import build
+    from dal.pipeline import run as build
 
     db = tmp_path / "fpl.db"
     db.write_bytes(b"stub")

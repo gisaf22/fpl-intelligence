@@ -4,8 +4,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from signals.lifecycle.lifecycle import LifecycleViolationError
-from intelligence.reporting.runner import main, run_week
+from signals.governance.lifecycle import LifecycleViolationError
+from intelligence.reporting.weekly_report_runner import main, run_week
 
 
 RESEARCH_REGISTRY = Path("studies/eda/findings/eda_03_joint_registry.csv")

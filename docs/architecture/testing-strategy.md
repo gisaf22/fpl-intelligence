@@ -79,7 +79,7 @@ Static analysis tests that scan all `.py` files and notebooks for forbidden impo
 | G-1 | `pipeline.*` imports — retired namespace |
 | G-2 | `sqlite3` / `pd.read_sql` outside `dal/` — direct DB access bypass |
 | G-3 | `dal.staging` / `dal.intermediate` imports outside DAL and tests |
-| G-4 | Smoke test that `dal.access` and `dal.prepared` are importable |
+| G-4 | Smoke test that `dal.pipeline.run` and `dal.pipeline.load` are importable |
 
 These tests catch architectural regressions that `lint-imports` does not — specifically imports that are technically valid Python but violate the DAL contract.
 

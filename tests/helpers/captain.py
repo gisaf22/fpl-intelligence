@@ -42,7 +42,7 @@ def evaluate_captain_heuristic(
     features:
         Full DAL state output at (player_id, gw) grain. Must include total_points
         (actual GW outcome) and all state rolling columns (points_roll3 etc.).
-        Produced by get_state_features(get_curated_spine(db_path)).
+        Produced by dal.pipeline.load().mart.
     gameweeks:
         Ordered list of historical gameweeks to evaluate.
 

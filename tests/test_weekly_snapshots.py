@@ -1,6 +1,6 @@
 import pandas as pd
 
-from signals.lifecycle import load_registry
+from signals.governance import load_registry
 from intelligence.reporting.snapshots import (
     SNAPSHOT_CHANGE_COLUMNS,
     build_snapshot_changes,

@@ -14,7 +14,7 @@
 Study executed deterministically using:
 
 ```python
-features = get_state_features(get_curated_spine(db_path))
+features = load_mart().mart  # dal.pipeline.load().mart
 results  = evaluate_minutes_stability_conditioning(features)
 interp   = interpret_results(results)
 ```

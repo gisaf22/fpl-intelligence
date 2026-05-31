@@ -123,14 +123,18 @@ def test_no_direct_sql_in_notebooks():
 
 _FORBIDDEN_DAL_IMPORTS = ("dal.staging", "dal.intermediate")
 
-_STAGING_ALLOWLIST: set = {}
+_STAGING_ALLOWLIST: set = {
+    # intelligence/reporting/weekly_report_runner.py re-exports validate_data_freshness
+    # and resolve_target_gw for the weekly runner; direct staging access is intentional here.
+    _PROJECT_ROOT / "intelligence/reporting/weekly_report_runner.py",
+}
 
 
 def test_no_staging_or_intermediate_imports_in_downstream():
     """G-3: downstream .py files must not import dal.staging or dal.intermediate.
 
-    weekly/db.py is the sole allowed exception — it performs GW resolution and
-    freshness validation, which legitimately require direct staging access.
+    intelligence/reporting/weekly_report_runner.py is the sole allowed exception — it
+    re-exports validate_data_freshness and resolve_target_gw for GW freshness validation.
     """
     violations = []
     for path, lineno, line in _collect_py_lines(_DOWNSTREAM_DIRS):
@@ -167,10 +171,12 @@ def test_no_staging_or_intermediate_imports_in_notebooks():
 # ---------------------------------------------------------------------------
 
 def test_dal_public_api_importable():
-    """G-4a: dal must export build_player_gameweek_spine and build_player_gameweek_state."""
-    from dal import build_player_gameweek_spine, build_player_gameweek_state
-    assert callable(build_player_gameweek_spine)
-    assert callable(build_player_gameweek_state)
+    """G-4a: dal.pipeline must export run and load; dal must export MartResult."""
+    from dal.pipeline import load, run
+    from dal import MartResult
+    assert callable(run)
+    assert callable(load)
+    assert MartResult is not None
 
 
 def test_dal_prepared_importable():

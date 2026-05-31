@@ -9,14 +9,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
 
-from dal import (
-    build_player_gameweek_spine,
-    build_player_gameweek_state,
-    get_player_fixture_base,
-    load_staged_entities,
-)
-
 from dal.config import DB_PATH
+from dal.pipeline import load as load_mart
 RUNS_DIR = Path("studies/runs")
 
 # Same-GW signals — no lag shift needed for predictor; target is total_points (same GW)
@@ -122,9 +116,7 @@ def run(db_path: Path = DB_PATH) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading DAL data from {db_path}...")
-    staged = load_staged_entities(db_path)
-    spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
-    state = build_player_gameweek_state(spine)
+    state = load_mart(db_path=db_path).mart
 
     # Same-GW: no target shift needed — total_points is the same-GW outcome
     pop = state[

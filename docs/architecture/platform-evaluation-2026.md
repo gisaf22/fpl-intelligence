@@ -164,4 +164,5 @@ The threshold-registry.md entry for `AVAIL-T-02` (the 60-minute threshold) expli
 | File navigability | 3 files named `runner.py`; 1 name collision (`signals.py`) | Every file has a unique, purposeful name |
 
 Already applied: `get_analytics_dataset()` deleted, `build()` deprecated alias deleted, `POSITION_CODE_MAP` deduplicated, scoring runner bypass fixed, all stale API references in docs and error messages corrected, governance gate centralised in `load_registry(operational=True)`, `_PRE_LENS_SIGNAL_ALLOWLIST` moved to `signals/governance/schema.py`, 4-call chain replaced in 7 study files, internal builder re-exports removed from `dal/__init__.py`, `signals/registry/` renamed to `signals/characterisation/`, `signals/lifecycle/` + `signals/evaluation/` merged to `signals/governance/`, 12 ambiguous filenames replaced with purposeful names, `intelligence/reporting/db.py` inlined into `weekly_report_runner.py`.  
-Remaining new modules: `domain/fpl_scoring.py`, `population/populations.py`, `studies/experiments/population_threshold_study.py`.
+Applied: `domain/fpl_scoring.py` (Change 1), `population/populations.py` (Change 2).  
+Remaining: `studies/experiments/population_threshold_study.py` (Change 3) — design doc at `docs/studies/popthresh-01-design.md`; execution deferred to 2026/27 calibration program.

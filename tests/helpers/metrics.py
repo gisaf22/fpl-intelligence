@@ -12,7 +12,7 @@ Design philosophy:
 
 from __future__ import annotations
 
-from typing import Collection
+from collections.abc import Collection
 
 import pandas as pd
 

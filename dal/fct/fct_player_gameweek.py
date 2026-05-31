@@ -12,29 +12,29 @@ import time
 
 import pandas as pd
 
-from dal.fct.fct_gameweek_context import get_gameweek_context
 from dal.exceptions import DALContractViolation
 from dal.fct.fct_contracts import (
     DTYPES,
-    FIRST_COLS,
     FIRST_COL_SEMANTICS,
+    FIRST_COLS,
     MEAN_COLS,
     NULL_RULES,
     PERFORMANCE_COLS,
     SPINE_COLS,
     SUM_COLS,
 )
-from dal.validation import validate_grain_uniqueness, validate_join_safety
+from dal.fct.fct_gameweek_context import get_gameweek_context
 from dal.fct.validation import (
-    validate_row_completeness,
-    validate_column_contract,
-    validate_row_count_invariant,
-    validate_no_future_data,
-    validate_time_continuity,
     validate_bgw_correctness,
+    validate_column_contract,
     validate_dgw_correctness,
+    validate_no_future_data,
     validate_null_semantics,
+    validate_row_completeness,
+    validate_row_count_invariant,
+    validate_time_continuity,
 )
+from dal.validation import validate_grain_uniqueness, validate_join_safety
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ def _build_player_info(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _build_full_spine(player_universe: list[int], gw_range: list[int]) -> pd.DataFrame:
-    """Construct the cartesian product of all players × all gameweeks."""
+    """Construct the cartesian product of all players x all gameweeks."""
     return pd.DataFrame(
         [(pid, gw) for pid in player_universe for gw in gw_range],
         columns=["player_id", "gw"],
@@ -121,7 +121,7 @@ def _join_gw_context(aggregated: pd.DataFrame, gw_context: pd.DataFrame) -> pd.D
         right_n=len(gw_context),
         result_n=len(result),
         join_type="left",
-        description="aggregated × gameweek context",
+        description="aggregated x gameweek context",
     )
     return result
 
@@ -161,7 +161,7 @@ def _apply_bgw_defaults(
     #      and name, and approximately correct for team (first known team).
     attr_cols = ["player_name", "position_code", "position_label", "team_id", "purchase_price"]
     bgw_rows = result.loc[bgw_mask, ["player_id", "gw"]].copy()
-    lookup = player_info[["player_id", "gw"] + attr_cols].rename(columns={"gw": "gw_played"})
+    lookup = player_info[["player_id", "gw", *attr_cols]].rename(columns={"gw": "gw_played"})
 
     # Step 1 — backward lookup
     merged_back = bgw_rows.reset_index().merge(lookup, on="player_id", how="left")
@@ -263,7 +263,7 @@ def build_player_gameweek_spine(
 
     player_universe = sorted(df["player_id"].unique().tolist())
     logger.info(
-        "Building spine: %d players × %d GWs (GW%d–GW%d)",
+        "Building spine: %d players x %d GWs (GW%d-GW%d)",
         len(player_universe), len(gw_range), min_gw, max_gw,
     )
 
@@ -274,7 +274,7 @@ def build_player_gameweek_spine(
         right_n=len(aggregated),
         result_n=len(result),
         join_type="left",
-        description="spine × fixture aggregation",
+        description="spine x fixture aggregation",
     )
 
     # Join gw_context onto the full spine so BGW rows also get gameweek metadata

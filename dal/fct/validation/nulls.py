@@ -5,7 +5,7 @@ import pandas as pd
 from dal.exceptions import DALContractViolation
 
 
-def validate_null_semantics(df: pd.DataFrame, rules: dict) -> None:
+def validate_null_semantics(df: pd.DataFrame, rules: dict[str, str]) -> None:
     errors = []
     total_violations = 0
 
@@ -22,8 +22,9 @@ def validate_null_semantics(df: pd.DataFrame, rules: dict) -> None:
         elif rule == 'null_if_bgw':
             if 'is_bgw' not in df.columns:
                 continue
-            bgw_rows = df[df['is_bgw'] == True]
-            non_bgw_rows = df[df['is_bgw'] == False]
+            bgw_mask = df['is_bgw'].astype(bool)
+            bgw_rows = df[bgw_mask]
+            non_bgw_rows = df[~bgw_mask]
 
             not_null_in_bgw = bgw_rows[bgw_rows[col].notna()]
             if not not_null_in_bgw.empty:

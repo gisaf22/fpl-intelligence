@@ -26,8 +26,6 @@ Downstream EDA, lenses, and modeling must use this module rather than:
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pandas as pd
 
 from dal.feat.feat_schema import FEATURE_REGISTRY

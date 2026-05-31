@@ -78,7 +78,7 @@ def rank_transfer_targets(
 
     Scoring components (registry weights):
     - recent_form_score    30%: xgi_roll3; excluded at FWD (FORM-001/002 G2-FAIL) → neutral 0.5
-    - form_momentum_score  25%: xgi_roll3 − xgi_roll5; FWD scope guard applied
+    - form_momentum_score  25%: xgi_roll3 - xgi_roll5; FWD scope guard applied
     - fixture_score        20%: binary DGW flag from STATE fixture_context
     - involvement_score    15%: xgi_roll3; excluded at FWD (FORM-001/002 G2-FAIL) → neutral 0.5
     - minutes_stability    10%: minutes_roll5, normalized within position

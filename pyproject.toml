@@ -33,5 +33,33 @@ markers = [
 [dependency-groups]
 dev = [
     "hatchling>=1.29.0",
+    "mypy>=1.10.0",
+    "pre-commit>=3.7.0",
     "pytest>=9.0.3",
+    "ruff>=0.4.0",
 ]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = ["studies/", "archive/", "examples/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "RUF"]
+# E712 noqa suppressions remaining in studies/ are excluded via the top-level exclude above.
+# F401 in weekly_report_runner is handled by removing the dead imports directly.
+
+[tool.ruff.lint.per-file-ignores]
+# SQL fixture data rows use fixed-width numeric alignment that cannot wrap to 120 chars.
+"tests/fixtures/create_test_db.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+# Scope: production modules only. studies/, archive/, examples/ intentionally excluded.
+files = ["dal", "signals", "intelligence", "domain", "population"]
+explicit_package_bases = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+# disallow_any_generics will be added in Day 2 after bare-dict cleanup is verified clean.

@@ -9,14 +9,14 @@ Edge cases tested:
 """
 
 from pathlib import Path
+
 import pandas as pd
-import pandas.testing as tm
 import pytest
 
 from dal.fct.fct_player_gameweek import build_player_gameweek_spine
 from dal.feat.feat_player_gameweek import build_player_gameweek_state
-from dal.staging import load_staged_entities
 from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
 
 pytestmark = pytest.mark.integration
 
@@ -73,7 +73,7 @@ class TestRollingWindowsWithBGW:
         state = build_player_gameweek_state(spine)
 
         # Find a player with a BGW in early GWs
-        spine_with_bgw = spine[spine["is_bgw"] == True].copy()
+        spine_with_bgw = spine[spine["is_bgw"].astype(bool)].copy()
         assert not spine_with_bgw.empty, "No BGW rows found in spine"
 
         # For those players, rolling windows should still compute
@@ -103,8 +103,7 @@ class TestRollingWindowsWithBGW:
         state = build_player_gameweek_state(spine)
 
         # Find a player with both BGW and SGW rows
-        players_with_bgw = spine[spine["is_bgw"] == True]["player_id"].unique()
-        spine_filtered = spine[spine["player_id"].isin(players_with_bgw)]
+        players_with_bgw = spine[spine["is_bgw"].astype(bool)]["player_id"].unique()
 
         for player_id in players_with_bgw[:3]:  # Sample first 3
             player_spine = spine[spine["player_id"] == player_id].sort_values("gw")
@@ -115,8 +114,8 @@ class TestRollingWindowsWithBGW:
                 gw = row["gw"]
                 prior_rows = player_spine[player_spine["gw"].between(gw-5, gw-1)]
 
-                bgw_count = (prior_rows["is_bgw"] == True).sum()
-                sgw_count = (prior_rows["is_bgw"] == False).sum()
+                bgw_count = prior_rows["is_bgw"].astype(bool).sum()
+                sgw_count = (~prior_rows["is_bgw"].astype(bool)).sum()
 
                 # If mixed BGWs and SGWs, rolling should still compute
                 if bgw_count > 0 and sgw_count > 0:
@@ -138,14 +137,14 @@ class TestRollingWindowsWithDGW:
         state = build_player_gameweek_state(spine)
 
         # Find a player with DGW
-        spine_with_dgw = spine[spine["is_dgw"] == True].copy()
+        spine_with_dgw = spine[spine["is_dgw"].astype(bool)].copy()
         assert not spine_with_dgw.empty, "No DGW rows found in spine"
 
         for player_id in spine_with_dgw["player_id"].unique()[:5]:  # Sample first 5
             player_spine = spine[spine["player_id"] == player_id].sort_values("gw")
             player_state = state[state["player_id"] == player_id].sort_values("gw")
 
-            dgw_gws = player_spine[player_spine["is_dgw"] == True]["gw"].unique()
+            dgw_gws = player_spine[player_spine["is_dgw"].astype(bool)]["gw"].unique()
 
             # For GWs after a DGW, roll window should include that DGW's summed xgi
             for dgw_gw in dgw_gws:
@@ -173,7 +172,7 @@ class TestRollingWindowsWithDGW:
         spine = _load_spine()
         state = build_player_gameweek_state(spine)
 
-        spine_with_dgw = spine[spine["is_dgw"] == True].copy()
+        spine_with_dgw = spine[spine["is_dgw"].astype(bool)].copy()
         if spine_with_dgw.empty:
             pytest.skip("No DGW rows in test data")
 
@@ -181,7 +180,7 @@ class TestRollingWindowsWithDGW:
             player_spine = spine[spine["player_id"] == player_id].sort_values("gw")
             player_state = state[state["player_id"] == player_id].sort_values("gw")
 
-            dgw_rows = player_spine[player_spine["is_dgw"] == True]
+            dgw_rows = player_spine[player_spine["is_dgw"].astype(bool)]
 
             for _, dgw_row in dgw_rows.iterrows():
                 dgw_gw = dgw_row["gw"]

@@ -18,7 +18,7 @@ def db_path() -> Path:
 def minimal_spine_df() -> pd.DataFrame:
     """Minimal valid (player_id, gw) fct spine for unit tests. No live DB required.
 
-    2 players × 3 GWs, all SGW. Contains every column required by
+    2 players x 3 GWs, all SGW. Contains every column required by
     build_player_gameweek_state plus position_code for mart position mapping.
     """
     rows = [

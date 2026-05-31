@@ -1,12 +1,12 @@
 import pandas as pd
 
-from signals.governance import load_registry
 from intelligence.reporting.snapshots import (
     SNAPSHOT_CHANGE_COLUMNS,
     build_snapshot_changes,
     default_previous_snapshot_path,
     write_snapshot_changes,
 )
+from signals.governance import load_registry
 
 
 def test_default_previous_snapshot_path_uses_prior_gameweek_folder(tmp_path):

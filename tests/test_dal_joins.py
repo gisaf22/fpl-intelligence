@@ -3,12 +3,12 @@
 from pathlib import Path
 
 import pytest
+
 from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+from dal.feat.feat_player_gameweek import build_player_gameweek_state
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import get_staged_player_histories, load_staged_entities
-from dal.feat.feat_player_gameweek import build_player_gameweek_state
 from dal.validation import validate_grain_uniqueness
-from dal.exceptions import DALContractViolation
 
 pytestmark = pytest.mark.integration
 
@@ -80,7 +80,9 @@ def test_spine_to_state_no_row_loss():
 
 
 def test_spine_to_state_no_fan_out():
-    """State layer has unique (player_id, gw) grain — derivation must not produce duplicate rows. Contract Section 2, 4."""
+    """State layer has unique (player_id, gw) grain — derivation must not produce duplicate rows.
+
+    Contract Section 2, 4."""
     spine = _load_spine()
     state = build_player_gameweek_state(spine)
     validate_grain_uniqueness(state, ["player_id", "gw"], "state")

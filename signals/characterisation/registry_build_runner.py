@@ -9,17 +9,16 @@ from pathlib import Path
 
 import pandas as pd
 
-from signals.governance import load_registry, validate_registry_contract
-from signals.characterisation.registry_assembler import assemble_registry_from_sections
 from signals.characterisation.comparison import compare_registries
 from signals.characterisation.config import (
     DEFAULT_SOURCE_REGISTRY_PATH,
     assign_gw_block,
     default_registry_output_dir,
 )
-from signals.characterisation.registry_build_contracts import validate_prepared_dataset
 from signals.characterisation.metadata import build_registry_metadata
-
+from signals.characterisation.registry_assembler import assemble_registry_from_sections
+from signals.characterisation.registry_build_contracts import validate_prepared_dataset
+from signals.governance import load_registry, validate_registry_contract
 
 BUILD_MODES: tuple[str, ...] = ("packaged", "computed")
 

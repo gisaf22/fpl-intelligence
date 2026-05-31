@@ -19,12 +19,11 @@ The failing test asserts team_id==1 for P3's GW3 BGW row.
 FAILS before fix (returns 2). PASSES after fix (returns 1).
 """
 
-import pytest
 from pathlib import Path
 
 from dal.fct.fct_player_gameweek import build_player_gameweek_spine
-from dal.staging import load_staged_entities
 from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
@@ -85,6 +84,6 @@ def test_bgw_team_id_post_transfer_is_correct():
 
 
 def test_spine_has_correct_row_count():
-    """Golden DB: 3 players × 5 GWs = 15 rows exactly."""
+    """Golden DB: 3 players x 5 GWs = 15 rows exactly."""
     spine = _load_spine()
-    assert len(spine) == 15, f"Expected 15 rows (3 players × 5 GWs), got {len(spine)}"
+    assert len(spine) == 15, f"Expected 15 rows (3 players x 5 GWs), got {len(spine)}"

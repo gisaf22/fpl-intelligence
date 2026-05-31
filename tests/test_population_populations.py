@@ -1,7 +1,6 @@
 """Regression guards for population/populations.py."""
 
 import pandas as pd
-import pytest
 
 from domain.fpl_scoring import APPEARANCE_MIN_MINUTES, CLEAN_SHEET_MIN_MINUTES
 from population.populations import filter_participation, filter_performance

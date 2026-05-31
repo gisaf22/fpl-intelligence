@@ -4,10 +4,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from signals.governance import load_registry, validate_registry_contract
-from signals.characterisation.registry_build_runner import main, run_registry_build
 from intelligence.reporting.weekly_report_runner import run_week
-
+from signals.characterisation.registry_build_runner import main, run_registry_build
+from signals.governance import load_registry, validate_registry_contract
 
 SOURCE_REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
 

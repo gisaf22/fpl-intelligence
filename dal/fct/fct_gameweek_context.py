@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from dal.staging import get_staged_events
-from dal.fct.fct_contracts import GAMEWEEK_CONTEXT_COLS
 from dal.exceptions import DALContractViolation
+from dal.fct.fct_contracts import GAMEWEEK_CONTEXT_COLS
+from dal.staging import get_staged_events
 from dal.validation.grain import validate_grain_uniqueness
 
 

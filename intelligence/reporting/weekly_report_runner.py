@@ -14,14 +14,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from dal.staging import validate_data_freshness  # noqa: F401
-from dal.fct.fct_gameweek_context import resolve_target_gw  # noqa: F401
-from signals.governance import load_registry, validate_registry_contract
 from intelligence.reporting.insight_card_writer import write_insight_cards
 from intelligence.reporting.reports import write_weekly_markdown_report, write_weekly_report_tables
 from intelligence.reporting.signal_intelligence import write_signal_intelligence
 from intelligence.reporting.snapshots import write_snapshot_changes
-
+from signals.governance import load_registry, validate_registry_contract
 
 DEFAULT_WEEKLY_OUTPUT_ROOT = Path("outputs/weekly")
 

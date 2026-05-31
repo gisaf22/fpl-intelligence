@@ -16,7 +16,6 @@ import pytest
 from tests.helpers.transfers import evaluate_transfer_heuristic
 from tests.helpers.value import evaluate_value_heuristic
 
-
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
@@ -71,7 +70,7 @@ def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _multi_gw_features(n_players: int = 3, gws: list[int] = None) -> pd.DataFrame:
+def _multi_gw_features(n_players: int = 3, gws: list[int] | None = None) -> pd.DataFrame:
     """Generate a features DataFrame spanning multiple GWs for lookahead tests."""
     if gws is None:
         gws = [5, 6, 7, 8]

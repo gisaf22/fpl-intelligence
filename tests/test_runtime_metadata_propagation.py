@@ -14,12 +14,11 @@ from __future__ import annotations
 import pytest
 
 from signals.governance.schema import (
-    GovernanceMetadata,
-    GovernanceMetadataError,
     LEAKAGE_RISK_VALUES,
     LIFECYCLE_STATE_VALUES,
+    GovernanceMetadata,
+    GovernanceMetadataError,
 )
-
 
 # ---------------------------------------------------------------------------
 # GovernanceMetadata schema
@@ -251,8 +250,8 @@ class TestAssertGovernanceCompliance:
 
     def test_missing_governance_metadata_raises_if_not_allowlisted(self) -> None:
         """Signals absent from both evaluation_metadata.yaml and _PRE_LENS_SIGNAL_ALLOWLIST must raise."""
-        from signals.governance.schema import GovernanceMetadataError
         from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from signals.governance.schema import GovernanceMetadataError
 
         manifest = _make_manifest([_make_confirmed("unknown_signal_xyz", "DEF")])
         with pytest.raises(GovernanceMetadataError):
@@ -286,8 +285,9 @@ class TestAssertGovernanceCompliance:
 
 class TestYAMLCompleteness:
     def _load_yaml(self) -> list[dict]:
-        import yaml
         from pathlib import Path
+
+        import yaml
 
         path = Path("signals/governance/evaluation_metadata.yaml")
         with path.open() as fh:
@@ -391,8 +391,9 @@ class TestGetSignalGovernanceCompleteness:
     signal-position pair present in evaluation_metadata.yaml (Phase 4 requirement)."""
 
     def _load_yaml(self) -> list[dict]:
-        import yaml
         from pathlib import Path
+
+        import yaml
 
         path = Path("signals/governance/evaluation_metadata.yaml")
         with path.open() as fh:

@@ -25,9 +25,9 @@ from intelligence.transfers import rank_transfer_targets
 from intelligence.value import rank_value_players
 
 __all__ = [
+    "flag_availability_risk",
     "rank_captain_candidates",
+    "rank_fixture_opportunities",
     "rank_transfer_targets",
     "rank_value_players",
-    "flag_availability_risk",
-    "rank_fixture_opportunities",
 ]

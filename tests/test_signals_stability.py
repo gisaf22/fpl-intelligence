@@ -9,7 +9,6 @@ import pytest
 from studies.kernels.stability import (
     BLOCK_HOMOGENEITY_VALUES,
     EPSILON,
-    MIN_N_FOR_BLOCK_STATS,
     POOLING_DECISION_VALUES,
     STABLE_THRESHOLD,
     UNSTABLE_THRESHOLD,
@@ -103,13 +102,15 @@ def test_output_row_count_signal_x_position_x_block():
     result = compute_signal_block_distributions(
         combined, signals=["xg"], positions=["MID", "FWD"], gw_blocks=DEFAULT_GW_BLOCKS
     )
-    # 1 signal × 2 positions × 2 blocks = 4 rows
+    # 1 signal x 2 positions x 2 blocks = 4 rows
     assert len(result) == 4
 
 
 def test_missing_signal_is_skipped():
     df = _make_df()
-    result = compute_signal_block_distributions(df, signals=["nonexistent"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
+    result = compute_signal_block_distributions(
+        df, signals=["nonexistent"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS
+    )
     assert len(result) == 0
 
 

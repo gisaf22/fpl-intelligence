@@ -1,18 +1,17 @@
 """Tests for player-opponent-context state DAL dataset."""
 
 from pathlib import Path
-from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
+from dal.exceptions import DALContractViolation
 from dal.intermediate.int_opponent_context import (
     build_player_opponent_defensive_context,
     validate_xgc_001,
 )
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import load_staged_entities
-from dal.exceptions import DALContractViolation
 
 pytestmark = pytest.mark.integration
 

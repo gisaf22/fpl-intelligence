@@ -8,7 +8,7 @@ The DB is fully deterministic — running twice produces the same file.
 Scenario design:
     Teams:   T1=1, T2=2, T3=3, T4=4
     Players: P1=101 (GK, always T1), P2=102 (GK, always T2), P3=103 (MID, T1→T2)
-    GWs:     1–5
+    GWs:     1-5
 
     GW1: F1  T1 home vs T2 away
     GW2: F2  T1 home vs T3 away  |  F3  T2 home vs T4 away
@@ -17,7 +17,7 @@ Scenario design:
     GW5: F7  T1 home vs T3 away  |  F8  T2 home vs T4 away
 
 SC-2 (BGW team_id):
-    P3 plays for T1 in GW1–2, has BGW in GW3 (T1 has no fixture), then transfers to T2 for GW4–5.
+    P3 plays for T1 in GW1-2, has BGW in GW3 (T1 has no fixture), then transfers to T2 for GW4-5.
     players.team for P3 = 2 (T2, current snapshot — post-transfer).
     Correct BGW GW3 team_id for P3 = 1 (T1, last team before BGW).
     Bug: current code uses latest players.team = T2 for all BGW rows.
@@ -33,7 +33,7 @@ DGW fixture difficulties:
     fdr_avg for P2 in GW4 = 3.5, fdr_min = 3, fdr_max = 4
 
 SC-1 (minutes_trend look-ahead):
-    P1 plays 90 min in GW1–2, BGW GW3, then 90 min GW4–5.
+    P1 plays 90 min in GW1-2, BGW GW3, then 90 min GW4-5.
     Separate unit test uses synthetic data; golden DB used for golden-value assertions.
 """
 

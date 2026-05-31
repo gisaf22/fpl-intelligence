@@ -1,23 +1,21 @@
 """Unit tests for dal/validation/* modules."""
 
-import numpy as np
 import pandas as pd
 import pytest
 
-from dal.fct.fct_contracts import PERFORMANCE_COLS
 from dal.exceptions import DALContractViolation
-from dal.validation import validate_grain_uniqueness, validate_join_safety
+from dal.fct.fct_contracts import PERFORMANCE_COLS
 from dal.fct.validation import (
-    validate_row_completeness,
     validate_bgw_correctness,
-    validate_dgw_correctness,
     validate_column_contract,
-    validate_null_semantics,
-    validate_time_continuity,
-    validate_row_count_invariant,
+    validate_dgw_correctness,
     validate_no_future_data,
+    validate_null_semantics,
+    validate_row_completeness,
+    validate_row_count_invariant,
+    validate_time_continuity,
 )
-
+from dal.validation import validate_grain_uniqueness, validate_join_safety
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -523,10 +521,10 @@ class TestValidateRowCountInvariant:
 
 class TestValidateNoFutureData:
     # Contract: future GW rows must have NULL (pd.NA) performance — see docs/adr/012-dal-design-rationale.md
-    _PERF_COLS = [
+    _PERF_COLS = (
         "total_points", "minutes", "goals_scored", "assists", "clean_sheets",
         "yellow_cards", "red_cards", "saves", "bonus", "bps", "xg", "xa", "xgi",
-    ]
+    )
 
     def _base_df(self):
         rows = []

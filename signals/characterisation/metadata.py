@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -35,10 +35,10 @@ def build_registry_metadata(
         "source_registry_path": str(source_registry_path),
         "registry_version": registry_version,
         "schema_version": schema_version,
-        "build_timestamp": datetime.now(timezone.utc)
+        "build_timestamp": datetime.now(UTC)
         .replace(microsecond=0)
         .isoformat(),
-        "row_count": int(len(registry)),
+        "row_count": len(registry),
         "signal_count": int(registry["signal"].nunique()),
         "position_count": int(registry["position"].nunique()),
     }

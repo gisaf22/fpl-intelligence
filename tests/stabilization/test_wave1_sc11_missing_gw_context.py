@@ -17,16 +17,16 @@ The failing test:
   - FAILS before fix (no exception raised). PASSES after fix (exception raised).
 """
 
-import pytest
-import pandas as pd
-from pathlib import Path
 
-from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+import pandas as pd
+import pytest
+
 from dal.exceptions import DALContractViolation
+from dal.fct.fct_player_gameweek import build_player_gameweek_spine
 
 
 def _make_minimal_player_fixture_base() -> pd.DataFrame:
-    """Return a minimal player_fixture_base covering GWs 1–5 for one player."""
+    """Return a minimal player_fixture_base covering GWs 1-5 for one player."""
     rows = []
     for gw in range(1, 6):
         rows.append({
@@ -88,7 +88,7 @@ def _make_minimal_player_fixture_base() -> pd.DataFrame:
 
 
 def _make_gw_context_missing_gw5() -> pd.DataFrame:
-    """Return events covering GWs 1–4 only (GW5 is missing)."""
+    """Return events covering GWs 1-4 only (GW5 is missing)."""
     rows = []
     for gw in range(1, 5):
         rows.append({
@@ -108,8 +108,8 @@ def _make_gw_context_missing_gw5() -> pd.DataFrame:
 def test_missing_gw_context_raises_immediately():
     """SC-11 FAILING TEST: missing GW context must raise DALContractViolation.
 
-    Patches get_player_fixture_base to return data for GWs 1–5.
-    Patches get_gameweek_context to return only GWs 1–4.
+    Patches get_player_fixture_base to return data for GWs 1-5.
+    Patches get_gameweek_context to return only GWs 1-4.
 
     Assert DALContractViolation raised during spine build, naming GW5 as missing.
     FAILS before fix (warning logged but no exception). PASSES after fix (exception raised).

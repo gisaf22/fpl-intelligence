@@ -3,12 +3,12 @@
 from pathlib import Path
 
 import pytest
-from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+
 from dal.fct.fct_contracts import SPINE_COLS
-from dal.fct.validation import validate_no_future_data, validate_column_contract
-from dal.exceptions import DALContractViolation
-from dal.staging import load_staged_entities
+from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+from dal.fct.validation import validate_no_future_data
 from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
 
 pytestmark = pytest.mark.integration
 

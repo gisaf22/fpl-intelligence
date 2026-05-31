@@ -26,7 +26,6 @@ from studies.experiments.rolling_xgi_study import (
 )
 from studies.kernels.windows import assert_no_future_leakage
 
-
 # ---------------------------------------------------------------------------
 # Realistic data builder — mirrors real-data characteristics
 # ---------------------------------------------------------------------------
@@ -204,7 +203,7 @@ class TestMetricReproducibility:
     """Metric computations are consistent and arithmetically correct."""
 
     def test_rho_values_in_valid_range(self):
-        """All rho values lie in [−1, 1]."""
+        """All rho values lie in [-1, 1]."""
         features = _realistic_fwd_dataset(n_players=18, gws=list(range(6, 34)))
         result = evaluate_rolling_xgi_horizons(features, min_gw=6, max_gw=33)
         for sig, info in result["signals"].items():

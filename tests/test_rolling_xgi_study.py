@@ -22,7 +22,6 @@ from studies.experiments.rolling_xgi_study import (
     interpret_results,
 )
 
-
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
@@ -365,7 +364,7 @@ class TestRollingWindowCorrectness:
 # ---------------------------------------------------------------------------
 
 class TestInterpretResults:
-    _KNOWN_INTERPRETATIONS = {
+    _KNOWN_INTERPRETATIONS = frozenset({
         "insufficient_data",
         "no_rolling_horizon_beats_lag1",
         "signal_remains_investigational_unstable",
@@ -373,7 +372,7 @@ class TestInterpretResults:
         "roll5_materially_improves_over_roll3",
         "roll3_supported_no_change_warranted",
         "signal_remains_investigational",
-    }
+    })
 
     def test_returns_known_interpretation_string(self):
         features = _multi_gw_fwd_population(n_players=10, gws=list(range(6, 16)))

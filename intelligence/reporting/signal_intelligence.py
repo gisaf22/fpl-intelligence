@@ -18,7 +18,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 # ---------------------------------------------------------------------------
 # Governed vocabularies
 # ---------------------------------------------------------------------------
@@ -43,11 +42,11 @@ PROMOTION_CLASS_COLUMNS: tuple[str, ...] = (
 
 _STABLE_TEMPLATES: dict[str, str] = {
     "core_signal": (
-        "{signal} × {position}: stable continuous-monotonic association "
+        "{signal} x {position}: stable continuous-monotonic association "
         "(rho={rho_pooled}). Suitable as a governed descriptive anchor."
     ),
     "review_signal": (
-        "{signal} × {position}: association present, under review "
+        "{signal} x {position}: association present, under review "
         "(rho={rho_pooled}, temporal stability: {temporal_stability}). "
         "Interpret with caution."
     ),
@@ -55,11 +54,11 @@ _STABLE_TEMPLATES: dict[str, str] = {
 
 _CONTEXT_NOTE_TEMPLATES: dict[str, str] = {
     "exposure": (
-        "{signal} × {position}: exposure control — governs access to point "
+        "{signal} x {position}: exposure control — governs access to point "
         "accumulation, not player quality. Use to filter or condition analysis only."
     ),
     "context": (
-        "{signal} × {position}: match-context signal — conditions positional "
+        "{signal} x {position}: match-context signal — conditions positional "
         "interpretation. Use as segmentation or conditioning axis only."
     ),
 }

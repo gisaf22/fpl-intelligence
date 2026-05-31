@@ -215,8 +215,8 @@ CONTROLLED_VALUE_COLUMNS: dict[str, frozenset[str]] = {
 }
 
 # downstream_status="blocked" with relationship_geometry="unassessable" marks permanent
-# structural exclusions — position-role mismatches (goals_scored×GK) or >99% zero mass
-# (red_cards×GK). These are not data quality issues and are not recoverable from the registry.
+# structural exclusions — position-role mismatches (goals_scored x GK) or >99% zero mass
+# (red_cards x GK). These are not data quality issues and are not recoverable from the registry.
 
 # Columns where null/empty is a valid governed state (not a data error).
 # support_type is empty when no support failure exists.

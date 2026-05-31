@@ -9,7 +9,6 @@ import pytest
 
 from dal.staging import ColumnMapping, Schema, load_schema, stage
 from dal.staging.stg_transformer import (
-    _build_query,
     _normalize_canonical_columns,
     _rename_source_columns,
     _validate_non_nullable_columns,
@@ -57,7 +56,10 @@ def test_load_schema_unknown_entity_raises_file_not_found():
 
 def test_load_schema_missing_source_table(tmp_path, monkeypatch):
     bad = tmp_path / "bad.yaml"
-    bad.write_text("columns:\n  - source: x\n    canonical: x\n    dtype: int64\n    nullable: false\n    description: x\n")
+    schema_yaml = (
+        "columns:\n  - source: x\n    canonical: x\n    dtype: int64\n    nullable: false\n    description: x\n"
+    )
+    bad.write_text(schema_yaml)
     import dal.staging.stg_schema as staging_module
     monkeypatch.setattr(staging_module, "SCHEMA_DIR", tmp_path)
     with pytest.raises(ValueError, match="source_table"):
@@ -291,7 +293,7 @@ def test_stage_players_purchase_price_is_float64_divided_by_10():
     schema = load_schema("players")
     df = stage(DB_PATH, schema)
     assert df["purchase_price"].dtype == "float64"
-    # Verify divide_by_10: prices should be in range £4.0–£15.0 for FPL
+    # Verify divide_by_10: prices should be in range £4.0-£15.0 for FPL
     assert df["purchase_price"].min() >= 3.0
     assert df["purchase_price"].max() <= 20.0
 

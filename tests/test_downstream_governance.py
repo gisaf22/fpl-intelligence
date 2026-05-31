@@ -13,8 +13,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 _PROJECT_ROOT = Path(__file__).parent.parent
 
 # Directories that are NOT the DAL — downstream consumers must not bypass the DAL.
@@ -172,8 +170,8 @@ def test_no_staging_or_intermediate_imports_in_notebooks():
 
 def test_dal_public_api_importable():
     """G-4a: dal.pipeline must export run and load; dal must export MartResult."""
-    from dal.pipeline import load, run
     from dal import MartResult
+    from dal.pipeline import load, run
     assert callable(run)
     assert callable(load)
     assert MartResult is not None

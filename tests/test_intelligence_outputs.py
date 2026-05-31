@@ -12,18 +12,17 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+from intelligence.availability import flag_availability_risk
+from intelligence.captain import rank_captain_candidates
+from intelligence.fixtures import rank_fixture_opportunities
 from intelligence.intelligence_contracts import (
     IntelligenceInputError,
     normalize_within_position,
     validate_intelligence_inputs,
     weighted_composite,
 )
-from intelligence.availability import flag_availability_risk
-from intelligence.captain import rank_captain_candidates
-from intelligence.fixtures import rank_fixture_opportunities
 from intelligence.transfers import rank_transfer_targets
 from intelligence.value import rank_value_players
-
 
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
@@ -491,13 +490,13 @@ class TestRankFixtureOpportunities:
 class TestIntelligenceGovernance:
     """Governance contracts across all intelligence outputs."""
 
-    _ALL_FUNCTIONS = [
+    _ALL_FUNCTIONS = (
         ("rank_captain_candidates", rank_captain_candidates),
         ("rank_transfer_targets", rank_transfer_targets),
         ("rank_value_players", rank_value_players),
         ("flag_availability_risk", flag_availability_risk),
         ("rank_fixture_opportunities", rank_fixture_opportunities),
-    ]
+    )
 
     @pytest.mark.parametrize("name,fn", _ALL_FUNCTIONS)
     def test_all_reject_missing_required_column(self, name, fn, two_player_features):
@@ -507,11 +506,11 @@ class TestIntelligenceGovernance:
 
     def test_intelligence_does_not_import_eda(self):
         """Intelligence modules must not depend on research EDA paths."""
+        import intelligence.availability as avail_mod
         import intelligence.captain as cap_mod
+        import intelligence.fixtures as fix_mod
         import intelligence.transfers as trans_mod
         import intelligence.value as val_mod
-        import intelligence.availability as avail_mod
-        import intelligence.fixtures as fix_mod
 
         for mod in [cap_mod, trans_mod, val_mod, avail_mod, fix_mod]:
             src = mod.__file__

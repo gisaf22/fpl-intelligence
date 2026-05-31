@@ -8,8 +8,6 @@ Research artifacts (studies/eda/, exploratory registries) must not enter here.
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 import pandas as pd
 
 # Columns from the state layer required by intelligence functions.
@@ -84,8 +82,8 @@ def normalize_within_position(
 
 def weighted_composite(
     df: pd.DataFrame,
-    component_cols: List[str],
-    weights: Dict[str, float],
+    component_cols: list[str],
+    weights: dict[str, float],
 ) -> pd.Series:
     """Compute weighted composite score from normalized [0, 1] component columns.
 

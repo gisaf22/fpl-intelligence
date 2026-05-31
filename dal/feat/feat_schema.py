@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 
 import pandera.pandas as pa
 
-
 # pa.DataFrameSchema — not pa.DataFrameModel — to avoid inner class Config pattern.
 FEAT_SCHEMA = pa.DataFrameSchema(
     columns={

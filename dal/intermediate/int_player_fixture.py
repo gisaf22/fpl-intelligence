@@ -10,9 +10,9 @@ import logging
 
 import pandas as pd
 
-from dal.staging import StagedEntities
-from dal.intermediate.int_fixture_context import get_fixture_context
 from dal.exceptions import DALContractViolation
+from dal.intermediate.int_fixture_context import get_fixture_context
+from dal.staging import StagedEntities
 from dal.validation import validate_join_safety
 from dal.validation.grain import validate_grain_uniqueness
 
@@ -70,7 +70,7 @@ def _join_player_fixture(
         right_n=len(players_slim),
         result_n=len(result),
         join_type="left",
-        description="player histories × players",
+        description="player histories x players",
     )
 
     n_before_positions_join = len(result)
@@ -80,7 +80,7 @@ def _join_player_fixture(
         right_n=len(positions_slim),
         result_n=len(result),
         join_type="left",
-        description="player histories × positions",
+        description="player histories x positions",
     )
 
     n_before_fixtures_join = len(result)
@@ -90,7 +90,7 @@ def _join_player_fixture(
         right_n=len(fixtures_slim),
         result_n=len(result),
         join_type="left",
-        description="player histories × fixture context",
+        description="player histories x fixture context",
     )
 
     return result.rename(columns=_XG_RENAME_MAP)

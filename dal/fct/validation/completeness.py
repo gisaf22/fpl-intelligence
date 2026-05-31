@@ -5,7 +5,11 @@ import pandas as pd
 from dal.exceptions import DALContractViolation
 
 
-def validate_row_completeness(df: pd.DataFrame, player_ids, gw_range) -> None:
+def validate_row_completeness(
+    df: pd.DataFrame,
+    player_ids: list[int],
+    gw_range: list[int],
+) -> None:
     expected = {(p, g) for p in player_ids for g in gw_range}
     actual = set(zip(df['player_id'], df['gw']))
     missing = expected - actual

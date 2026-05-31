@@ -10,17 +10,13 @@ O-5: No hash-level reproducibility artifact.
 O-6: No timing instrumentation at spine build boundaries.
 """
 
-import os
 import logging
-import hashlib
 from pathlib import Path
-from unittest.mock import patch
 
 import pandas as pd
-import pytest
 
-from dal.staging import load_staged_entities
 from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
@@ -59,8 +55,8 @@ def test_staging_logs_entity_row_count(caplog):
 
     FAILS before fix (no logging). PASSES after fix.
     """
-    from dal.staging.stg_transformer import stage
     from dal.staging.stg_schema import load_schema
+    from dal.staging.stg_transformer import stage
 
     with caplog.at_level(logging.INFO, logger="dal.staging.stg_transformer"):
         stage(TEST_DB_PATH, load_schema("players"))

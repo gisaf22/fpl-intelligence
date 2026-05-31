@@ -13,7 +13,6 @@ from signals.governance.schema import (
     RESEARCH_REGISTRY_PATH,
 )
 
-
 TRUE_VALUES = {"true", "1", "yes", "y"}
 FALSE_VALUES = {"false", "0", "no", "n"}
 

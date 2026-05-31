@@ -349,7 +349,7 @@ def _fmt(value: float | None, decimals: int = 2) -> str:
 def _bar_html(normalised: float | None, direction: int) -> str:
     if normalised is None:
         return '<div class="bar-wrap"></div>'
-    pct = max(0.0, min(1.0, normalised)) * 50  # 0–50% of cell width
+    pct = max(0.0, min(1.0, normalised)) * 50  # 0-50% of cell width
     if direction > 0:
         fill = f'<div class="bar-fill pos" style="width:{pct:.1f}%"></div>'
     else:
@@ -386,7 +386,7 @@ def _render_position_table(
         th_signals += (
             f'<th class="signal-col">'
             f'{html.escape(sig.signal)}{badge}'
-            f'<br><span class="signal-meta">{direction_arrow} ρ={rho_display}</span>'
+            f'<br><span class="signal-meta">{direction_arrow} ρ={rho_display}</span>'  # noqa: RUF001
             f'</th>'
         )
 
@@ -510,9 +510,9 @@ def render(output: ScorerOutput) -> str:
     This ranks players by historical signal associations. It is not a prediction.
   </div>
   <div class="methodology-note">
-    Score = weighted mean of normalised signal values, weight = |ρ| (Spearman rank correlation
+    Score = weighted mean of normalised signal values, weight = |&rho;| (Spearman rank correlation
     with GW total points). Signals shown are lifecycle-promoted (core_signal or review_signal)
-    with |ρ| ≥ 0.15. Higher score = stronger historical signal alignment. Not a prediction.
+    with |&rho;| &ge; 0.15. Higher score = stronger historical signal alignment. Not a prediction.
   </div>
   {provenance_html}
 </div>

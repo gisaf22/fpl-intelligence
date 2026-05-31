@@ -34,14 +34,14 @@ def _raise_if_null(frame: pd.DataFrame, col: str, message: str, validation: str,
     _raise_if(frame, frame[col].isna(), message, validation, error_code)
 
 
-def validate_bgw_correctness(df: pd.DataFrame, performance_cols=None) -> None:
+def validate_bgw_correctness(df: pd.DataFrame, performance_cols: set[str] | list[str] | None = None) -> None:
     """Assert BGW rows conform to the BGW semantic contract.
 
     performance_cols: iterable of column names that must be NULL for BGW rows.
     Callers pass their layer's PERFORMANCE_COLS constant. If None, the performance
     column check is skipped — only fixture_count, fdr, and was_home are checked.
     """
-    bgw = df[df['is_bgw'] == True]
+    bgw = df[df['is_bgw'].astype(bool)]
     if bgw.empty:
         return
 
@@ -75,7 +75,7 @@ def validate_dgw_correctness(df: pd.DataFrame) -> None:
             "validate_dgw_correctness", "DGW_VIOLATION",
         )
 
-    dgw = df[df['is_dgw'] == True]
+    dgw = df[df['is_dgw'].astype(bool)]
     if dgw.empty:
         return
 

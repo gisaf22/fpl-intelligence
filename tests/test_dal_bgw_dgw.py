@@ -3,11 +3,11 @@
 from pathlib import Path
 
 import pytest
+
 from dal.fct.fct_player_gameweek import build_player_gameweek_spine
 from dal.fct.validation import validate_bgw_correctness
-from dal.exceptions import DALContractViolation
-from dal.staging import load_staged_entities
 from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
 
 pytestmark = pytest.mark.integration
 
@@ -63,7 +63,7 @@ def test_market_columns_never_null():
 def test_bgw_fixture_count_zero():
     """All is_bgw=True rows have fixture_count=0 — no fixture, no count. Contract Section 5."""
     spine = _load_spine()
-    bgw_rows = spine[spine["is_bgw"] == True]
+    bgw_rows = spine[spine["is_bgw"].astype(bool)]
     assert bgw_rows.empty or (bgw_rows["fixture_count"] == 0).all(), (
         f"BGW rows with fixture_count != 0: {(bgw_rows['fixture_count'] != 0).sum()} violations"
     )
@@ -72,7 +72,7 @@ def test_bgw_fixture_count_zero():
 def test_bgw_performance_columns_null():
     """BGW rows have performance columns == NULL — NULL means no fixture context, not zero. Contract Section 5, 6."""
     spine = _load_spine()
-    bgw_rows = spine[spine["is_bgw"] == True]
+    bgw_rows = spine[spine["is_bgw"].astype(bool)]
     if bgw_rows.empty:
         return
     for col in _PERFORMANCE_COLS:
@@ -85,7 +85,7 @@ def test_bgw_performance_columns_null():
 def test_bgw_fdr_avg_null():
     """All is_bgw=True rows have fdr_avg == NULL — no fixture, no difficulty. Contract Section 5, 6."""
     spine = _load_spine()
-    bgw_rows = spine[spine["is_bgw"] == True]
+    bgw_rows = spine[spine["is_bgw"].astype(bool)]
     if bgw_rows.empty:
         return
     bad = bgw_rows[bgw_rows["fdr_avg"].notna()]

@@ -12,7 +12,6 @@ Phase 4 additions (Governance Consolidation):
 
 from pathlib import Path
 
-import pytest
 import yaml
 
 EVAL_META_PATH = Path("signals/governance/evaluation_metadata.yaml")

@@ -38,7 +38,7 @@ class ErrorCode(StrEnum):
     consumers catching the exception know what to expect without reading source code.
     """
     GRAIN_DUPLICATE = "GRAIN_DUPLICATE"    # duplicate (player_id, gw) pairs
-    ROW_COUNT       = "ROW_COUNT"          # n_players × n_gws invariant violated
+    ROW_COUNT       = "ROW_COUNT"          # n_players x n_gws invariant violated
     MISSING_COLUMNS = "MISSING_COLUMNS"    # required columns absent from layer output
     COLUMN_EXTRA    = "COLUMN_EXTRA"       # unexpected columns present in layer output
     DTYPE_MISMATCH  = "DTYPE_MISMATCH"    # column type does not match declared dtype
@@ -69,7 +69,7 @@ class DALContractViolation(DALError):
         *,
         validation: str | None = None,
         n_violations: int | None = None,
-        error_code: ErrorCode | None = None,
+        error_code: str | ErrorCode | None = None,
     ) -> None:
         if error_code is not None and error_code not in _VALID_CODES:
             raise ValueError(
@@ -79,7 +79,7 @@ class DALContractViolation(DALError):
         self.message = message
         self.validation = validation
         self.n_violations = n_violations
-        self.error_code = error_code
+        self.error_code: str | ErrorCode | None = error_code
 
         super().__init__(self._format())
 

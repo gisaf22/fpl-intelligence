@@ -23,7 +23,7 @@ second claim, which the spine validation does not address.
 Interpretation guide
 --------------------
 - rho > 0.3: meaningfully useful predictor for operational decisions
-- rho 0.1–0.3: weak signal, use cautiously
+- rho 0.1-0.3: weak signal, use cautiously
 - rho < 0.1: not reliably useful — raw single-game may be equally noisy
 - rolling rho > lag1 rho: state construction adds lift over raw single-game
 - rolling rho < lag1 rho: state construction may be smoothing signal away

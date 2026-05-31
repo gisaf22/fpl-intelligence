@@ -5,13 +5,12 @@ import pandas as pd
 import pytest
 
 from studies.eda.population import (
-    POPULATION_ROBUSTNESS_VALUES,
     MIN_N_FOR_RHO,
+    POPULATION_ROBUSTNESS_VALUES,
     RHO_SHIFT_STABLE_THRESHOLD,
     classify_population_robustness,
     compute_dual_scope_rho,
 )
-
 
 # --- vocabulary ---
 

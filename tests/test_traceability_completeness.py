@@ -16,7 +16,6 @@ Four core assertions:
 
 from pathlib import Path
 
-import pytest
 import yaml
 
 from dal.feat.feat_schema import FEATURE_REGISTRY
@@ -54,7 +53,7 @@ def test_all_evaluated_signals_have_traceability_entry():
 
     missing = eval_signals - traced_signals
     assert not missing, (
-        f"Signals in evaluation_metadata.yaml without any traceability entry:\n"
+        "Signals in evaluation_metadata.yaml without any traceability entry:\n"
         + "\n".join(sorted(missing))
     )
 
@@ -71,7 +70,7 @@ def test_all_governed_rolling_cols_have_traceability_entry():
 
     missing = governed - traced_signals
     assert not missing, (
-        f"Governed STATE columns without any traceability entry:\n"
+        "Governed STATE columns without any traceability entry:\n"
         + "\n".join(sorted(missing))
     )
 

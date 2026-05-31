@@ -8,7 +8,6 @@ from signals.governance import (
 )
 from signals.governance.promotion import enrich_promotion_class
 
-
 SEMANTIC_COLUMNS = {
     "signal_layer",
     "layer_role",
@@ -24,7 +23,7 @@ def _full_enrich(registry: pd.DataFrame) -> pd.DataFrame:
 
 
 def test_enrich_signal_layers_adds_semantic_columns_to_raw_registry():
-    registry = load_registry().drop(columns=list(SEMANTIC_COLUMNS) + ["promotion_class"])
+    registry = load_registry().drop(columns=[*SEMANTIC_COLUMNS, "promotion_class"])
 
     enriched = _full_enrich(registry)
     validate_registry_contract(enriched)
@@ -70,7 +69,7 @@ def test_enrich_signal_layers_fails_on_unmapped_signal():
 
 
 def test_low_confidence_status_is_caveated_when_re_enriched():
-    registry = load_registry().drop(columns=list(SEMANTIC_COLUMNS) + ["promotion_class"])
+    registry = load_registry().drop(columns=[*SEMANTIC_COLUMNS, "promotion_class"])
     idx = registry[registry["signal"].eq("xgi") & registry["position"].eq("MID")].index[0]
     registry.loc[idx, "low_confidence"] = True
 
@@ -82,7 +81,7 @@ def test_low_confidence_status_is_caveated_when_re_enriched():
 
 
 def test_insufficient_support_status_is_blocked_when_re_enriched():
-    registry = load_registry().drop(columns=list(SEMANTIC_COLUMNS) + ["promotion_class"])
+    registry = load_registry().drop(columns=[*SEMANTIC_COLUMNS, "promotion_class"])
     idx = registry[
         registry["support_flags"].str.contains("insufficient_support", na=False)
     ].index[0]
@@ -101,7 +100,7 @@ def test_enrich_promotion_class_assigns_null_to_blocked_rows():
 
 
 def test_enrich_promotion_class_assigns_governed_value_to_non_blocked_rows():
-    from signals.governance.promotion import PROMOTION_CLASS_VALUES
+    from signals.governance.schema import PROMOTION_CLASS_VALUES
 
     registry = load_registry().drop(columns=["promotion_class"])
     enriched = _full_enrich(registry)

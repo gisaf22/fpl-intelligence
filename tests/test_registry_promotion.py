@@ -3,19 +3,14 @@
 import pandas as pd
 import pytest
 
-from signals.governance.promotion import (
-    PROMOTION_CLASS_VALUES,
-    assign_promotion_class,
-)
-
+from signals.governance.promotion import assign_promotion_class
+from signals.governance.schema import PROMOTION_CLASS_VALUES
 from signals.governance.schema import RESEARCH_REGISTRY_PATH as DEFAULT_REGISTRY_PATH
-
 
 # --- integration: counts locked against the governed registry CSV ---
 
 def test_promotion_class_counts_match_governed_registry():
     df = pd.read_csv(DEFAULT_REGISTRY_PATH)
-    counts = df["promotion_class"].value_counts().to_dict()
     non_null_counts = df["promotion_class"].dropna().value_counts().to_dict()
     assert non_null_counts == {
         "review_signal": 47,
@@ -82,7 +77,8 @@ def test_context_layer_always_context_control():
 
 
 def test_market_behavior_layer_always_market_context():
-    assert assign_promotion_class(_row(signal_layer="market_behavior", downstream_status="caveated")) == "market_context"
+    result = assign_promotion_class(_row(signal_layer="market_behavior", downstream_status="caveated"))
+    assert result == "market_context"
 
 
 def test_layer_mapping_ignores_downstream_status():
@@ -163,7 +159,7 @@ def test_blocked_row_raises():
 
 
 def test_blocked_row_error_includes_signal_and_position():
-    with pytest.raises(ValueError, match="bps.*MID"):
+    with pytest.raises(ValueError, match=r"bps.*MID"):
         assign_promotion_class(_row(signal="bps", position="MID", downstream_status="blocked"))
 
 

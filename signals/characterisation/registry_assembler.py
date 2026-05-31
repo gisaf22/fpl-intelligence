@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import pandas as pd
 
+from signals.characterisation.association import assign_association_class, consolidate_flags
 from signals.governance.promotion import enrich_promotion_class
 from signals.governance.schema import REQUIRED_COLUMNS
 from signals.governance.signal_layer_classifier import enrich_signal_layers
-from signals.characterisation.association import assign_association_class, consolidate_flags
-
 
 SECTION_KEY_COLUMNS: tuple[str, ...] = ("signal", "position")
 

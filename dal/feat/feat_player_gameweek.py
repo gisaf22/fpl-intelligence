@@ -10,8 +10,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from dal.validation.grain import validate_grain_uniqueness
 from dal.feat.feat_schema import FEATURE_REGISTRY
+from dal.validation.grain import validate_grain_uniqueness
 
 _ROLL_COLS = [
     "minutes",
@@ -25,7 +25,7 @@ _ROLL_COLS = [
 # Used by the entry contract guard — any caller (test or production) that omits
 # these columns will get a clear error before any computation runs.
 _REQUIRED_INPUT_COLS: frozenset[str] = frozenset(
-    ["player_id", "gw", "is_bgw", "is_dgw"] + _ROLL_COLS
+    ["player_id", "gw", "is_bgw", "is_dgw", *_ROLL_COLS]
 )
 
 # Derived from FEATURE_REGISTRY — the single source of truth for governed output columns.
@@ -57,7 +57,7 @@ def _validate_spine_entry_contract(spine: pd.DataFrame) -> None:
             "grain must be unique before FEAT computation"
         )
 
-    bgw = spine[spine["is_bgw"] == True]
+    bgw = spine[spine["is_bgw"].astype(bool)]
     if not bgw.empty:
         for col in _ROLL_COLS:
             if col not in spine.columns:

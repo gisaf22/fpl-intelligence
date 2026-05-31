@@ -8,13 +8,13 @@ STATE_COL_CONTRACTS: dal/state/contracts.py does not exist.
 GW sequence gap detection: no gap check in get_gameweek_context.
 """
 
-import pandas as pd
-import numpy as np
-import pytest
 from pathlib import Path
 
-from dal.staging import load_staged_entities
+import pandas as pd
+import pytest
+
 from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
@@ -42,7 +42,7 @@ def test_fixture_context_bgw_rows():
     spine = _load_spine()
     state = build_player_gameweek_state(spine)
 
-    bgw_rows = state[state["is_bgw"] == True]
+    bgw_rows = state[state["is_bgw"].astype(bool)]
     assert not bgw_rows.empty, "Golden DB should have BGW rows"
 
     bad = bgw_rows[bgw_rows["fixture_context"] != "BGW"]
@@ -81,8 +81,8 @@ def test_validate_xgc_001_callable_on_all_positions():
     Note: _validate_contracts keeps the GK-only filter because FPL assigns distinct xgc
     values to different field-player positions within the same fixture.
     """
-    from dal.intermediate.int_opponent_context import validate_xgc_001
     from dal.exceptions import DALContractViolation
+    from dal.intermediate.int_opponent_context import validate_xgc_001
 
     # GK players in same team/gw/fixture with different xgc — raises correctly
     gk_with_variance = pd.DataFrame([
@@ -108,7 +108,6 @@ def test_state_col_contracts_exists():
     assert isinstance(STATE_COL_CONTRACTS, dict), "STATE_COL_CONTRACTS must be a dict"
 
     required_keys = {"causality", "warmup_gws", "min_obs_for_reliability", "null_if_no_obs"}
-    from dal.feat.feat_player_gameweek import _ROLL_COLS
     for col_suffix in ["xgi", "minutes"]:
         # roll3 is the primary entry
         roll3_key = f"{col_suffix}_roll3"
@@ -188,9 +187,10 @@ def test_gameweek_context_raises_on_gw_gap():
 
     FAILS before fix (no gap detection). PASSES after fix.
     """
-    from dal.fct.fct_gameweek_context import get_gameweek_context
-    from dal.exceptions import DALContractViolation
     import pandas as pd
+
+    from dal.exceptions import DALContractViolation
+    from dal.fct.fct_gameweek_context import get_gameweek_context
 
     # Events with a gap: GW 1, 2, 4 (missing GW 3)
     events_with_gap = pd.DataFrame([

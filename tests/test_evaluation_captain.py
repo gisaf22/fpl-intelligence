@@ -15,7 +15,6 @@ import pytest
 
 from tests.helpers.captain import evaluate_captain_heuristic
 
-
 # ---------------------------------------------------------------------------
 # Shared fixture helpers (mirrored from test_evaluation_core for isolation)
 # ---------------------------------------------------------------------------

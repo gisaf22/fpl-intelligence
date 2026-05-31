@@ -5,7 +5,7 @@ import pandas as pd
 from dal.exceptions import DALContractViolation
 
 
-def validate_column_contract(df: pd.DataFrame, expected_cols: list, dtypes: dict) -> None:
+def validate_column_contract(df: pd.DataFrame, expected_cols: list[str], dtypes: dict[str, str]) -> None:
     actual = set(df.columns)
     expected = set(expected_cols)
 

@@ -11,13 +11,13 @@ Output:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 import pandas as pd
 
 from dal.mart import POSITION_CODE_MAP
-from intelligence.scoring.contracts import PlayerScore, ScorerOutput, SignalManifest
+from intelligence.scoring.contracts import ConfirmedSignal, PlayerScore, ScorerOutput, SignalManifest
 
 
 class NoDataForGameweek(Exception):
@@ -60,7 +60,7 @@ def score(
     gw_data["_position"] = gw_data["position_code"].map(POSITION_CODE_MAP)
 
     # Group confirmed signals by position for fast lookup
-    confirmed_by_position: dict[str, list] = {}
+    confirmed_by_position: dict[str, list[ConfirmedSignal]] = {}
     for sig in manifest.confirmed:
         confirmed_by_position.setdefault(sig.position, []).append(sig)
 
@@ -127,7 +127,7 @@ def score(
                 )
             )
 
-    scored_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    scored_at = datetime.now(UTC).isoformat(timespec="seconds")
 
     return ScorerOutput(
         gw=gw,

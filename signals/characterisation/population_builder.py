@@ -4,13 +4,10 @@ from __future__ import annotations
 
 import pandas as pd
 
+from dal.mart import POSITION_CODE_MAP
 from domain.fpl_scoring import CLEAN_SHEET_MIN_MINUTES
 from population.populations import filter_performance
-from signals.characterisation.population import (
-    REGISTRY_BUILD_INPUT_COLUMNS,
-    OUTPUT_COLUMNS,
-    POSITION_CODE_MAP,
-)
+from signals.characterisation.population import OUTPUT_COLUMNS, REGISTRY_BUILD_INPUT_COLUMNS
 
 
 def _build_registry_population(

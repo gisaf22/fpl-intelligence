@@ -6,9 +6,6 @@ from typing import Any
 
 import pandas as pd
 
-from signals.governance.schema import SIGNAL_LAYER_VALUES
-
-
 SIGNAL_LAYER_MAPPING: dict[str, dict[str, Any]] = {
     "minutes": {
         "signal_layer": "exposure",
@@ -152,7 +149,9 @@ SIGNAL_LAYER_MAPPING: dict[str, dict[str, Any]] = {
         "signal_layer": "market_behavior",
         "layer_role": "demand_net_flow",
         "feature_candidate_eligible": False,
-        "interpretation_caveat": "net transfer flow (transfers_in − transfers_out); removed from spine — uninformative all positions",
+        "interpretation_caveat": (
+            "net transfer flow (transfers_in - transfers_out); removed from spine — uninformative all positions"
+        ),
     },
     "transfers_in": {
         "signal_layer": "market_behavior",
@@ -216,7 +215,7 @@ def assign_downstream_status(row: dict[str, Any]) -> str:
 
     caveated_layers = {"context", "market_behavior", "valuation"}
     if (
-        row.get("low_confidence", False) == True  # noqa: E712
+        row.get("low_confidence") is True
         or geom == "indeterminate"
         or row.get("panel_class", "") == "indeterminate"
         or _has_value(support_type)
@@ -224,7 +223,7 @@ def assign_downstream_status(row: dict[str, Any]) -> str:
     ):
         return "caveated"
 
-    if row.get("feature_candidate_eligible", False) == True:  # noqa: E712
+    if row.get("feature_candidate_eligible") is True:
         return "eligible"
 
     return "caveated"

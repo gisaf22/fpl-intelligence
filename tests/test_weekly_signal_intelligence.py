@@ -13,10 +13,9 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from signals.governance import load_registry
 from intelligence.reporting.signal_intelligence import (
-    CONTEXT_NOTE_COLUMNS,
     CONTEXT_CONDITION_LAYERS,
+    CONTEXT_NOTE_COLUMNS,
     POSITIONAL_SUMMARY_COLUMNS,
     STABLE_OBSERVATION_COLUMNS,
     STABLE_PROMOTION_CLASSES,
@@ -25,7 +24,7 @@ from intelligence.reporting.signal_intelligence import (
     build_stable_signal_observations,
     write_signal_intelligence,
 )
-
+from signals.governance import load_registry
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -271,7 +270,6 @@ def test_review_signal_observation_contains_temporal_stability():
 
 
 def test_rho_nan_renders_as_n_a():
-    import numpy as np
     row = _make_registry_row(promotion_class="review_signal", rho_pooled=float("nan"))
     obs = build_stable_signal_observations(row, gw=10)
     assert "n/a" in obs.iloc[0]["observation"]
@@ -294,9 +292,15 @@ def test_context_note_contains_signal_and_position():
 
 
 def test_exposure_note_template_differs_from_context_note():
-    context_row = _make_registry_row(signal="was_home", position="MID", signal_layer="context", promotion_class=None, downstream_status="caveated")
+    context_row = _make_registry_row(
+        signal="was_home", position="MID", signal_layer="context",
+        promotion_class=None, downstream_status="caveated"
+    )
     context_row["promotion_class"] = None
-    exposure_row = _make_registry_row(signal="minutes", position="MID", signal_layer="exposure", promotion_class=None, downstream_status="caveated")
+    exposure_row = _make_registry_row(
+        signal="minutes", position="MID", signal_layer="exposure",
+        promotion_class=None, downstream_status="caveated"
+    )
     exposure_row["promotion_class"] = None
 
     context_note = build_context_condition_notes(context_row).iloc[0]["note"]

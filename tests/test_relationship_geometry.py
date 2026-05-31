@@ -83,8 +83,8 @@ def test_stability_classify_gap_patterns():
 
 
 def test_notebook_helper_imports_shared_geometry_functions():
-    import studies.eda.geometry as geometry
     import studies.eda.association as association
+    import studies.eda.geometry as geometry
     import studies.kernels.correlation.panel as panel
     import studies.kernels.correlation.tail as tail
 

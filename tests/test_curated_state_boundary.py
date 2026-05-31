@@ -16,11 +16,10 @@ import pandas as pd
 import pytest
 
 from dal.feat.feat_player_gameweek import (
-    build_player_gameweek_state,
-    _ROLL_COLS,
     _REQUIRED_INPUT_COLS,
+    _ROLL_COLS,
+    build_player_gameweek_state,
 )
-
 
 # ---------------------------------------------------------------------------
 # Synthetic spine factory
@@ -75,10 +74,14 @@ def _make_spine(players: dict, *, extra_col: str | None = None) -> pd.DataFrame:
     return df
 
 
+def _default_pts(gw: int) -> int:
+    return gw
+
+
 def _sgw_spine(n_gws: int = 7, pts_fn=None) -> pd.DataFrame:
     """Single player, n_gws of SGW. pts_fn(gw) → points; defaults to gw."""
     if pts_fn is None:
-        pts_fn = lambda gw: gw
+        pts_fn = _default_pts
     return _make_spine({1: [(gw, pts_fn(gw), False, False) for gw in range(1, n_gws + 1)]})
 
 
@@ -163,8 +166,8 @@ def test_bgw_null_vs_zero_rolling_divergence():
     This is a direct demonstration of why the NULL contract is semantically significant.
     Rolling mean skips NA values; substituting 0 includes them, inflating the average.
 
-    Sequence at GWs 1–5: [10, 20, BGW, 30, 40]
-    At GW5, roll3 window covers GWs 2–4 (lag-1 shift):
+    Sequence at GWs 1-5: [10, 20, BGW, 30, 40]
+    At GW5, roll3 window covers GWs 2-4 (lag-1 shift):
       NULL version:  mean(20, NA, 30)  = mean([20, 30])       = 25.0
       Zero version:  mean(20,  0, 30)  = mean([20, 0,  30])   = 16.67
     """
@@ -265,7 +268,7 @@ def test_dgw_aggregated_points_used_correctly_in_rolling():
     Uses xgi as the probe column (total_points is no longer rolled by STATE).
 
     Sequence: xgi = [0.5, 0.7, 1.2(DGW), 0.8, 0.6] for GWs 1-5.
-    At GW5, roll3 covers GWs 2–4 (lag-1 shift): mean(0.7, 1.2, 0.8) = 0.9
+    At GW5, roll3 covers GWs 2-4 (lag-1 shift): mean(0.7, 1.2, 0.8) = 0.9
     """
     spine = _make_spine({
         1: [(1, 5, False, False), (2, 7, False, False), (3, 12, False, True),

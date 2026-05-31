@@ -57,7 +57,7 @@ def validate_join_safety(
             raise DALContractViolation(
                 message=(
                     f"Join safety violation [{description}]: cross join expected {expected} rows "
-                    f"({left_n} × {right_n}), got {result_n}"
+                    f"({left_n} x {right_n}), got {result_n}"
                 ),
                 validation="validate_join_safety",
 
@@ -68,7 +68,7 @@ def validate_join_safety(
             raise DALContractViolation(
                 message=(
                     f"Join safety violation [{description}]: cross join expected {expected} rows "
-                    f"({left_n} × {right_n}), got {result_n}"
+                    f"({left_n} x {right_n}), got {result_n}"
                 ),
                 validation="validate_join_safety",
 

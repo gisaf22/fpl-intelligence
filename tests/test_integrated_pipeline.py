@@ -4,8 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.reporting.weekly_report_runner import resolve_target_gw, validate_data_freshness
 from dal.exceptions import DataFreshnessError
+from dal.fct.fct_gameweek_context import resolve_target_gw
+from dal.staging import validate_data_freshness
 
 pytestmark = pytest.mark.integration
 

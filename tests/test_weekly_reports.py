@@ -1,6 +1,5 @@
 import pandas as pd
 
-from signals.governance import load_registry
 from intelligence.reporting.reports import (
     build_signal_summary,
     build_stable_performance_signals,
@@ -8,6 +7,7 @@ from intelligence.reporting.reports import (
     build_summary_by_position,
     write_weekly_report_tables,
 )
+from signals.governance import load_registry
 
 
 def test_signal_summary_is_compact_weekly_mart():
@@ -62,7 +62,7 @@ def test_stable_performance_signals_follow_v1_rule():
     assert stable["signal_layer"].eq("performance").all()
     assert stable["downstream_status"].eq("eligible").all()
     assert stable["association_class"].eq("continuous_monotonic").all()
-    assert stable["low_confidence"].eq(False).all()  # noqa: E712
+    assert stable["low_confidence"].eq(False).all()
 
 
 def test_write_weekly_report_tables(tmp_path):

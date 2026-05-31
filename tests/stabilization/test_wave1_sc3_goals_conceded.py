@@ -15,13 +15,11 @@ Tests use:
   - Golden DB (P2 at T2, GW4: F5 concedes 1 + F6 concedes 1 = 2 total)
 """
 
-import pandas as pd
-import pytest
-
 from pathlib import Path
 
-from dal.intermediate.int_opponent_context import _build_team_defensive_records
+import pandas as pd
 
+from dal.intermediate.int_opponent_context import _build_team_defensive_records
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 

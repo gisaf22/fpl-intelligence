@@ -16,8 +16,8 @@ from dal.mart.mart_analytical import (
 )
 
 __all__ = [
-    "MartResult",
     "GOVERNED_SIGNAL_COLUMNS",
     "POSITION_CODE_MAP",
+    "MartResult",
     "build_prepared_dataset",
 ]

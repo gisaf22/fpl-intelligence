@@ -16,10 +16,8 @@ The test asserts "falling" — this FAILS before the fix and PASSES after.
 """
 
 import pandas as pd
-import pytest
 
 from dal.feat.feat_player_gameweek import build_player_gameweek_state
-from dal.fct.fct_contracts import SPINE_COLS, DTYPES, NULL_RULES
 
 
 def _make_synthetic_spine(minutes_by_gw: list[int | None]) -> pd.DataFrame:
@@ -28,7 +26,6 @@ def _make_synthetic_spine(minutes_by_gw: list[int | None]) -> pd.DataFrame:
     None entries represent BGW rows (fixture_count=0, is_bgw=True, minutes=pd.NA).
     Non-None entries are SGW rows (fixture_count=1, is_bgw=False).
     """
-    n_gws = len(minutes_by_gw)
     rows = []
     for i, m in enumerate(minutes_by_gw):
         gw = i + 1
@@ -77,7 +74,7 @@ def test_minutes_trend_lag1_convention():
 
     Player: 7 GWs, minutes=[90,90,90,0,0,0,90].
     At GW 7:
-      - prior3 (GWs 1–3) = mean(90,90,90) = 90
+      - prior3 (GWs 1-3) = mean(90,90,90) = 90
       - With correct lag-1: last3 = mean(GWs 4,5,6) = mean(0,0,0) = 0 → falling
       - With bug (no shift): last3 = mean(GWs 5,6,7) = mean(0,0,90) = 30 → stable
 

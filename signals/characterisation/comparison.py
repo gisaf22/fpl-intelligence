@@ -8,7 +8,6 @@ import pandas as pd
 
 from signals.governance.schema import PRIMARY_KEY_COLUMNS, REQUIRED_COLUMNS
 
-
 COMPARISON_COLUMNS: tuple[str, ...] = (
     "change_type",
     "signal",
@@ -112,9 +111,9 @@ def compare_registries(
 
     differences = pd.DataFrame(rows, columns=COMPARISON_COLUMNS)
     summary = {
-        "reference_rows": int(len(reference_compare)),
-        "candidate_rows": int(len(candidate_compare)),
-        "difference_rows": int(len(differences)),
+        "reference_rows": len(reference_compare),
+        "candidate_rows": len(candidate_compare),
+        "difference_rows": len(differences),
         "missing_from_candidate": int(
             differences["change_type"].eq("missing_from_candidate").sum()
         )

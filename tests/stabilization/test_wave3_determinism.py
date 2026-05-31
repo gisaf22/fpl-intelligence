@@ -9,12 +9,13 @@ F-2:  invariant_per_gw columns not asserted for within-GW invariance.
 Reproducibility: two spine builds must produce byte-identical output.
 """
 
-import pandas as pd
-import pytest
 from pathlib import Path
 
-from dal.staging import load_staged_entities
+import pandas as pd
+import pytest
+
 from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
@@ -34,8 +35,8 @@ def test_staging_sql_contains_order_by_players():
 
     FAILS before fix (no ORDER BY). PASSES after fix.
     """
-    from dal.staging.stg_transformer import _build_query
     from dal.staging.stg_schema import load_schema
+    from dal.staging.stg_transformer import _build_query
     query = _build_query(load_schema("players"))
     assert "ORDER BY" in query, (
         f"players staging query has no ORDER BY — row order is filesystem-defined.\n{query}"
@@ -43,36 +44,36 @@ def test_staging_sql_contains_order_by_players():
 
 
 def test_staging_sql_contains_order_by_player_histories():
-    from dal.staging.stg_transformer import _build_query
     from dal.staging.stg_schema import load_schema
+    from dal.staging.stg_transformer import _build_query
     query = _build_query(load_schema("player_histories"))
     assert "ORDER BY" in query, f"player_histories staging query has no ORDER BY.\n{query}"
 
 
 def test_staging_sql_contains_order_by_fixtures():
-    from dal.staging.stg_transformer import _build_query
     from dal.staging.stg_schema import load_schema
+    from dal.staging.stg_transformer import _build_query
     query = _build_query(load_schema("fixtures"))
     assert "ORDER BY" in query, f"fixtures staging query has no ORDER BY.\n{query}"
 
 
 def test_staging_sql_contains_order_by_teams():
-    from dal.staging.stg_transformer import _build_query
     from dal.staging.stg_schema import load_schema
+    from dal.staging.stg_transformer import _build_query
     query = _build_query(load_schema("teams"))
     assert "ORDER BY" in query, f"teams staging query has no ORDER BY.\n{query}"
 
 
 def test_staging_sql_contains_order_by_events():
-    from dal.staging.stg_transformer import _build_query
     from dal.staging.stg_schema import load_schema
+    from dal.staging.stg_transformer import _build_query
     query = _build_query(load_schema("events"))
     assert "ORDER BY" in query, f"events staging query has no ORDER BY.\n{query}"
 
 
 def test_staging_sql_contains_order_by_element_types():
-    from dal.staging.stg_transformer import _build_query
     from dal.staging.stg_schema import load_schema
+    from dal.staging.stg_transformer import _build_query
     query = _build_query(load_schema("element_types"))
     assert "ORDER BY" in query, f"element_types staging query has no ORDER BY.\n{query}"
 
@@ -115,8 +116,8 @@ def test_invariant_per_gw_assertion_catches_violation():
 
     FAILS before fix (no assertion). PASSES after fix.
     """
-    from dal.fct.fct_player_gameweek import _aggregate_to_gw_grain
     from dal.exceptions import DALContractViolation
+    from dal.fct.fct_player_gameweek import _aggregate_to_gw_grain
 
     df = pd.DataFrame([
         # Same player/gw, two fixtures, different purchase_price — violates invariant_per_gw

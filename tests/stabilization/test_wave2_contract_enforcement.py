@@ -10,20 +10,19 @@ SC-5: validate_bgw_correctness uses != 0 on nullable types — misses non-null 0
 SC-6: validate_no_future_data uses != 0 on nullable types — same bug.
 """
 
-import sys
 import importlib
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
-from dal.fct.fct_contracts import SPINE_COLS, DTYPES, NULL_RULES, PERFORMANCE_COLS
-from dal.fct.validation.semantics import validate_bgw_correctness
-from dal.fct.validation.invariants import validate_no_future_data
 from dal.exceptions import DALContractViolation
-from dal.staging import load_staged_entities
+from dal.fct.fct_contracts import DTYPES, NULL_RULES, PERFORMANCE_COLS, SPINE_COLS
+from dal.fct.validation.invariants import validate_no_future_data
+from dal.fct.validation.semantics import validate_bgw_correctness
 from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
@@ -66,7 +65,6 @@ def test_validate_column_contract_called_in_spine_build():
 
     call_count = []
 
-    import dal.fct.fct_player_gameweek as spine_mod
 
     staged = load_staged_entities(TEST_DB_PATH)
     player_fixture = get_player_fixture_base(staged)
@@ -123,6 +121,7 @@ def test_invariants_module_has_no_curated_imports():
     Checked directly on source text — immune to import caching order.
     """
     import inspect
+
     import dal.fct.validation.invariants as inv_mod
     importlib.reload(inv_mod)
     source = inspect.getsource(inv_mod)

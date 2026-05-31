@@ -6,8 +6,6 @@ Primary consumer interface:
 """
 
 # --- primary result type ---
-from dal.mart.mart_access import MartResult
-
 # --- exceptions ---
 from dal.exceptions import (
     DALContractViolation,
@@ -16,14 +14,13 @@ from dal.exceptions import (
     MartNotBuiltError,
     MartSchemaError,
 )
+from dal.mart.mart_access import MartResult
 
 __all__ = [
-    # primary result type
-    "MartResult",
-    # exceptions
-    "DALError",
     "DALContractViolation",
+    "DALError",
     "DataFreshnessError",
     "MartNotBuiltError",
+    "MartResult",
     "MartSchemaError",
 ]

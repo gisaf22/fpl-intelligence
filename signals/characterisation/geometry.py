@@ -7,13 +7,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from signals.governance.schema import (
-    MATCH_LEVEL_SIGNALS,
-    POPULATION_ROBUSTNESS_VALUES,
-    POPULATION_SCOPE_VALUES,
-)
-
-
 POSITIONS: list[str] = ["GK", "DEF", "MID", "FWD"]
 BLOCK_ORDER: list[str] = ["early", "mid", "late"]
 

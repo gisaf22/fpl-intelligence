@@ -18,7 +18,6 @@ from dal.feat.feat_player_gameweek import (
 )
 from dal.feat.feat_schema import FEATURE_REGISTRY
 
-
 # ---------------------------------------------------------------------------
 # Shared synthetic spine
 # ---------------------------------------------------------------------------
@@ -105,7 +104,7 @@ def test_non_minutes_roll8_absent():
 def test_derived_column_count_is_13():
     """STATE must produce exactly 13 derived columns.
 
-    5 approved signals × 2 windows (roll3, roll5) = 10
+    5 approved signals x 2 windows (roll3, roll5) = 10
     + minutes_roll8 + minutes_trend + fixture_context = 13
 
     Phase 3 lock: 16 REJECTED-BEHAVIORAL columns removed.

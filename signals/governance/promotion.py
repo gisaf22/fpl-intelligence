@@ -15,12 +15,9 @@ handles them by writing NaN.
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
 import pandas as pd
-
-from signals.governance.schema import PROMOTION_CLASS_VALUES
 
 _LAYER_TO_CLASS: dict[str, str] = {
     "exposure": "exposure_control",

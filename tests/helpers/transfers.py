@@ -16,10 +16,10 @@ from __future__ import annotations
 
 import pandas as pd
 
-from tests.helpers.baselines import baseline_fixture_only, baseline_recent_points
-from tests.helpers.metrics import rank_correlation, return_variance
-from tests.helpers.windows import assert_no_future_leakage
 from intelligence.transfers import rank_transfer_targets
+from tests.helpers.baselines import baseline_fixture_only, baseline_recent_points
+from tests.helpers.metrics import return_variance
+from tests.helpers.windows import assert_no_future_leakage
 
 
 def _cumulative_future_returns(
@@ -63,7 +63,7 @@ def evaluate_transfer_heuristic(
         Gameweeks at which transfer decisions are simulated.
     lookahead:
         Number of GWs after eval_gw to measure cumulative returns.
-        Chosen by caller based on squad rotation assumptions (typically 3–5).
+        Chosen by caller based on squad rotation assumptions (typically 3-5).
     n:
         Number of top candidates from each strategy to evaluate.
 

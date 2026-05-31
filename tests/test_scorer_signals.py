@@ -7,9 +7,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from intelligence.scoring.signal_selector import _PRE_LENS_SIGNAL_ALLOWLIST, load_manifest
 from signals.governance.registry_loader import load_registry
 from signals.governance.schema import GovernanceMetadataError
-from intelligence.scoring.signal_selector import load_manifest, load_manifest_from_path, _PRE_LENS_SIGNAL_ALLOWLIST
 
 REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
 
@@ -55,8 +55,8 @@ def test_manifest_caveated_only_scoring_classes(manifest):
 
 def test_leakage_signals_in_caveated_not_confirmed(manifest):
     """bonus must be in caveated, not confirmed, due to leakage."""
-    confirmed_signals = {(s.signal, s.position) for s in manifest.confirmed}
-    caveated_signals = {(s.signal, s.position) for s in manifest.caveated}
+    _confirmed_signals = {(s.signal, s.position) for s in manifest.confirmed}
+    _caveated_signals = {(s.signal, s.position) for s in manifest.caveated}
 
     for leakage_signal in _LEAKAGE_SIGNALS:
         caveated_entries = [

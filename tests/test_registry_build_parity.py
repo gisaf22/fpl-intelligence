@@ -1,7 +1,7 @@
 """Sprint D parity gate: computed registry reproducibility test.
 
 The seed registry (eda_03_joint_registry.csv) was produced by running the
-computed build pipeline against GW6–33 prepared data (minutes >= 60) and
+computed build pipeline against GW6-33 prepared data (minutes >= 60) and
 is the canonical reference for this test.  The exploratory EDA-3 CSV that
 predated the governed pipeline is archived as eda_03_joint_registry_exploratory.csv.
 
@@ -21,16 +21,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import pytest
 
-from signals.governance import load_registry
-from signals.characterisation.registry_assembler import assemble_registry_from_sections
-from signals.characterisation.config import assign_gw_block
-from studies.experiments.registry_sections_study import SectionBuildConfig, compute_relationship_sections
-from dal.staging import load_staged_entities
 from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
+from signals.characterisation.config import assign_gw_block
+from signals.characterisation.registry_assembler import assemble_registry_from_sections
+from signals.governance import load_registry
+from studies.experiments.registry_sections_study import SectionBuildConfig, compute_relationship_sections
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 
@@ -60,7 +59,7 @@ def seed_registry() -> pd.DataFrame:
 
 @pytest.fixture(scope="module")
 def computed_registry(seed_registry: pd.DataFrame) -> pd.DataFrame:
-    """Re-run the computed build against GW6–33 prepared data.
+    """Re-run the computed build against GW6-33 prepared data.
 
     Skipped when the DB is absent so the suite stays green in CI environments
     that do not have access to the live database.
@@ -75,7 +74,7 @@ def computed_registry(seed_registry: pd.DataFrame) -> pd.DataFrame:
     spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
     prepared = _build_registry_population(spine, data_cutoff_gw=GW_MAX)
 
-    # Restrict to GW_MIN–GW_MAX window.
+    # Restrict to GW_MIN-GW_MAX window.
     prepared = prepared[prepared["gw"] >= GW_MIN].copy()
 
     # gw_block is required by _stability_row in sections.py; without it every
@@ -137,7 +136,7 @@ def test_schema_parity(
 def test_seed_registry_has_expected_row_count(
     seed_registry: pd.DataFrame,
 ) -> None:
-    """Seed registry must have exactly 104 rows (26 signals × 4 positions)."""
+    """Seed registry must have exactly 104 rows (26 signals x 4 positions)."""
     assert len(seed_registry) == EXPECTED_REGISTRY_ROWS, (
         f"seed registry row count changed: expected {EXPECTED_REGISTRY_ROWS}, "
         f"got {len(seed_registry)}"
@@ -148,7 +147,7 @@ def test_seed_registry_has_expected_row_count(
 def test_computed_registry_row_count(
     computed_registry: pd.DataFrame,
 ) -> None:
-    """Computed registry must produce exactly 104 rows (26 signals × 4 positions)."""
+    """Computed registry must produce exactly 104 rows (26 signals x 4 positions)."""
     assert len(computed_registry) == EXPECTED_REGISTRY_ROWS, (
         f"computed registry row count: expected {EXPECTED_REGISTRY_ROWS}, "
         f"got {len(computed_registry)}"

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import functools
 from pathlib import Path
-from typing import Dict
 
 import yaml
 
@@ -32,7 +31,7 @@ def _load_raw() -> dict:
         return yaml.safe_load(fh)
 
 
-def get_module_weights(module: str) -> Dict[str, float]:
+def get_module_weights(module: str) -> dict[str, float]:
     """Return the weight dict for a module from the governance registry.
 
     Parameters
@@ -64,7 +63,7 @@ def get_module_weights(module: str) -> Dict[str, float]:
             f"No weights defined for module {module!r} in registry "
             f"({_WEIGHT_REGISTRY_PATH})."
         )
-    result: Dict[str, float] = {}
+    result: dict[str, float] = {}
     for key, entry in weights_data.items():
         if "value" not in entry:
             raise WeightRegistryError(

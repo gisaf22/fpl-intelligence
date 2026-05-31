@@ -38,7 +38,7 @@ def validate_row_count_invariant(df: pd.DataFrame, n_players: int, n_gws: int) -
         raise DALContractViolation(
             message=(
                 f"Row count violation: expected {expected} "
-                f"({n_players} players × {n_gws} GWs), "
+                f"({n_players} players x {n_gws} GWs), "
                 f"got {actual}"
             ),
 
@@ -51,8 +51,8 @@ def validate_row_count_invariant(df: pd.DataFrame, n_players: int, n_gws: int) -
 def validate_no_future_data(
     df: pd.DataFrame,
     gw_col: str = 'gw',
-    reference_gw=None,
-    performance_cols=None,
+    reference_gw: int | None = None,
+    performance_cols: set[str] | list[str] | None = None,
 ) -> None:
     """Assert no future-GW rows contain non-null performance data.
 

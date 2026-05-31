@@ -1,0 +1,30 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+        # Exclude research and legacy code — these are not held to production lint standards.
+        exclude: ^(studies|archive)/
+      - id: ruff-format
+        exclude: ^(studies|archive)/
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: uv run mypy
+        language: system
+        types: [python]
+        # Only run mypy on production modules; pass changed files through the scope filter.
+        files: ^(dal|signals|intelligence|domain|population)/
+        args: [--config-file, pyproject.toml]
+        pass_filenames: false
+
+      - id: import-linter
+        name: import-linter
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+        always_run: false
+        stages: [pre-commit]

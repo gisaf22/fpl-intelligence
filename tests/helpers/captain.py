@@ -14,7 +14,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from tests.helpers.baselines import baseline_recent_points, baseline_highest_xgi
+from intelligence.captain import rank_captain_candidates
+from tests.helpers.baselines import baseline_highest_xgi, baseline_recent_points
 from tests.helpers.metrics import (
     downside_rate,
     hit_rate,
@@ -23,7 +24,6 @@ from tests.helpers.metrics import (
     top1_return,
 )
 from tests.helpers.windows import assert_no_future_leakage
-from intelligence.captain import rank_captain_candidates
 
 
 def evaluate_captain_heuristic(

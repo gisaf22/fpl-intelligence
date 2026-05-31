@@ -29,7 +29,7 @@ def get_fixture_context(
         right_n=len(home_teams),
         result_n=len(result),
         join_type="left",
-        description="fixtures × home teams",
+        description="fixtures x home teams",
     )
     n_before_away_join = len(result)
     result = result.merge(away_teams, on="away_team_id", how="left")
@@ -38,7 +38,7 @@ def get_fixture_context(
         right_n=len(away_teams),
         result_n=len(result),
         join_type="left",
-        description="fixtures × away teams",
+        description="fixtures x away teams",
     )
 
     # FPL API returns unscheduled fixtures (gw is null) for future matches not yet assigned to a

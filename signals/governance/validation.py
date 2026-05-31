@@ -10,9 +10,9 @@ from signals.governance.schema import (
     BOOLEAN_COLUMNS,
     CONTROLLED_VALUE_COLUMNS,
     MATCH_LEVEL_SIGNALS,
-    NULLABLE_CONTROLLED_COLUMNS,
     NON_EMPTY_COLUMNS,
     NON_FEATURE_SIGNAL_LAYERS,
+    NULLABLE_CONTROLLED_COLUMNS,
     PRIMARY_KEY_COLUMNS,
     REQUIRED_COLUMNS,
 )
@@ -118,7 +118,7 @@ def _validate_layer_status_consistency(
 
     bad_feature_layers = registry[
         registry["signal_layer"].isin(NON_FEATURE_SIGNAL_LAYERS)
-        & (registry["feature_candidate_eligible"] == True)  # noqa: E712
+        & registry["feature_candidate_eligible"].astype(bool)
     ]
     if not bad_feature_layers.empty:
         errors.append(
@@ -137,7 +137,7 @@ def _validate_layer_status_consistency(
         )
 
     low_conf_eligible = registry[
-        (registry["low_confidence"] == True)  # noqa: E712
+        registry["low_confidence"].astype(bool)
         & (registry["downstream_status"] == "eligible")
     ]
     if not low_conf_eligible.empty:

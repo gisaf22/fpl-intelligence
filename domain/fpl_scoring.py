@@ -16,7 +16,7 @@ Last verified: season 2025/26
 # Appearance
 # ---------------------------------------------------------------------------
 
-# VERIFIED 2025/26 — playing 1–59 min earns 1 point; 60+ earns 2 points.
+# VERIFIED 2025/26 — playing 1-59 min earns 1 point; 60+ earns 2 points.
 APPEARANCE_MIN_MINUTES: int = 1
 SHORT_APPEARANCE_POINTS: int = 1
 

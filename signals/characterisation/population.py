@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from dal.mart.mart_analytical import POSITION_CODE_MAP
-from domain.fpl_scoring import CLEAN_SHEET_MIN_MINUTES
-
 REGISTRY_BUILD_INPUT_COLUMNS: tuple[str, ...] = (
     "minutes",
     "goals_scored",

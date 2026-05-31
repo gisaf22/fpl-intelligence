@@ -13,8 +13,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from tests.helpers.features import evaluate_feature_lift, _compute_lag1_columns
-
+from tests.helpers.features import _compute_lag1_columns, evaluate_feature_lift
 
 # ---------------------------------------------------------------------------
 # Shared fixture helpers

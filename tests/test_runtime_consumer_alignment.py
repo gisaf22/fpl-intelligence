@@ -11,10 +11,7 @@ Verifies that:
 from __future__ import annotations
 
 import ast
-import inspect
-import textwrap
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 import pytest

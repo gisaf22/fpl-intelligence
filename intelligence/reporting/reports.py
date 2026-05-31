@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 SIGNAL_SUMMARY_COLUMNS: tuple[str, ...] = (
     "gw",
     "position",
@@ -68,7 +67,7 @@ def _stable_performance_mask(df: pd.DataFrame) -> pd.Series:
         (df["signal_layer"] == "performance")
         & (df["downstream_status"] == "eligible")
         & (df["association_class"] == "continuous_monotonic")
-        & (df["low_confidence"] == False)  # noqa: E712
+        & ~df["low_confidence"].astype(bool)
     )
 
 
@@ -80,7 +79,7 @@ def build_summary_by_position(signal_summary: pd.DataFrame) -> pd.DataFrame:
             {
                 "gw": int(group["gw"].iloc[0]),
                 "position": position,
-                "total_signals": int(len(group)),
+                "total_signals": len(group),
                 "eligible": _count_status(group, "eligible"),
                 "caveated": _count_status(group, "caveated"),
                 "blocked": _count_status(group, "blocked"),
@@ -98,7 +97,7 @@ def build_summary_by_layer(signal_summary: pd.DataFrame) -> pd.DataFrame:
             {
                 "gw": int(group["gw"].iloc[0]),
                 "signal_layer": layer,
-                "total_signals": int(len(group)),
+                "total_signals": len(group),
                 "eligible": _count_status(group, "eligible"),
                 "caveated": _count_status(group, "caveated"),
                 "blocked": _count_status(group, "blocked"),
@@ -191,7 +190,8 @@ def build_weekly_markdown_report(
     lines: list[str] = [
         f"# GW{gw} Signal Intelligence Report",
         "",
-        "This report is descriptive, not predictive. It summarizes governed signal relationships and highlights interpretation guardrails.",
+        "This report is descriptive, not predictive. It summarizes governed signal relationships "
+        "and highlights interpretation guardrails.",
         "",
         "## Executive Summary",
         "",
@@ -276,7 +276,8 @@ def build_weekly_markdown_report(
             "",
             f"- Blocked rows: {len(blocked)} ({_fmt_signal_position(blocked, limit=10)})",
             f"- Caveated rows: {len(caveated)}",
-            "- Interpretation: blocked rows should be excluded from weekly interpretation; caveated rows require explicit context.",
+            "- Interpretation: blocked rows should be excluded from weekly interpretation; "
+            "caveated rows require explicit context.",
             "",
             "## Position Notes",
             "",

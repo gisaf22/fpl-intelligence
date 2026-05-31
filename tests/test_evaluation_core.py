@@ -31,7 +31,6 @@ from tests.helpers.metrics import (
 )
 from tests.helpers.windows import assert_no_future_leakage, evaluation_gameweeks
 
-
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
 # ---------------------------------------------------------------------------

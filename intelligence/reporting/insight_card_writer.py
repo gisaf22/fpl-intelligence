@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 INSIGHT_COLUMNS: tuple[str, ...] = (
     "insight_id",
     "gw",
@@ -194,7 +193,7 @@ def build_insight_cards(
             )
         )
 
-    low_conf = signal_summary[signal_summary["low_confidence"] == True]  # noqa: E712
+    low_conf = signal_summary[signal_summary["low_confidence"].astype(bool)]
     if not low_conf.empty:
         cards.append(
             _card(

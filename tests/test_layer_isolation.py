@@ -18,8 +18,8 @@ from dal.feat.feat_schema import FEAT_SCHEMA
 def test_fct_builds_from_fixture_db(db_path) -> None:
     """fct layer builds successfully from the golden test fixture DB (no production DB needed)."""
     from dal.fct.fct_player_gameweek import build_player_gameweek_spine
-    from dal.staging import load_staged_entities
     from dal.intermediate.int_player_fixture import get_player_fixture_base
+    from dal.staging import load_staged_entities
 
     staged = load_staged_entities(db_path)
     spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)

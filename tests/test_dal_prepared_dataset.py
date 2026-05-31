@@ -5,14 +5,10 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from signals.characterisation.population_builder import _build_registry_population as build_prepared_dataset
+from dal.mart import POSITION_CODE_MAP
 from domain.fpl_scoring import CLEAN_SHEET_MIN_MINUTES
-from signals.characterisation.population import (
-    REGISTRY_BUILD_INPUT_COLUMNS,
-    OUTPUT_COLUMNS,
-    POSITION_CODE_MAP,
-)
-
+from signals.characterisation.population import REGISTRY_BUILD_INPUT_COLUMNS
+from signals.characterisation.population_builder import _build_registry_population as build_prepared_dataset
 
 # ---------------------------------------------------------------------------
 # Fixtures

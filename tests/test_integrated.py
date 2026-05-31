@@ -1,15 +1,14 @@
 """Tests for integrated DAL base and fixture-context datasets."""
 
 from pathlib import Path
-from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
+from dal.exceptions import DALContractViolation
 from dal.intermediate.int_fixture_context import get_fixture_context
 from dal.intermediate.int_player_fixture import get_player_fixture_base
-from dal.staging import load_staged_entities, get_staged_fixtures, get_staged_teams
-from dal.exceptions import DALContractViolation
+from dal.staging import get_staged_fixtures, get_staged_teams, load_staged_entities
 
 pytestmark = pytest.mark.integration
 

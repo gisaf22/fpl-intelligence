@@ -11,7 +11,6 @@ import pytest
 
 from dal.exceptions import DALContractViolation, ErrorCode
 
-
 # ---------------------------------------------------------------------------
 # ErrorCode constants
 # ---------------------------------------------------------------------------

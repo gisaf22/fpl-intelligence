@@ -28,8 +28,9 @@ import hashlib
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -38,11 +39,10 @@ from dal.exceptions import DALContractViolation, MartNotBuiltError, MartSchemaEr
 from dal.fct.fct_player_gameweek import build_player_gameweek_spine
 from dal.feat.feat_player_gameweek import build_player_gameweek_state
 from dal.intermediate.int_player_fixture import get_player_fixture_base
-from dal.mart.mart_analytical import GOVERNED_SIGNAL_COLUMNS, build_prepared_dataset
 from dal.mart.mart_access import MartResult
+from dal.mart.mart_analytical import GOVERNED_SIGNAL_COLUMNS, build_prepared_dataset
 from dal.reproducibility import compute_spine_fingerprint
 from dal.staging import StagedEntities, load_staged_entities
-
 
 # ---------------------------------------------------------------------------
 # Path helpers
@@ -64,16 +64,16 @@ def _mart_tmp_path(mart_path: Path) -> Path:
 # Manifest / schema helpers
 # ---------------------------------------------------------------------------
 
-def _load_manifest(path: Path) -> dict | None:
+def _load_manifest(path: Path) -> dict[str, Any] | None:
     if path.exists():
         try:
-            return json.loads(path.read_text())
+            return json.loads(path.read_text())  # type: ignore[no-any-return]
         except json.JSONDecodeError:
             return None
     return None
 
 
-def _write_manifest(path: Path, manifest: dict) -> None:
+def _write_manifest(path: Path, manifest: dict[str, Any]) -> None:
     path.write_text(json.dumps(manifest, indent=2))
 
 
@@ -85,7 +85,7 @@ def _hash_db(db_path: Path) -> str:
     return f"sha256:{h.hexdigest()}"
 
 
-def _mart_schema_fingerprint(df: pd.DataFrame) -> dict:
+def _mart_schema_fingerprint(df: pd.DataFrame) -> dict[str, Any]:
     """Column names + dtypes — used as the schema cache-invalidation key."""
     cols = sorted(df.columns.tolist())
     return {
@@ -94,15 +94,15 @@ def _mart_schema_fingerprint(df: pd.DataFrame) -> dict:
     }
 
 
-def _schema_matches(recorded: dict, df: pd.DataFrame) -> bool:
+def _schema_matches(recorded: dict[str, Any], df: pd.DataFrame) -> bool:
     current = _mart_schema_fingerprint(df)
-    return (
+    return (  # type: ignore[no-any-return]
         recorded.get("columns") == current["columns"]
         and recorded.get("dtypes") == current["dtypes"]
     )
 
 
-def _cache_valid(existing: dict, source_hash: str, mrt_path: Path) -> bool:
+def _cache_valid(existing: dict[str, Any], source_hash: str, mrt_path: Path) -> bool:
     """True only when all four cache-hit conditions hold."""
     if existing.get("source_db_hash") != source_hash:
         return False
@@ -130,7 +130,7 @@ def run(
     data_cutoff_gw: int | None = None,
     mart_path: Path | None = None,
     manifest_path: Path | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Run all layers and write mart.parquet + manifest.json.
 
     Layer order: staging → intermediate → fct → feat → mart.
@@ -183,8 +183,8 @@ def run(
     if not force and existing and _cache_valid(existing, source_hash, mrt_path):
         return existing
 
-    now = datetime.now(timezone.utc)
-    manifest: dict = {
+    now = datetime.now(UTC)
+    manifest: dict[str, Any] = {
         "run_id": now.strftime("run_%Y%m%d_%H%M%S"),
         "built_at": now.isoformat(),
         "source_db_path": str(db_path),
@@ -367,9 +367,9 @@ def load(
     recorded_schema = manifest.get("mart_schema")
     if recorded_schema is None or not _schema_matches(recorded_schema, mart):
         raise MartSchemaError(
-            f"mart.parquet schema does not match the current mart contract. "
-            f"A code change invalidated the cached parquet. "
-            f"Run dal.pipeline.run(force=True) to rebuild."
+            "mart.parquet schema does not match the current mart contract. "
+            "A code change invalidated the cached parquet. "
+            "Run dal.pipeline.run(force=True) to rebuild."
         )
 
     cutoff = manifest.get("data_cutoff_gw", int(mart["gw"].max()))
@@ -388,7 +388,7 @@ def load(
 # CLI
 # ---------------------------------------------------------------------------
 
-def _print_manifest(manifest: dict) -> None:
+def _print_manifest(manifest: dict[str, Any]) -> None:
     layers = manifest.get("layers", {})
     print(f"Run:    {manifest.get('run_id')}")
     print(f"DB:     {manifest.get('source_db_path')}")
@@ -414,11 +414,11 @@ if __name__ == "__main__":
 
     elif cmd == "load":
         try:
-            result = load()
-            print(f"mart shape : {result.mart.shape}")
-            print(f"gw range   : {result.gw_range}")
-            print(f"cutoff gw  : {result.data_cutoff_gw}")
-            print(f"signals    : {len(result.signals)}")
+            mart_result = load()
+            print(f"mart shape : {mart_result.mart.shape}")
+            print(f"gw range   : {mart_result.gw_range}")
+            print(f"cutoff gw  : {mart_result.data_cutoff_gw}")
+            print(f"signals    : {len(mart_result.signals)}")
         except (MartNotBuiltError, MartSchemaError) as exc:
             print(f"ERROR: {exc}", file=sys.stderr)
             sys.exit(1)

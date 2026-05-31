@@ -7,11 +7,9 @@ A-2: GrainViolationError used in opponent_context.py — inconsistent exception 
 A-3: opponent_context.py lives in state/ but operates on intermediate-layer data.
 """
 
-import subprocess
-import sys
 from pathlib import Path
-import pytest
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # A-1 — no imports from pipeline/ in dal/ or research/
@@ -34,7 +32,7 @@ def test_no_import_from_pipeline_in_dal():
                 violations.append(f"{py_file.relative_to(project_root)}: {stripped}")
 
     assert violations == [], (
-        f"dal/ contains imports from pipeline/:\n" + "\n".join(violations)
+        "dal/ contains imports from pipeline/:\n" + "\n".join(violations)
     )
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+
 import yaml
 
 SCHEMA_DIR = Path(__file__).parent / "contracts"

@@ -73,4 +73,4 @@ class ScorerOutput:
     players: list[PlayerScore]
     manifest: SignalManifest
     registry_path: str = ""         # path used; empty string if not provided
-    registry_meta: dict = field(default_factory=dict)  # build_metadata.json contents if available
+    registry_meta: dict[str, object] = field(default_factory=dict)  # build_metadata.json contents if available

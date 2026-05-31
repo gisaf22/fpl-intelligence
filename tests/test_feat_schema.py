@@ -10,7 +10,7 @@ import pandas as pd
 import pandera.pandas as pa
 import pytest
 
-from dal.feat.feat_schema import FEATURE_REGISTRY, FEAT_SCHEMA
+from dal.feat.feat_schema import FEAT_SCHEMA, FEATURE_REGISTRY
 
 # ---------------------------------------------------------------------------
 # Minimal valid feat DataFrame — every governed column present with correct types

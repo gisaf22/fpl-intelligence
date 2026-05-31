@@ -6,8 +6,8 @@ import pytest
 
 from dal.fct.fct_player_gameweek import build_player_gameweek_spine
 from dal.feat.feat_player_gameweek import build_player_gameweek_state
-from dal.staging import load_staged_entities
 from dal.intermediate.int_player_fixture import get_player_fixture_base
+from dal.staging import load_staged_entities
 
 pytestmark = pytest.mark.integration
 
@@ -50,7 +50,7 @@ def test_rolling_correctness(state):
 def test_fixture_context_values(state):
     """fixture_context is a three-way label: BGW / SGW / DGW."""
     assert set(state["fixture_context"].unique()).issubset({"BGW", "SGW", "DGW"})
-    assert (state[state["is_dgw"] == True]["fixture_context"] == "DGW").all()
-    assert (state[state["is_bgw"] == True]["fixture_context"] == "BGW").all()
-    sgw_mask = (state["is_dgw"] == False) & (state["is_bgw"] == False)
+    assert (state[state["is_dgw"].astype(bool)]["fixture_context"] == "DGW").all()
+    assert (state[state["is_bgw"].astype(bool)]["fixture_context"] == "BGW").all()
+    sgw_mask = ~state["is_dgw"].astype(bool) & ~state["is_bgw"].astype(bool)
     assert (state[sgw_mask]["fixture_context"] == "SGW").all()

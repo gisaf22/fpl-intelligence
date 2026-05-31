@@ -27,7 +27,7 @@ from intelligence.intelligence_contracts import (
 # Risk thresholds — explicit and static.
 # These reflect playing-time patterns, not injury likelihood.
 _HIGH_RISK_MINUTES_ROLL3 = 30.0    # threshold not evaluation-derived — see threshold-registry.md §AVAIL-T-01
-_MEDIUM_RISK_MINUTES_ROLL3 = 60.0  # threshold not evaluation-derived — see threshold-registry.md §AVAIL-T-02; FPL appearance bonus boundary
+_MEDIUM_RISK_MINUTES_ROLL3 = 60.0  # threshold not evaluation-derived — see threshold-registry.md §AVAIL-T-02
 
 # Divergence threshold: roll3 significantly below roll5 signals a recent drop.
 _DIVERGENCE_THRESHOLD = 20.0  # threshold not evaluation-derived — see threshold-registry.md §AVAIL-T-03

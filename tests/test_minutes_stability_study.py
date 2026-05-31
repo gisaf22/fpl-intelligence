@@ -1,4 +1,4 @@
-"""Validation tests for STUDY-MINSTAB-01: minutes stability × rolling xGI.
+"""Validation tests for STUDY-MINSTAB-01: minutes stability x rolling xGI.
 
 Validates the five requirements from the study design (Section 9):
 1. No temporal leakage — structural check passes for every GW
@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from studies.experiments.minutes_stability_study import (
     _COHORT_FRINGE,
@@ -25,7 +24,6 @@ from studies.experiments.minutes_stability_study import (
     evaluate_minutes_stability_conditioning,
     interpret_results,
 )
-
 
 # ---------------------------------------------------------------------------
 # Synthetic feature builder

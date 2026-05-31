@@ -85,6 +85,7 @@ intelligence/ → player scoring and weekly reporting
 | [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) | Allowed and forbidden import patterns for downstream modules |
 | [docs/governance/threshold-registry.md](governance/threshold-registry.md) | All operational thresholds: values, classifications, 2026/27 disposition |
 | [docs/governance/evaluation-gate-criteria.md](governance/evaluation-gate-criteria.md) | Lens study gate definitions: what constitutes pass/fail at each gate |
+| [docs/governance/eng-issues-2026.md](governance/eng-issues-2026.md) | Engineering issue backlog — 12 issues in 3 phases; sorted by blast radius |
 
 ### Architectural decisions
 

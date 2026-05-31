@@ -25,10 +25,10 @@
 
 schema_version: "1.0"
 produced: "2026-05-27"
-authority: "docs/governance/operational-convergence-plan.md §Phase 5"
+authority: "docs/archive/operational-convergence-plan.md §Phase 5"
 source_of_truth:
   evaluation_metadata: signals/governance/evaluation_metadata.yaml
-  state_inventory: docs/governance/state-representation-inventory.md
+  state_inventory: docs/archive/state-representation-inventory.md
   threshold_registry: docs/governance/threshold-registry.md
 
 entries:
@@ -1229,7 +1229,7 @@ entries:
 
   # ===========================================================================
   # STATE-governed columns not in evaluation_metadata.yaml
-  # Source: docs/governance/state-representation-inventory.md
+  # Source: docs/archive/state-representation-inventory.md
   # Evaluated in LENS-FORM team context studies; individual lens records in
   # studies/runs/ CSVs rather than evaluation_metadata.yaml
   # ===========================================================================
@@ -1245,7 +1245,7 @@ entries:
     downstream_status: eligible
     rho_pooled: null
     rejection_basis: null
-    caveat: "Candidate at DEF/GK scope only; scope-restricted per state-representation-inventory.md. Pooled redundancy with goals_conceded + clean_sheets (G-EDA8-05); positional utility not ruled out."
+    caveat: "Candidate at DEF/GK scope only; scope-restricted per docs/archive/state-representation-inventory.md. Pooled redundancy with goals_conceded + clean_sheets (G-EDA8-05); positional utility not ruled out."
     redundancy: "Pooled redundancy with xgc_roll5, goals_conceded_roll3/5, clean_sheets_roll3/5 at DEF/GK (G-EDA8-05); SYNTH-01 to resolve which defensive signal(s) survive"
     operational_role: defensive
     consumer_modules: []

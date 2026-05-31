@@ -32,7 +32,7 @@ intelligence/ → player scoring and weekly reporting
 ### New contributor (start here)
 
 1. [docs/system-purpose.md](system-purpose.md) — mission, architectural intent, non-goals
-2. [docs/architecture/system-model.md](architecture/system-model.md) — 3-plane model: what each component is for and what is missing
+2. [docs/architecture/system-model.md](architecture/system-model.md) — 3-plane model: what each component is for
 3. [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) — full decision flow with failure modes
 4. [docs/architecture/operational-flow.md](architecture/operational-flow.md) — 3-command execution sequence, entry points
 5. [docs/research-lifecycle.md](research-lifecycle.md) — signal lifecycle: how a signal travels from EDA to scorer
@@ -51,16 +51,17 @@ intelligence/ → player scoring and weekly reporting
 
 1. [docs/system-purpose.md](system-purpose.md) — system question and research boundaries
 2. [docs/research-lifecycle.md](research-lifecycle.md) — lifecycle states and promotion criteria
-3. [signals/registry/SIGNAL_REGISTRY.md](../signals/registry/SIGNAL_REGISTRY.md) — governance registry: signal schema, lifecycle rules, update protocol
-4. [signals/evaluation/EVAL_DESIGN.md](../signals/evaluation/EVAL_DESIGN.md) — **locked** success criteria and failure conditions (cannot be revised retrospectively)
-5. [docs/studies/](studies/) — study designs and published results
+3. [signals/characterisation/SIGNAL_REGISTRY.md](../signals/characterisation/SIGNAL_REGISTRY.md) — governance registry: signal schema, lifecycle rules, update protocol
+4. [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) — **locked** success criteria and failure conditions (cannot be revised retrospectively)
+5. [docs/decisions/](decisions/) — architectural decisions: why Spearman, why additive weighting
+6. [docs/studies/](studies/) — study designs and published results
 
 ### Intelligence / scoring contributor
 
 1. [docs/architecture/intelligence-layer.md](architecture/intelligence-layer.md) — scorer pipeline, component weights, eligibility thresholds, non-goals
 2. [docs/registry-governance.md](registry-governance.md) — what the scorer is allowed to consume and why
 3. [docs/architecture/operational-flow.md](architecture/operational-flow.md) — lifecycle gate enforcement at runtime
-4. [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) — allowed imports from `signals.lifecycle.*`
+4. [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) — allowed imports from `signals.governance.*`
 
 ### Operational runner (running the system weekly)
 
@@ -77,29 +78,40 @@ intelligence/ → player scoring and weekly reporting
 | Document | Authoritative for |
 |----------|-------------------|
 | `dal/fct/fct_contracts.py`, `dal/validation/` | All DAL behavior: grain, column contracts, null semantics, dtype contracts, BGW/DGW invariants (code-enforced) |
-| [signals/evaluation/EVAL_DESIGN.md](../signals/evaluation/EVAL_DESIGN.md) | Success criteria and failure conditions for 2025-26 methodology |
-| [signals/registry/SIGNAL_REGISTRY.md](../signals/registry/SIGNAL_REGISTRY.md) | Lifecycle status for every named signal |
+| [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) | Success criteria and failure conditions for 2025-26 methodology |
+| [signals/characterisation/SIGNAL_REGISTRY.md](../signals/characterisation/SIGNAL_REGISTRY.md) | Lifecycle status for every named signal |
 | [docs/research-lifecycle.md](research-lifecycle.md) | Signal lifecycle state definitions and promotion rules |
 | [docs/registry-governance.md](registry-governance.md) | Exploratory vs operational registry semantics; lifecycle gate enforcement |
 | [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) | Allowed and forbidden import patterns for downstream modules |
-| [docs/governance/platform-rubric.md](governance/platform-rubric.md) | Platform maturity & maintainability assessment rubric — 10 categories, scoring methodology, maturity levels |
-| [docs/governance/platform-assessment-2026-05.md](governance/platform-assessment-2026-05.md) | May 2026 platform assessment — Operational (Level 4), score 4.04, top gaps and improvement actions |
-| [docs/governance/platform-improvement-plan.md](governance/platform-improvement-plan.md) | PLATFORM-01 improvement plan — 5 phases addressing assessment findings; no analytical changes |
+| [docs/governance/threshold-registry.md](governance/threshold-registry.md) | All operational thresholds: values, classifications, 2026/27 disposition |
+| [docs/governance/evaluation-gate-criteria.md](governance/evaluation-gate-criteria.md) | Lens study gate definitions: what constitutes pass/fail at each gate |
+
+### Architectural decisions
+
+Bounded, immutable records of why key decisions were made. Read before changing evaluation methodology or scoring composition.
+
+| Document | Decision |
+|----------|----------|
+| [docs/decisions/001-spearman-as-evaluation-metric.md](decisions/001-spearman-as-evaluation-metric.md) | Why Spearman rank correlation (not Pearson, RMSE, or AUC) |
+| [docs/decisions/002-additive-weighted-scoring.md](decisions/002-additive-weighted-scoring.md) | Why additive weighted composition (not ML); equal-weight default rule |
 
 ### Operational reference
 
 | Document | Use for |
 |----------|---------|
 | [docs/system-purpose.md](system-purpose.md) | Orienting new contributors; scoping new research |
-| [docs/architecture/system-model.md](architecture/system-model.md) | 3-plane conceptual model: Control · Execution · Measurement; component classification table |
-| [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) | Full decision flow: DAL → registry → intelligence → output → (future measurement) |
+| [docs/architecture/system-model.md](architecture/system-model.md) | 3-plane conceptual model: Control · Execution · Measurement |
+| [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) | Full decision flow: DAL → registry → intelligence → output |
 | [docs/architecture/operational-flow.md](architecture/operational-flow.md) | Running the system end to end |
-| [docs/architecture/intelligence-layer.md](architecture/intelligence-layer.md) | Scorer pipeline, registry consumption, rho weighting, explainability, weekly artifact lineage |
-| [docs/architecture/explainability-model.md](architecture/explainability-model.md) | Scoring formula, signal selection rationale, rho weighting, independent verification steps |
-| [docs/architecture/testing-strategy.md](architecture/testing-strategy.md) | Test categories, integration marker, make test vs make test-unit, import enforcement |
+| [docs/architecture/intelligence-layer.md](architecture/intelligence-layer.md) | Scorer pipeline, registry consumption, rho weighting, explainability |
+| [docs/architecture/explainability-model.md](architecture/explainability-model.md) | Scoring formula, signal selection rationale, independent verification steps |
+| [docs/architecture/testing-strategy.md](architecture/testing-strategy.md) | Test categories, integration marker, make test vs make test-unit |
 | [docs/architecture/layer-boundaries.md](architecture/layer-boundaries.md) | Component ownership boundaries, dependency direction, non-overlap rules |
-| [docs/architecture/runtime-artifacts.md](architecture/runtime-artifacts.md) | What artifacts are produced, where they live, gitignore policy, bootstrap semantics |
+| [docs/architecture/runtime-artifacts.md](architecture/runtime-artifacts.md) | What artifacts are produced, where they live, gitignore policy |
 | [docs/architecture/db-schema.md](architecture/db-schema.md) | Source database table and column reference |
+| [docs/architecture/platform-evaluation-2026.md](architecture/platform-evaluation-2026.md) | Platform evaluation program: completed changes and one remaining study |
+| [docs/foundations/representation-governance.md](foundations/representation-governance.md) | Transform admissibility rules: what operations are valid per signal temporal type |
+| [docs/foundations/signal-ontology.md](foundations/signal-ontology.md) | 8 information classes; forward constraints for future research |
 | [dal/README.md](../dal/README.md) | DAL entry points and layer overview |
 | [CONTEXT.md](../CONTEXT.md) | Project state and session orientation |
 
@@ -107,34 +119,24 @@ intelligence/ → player scoring and weekly reporting
 
 | Document | Content |
 |----------|---------|
+| [docs/studies/popthresh-01-design.md](studies/popthresh-01-design.md) | POPTHRESH-01 calibration study design — 60-min threshold validation; deferred to 2026/27 |
 | [docs/studies/rolling-xgi-horizon-study.md](studies/rolling-xgi-horizon-study.md) | Rolling xGI horizon study design |
 | [docs/studies/results/minstab-01-results.md](studies/results/minstab-01-results.md) | MINSTAB-01 published results |
 | [docs/studies/results/rolling-xgi-horizon-study-results.md](studies/results/rolling-xgi-horizon-study-results.md) | Rolling xGI published results |
 | [docs/studies/results/rolling-xgi-real-validation.md](studies/results/rolling-xgi-real-validation.md) | Real validation results |
-| [studies/operational/phase9_backtest.py](../studies/operational/phase9_backtest.py) | Phase 9 operational backtest — holdout validation GW 34–38 |
 
-### Supplementary / transitional
+### Archived (historical record only — read-only)
 
-| Document | Status | Notes |
-|----------|--------|-------|
-| `archive/architecture-boundaries.md` | Archived | Superseded by `architecture/layer-boundaries.md`. |
-| `archive/SYSTEM_CONTEXT.md` | Archived | Superseded by `architecture/layer-boundaries.md`. |
-| `archive/evaluation-framework.md` | Archived | Module map outdated (modules moved to `tests/helpers/`). Philosophy and metrics preserved with annotation. |
-| `archive/research-program.md` | Archived | Scope boundaries absorbed into `system-purpose.md`. |
-| `archive/stabilization/` | Archived | Wave history, risk register, Phase 11 execution plan, Phase 11 slice status. |
-| `archive/DOC_MIGRATION_PLAN.md` | Archived | Documentation architecture migration plan — all six phases complete. |
+Complete working documents superseded by durable artifacts. See [docs/archive/README.md](archive/README.md) for the full supersession table.
 
-### Archived (REPO-CONS-01 — 2026-05-27)
-
-Working documents superseded by durable artifacts during the 9-phase program. Read-only historical record. See [docs/archive/README.md](archive/README.md) for the supersession table.
-
-| File | Archived | Summary |
-|------|----------|---------|
-| [docs/archive/architecture-execution-plan.md](archive/architecture-execution-plan.md) | 2026-05-27 | Phase-by-phase execution plan — system is operational, plan complete |
-| [docs/archive/synth01-design.md](archive/synth01-design.md) | 2026-05-27 | SYNTH-01 methodology decisions — superseded by `signals/evaluation/synth01_decisions.yaml` |
-| [docs/archive/synth01-candidate-set.md](archive/synth01-candidate-set.md) | 2026-05-27 | SYNTH-01 candidate set — superseded by `signals/registry/synth01_candidates.yaml` |
-| [docs/archive/lens-form-readiness.md](archive/lens-form-readiness.md) | 2026-05-27 | LENS-FORM readiness assessment — study complete, results in `studies/lenses/` |
-| [docs/archive/minutes-stability-xgi-study.md](archive/minutes-stability-xgi-study.md) | 2026-05-27 | MINSTAB-01 design doc — superseded by `docs/studies/results/minstab-01-results.md` |
+| File | Superseded by |
+|------|---------------|
+| [docs/archive/operational-convergence-plan.md](archive/operational-convergence-plan.md) | All 9 phases complete; `threshold-registry.md` carries live governance |
+| [docs/archive/state-representation-inventory.md](archive/state-representation-inventory.md) | `_GOVERNED_ROLLING_COLS` / `_COLUMN_META` in `dal/state/player_gameweek_state.py` |
+| [docs/archive/minutes-stability-xgi-study.md](archive/minutes-stability-xgi-study.md) | `docs/studies/results/minstab-01-results.md` |
+| [docs/archive/synth01-design.md](archive/synth01-design.md) | `signals/governance/synth01_decisions.yaml` |
+| [docs/archive/synth01-candidate-set.md](archive/synth01-candidate-set.md) | `signals/characterisation/synth01_candidates.yaml` |
+| [docs/archive/architecture-execution-plan.md](archive/architecture-execution-plan.md) | System operational; plan complete |
 
 ### Operational outputs
 
@@ -150,8 +152,10 @@ These files are active governance artifacts owned by their respective layers. Th
 
 | File | Owned by | Purpose |
 |------|----------|---------|
-| [signals/registry/SIGNAL_REGISTRY.md](../signals/registry/SIGNAL_REGISTRY.md) | `signals/registry/` | Single source of truth for signal lifecycle status. Updated only at methodology milestones. |
-| [signals/evaluation/EVAL_DESIGN.md](../signals/evaluation/EVAL_DESIGN.md) | `signals/evaluation/` | Locked success criteria for 2025-26 methodology. Cannot be revised retrospectively. |
+| [signals/characterisation/SIGNAL_REGISTRY.md](../signals/characterisation/SIGNAL_REGISTRY.md) | `signals/characterisation/` | Single source of truth for signal lifecycle status. Updated only at methodology milestones. |
+| [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) | `signals/governance/` | Locked success criteria for 2025-26 methodology. Cannot be revised retrospectively. |
+| [signals/governance/weight_registry.yaml](../signals/governance/weight_registry.yaml) | `signals/governance/` | Operational scoring weights per (signal, position). Updated after SYNTH-01 re-run. |
+| [signals/governance/evaluation_metadata.yaml](../signals/governance/evaluation_metadata.yaml) | `signals/governance/` | Per-signal lens findings, lifecycle states, downstream status. |
 
 ---
 
@@ -161,5 +165,5 @@ When you add, move, or archive a document:
 
 1. Add it to the appropriate section above.
 2. If it's authoritative, add a row to the authority table.
-3. If it's being superseded, add it to the supplementary/transitional table with a note.
-4. Remove it from all sections when it moves to `archive/`.
+3. If it's a new architectural decision, add it to the decisions table.
+4. If it's being archived, add it to the archived table and update [docs/archive/README.md](archive/README.md).

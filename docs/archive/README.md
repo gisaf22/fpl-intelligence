@@ -17,6 +17,8 @@ supersession column to find the current authority for that concern.
 | [synth01-candidate-set.md](synth01-candidate-set.md) | 2026-05-27 | `signals/registry/synth01_candidates.yaml` |
 | [lens-form-readiness.md](lens-form-readiness.md) | 2026-05-27 | Study complete; results in `studies/lenses/` |
 | [minutes-stability-xgi-study.md](minutes-stability-xgi-study.md) | 2026-05-27 | `docs/studies/results/minstab-01-results.md` |
+| [operational-convergence-plan.md](operational-convergence-plan.md) | 2026-05-31 | All 9 phases complete; threshold-registry.md carries live governance |
+| [state-representation-inventory.md](state-representation-inventory.md) | 2026-05-31 | STATE column set governed by `_GOVERNED_ROLLING_COLS` / `_COLUMN_META` in code |
 
 ---
 

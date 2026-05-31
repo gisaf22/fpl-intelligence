@@ -107,7 +107,7 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
     """Raise if any confirmed signal violates evaluation governance.
 
     Checks each confirmed signal against evaluation_metadata.yaml. Three
-    hard-fail conditions (per operational-convergence-plan.md governance pass):
+    hard-fail conditions (per docs/archive/operational-convergence-plan.md governance pass):
       1. leakage_risk == "direct"       — signal is a scoring-target component
       2. lifecycle_state == "excluded"  — signal was rejected in lens evaluation
       3. downstream_status == "blocked" — evaluation blocked advancement

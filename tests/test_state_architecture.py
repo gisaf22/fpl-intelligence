@@ -109,7 +109,7 @@ def test_derived_column_count_is_13():
     + minutes_roll8 + minutes_trend + fixture_context = 13
 
     Phase 3 lock: 16 REJECTED-BEHAVIORAL columns removed.
-    Evidence: docs/governance/state-representation-inventory.md
+    Evidence: docs/archive/state-representation-inventory.md
     """
     spine = _make_spine()
     state = build_player_gameweek_state(spine)
@@ -194,7 +194,7 @@ def test_rejected_behavioral_columns_absent():
     """All 16 REJECTED-BEHAVIORAL columns must not appear in STATE output.
 
     Phase 3 Representation Inventory Lock: these columns are permanently removed
-    from STATE production. Evidence in docs/governance/state-representation-inventory.md.
+    from STATE production. Evidence in docs/archive/state-representation-inventory.md.
     """
     state = build_player_gameweek_state(_make_spine())
     cols = set(state.columns)

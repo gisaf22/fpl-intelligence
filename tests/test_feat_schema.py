@@ -7,7 +7,7 @@ All tests run without a live database.
 from __future__ import annotations
 
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 import pytest
 
 from dal.feat.feat_schema import FEATURE_REGISTRY, FEAT_SCHEMA

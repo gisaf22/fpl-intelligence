@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-import pandera as pa
+import pandera.pandas as pa
 
 
 # pa.DataFrameSchema — not pa.DataFrameModel — to avoid inner class Config pattern.

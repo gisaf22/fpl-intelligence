@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import pandas as pd
 
+from domain.fpl_scoring import CLEAN_SHEET_MIN_MINUTES
+from population.populations import filter_performance
 from signals.characterisation.population import (
     REGISTRY_BUILD_INPUT_COLUMNS,
-    MINUTES_THRESHOLD,
     OUTPUT_COLUMNS,
     POSITION_CODE_MAP,
 )
@@ -48,10 +49,10 @@ def _build_registry_population(
             "check that spine contains gameweeks at or before this value"
         )
 
-    df = df.loc[df["minutes"] >= MINUTES_THRESHOLD].copy()
+    df = filter_performance(df)
     if df.empty:
         raise ValueError(
-            f"no rows remain after filtering minutes >= {MINUTES_THRESHOLD}; "
+            f"no rows remain after filtering minutes >= {CLEAN_SHEET_MIN_MINUTES}; "
             f"data_cutoff_gw={data_cutoff_gw}"
         )
 

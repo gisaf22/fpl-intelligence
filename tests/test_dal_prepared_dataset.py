@@ -6,9 +6,9 @@ import pandas as pd
 import pytest
 
 from signals.characterisation.population_builder import _build_registry_population as build_prepared_dataset
+from domain.fpl_scoring import CLEAN_SHEET_MIN_MINUTES
 from signals.characterisation.population import (
     REGISTRY_BUILD_INPUT_COLUMNS,
-    MINUTES_THRESHOLD,
     OUTPUT_COLUMNS,
     POSITION_CODE_MAP,
 )
@@ -194,7 +194,7 @@ def test_rows_with_minutes_below_threshold_excluded():
 
 def test_rows_at_threshold_boundary_included():
     spine = _make_spine(n_players=2, gws=[1])
-    spine.loc[spine["player_id"] == 1, "minutes"] = MINUTES_THRESHOLD
+    spine.loc[spine["player_id"] == 1, "minutes"] = CLEAN_SHEET_MIN_MINUTES
     result = build_prepared_dataset(spine, data_cutoff_gw=1)
     included = result[result["player_id"] == 1]
     assert len(included) == 1

@@ -177,6 +177,23 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 ---
 
+## Signal Governance — FWD purchase_price phase cutoff
+
+### MARKET-T-01 — FWD purchase_price phase cutoff (proposed GW ≤ 30)
+
+| Field | Value |
+|-------|-------|
+| **Constant** | No code constant exists — phase restriction not yet implemented |
+| **Value** | GW 30 (proposed cutoff for FWD purchase_price active window) |
+| **Classification** | `EVALUATION-DEFERRED` |
+| **File** | `signals/governance/evaluation_metadata.yaml` — FWD purchase_price entry (removed from scoring pending SYNTH-02) |
+| **Stated rationale** | Phase 9 holdout (GW 34–38) found purchase_price reversed at FWD (rho=−0.095, p=0.374). SYNTH-01 in-sample rho=0.155. GW 30 proposed as the phase boundary based on squad rotation patterns in the final third of the season. |
+| **Governance assessment** | The reversal is non-significant (p=0.374) but directionally concerning. The GW 30 cutoff is an editorial proposal — no study has evaluated which gameweek boundary maximises the period-conditional rho. GW 25, 30, or 33 are all plausible boundaries. The signal has been removed from scoring entirely pending SYNTH-02 phase-conditional evaluation. |
+| **Evidence required to promote** | SYNTH-02 phase-conditional analysis: compute FWD purchase_price rho in rolling 5-GW windows across GW 1–38. Identify the inflection point where rho direction changes. If a stable GW ≤ N phase exists with positive rho, implement a `gw <= N` gate and reclassify to `EVALUATION-DERIVED`. |
+| **2026/27 disposition** | EVALUATION-DEFERRED — pending SYNTH-02. Signal excluded from scoring in 2026/27 until phase-conditional evidence is available. See ENG-02 in `docs/governance/eng-issues-2026.md`. |
+
+---
+
 ## State Layer (`dal/state/player_gameweek_state.py`)
 
 ### STATE-T-01 — `_compute_minutes_trend` divergence threshold
@@ -198,6 +215,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 | ID | Threshold | Status | 2026/27 disposition |
 |----|-----------|--------|---------------------|
+| MARKET-T-01 | FWD purchase_price phase cutoff (GW 30 proposed) | EVALUATION-DEFERRED | SYNTH-02 phase-conditional analysis |
 | STATE-T-01 | `minutes_trend` 30-min divergence (inline) | EVALUATION-DEFERRED | Calibrate in 2026/27 |
 | AVAIL-T-01 | `_HIGH_RISK_MINUTES_ROLL3 = 30.0` | EVALUATION-DEFERRED | Calibrate in 2026/27 |
 | AVAIL-T-02 | `_MEDIUM_RISK_MINUTES_ROLL3 = 60.0` | EVALUATION-DEFERRED | Review in 2026/27 |

@@ -320,10 +320,11 @@ decisions:
   partial_rho: 0.155
   partial_ci_lower: 0.077
   partial_ci_upper: 0.237
-  composition_weight: 1.0
-  contribution_class: primary
+  composition_weight: 0.0
+  contribution_class: null
   marginal_gain: 0.155
   evidence: Sole FWD candidate. No composite synthesis — single-signal qualified score.
     bivariate rho=0.155 from LENS-MARKET evaluation_metadata.yaml.
-  notes: 'G3-WEAK: 2/3 temporal blocks. Intelligence consumers must acknowledge caveat.
-    Not evaluated by partial rho (no other FWD candidates to control for).'
+  notes: 'G3-WEAK: 2/3 temporal blocks. REMOVED FROM SCORING: Phase 9 holdout GW
+    34-38 rho=-0.095 (p=0.374, reversed). ENG-02: pending SYNTH-02 phase-conditional
+    evaluation. lifecycle_state set to excluded in evaluation_metadata.yaml.'

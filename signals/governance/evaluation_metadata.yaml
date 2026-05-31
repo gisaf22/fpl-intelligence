@@ -1069,21 +1069,24 @@ evaluation_findings:
       rho_ci_upper: 0.237
       block_stability_count: 2
       decision_class: informative
-      lifecycle_state: approved
-      downstream_status: approved
+      lifecycle_state: excluded
+      downstream_status: blocked
       leakage_risk: none
-      behavioral_reason: Price tier proxies player quality at FWD; rho=0.155, passes
-        2/3 temporal blocks (borderline stability); price may proxy role seniority
-        and selection priority
+      behavioral_reason: SYNTH-01 in-sample rho=0.155 (G3-WEAK caveat); Phase 9
+        holdout GW 34-38 reversed to rho=-0.095 (p=0.374, n=89). Reversal attributed
+        to season-end rotation — expensive FWDs rested when teams secured/lost position
+        target. Removed from FWD scoring pending SYNTH-02 phase-conditional evaluation
+        (GW 1-30 vs GW 31-38 split). See ENG-02 in docs/governance/eng-issues-2026.md.
       source_gate_decisions:
       - G1-PASS
       - 'G2-PASS: monotonic Q5-Q1'
       - 'G3-WEAK: 2/3 temporal blocks'
-      notes: Passes 2/3 blocks (borderline stability); price may proxy player quality
-        tier
+      - 'PHASE9-REVERSAL: holdout rho=-0.095, removed from scoring'
+      notes: Removed from FWD scoring — Phase 9 holdout reversal. SYNTH-02 required
+        for phase-conditional evaluation (restrict to GW 1-30).
       synth01_decision: FWD-SINGLE-SIGNAL
-      composition_weight: 1.0
-      composition_role: primary
+      composition_weight: 0.0
+      composition_role: null
       synth01_decision_id: G-SYNTH1-14
 - signal_id: FIXTURE-001
   signal: fdr_avg

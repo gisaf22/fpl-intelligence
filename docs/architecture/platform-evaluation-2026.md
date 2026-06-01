@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-29  
 **Author:** Platform Review  
-**Status:** DRAFT — for design alignment before implementation  
+**Status:** Changes 1–8 applied; Change 3 (population threshold study) pending — deferred to 2026/27 calibration program  
 **Scope:** All structural changes required to move from current operational state to a coherent, maintainable platform architecture
 
 ---
@@ -159,8 +159,8 @@ The threshold-registry.md entry for `AVAIL-T-02` (the 60-minute threshold) expli
 | Intelligence scorer cache | Rebuilt full pipeline on every scoring run | Reads from persisted mart parquet |
 | Gate enforcement | Manual call in 2 places; bypassable | Automatic in `load_registry(operational=True)`; `_PRE_LENS_SIGNAL_ALLOWLIST` in `signals/governance/schema.py` |
 | Signals package structure | `signals/registry/` + `signals/lifecycle/` + `signals/evaluation/` mixed statistical and governance concerns | `signals/characterisation/` (statistical facts) + `signals/governance/` (promotion/exclusion decisions) |
-| Population consistency | Lens studies and registry use different populations | Single named populations used everywhere (pending Changes 2+3) |
-| FPL rules location | Scattered in 4+ files with incorrect/incomplete comments | One importable module with VERIFIED/UNVERIFIED annotations (pending Change 1) |
+| Population consistency | Lens studies and registry use different populations | Single named populations used everywhere (`population/populations.py` applied; Change 3 threshold validation pending) |
+| FPL rules location | Scattered in 4+ files with incorrect/incomplete comments | One importable module with VERIFIED/UNVERIFIED annotations (`domain/fpl_scoring.py` applied) |
 | File navigability | 3 files named `runner.py`; 1 name collision (`signals.py`) | Every file has a unique, purposeful name |
 
 Already applied: `get_analytics_dataset()` deleted, `build()` deprecated alias deleted, `POSITION_CODE_MAP` deduplicated, scoring runner bypass fixed, all stale API references in docs and error messages corrected, governance gate centralised in `load_registry(operational=True)`, `_PRE_LENS_SIGNAL_ALLOWLIST` moved to `signals/governance/schema.py`, 4-call chain replaced in 7 study files, internal builder re-exports removed from `dal/__init__.py`, `signals/registry/` renamed to `signals/characterisation/`, `signals/lifecycle/` + `signals/evaluation/` merged to `signals/governance/`, 12 ambiguous filenames replaced with purposeful names, `intelligence/reporting/db.py` inlined into `weekly_report_runner.py`.  

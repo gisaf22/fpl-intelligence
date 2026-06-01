@@ -71,6 +71,8 @@ def _base_row(
         "xgi_roll5": (xgi_roll3 - 0.1) if xgi_roll5 is None else xgi_roll5,
         "xgc_roll3": 0.2,
         "xgc_roll5": 0.25,
+        "clean_sheets_roll3": 0.2,
+        "clean_sheets_roll5": 0.2,
         "goals_conceded_roll3": 0.3,
         "goals_conceded_roll5": 0.4,
         "minutes_trend": minutes_trend,

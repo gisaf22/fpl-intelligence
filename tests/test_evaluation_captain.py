@@ -58,6 +58,8 @@ def _state_row(
         "xgi_roll5": xgi_roll3 - 0.05,
         "xgc_roll3": 0.2,
         "xgc_roll5": 0.25,
+        "clean_sheets_roll3": 0.2,
+        "clean_sheets_roll5": 0.2,
         "goals_conceded_roll3": 0.3,
         "goals_conceded_roll5": 0.4,
         "minutes_trend": "stable",

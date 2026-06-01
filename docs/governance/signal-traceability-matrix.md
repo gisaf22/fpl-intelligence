@@ -1,8 +1,9 @@
 # Signal Traceability Matrix
 
 **Status:** ACTIVE  
-**Version:** 1.0  
+**Version:** 1.1  
 **Produced:** 2026-05-27  
+**Updated:** 2026-05-31 — independent review corrections: GAP-TRACE-02/-03/-06/-07 resolved, consumer module maps aligned to HEAD, eda_candidate vocabulary added, xgi_roll3×MID SYNTH-01 violation documented  
 **Authority:** Operational Convergence Plan Phase 5  
 **Machine-readable form:** [signals/registry/signal_traceability.yaml](../../signals/registry/signal_traceability.yaml)
 
@@ -27,6 +28,7 @@ Coverage includes:
 | Term | Meaning |
 |------|---------|
 | `candidate` | Passes all lens gates (CI excludes zero + monotonicity + block stability). Eligible for SYNTH-01 and operational use. |
+| `eda_candidate` | Shortlisted by EDA (G-EDA8-05 or equivalent) but has NOT passed a named lens study. Must not enter SYNTH-01 without lens gate decisions. Distinguished from `candidate` to prevent premature synthesis entry. |
 | `excluded` | Failed one or more lens gates; must not be used as scored signal |
 | `not_applicable` | Blocked by ontological design rule (e.g., GK excluded from attacking signals) |
 | `provisional` | Retained for operational use but threshold/logic not backed by a predictive study |
@@ -128,7 +130,7 @@ Coverage includes:
 | fixture_count | MID | FIXTURE-003 | excluded | 0.083 | blocked | G2-FAIL: non-monotonic at MID; same conclusion as DEF |
 | fixture_count | FWD | FIXTURE-003 | not_applicable | — | blocked | G-EDA2-01: ontological exclusion |
 
-> **GOVERNANCE INCONSISTENCY — fdr_avg:** `fdr_avg` is excluded at all four positions but is carried as a 20–40% weighted component in `captain.py`, `fixtures.py`, and `transfers.py`. This creates an active conflict between evaluation findings and production scoring. Phase 6 must resolve this — the likely resolution is replacing the continuous FDR weight with a binary DGW/fixture-tier moderator derived from SYNTH-01 findings.
+> **RESOLVED (2026-05-31) — fdr_avg governance inconsistency:** `fdr_avg` is excluded at all four positions and is **not scored** in any production module. All three modules (`captain.py`, `fixtures.py`, `transfers.py`) use the `fixture_context` STATE column binary DGW indicator in place of `fdr_avg`. In `fixtures.py`, `fdr_avg` is computed and retained as an informational display column only (`fdr_window_avg`) and explicitly excluded from the `fixture_opportunity_score` composite. See GAP-TRACE-02 in the governance gap summary.
 
 ---
 
@@ -140,20 +142,20 @@ The following columns are in `_GOVERNED_ROLLING_COLS` but were not evaluated via
 
 | Signal | Pos | Lifecycle | Status | Redundancy | Operational Role | Consumer |
 |--------|-----|-----------|--------|------------|-----------------|---------|
-| xgc_roll3 | DEF | candidate | eligible | G-EDA8-05: pooled redundancy with defensive signal group | defensive | — (not wired) |
-| xgc_roll3 | GK | candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
-| xgc_roll5 | DEF | candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
-| xgc_roll5 | GK | candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
-| goals_conceded_roll3 | DEF | candidate | eligible | G-EDA8-05; moderate_shift risk at MID | defensive | — (not wired) |
-| goals_conceded_roll3 | GK | candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
-| goals_conceded_roll5 | DEF | candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
-| goals_conceded_roll5 | GK | candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
-| clean_sheets_roll3 | DEF | candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
-| clean_sheets_roll3 | GK | candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
-| clean_sheets_roll5 | DEF | candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
-| clean_sheets_roll5 | GK | candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
+| xgc_roll3 | DEF | eda_candidate | eligible | G-EDA8-05: pooled redundancy with defensive signal group | defensive | — (not wired) |
+| xgc_roll3 | GK | eda_candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
+| xgc_roll5 | DEF | eda_candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
+| xgc_roll5 | GK | eda_candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
+| goals_conceded_roll3 | DEF | eda_candidate | eligible | G-EDA8-05; moderate_shift risk at MID | defensive | — (not wired) |
+| goals_conceded_roll3 | GK | eda_candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
+| goals_conceded_roll5 | DEF | eda_candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
+| goals_conceded_roll5 | GK | eda_candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
+| clean_sheets_roll3 | DEF | eda_candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
+| clean_sheets_roll3 | GK | eda_candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
+| clean_sheets_roll5 | DEF | eda_candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
+| clean_sheets_roll5 | GK | eda_candidate | eligible | G-EDA8-05 | defensive | — (not wired) |
 
-> All 12 defensive signal entries are **GOVERNED BUT NOT WIRED**: present in `_GOVERNED_ROLLING_COLS` but not consumed by any intelligence module. Phase 6 must wire the subset surviving SYNTH-01 to relevant modules. G-EDA8-05 documents pooled redundancy across the defensive signal group; SYNTH-01 will determine which individual signals add independent defensive contribution.
+> All 12 defensive signal entries are `eda_candidate`: shortlisted by EDA (G-EDA8-05) but no named lens study completed. They are not wired to any intelligence module and must not enter SYNTH-01 without lens gate decisions. G-EDA8-05 documents pooled redundancy across the defensive signal group; a defensive lens study must precede SYNTH-01 consideration.
 
 ### Availability Classification Signal
 
@@ -175,7 +177,7 @@ The following columns are in `_GOVERNED_ROLLING_COLS` but were not evaluated via
 | fixture_context | FWD | candidate | eligible | Contemporaneous label |
 | fixture_context | GK | candidate | eligible | Contemporaneous label |
 
-> `fixture_context` is **GOVERNED BUT NOT WIRED**: `fixtures.py` reads `is_dgw` from the spine directly rather than consuming `fixture_context` from STATE. Phase 6 must migrate `fixtures.py` to use `fixture_context` for consistent governance. The column is a contemporaneous label (same-GW classification), valid for conditional scoring adjustment only — not an independent predictive lag-1 feature.
+> `fixture_context` is **GOVERNED AND WIRED**: consumed by `captain.py` (fixture_score, 20%), `fixtures.py` (dgw_bonus_score), and `transfers.py` (fixture_score, 20%). GAP-TRACE-06 resolved 2026-05-31. The column is a contemporaneous label (same-GW classification), valid for conditional scoring adjustment only — not an independent predictive lag-1 feature.
 
 ---
 
@@ -189,16 +191,15 @@ This section documents, for each intelligence module, which signals it currently
 
 | Signal | Weight / Role | Positions | Governance Status | Issue |
 |--------|---------------|-----------|------------------|-------|
-| xgi_roll5 | form_score (35%) | DEF, MID, FWD, GK | DEF/MID: candidate; FWD: **excluded** | SCOPE VIOLATION at FWD |
-| xgi_roll3 | involvement_score (30%) | DEF, MID, FWD, GK | DEF/MID: candidate; FWD: **excluded** | SCOPE VIOLATION at FWD |
-| fdr_avg | fixture_score (20%) | all | excluded at all positions | GOVERNANCE INCONSISTENCY |
-| minutes_roll3 | minutes_score (15%) + eligibility filter | all | DEF/FWD: **excluded**; MID: candidate | Eligibility use at DEF/FWD is provisional |
+| xgi_roll5 | form_score (35%) | DEF, MID, FWD, GK | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented |
+| xgi_roll3 | involvement_score (30%) | DEF, MID, FWD, GK | DEF: candidate; FWD: zeroed (neutral 0.5); **MID: SYNTH-01 violation** | MID excluded per G-SYNTH1-07 EXCLUDED-REDUNDANT — see GAP-TRACE-09 |
+| fixture_context | fixture_score (20%) | all | candidate all positions | Binary DGW flag from STATE; fdr_avg not scored |
+| minutes_roll3 | minutes_score (15%) + eligibility filter | all | DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Eligibility use at DEF/FWD is provisional (CAPT-T-01) |
 
 **Threshold dependencies:** CAPT-T-01 (`_MIN_MINUTES_ROLL3 = 45.0` — `UNJUSTIFIED`), SCORE-T-01
 
 **Key issues:**
-- `fdr_avg` carries 20% weight despite being excluded at all positions. Phase 6 must replace with binary fixture moderator.
-- xgi_roll3 and xgi_roll5 consumed at FWD despite exclusion. Phase 6 must add positional scope filter.
+- xgi_roll3 consumed at MID despite G-SYNTH1-07 EXCLUDED-REDUNDANT (SYNTH-01 decision). MID zeroing guard missing — see GAP-TRACE-09. Fix: add `mid_mask` to the FWD zeroing block at lines 99–101.
 - `minutes_roll3` eligibility gate at DEF and FWD: signal excluded at those positions from AVAIL study; gate is provisionally correct but unvalidated.
 
 ---
@@ -209,16 +210,16 @@ This section documents, for each intelligence module, which signals it currently
 
 | Signal | Weight / Role | Positions | Governance Status | Issue |
 |--------|---------------|-----------|------------------|-------|
-| xgi_roll5 | efficiency_score numerator (50%) | DEF, MID, FWD | DEF/MID: candidate; FWD: **excluded** | SCOPE VIOLATION at FWD |
-| purchase_price | efficiency_score denominator (50%) | all | DEF/FWD: candidate (2/3 blocks); MID: **excluded** | Denominator role differs from scored signal; MID exclusion documented |
-| xgi_roll3 | form_score (30%), consistency_score base (20%) | DEF, MID, FWD | DEF/MID: candidate; FWD: **excluded** | SCOPE VIOLATION at FWD |
-| minutes_roll5 | eligibility filter | all | DEF/FWD: **excluded**; MID: candidate | Eligibility use at DEF/FWD is provisional |
+| xgi_roll5 | efficiency_score (50%): xgi_roll5 / purchase_price | DEF, MID, FWD | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented |
+| purchase_price | efficiency_score denominator | all | DEF/FWD: candidate (2/3 blocks); MID: **excluded** | Denominator role semantically distinct from scored signal; MID exclusion is for direct signal use only |
+| xgi_roll3 | form_score (30%), consistency_score base (20%) | DEF, MID, FWD | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented; consistency_score is unevaluated metric — PENDING-EVAL-01 |
+| minutes_roll5 | eligibility filter | all | DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Eligibility use at DEF/FWD is provisional (VAL-T-01) |
 
 **Threshold dependencies:** VAL-T-01 (`_MIN_MINUTES_ROLL5 = 30.0` — `UNJUSTIFIED`), SCORE-T-01
 
 **Key issues:**
-- xgi_roll3 and xgi_roll5 consumed at FWD despite exclusion. Phase 6 positional guard required.
-- `purchase_price` role as efficiency denominator is semantically distinct from using it as a scored signal; MID exclusion in the MARKET lens study concerns its direct signal use, not its role as a price normalizer. The distinction should be documented explicitly in Phase 6.
+- `consistency_score` (20% weight) is a novel unevaluated metric (alignment between xgi_roll3 and xgi_roll5). Not backed by any lens evaluation. Flagged in pending-evaluation-register.md as PENDING-EVAL-01.
+- `purchase_price` as efficiency denominator is semantically distinct from its MARKET lens signal role; MID exclusion applies to direct use as a scored signal, not as a price normalizer.
 
 ---
 
@@ -228,17 +229,17 @@ This section documents, for each intelligence module, which signals it currently
 
 | Signal | Weight / Role | Positions | Governance Status | Issue |
 |--------|---------------|-----------|------------------|-------|
-| fdr_avg | fdr_opportunity_score (40%) | all | excluded at all positions | GOVERNANCE INCONSISTENCY |
-| is_dgw (spine) | dgw_bonus_score (25%) | all | Not a STATE column — read from spine | Governance misalignment with `fixture_context` |
-| goals_scored (team) | team_attack_score (35%) | all | Not a STATE column — raw aggregation | No lens evaluation for team-level goal rate |
-| minutes_roll5 | eligibility filter | all | DEF/FWD: **excluded**; MID: candidate | Eligibility at DEF/FWD is provisional |
+| goals_scored (team avg) | team_attack_score (~58% effective) | all | Not a STATE column — team-level spine aggregation | No lens evaluation for team goal rate — PENDING-EVAL-02 |
+| fixture_context | dgw_bonus_score (~42% effective) | all | candidate all positions | Binary DGW detection from STATE; wired |
+| fdr_avg | informational only (fdr_window_avg output) | all | excluded all positions (FIXTURE-001) | NOT scored; retained as display column only |
+| minutes_roll5 | eligibility filter | all | DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Eligibility at DEF/FWD is provisional (FIX-T-01) |
 
 **Threshold dependencies:** FIX-T-01 (`_MIN_MINUTES_ROLL5 = 30.0` — `UNJUSTIFIED`)
 
 **Key issues:**
-- `fdr_avg` at 40% weight is the most significant governance inconsistency in the system. Phase 6 must replace.
-- `is_dgw` is read directly from the spine rather than the governed `fixture_context` STATE column. Phase 6 must migrate to `fixture_context`.
-- Team-level `goals_scored` aggregation is uncharted territory — no lens study evaluates team goal rate as a signal; Phase 6 should flag for evaluation.
+- Team-level `goals_scored` aggregation (~58% effective weight) is an unevaluated heuristic — no lens study covers team-level goal rate. Flagged in pending-evaluation-register.md as PENDING-EVAL-02.
+- `fdr_avg` is explicitly NOT scored; retained as informational display column only (fdr_window_avg). GAP-TRACE-02 resolved.
+- `fixture_context` is correctly consumed from STATE for DGW detection. GAP-TRACE-06 resolved.
 
 ---
 
@@ -248,15 +249,16 @@ This section documents, for each intelligence module, which signals it currently
 
 | Signal | Weight / Role | Positions | Governance Status | Issue |
 |--------|---------------|-----------|------------------|-------|
-| minutes_roll3 | risk classification (HIGH/MEDIUM/OK thresholds) | all | GK/DEF/FWD: **excluded**; MID: candidate | Classification at non-MID positions is provisional |
-| minutes_roll5 | divergence calculation vs roll3 | all | GK/DEF/FWD: **excluded**; MID: candidate | Divergence use at non-MID is provisional |
-| minutes_trend | falling_trend_flag | all | provisional (all positions) | 30-min divergence threshold PROVISIONAL-EDITORIAL |
+| minutes_roll3 | HIGH/MEDIUM risk thresholds | all | GK/DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Classification at non-MID is provisional (AVAIL-T-01/T-02) |
+| minutes_roll5 | divergence calculation vs roll3 | all | GK/DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Divergence use at non-MID is provisional (AVAIL-T-03) |
+| minutes_trend | falling_trend_flag | all | provisional (all positions) | 30-min divergence threshold PROVISIONAL-EDITORIAL (STATE-T-01) |
+| minutes_roll8 | long_horizon_flag (DEF/MID only) | DEF, MID | DEF: candidate (rho=0.219); MID: candidate (rho=0.222) | WIRED — positional guard enforced; GAP-TRACE-03 resolved |
 
 **Threshold dependencies:** AVAIL-T-01 (`_HIGH_RISK_MINUTES_ROLL3 = 30.0` — `UNJUSTIFIED`), AVAIL-T-02 (`_MEDIUM_RISK_MINUTES_ROLL3 = 60.0` — `PROVISIONAL-EDITORIAL`), AVAIL-T-03 (`_DIVERGENCE_THRESHOLD = 20.0` — `UNJUSTIFIED`), STATE-T-01
 
 **Key issues:**
 - All three availability thresholds (AVAIL-T-01, AVAIL-T-02, AVAIL-T-03) are unjustified or provisional. Phase 8 calibration is the resolution path.
-- `minutes_roll8` DEF (rho=0.219) and MID (rho=0.222) are the best-evidenced availability signals at DEF but are not consumed. Phase 6 must wire them.
+- `minutes_roll8` DEF (rho=0.219) and MID (rho=0.222) wired via `long_horizon_flag` with positional guard (`_MINUTES_ROLL8_POSITIONS = frozenset({"DEF", "MID"})`). GAP-TRACE-03 resolved.
 
 ---
 
@@ -266,17 +268,17 @@ This section documents, for each intelligence module, which signals it currently
 
 | Signal | Weight / Role | Positions | Governance Status | Issue |
 |--------|---------------|-----------|------------------|-------|
-| xgi_roll3 | recent_form_score (30%), involvement_score (15%) | DEF, MID, FWD | DEF/MID: candidate; FWD: **excluded** | SCOPE VIOLATION at FWD |
-| xgi_roll5 | form_momentum_score base (25%) | DEF, MID, FWD | DEF/MID: candidate; FWD: **excluded** | SCOPE VIOLATION at FWD |
-| fdr_avg | fixture_score (20%) | all | excluded at all positions | GOVERNANCE INCONSISTENCY |
-| minutes_roll5 | eligibility filter (10%) + minutes_stability_score | all | DEF/FWD: **excluded**; MID: candidate | Eligibility at DEF/FWD is provisional |
+| xgi_roll3 | recent_form_score (30%), involvement_score (15%) | DEF, MID, FWD | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented; form_momentum_score (25%) is unevaluated — PENDING-EVAL-03 |
+| xgi_roll5 | form_momentum_score base (25%) | DEF, MID, FWD | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented |
+| fixture_context | fixture_score (20%) | all | candidate all positions | Binary DGW flag from STATE; fdr_avg not scored |
+| minutes_roll5 | minutes_stability_score (10%) + eligibility filter | all | DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Eligibility at DEF/FWD is provisional (TRANS-T-01) |
 
 **Threshold dependencies:** TRANS-T-01 (`_MIN_MINUTES_ROLL5 = 30.0` — `UNJUSTIFIED`)
 
 **Key issues:**
-- Same xgi_roll3/roll5 scope violation at FWD as captain.py and value.py. Phase 6 systemic fix.
-- `fdr_avg` at 20% weight: same governance inconsistency as captain.py. Phase 6 resolution required.
-- `transfers_in` (DEF rho=0.187, MID rho=0.190) and `ownership_count` (DEF rho=0.156, MID rho=0.168) are governed candidates but not consumed by transfers.py. Phase 6 alignment required after SYNTH-01 resolves the HIGH REDUNDANCY pair.
+- `form_momentum_score` (25% weight: xgi_roll3 − xgi_roll5) is a novel unevaluated metric. Not backed by any lens evaluation. Flagged in pending-evaluation-register.md as PENDING-EVAL-03.
+- `transfers_in` (DEF rho=0.187, MID rho=0.190) and `ownership_count` (DEF rho=0.156, MID rho=0.168) are governed candidates not consumed by transfers.py. Phase 6 alignment required post-SYNTH-01.
+- FWD zeroing guard implemented — not an open scope violation.
 
 ---
 
@@ -301,14 +303,15 @@ This section documents, for each intelligence module, which signals it currently
 
 | ID | Gap | Affected Modules | Resolution Phase |
 |----|-----|-----------------|-----------------|
-| GAP-TRACE-01 | xgi_roll3/roll5 consumed at FWD despite exclusion (SCOPE VIOLATION) | captain.py, value.py, transfers.py | Phase 6 |
-| GAP-TRACE-02 | fdr_avg carried at 20–40% weight despite excluded at all positions (GOVERNANCE INCONSISTENCY) | captain.py, fixtures.py, transfers.py | Phase 6 |
-| GAP-TRACE-03 | minutes_roll8 DEF/MID candidates not wired to any module | availability.py | Phase 6 |
+| GAP-TRACE-01 | xgi_roll3/roll5 consumed at FWD despite exclusion (SCOPE VIOLATION) | captain.py, value.py, transfers.py | **RESOLVED 2026-05-31** — FWD zeroing guard implemented in all three modules |
+| GAP-TRACE-02 | fdr_avg carried at 20–40% weight despite excluded at all positions | captain.py, fixtures.py, transfers.py | **RESOLVED 2026-05-31** — fdr_avg not scored in any module; fixture_context binary DGW used instead |
+| GAP-TRACE-03 | minutes_roll8 DEF/MID candidates not wired to any module | availability.py | **RESOLVED 2026-05-31** — wired via `long_horizon_flag` with `_MINUTES_ROLL8_POSITIONS` positional guard |
 | GAP-TRACE-04 | transfers_in and ownership_count governed candidates not consumed | (none yet) | Phase 6 (post-SYNTH-01) |
 | GAP-TRACE-05 | 12 defensive signals (xgc_roll3/5, goals_conceded_roll3/5, clean_sheets_roll3/5) at DEF/GK not wired | (none yet) | Phase 6 (post-SYNTH-01) |
-| GAP-TRACE-06 | fixture_context governed candidate not consumed; fixtures.py reads is_dgw from spine directly | fixtures.py | Phase 6 |
+| GAP-TRACE-06 | fixture_context governed candidate not consumed; modules read is_dgw from spine directly | fixtures.py, captain.py, transfers.py | **RESOLVED 2026-05-31** — fixture_context consumed in all three modules |
 | GAP-TRACE-07 | SCORE-T-01 (MIN_RHO=0.15) CONTRADICTS-GATE — incorrectly caveats 3 valid candidates | scoring/signals.py | Phase 6 (post-SYNTH-01) |
 | GAP-TRACE-08 | minutes_roll3/roll5 eligibility use at DEF/FWD is provisional (signals excluded at those positions) | captain.py, value.py, fixtures.py, transfers.py | Phase 8 calibration |
+| GAP-TRACE-09 | xgi_roll3 consumed at MID in captain.py `involvement_score` (30%) despite SYNTH-01 G-SYNTH1-07 EXCLUDED-REDUNDANT | captain.py | **OPEN** — fix: add `mid_mask` to FWD zeroing guard at lines 99–101 |
 
 ---
 
@@ -339,7 +342,9 @@ Plus 12 STATE-only defensive candidates (xgc_roll3/5, goals_conceded_roll3/5, cl
 
 ## Forward Constraints
 
-1. **SYNTH-01 (Phase 5)** will evaluate independent signal contribution across the 14 evaluation-metadata candidates. Any `EXCLUDED-*` decision from SYNTH-01 must be reflected in an update to this matrix, `state-representation-inventory.md`, and `_GOVERNED_ROLLING_COLS`.
-2. **Phase 6 alignment** must address all 8 governance gaps listed above before any new signals are added to production scoring.
-3. **Phase 8 calibration** must resolve all `UNJUSTIFIED` and `PROVISIONAL-EDITORIAL` thresholds. No `UNJUSTIFIED` threshold may remain in production code after Phase 8.
-4. This document is superseded by updates from SYNTH-01 gate decisions. Each SYNTH-01 decision should produce a corresponding update to `signal_traceability.yaml` and this document.
+1. **SYNTH-01 decisions** must be reflected in updates to this matrix, `state-representation-inventory.md`, and `_GOVERNED_ROLLING_COLS`. Any `EXCLUDED-*` decision from SYNTH-01 requires a corresponding consumer module guard within the same phase.
+2. **Phase 6 alignment** must address all open governance gaps (GAP-TRACE-04, -05, -07, -08, -09) before any new signals are added to production scoring. GAP-TRACE-01/-02/-03/-06 are resolved; GAP-TRACE-09 (xgi_roll3×MID in captain.py) is the highest priority open gap.
+3. **GAP-TRACE-09 fix** must be applied in captain.py before the next operational run: add `mid_mask = eligible["position_label"] == "MID"` and update the xgi_roll3 zeroing guard to `~(fwd_mask | mid_mask)`. This is a documented SYNTH-01 G-SYNTH1-07 EXCLUDED-REDUNDANT violation.
+4. **Phase 8 calibration** must resolve all `UNJUSTIFIED` and `PROVISIONAL-EDITORIAL` thresholds. No `UNJUSTIFIED` threshold may remain in production code after Phase 8.
+5. **`eda_candidate` signals** (12 defensive signals) must not enter SYNTH-01 without first completing a named defensive lens study with 3-gate evaluations. The `eda_candidate` state is a hard gate.
+6. **PENDING-EVAL entries** (consistency_score, form_momentum_score, team_goals_roll5) must be tracked in `docs/governance/pending-evaluation-register.md` and resolved before any weight increases or new module dependencies are added.

@@ -110,7 +110,7 @@ def rank_value_players(
     )
 
     # xgi_roll3 and xgi_roll5 excluded at FWD: FORM-001/002 G2-FAIL.
-    # Zero out xgi signals for FWD players; scoring uses these guarded values.
+    # Zeroed FWD group returns 0.5 from normalize_within_position (neutral, not removed).
     fwd_mask = eligible["position_label"] == "FWD"
     xgi_roll5_scored = eligible["xgi_roll5"].fillna(0).where(~fwd_mask, 0.0)
     xgi_roll3_scored = eligible["xgi_roll3"].fillna(0).where(~fwd_mask, 0.0)

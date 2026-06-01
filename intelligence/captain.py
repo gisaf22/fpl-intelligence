@@ -5,9 +5,10 @@ recent form, attacking involvement, fixture context, and minutes stability.
 
 Weights are loaded from the governance registry (signals/characterisation/weight_registry.yaml).
 
-Scope constraint: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL;
-haul-concentration effect). FWD players receive neutral 0.5 on form_score and
-involvement_score — zeroed before normalize_within_position.
+Scope constraints:
+- xgi_roll5 excluded at FWD (FORM-002 G2-FAIL). FWD → neutral 0.5 on form_score.
+- xgi_roll3 excluded at FWD (FORM-001 G2-FAIL) and MID (SYNTH-01 G-SYNTH1-07:
+  EXCLUDED-REDUNDANT vs xgi_roll5). FWD and MID → neutral 0.5 on involvement_score.
 
 fixture_score uses binary DGW indicator from STATE fixture_context column.
 """
@@ -73,8 +74,9 @@ def rank_captain_candidates(
     for full explainability.
 
     Scoring components (registry weights):
-    - form_score        35%: xgi_roll5; excluded at FWD (FORM-001/002 G2-FAIL) → neutral 0.5
-    - involvement_score 30%: xgi_roll3; excluded at FWD (FORM-001/002 G2-FAIL) → neutral 0.5
+    - form_score        35%: xgi_roll5; excluded at FWD (FORM-002 G2-FAIL) → neutral 0.5
+    - involvement_score 30%: xgi_roll3; excluded at FWD (FORM-001 G2-FAIL) and MID
+                             (SYNTH-01 G-SYNTH1-07 EXCLUDED-REDUNDANT) → neutral 0.5
     - fixture_score     20%: binary DGW flag from STATE fixture_context
     - minutes_score     15%: minutes_roll3, normalized within position
 
@@ -93,12 +95,14 @@ def rank_captain_candidates(
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # xgi_roll3 and xgi_roll5 excluded at FWD: FORM-001/002 G2-FAIL.
-    # Zero out xgi signals for FWD players before normalisation; all-zero FWD group
-    # returns 0.5 from normalize_within_position (neutral, no xgi contribution at FWD).
+    # xgi_roll5 excluded at FWD: FORM-002 G2-FAIL.
+    # xgi_roll3 excluded at FWD (FORM-001 G2-FAIL) and MID (SYNTH-01 G-SYNTH1-07:
+    # EXCLUDED-REDUNDANT vs xgi_roll5 at MID). Zeroed groups return 0.5 from
+    # normalize_within_position (neutral, no xgi contribution at excluded positions).
     fwd_mask = eligible["position_label"] == "FWD"
+    mid_mask = eligible["position_label"] == "MID"
     eligible["_xgi_roll5_scored"] = eligible["xgi_roll5"].where(~fwd_mask, 0.0)
-    eligible["_xgi_roll3_scored"] = eligible["xgi_roll3"].where(~fwd_mask, 0.0)
+    eligible["_xgi_roll3_scored"] = eligible["xgi_roll3"].where(~(fwd_mask | mid_mask), 0.0)
 
     # Binary DGW flag from STATE fixture_context column.
     eligible["_fixture_context_dgw"] = (

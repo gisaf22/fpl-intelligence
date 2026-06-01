@@ -10,21 +10,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-# Columns from the state layer required by intelligence functions.
-# These are all legitimate governed signal columns derived from the curated spine.
-_REQUIRED_STATE_COLS: frozenset[str] = frozenset([
-    "minutes_roll3",
-    "minutes_roll5",
-    "minutes_roll8",        # minutes_roll8: DEF/MID only (AVAIL-003; DEF rho=0.219, MID rho=0.222)
-    "xgi_roll3",
-    "xgi_roll5",
-    "xgc_roll3",
-    "xgc_roll5",
-    "goals_conceded_roll3",
-    "goals_conceded_roll5",
-    "minutes_trend",
-    "fixture_context",      # STATE column for DGW/BGW/SGW classification
-])
+from dal.feat.feat_schema import FEATURE_REGISTRY
+
+# Derived from FEATURE_REGISTRY — single source of truth for governed state columns.
+# Any column added to FEATURE_REGISTRY is automatically required here.
+_REQUIRED_STATE_COLS: frozenset[str] = frozenset(FEATURE_REGISTRY.keys())
 
 # Spine columns required by intelligence functions.
 _REQUIRED_SPINE_COLS: frozenset[str] = frozenset([

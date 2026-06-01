@@ -64,7 +64,7 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 
 **Contract:** Studies write results to files (`studies/runs/`, `outputs/`). No downstream layer imports from `studies.*` as Python modules — all cross-layer consumption is file-based. Every lens study must have a locked `LENS_DESIGN.md` before any code runs.
 
-**Consumers:** `signals/registry/` ingests study artifacts. `intelligence/` does not consume study outputs directly.
+**Consumers:** `signals/characterisation/` ingests study artifacts. `intelligence/` does not consume study outputs directly.
 
 ---
 
@@ -74,15 +74,14 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 
 | Sub-directory | Concern |
 |---|---|
-| `signals/lifecycle/` | Lifecycle enforcement: `assert_operational_safe()`, promotion rules, schema validation |
-| `signals/registry/` | Registry build pipeline — assembles the governed artifact from confirmed signals |
-| `signals/evaluation/` | Measurement Plane design specification (`EVAL_DESIGN.md`) — locked success criteria and failure conditions. This is not an evaluation *layer*; it is the contract the future Measurement Plane must satisfy. |
+| `signals/governance/` | Lifecycle enforcement: `assert_operational_safe()`, promotion rules, schema validation, evaluation metadata, `EVAL_DESIGN.md` |
+| `signals/characterisation/` | Registry build pipeline — assembles the governed artifact from confirmed signals |
 
 **Does not own:** Statistical computation on raw data (owned by `studies/`), DAL transformations, operational scoring.
 
-**Contract:** `signals/lifecycle/lifecycle.py:assert_operational_safe()` is the runtime lifecycle gate — it raises `LifecycleViolationError` if an operational runner attempts to consume a registry from an exploratory path. No signal may be scored without passing this gate.
+**Contract:** `signals/governance/lifecycle.py:assert_operational_safe()` is the runtime lifecycle gate — it raises `LifecycleViolationError` if an operational runner attempts to consume a registry from an exploratory path. No signal may be scored without passing this gate.
 
-**Consumers:** `intelligence/` reads the governed registry artifact from `outputs/registry/gw{N}/`. `signals/registry/runner.py` is the only permitted writer to `outputs/registry/`.
+**Consumers:** `intelligence/` reads the governed registry artifact from `outputs/registry/gw{N}/`. `signals/characterisation/registry_build_runner.py` is the only permitted writer to `outputs/registry/`.
 
 ---
 
@@ -97,7 +96,7 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 
 **Does not own:** Signal characterisation (owned by lens studies), signal lifecycle decisions (owned by `signals/`), DAL transformations.
 
-**Contract:** The intelligence layer consumes DAL state features and governed registry artifacts only. It does not consume exploratory EDA registries or research-stage signal lists. Enforced by `validate_intelligence_inputs()` in `intelligence/_base.py`. See [intelligence-layer.md](intelligence-layer.md) for full specification.
+**Contract:** The intelligence layer consumes DAL state features and governed registry artifacts only. It does not consume exploratory EDA registries or research-stage signal lists. Enforced by `validate_intelligence_inputs()` in `intelligence/intelligence_contracts.py`. See [intelligence-layer.md](intelligence-layer.md) for full specification.
 
 **Consumers:** End users (FPL decision makers). Outputs: scored player tables, weekly HTML report.
 
@@ -117,9 +116,9 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 | Dataset-level signal characterisation | `studies/eda/` |
 | Per-group signal methodology and results | `studies/lenses/` |
 | Domain-agnostic statistical utilities | `studies/kernels/` |
-| Signal lifecycle status | `signals/registry/SIGNAL_REGISTRY.md` |
-| Lifecycle gate enforcement | `signals/lifecycle/` |
-| Registry artifact assembly | `signals/registry/runner.py` |
+| Signal lifecycle status | `signals/governance/SIGNAL_REGISTRY.md` |
+| Lifecycle gate enforcement | `signals/governance/lifecycle.py` |
+| Registry artifact assembly | `signals/characterisation/registry_build_runner.py` |
 | Operational signal scoring | `intelligence/scoring/` |
 | Weekly reporting | `intelligence/reporting/` |
 
@@ -133,7 +132,7 @@ No two components share ownership of any row in this table. If a proposed change
 
 **Single canonical base table.** The mart layer output (`dal.get_analytics_dataset`) is the only permitted source for all downstream analytics. Using intermediate-layer, fixture-grain, or raw fct/feat data to compute GW-level targets is a contract violation.
 
-**Studies do not define signals.** Classification, lifecycle assignment, and signal IDs are determined by the study that produces the evidence and stored in the registry. Studies write artifacts; `signals/registry/` ingests them.
+**Studies do not define signals.** Classification, lifecycle assignment, and signal IDs are determined by the study that produces the evidence and stored in the registry. Studies write artifacts; `signals/characterisation/` ingests them.
 
 **Lifecycle gate is path-based.** A registry CSV in `outputs/registry/` is operationally safe. The same content in `studies/eda/findings/` is not — path determines safety, not content. `assert_operational_safe()` enforces this at runtime.
 

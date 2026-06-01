@@ -139,17 +139,17 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 ## Signal Registry (`signals/registry/`)
 
-### REG-T-01 — `MINUTES_THRESHOLD`
+### REG-T-01 — `CLEAN_SHEET_MIN_MINUTES` (formerly `MINUTES_THRESHOLD`)
 | Field | Value |
 |-------|-------|
-| **Constant** | `MINUTES_THRESHOLD` |
+| **Constant** | `CLEAN_SHEET_MIN_MINUTES` (in `domain/fpl_scoring.py`) |
 | **Value** | `60` |
 | **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `signals/registry/population.py:13` |
-| **Stated rationale** | FPL appearance bonus boundary (60+ minutes = full appearance bonus) |
+| **File** | `domain/fpl_scoring.py` (platform Change 1); consumed via `population/populations.py:filter_performance` (platform Change 2). `MINUTES_THRESHOLD` in `signals/characterisation/population.py` was removed and replaced by this import. |
+| **Stated rationale** | FPL scoring regime boundary: clean sheet eligibility, additional appearance point, and BPS minutes baseline all change at 60 minutes. |
 | **Governance assessment** | Semantically grounded in FPL rules. The 60-minute boundary is meaningful for participation classification. However, for predictive population robustness purposes, this threshold has not been evaluated empirically. |
-| **Evidence required to promote** | Population robustness analysis: evaluate signal-to-noise in `xgi_roll3` associations at 45, 60, and 75 minute participation floors. |
-| **2026/27 disposition** | EVALUATION-DEFERRED — carries to 2026/27; see `outputs/operational-baseline.md` |
+| **Evidence required to promote** | Population robustness analysis: evaluate signal-to-noise in `xgi_roll3` associations at 45, 60, and 75 minute participation floors. See `studies/experiments/population_threshold_study.py` (Change 3 — deferred to 2026/27). |
+| **2026/27 disposition** | EVALUATION-DEFERRED — carries to 2026/27; see platform-evaluation-2026.md §Change 3 |
 
 ### REG-T-02 — `HAUL_THRESHOLD_PTS`
 | Field | Value |

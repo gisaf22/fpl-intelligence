@@ -192,15 +192,14 @@ This section documents, for each intelligence module, which signals it currently
 | Signal | Weight / Role | Positions | Governance Status | Issue |
 |--------|---------------|-----------|------------------|-------|
 | xgi_roll5 | form_score (35%) | DEF, MID, FWD, GK | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented |
-| xgi_roll3 | involvement_score (30%) | DEF, MID, FWD, GK | DEF: candidate; FWD: zeroed (neutral 0.5); **MID: SYNTH-01 violation** | MID excluded per G-SYNTH1-07 EXCLUDED-REDUNDANT — see GAP-TRACE-09 |
+| xgi_roll3 | involvement_score (30%) | DEF, MID, FWD, GK | DEF: approved (G-SYNTH1-01); FWD: zeroed (neutral 0.5); MID: zeroed (neutral 0.5) | G-SYNTH1-07 EXCLUDED-REDUNDANT at MID — mid_mask guard implemented (GAP-TRACE-09 RESOLVED) |
 | fixture_context | fixture_score (20%) | all | candidate all positions | Binary DGW flag from STATE; fdr_avg not scored |
 | minutes_roll3 | minutes_score (15%) + eligibility filter | all | DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Eligibility use at DEF/FWD is provisional (CAPT-T-01) |
 
 **Threshold dependencies:** CAPT-T-01 (`_MIN_MINUTES_ROLL3 = 45.0` — `UNJUSTIFIED`), SCORE-T-01
 
 **Key issues:**
-- xgi_roll3 consumed at MID despite G-SYNTH1-07 EXCLUDED-REDUNDANT (SYNTH-01 decision). MID zeroing guard missing — see GAP-TRACE-09. Fix: add `mid_mask` to the FWD zeroing block at lines 99–101.
-- `minutes_roll3` eligibility gate at DEF and FWD: signal excluded at those positions from AVAIL study; gate is provisionally correct but unvalidated.
+- `minutes_roll3` eligibility gate at DEF and FWD: signal excluded at those positions from AVAIL study; gate is provisionally correct but unvalidated (CAPT-T-01 pending).
 
 ---
 
@@ -212,7 +211,7 @@ This section documents, for each intelligence module, which signals it currently
 |--------|---------------|-----------|------------------|-------|
 | xgi_roll5 | efficiency_score (50%): xgi_roll5 / purchase_price | DEF, MID, FWD | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented |
 | purchase_price | efficiency_score denominator | all | DEF/FWD: candidate (2/3 blocks); MID: **excluded** | Denominator role semantically distinct from scored signal; MID exclusion is for direct signal use only |
-| xgi_roll3 | form_score (30%), consistency_score base (20%) | DEF, MID, FWD | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented; consistency_score is unevaluated metric — PENDING-EVAL-01 |
+| xgi_roll3 | form_score (30%), consistency_score base (20%) | DEF, MID, FWD | DEF: approved (G-SYNTH1-01); FWD: zeroed (neutral 0.5); MID: zeroed (neutral 0.5) | G-SYNTH1-07 MID guard implemented; consistency neutralised at MID; consistency_score unevaluated — PENDING-EVAL-01 |
 | minutes_roll5 | eligibility filter | all | DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Eligibility use at DEF/FWD is provisional (VAL-T-01) |
 
 **Threshold dependencies:** VAL-T-01 (`_MIN_MINUTES_ROLL5 = 30.0` — `UNJUSTIFIED`), SCORE-T-01
@@ -282,20 +281,19 @@ This section documents, for each intelligence module, which signals it currently
 
 ---
 
-### `intelligence/scoring/signals.py`
+### `intelligence/scoring/signal_selector.py`
 
-**Purpose:** Load the signal manifest from the registry CSV and enforce lifecycle governance at scoring time.
+**Purpose:** Load the signal manifest from the registry and enforce lifecycle governance at scoring time.
 
 | Signal | Role | Governance Status | Issue |
 |--------|------|------------------|-------|
-| (all governed signals) | Loaded from registry manifest CSV | Enforced by `_assert_governance_compliance()` | Lifecycle gate active |
-| MIN_RHO = 0.15 | Editorial magnitude floor on rho | `CONTRADICTS-GATE` (SCORE-T-01) | Incorrectly caveats xgi_roll3 DEF (0.123), xgi_roll5 DEF (0.113), purchase_price DEF (0.121) — all valid Gate 1 passes |
+| (all governed signals) | Loaded from registry manifest | Enforced by `_assert_governance_compliance()` | Lifecycle gate active |
+| MIN_RHO = 0.15 | Editorial magnitude floor on rho | `RESOLVED` (SCORE-T-01, G-OPS-02) | Removed in Phase 8. All three affected signals (xgi_roll3 DEF, xgi_roll5 DEF, purchase_price DEF) passed SYNTH-01 with APPROVED-* decisions. |
 
-**Threshold dependencies:** SCORE-T-01 (`MIN_RHO = 0.15` — `CONTRADICTS-GATE`)
+**Threshold dependencies:** SCORE-T-01 (`RESOLVED` — MIN_RHO removed in Phase 8, G-OPS-02)
 
 **Key issues:**
-- `MIN_RHO = 0.15` actively contradicts the evaluation gate methodology in `docs/governance/evaluation-gate-criteria.md`. Gate 1 uses CI exclusion of zero, not rho magnitude. Three valid candidates are incorrectly downgraded.
-- Resolution is blocked until SYNTH-01 (Phase 5/6): if all three affected signals pass SYNTH-01 with `APPROVED-*` decisions, `MIN_RHO` should be removed entirely.
+- No active key issues. SCORE-T-01 resolved. MIN_RHO constant removed from signal_selector.py.
 
 ---
 
@@ -311,7 +309,7 @@ This section documents, for each intelligence module, which signals it currently
 | GAP-TRACE-06 | fixture_context governed candidate not consumed; modules read is_dgw from spine directly | fixtures.py, captain.py, transfers.py | **RESOLVED 2026-05-31** — fixture_context consumed in all three modules |
 | GAP-TRACE-07 | SCORE-T-01 (MIN_RHO=0.15) CONTRADICTS-GATE — incorrectly caveats 3 valid candidates | scoring/signals.py | Phase 6 (post-SYNTH-01) |
 | GAP-TRACE-08 | minutes_roll3/roll5 eligibility use at DEF/FWD is provisional (signals excluded at those positions) | captain.py, value.py, fixtures.py, transfers.py | Phase 8 calibration |
-| GAP-TRACE-09 | xgi_roll3 consumed at MID in captain.py `involvement_score` (30%) despite SYNTH-01 G-SYNTH1-07 EXCLUDED-REDUNDANT | captain.py | **OPEN** — fix: add `mid_mask` to FWD zeroing guard at lines 99–101 |
+| GAP-TRACE-09 | xgi_roll3 consumed at MID in captain.py, value.py, transfers.py despite SYNTH-01 G-SYNTH1-07 EXCLUDED-REDUNDANT | captain.py, value.py, transfers.py | **RESOLVED 2026-06-01** — MID zeroing guard implemented in all three modules; consistency/momentum neutralised at MID |
 
 ---
 
@@ -343,8 +341,7 @@ Plus 12 STATE-only defensive candidates (xgc_roll3/5, goals_conceded_roll3/5, cl
 ## Forward Constraints
 
 1. **SYNTH-01 decisions** must be reflected in updates to this matrix, `state-representation-inventory.md`, and `_GOVERNED_ROLLING_COLS`. Any `EXCLUDED-*` decision from SYNTH-01 requires a corresponding consumer module guard within the same phase.
-2. **Phase 6 alignment** must address all open governance gaps (GAP-TRACE-04, -05, -07, -08, -09) before any new signals are added to production scoring. GAP-TRACE-01/-02/-03/-06 are resolved; GAP-TRACE-09 (xgi_roll3×MID in captain.py) is the highest priority open gap.
-3. **GAP-TRACE-09 fix** must be applied in captain.py before the next operational run: add `mid_mask = eligible["position_label"] == "MID"` and update the xgi_roll3 zeroing guard to `~(fwd_mask | mid_mask)`. This is a documented SYNTH-01 G-SYNTH1-07 EXCLUDED-REDUNDANT violation.
+2. **Phase 6 alignment** must address all open governance gaps (GAP-TRACE-04, -05, -07, -08) before any new signals are added to production scoring. GAP-TRACE-01/-02/-03/-06/-09 are resolved.
 4. **Phase 8 calibration** must resolve all `UNJUSTIFIED` and `PROVISIONAL-EDITORIAL` thresholds. No `UNJUSTIFIED` threshold may remain in production code after Phase 8.
 5. **`eda_candidate` signals** (12 defensive signals) must not enter SYNTH-01 without first completing a named defensive lens study with 3-gate evaluations. The `eda_candidate` state is a hard gate.
 6. **PENDING-EVAL entries** (consistency_score, form_momentum_score, team_goals_roll5) must be tracked in `docs/governance/pending-evaluation-register.md` and resolved before any weight increases or new module dependencies are added.

@@ -19,10 +19,13 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DAL_ROOT = REPO_ROOT / "dal"
 INTELLIGENCE_ROOT = REPO_ROOT / "intelligence"
-
 
 def _python_files(root: Path) -> list[Path]:
     return sorted(
@@ -30,7 +33,6 @@ def _python_files(root: Path) -> list[Path]:
         for path in root.rglob("*.py")
         if "__pycache__" not in str(path)
     )
-
 
 def _imports_from(path: Path, forbidden_module: str) -> list[str]:
     """Return violation strings for any import of forbidden_module in path."""
@@ -55,7 +57,6 @@ def _imports_from(path: Path, forbidden_module: str) -> list[str]:
                 )
     return violations
 
-
 def test_feat_does_not_import_staging() -> None:
     """Feature layer must not import from dal.staging.
 
@@ -67,7 +68,6 @@ def test_feat_does_not_import_staging() -> None:
         violations.extend(_imports_from(path, "dal.staging"))
     assert not violations, "Feature layer imports from staging:\n" + "\n".join(violations)
 
-
 def test_feat_does_not_import_intermediate() -> None:
     """Feature layer must not import from dal.intermediate.
 
@@ -77,7 +77,6 @@ def test_feat_does_not_import_intermediate() -> None:
     for path in _python_files(DAL_ROOT / "feat"):
         violations.extend(_imports_from(path, "dal.intermediate"))
     assert not violations, "Feature layer imports from intermediate:\n" + "\n".join(violations)
-
 
 def test_feat_does_not_import_fct() -> None:
     """Feature layer must not import from dal.fct.
@@ -89,7 +88,6 @@ def test_feat_does_not_import_fct() -> None:
     for path in _python_files(DAL_ROOT / "feat"):
         violations.extend(_imports_from(path, "dal.fct"))
     assert not violations, "Feature layer imports from fct:\n" + "\n".join(violations)
-
 
 def test_validation_does_not_import_fct() -> None:
     """Validation layer must not import from dal.fct.
@@ -107,7 +105,6 @@ def test_validation_does_not_import_fct() -> None:
         + "\n".join(violations)
     )
 
-
 def test_intelligence_does_not_import_studies() -> None:
     """Intelligence layer must not import from studies.
 
@@ -122,7 +119,6 @@ def test_intelligence_does_not_import_studies() -> None:
         "Intelligence layer imports from studies — runtime/research boundary violation:\n"
         + "\n".join(violations)
     )
-
 
 def test_dal_architecture_tests_are_not_vacuous() -> None:
     """Sanity check: dal/ subdirectories and intelligence/ actually exist and contain Python files.

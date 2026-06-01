@@ -12,7 +12,10 @@ Phase 4 additions (Governance Consolidation):
 
 from pathlib import Path
 
+import pytest
 import yaml
+
+pytestmark = pytest.mark.unit
 
 EVAL_META_PATH = Path("signals/governance/evaluation_metadata.yaml")
 
@@ -27,11 +30,9 @@ _VALID_LIFECYCLE_STATE = frozenset(
     {"candidate", "excluded", "not_applicable", "approved"}
 )
 
-
 def _load() -> dict:
     with open(EVAL_META_PATH) as f:
         return yaml.safe_load(f)
-
 
 # ---------------------------------------------------------------------------
 # Structural tests
@@ -43,7 +44,6 @@ def test_evaluation_metadata_loads():
     assert data is not None
     assert "evaluation_findings" in data
 
-
 def test_required_top_level_sections():
     """YAML has the three required top-level sections."""
     data = _load()
@@ -51,14 +51,12 @@ def test_required_top_level_sections():
     assert "decision_class_vocab" in data
     assert "lifecycle_state_vocab" in data
 
-
 def test_evaluation_findings_is_non_empty_list():
     """evaluation_findings is a non-empty list."""
     data = _load()
     findings = data["evaluation_findings"]
     assert isinstance(findings, list)
     assert len(findings) > 0
-
 
 def test_each_entry_has_signal_and_lens():
     """Every entry has signal_id, signal, lens, target, and per_position fields."""
@@ -68,7 +66,6 @@ def test_each_entry_has_signal_and_lens():
         signal_id = entry.get("signal_id", "?")
         missing = required_entry_keys - set(entry.keys())
         assert not missing, f"{signal_id}: missing entry keys {sorted(missing)}"
-
 
 # ---------------------------------------------------------------------------
 # Per-position field completeness
@@ -86,7 +83,6 @@ def test_all_positions_have_required_keys():
                 violations.append(f"{signal_id} {pos}: missing {sorted(missing)}")
     assert not violations, "Missing position-level keys:\n" + "\n".join(violations)
 
-
 # ---------------------------------------------------------------------------
 # Vocabulary conformance
 # ---------------------------------------------------------------------------
@@ -103,7 +99,6 @@ def test_decision_class_values_are_valid():
                 violations.append(f"{signal_id} {pos}: invalid decision_class '{dc}'")
     assert not violations, "\n".join(violations)
 
-
 def test_lifecycle_state_values_are_valid():
     """lifecycle_state must be in the controlled vocabulary."""
     data = _load()
@@ -115,7 +110,6 @@ def test_lifecycle_state_values_are_valid():
             if ls not in _VALID_LIFECYCLE_STATE:
                 violations.append(f"{signal_id} {pos}: invalid lifecycle_state '{ls}'")
     assert not violations, "\n".join(violations)
-
 
 # ---------------------------------------------------------------------------
 # Internal consistency
@@ -135,7 +129,6 @@ def test_informative_entries_have_ci():
                     violations.append(f"{signal_id} {pos}: informative but rho_ci_upper is null")
     assert not violations, "\n".join(violations)
 
-
 def test_informative_entries_have_block_stability():
     """Entries with decision_class=informative must have block_stability_count."""
     data = _load()
@@ -149,7 +142,6 @@ def test_informative_entries_have_block_stability():
                         f"{signal_id} {pos}: informative but block_stability_count is null"
                     )
     assert not violations, "\n".join(violations)
-
 
 def test_candidate_entries_are_informative_or_conditional():
     """lifecycle_state=candidate must have decision_class in (informative, conditional)."""
@@ -166,7 +158,6 @@ def test_candidate_entries_are_informative_or_conditional():
                     )
     assert not violations, "\n".join(violations)
 
-
 def test_excluded_design_entries_not_candidate():
     """decision_class=excluded must not have lifecycle_state=candidate."""
     data = _load()
@@ -180,7 +171,6 @@ def test_excluded_design_entries_not_candidate():
                         f"{signal_id} {pos}: decision_class=excluded but lifecycle_state=candidate"
                     )
     assert not violations, "\n".join(violations)
-
 
 def test_ci_lower_less_than_ci_upper():
     """Where both CI bounds are present, lower must be strictly less than upper."""
@@ -198,7 +188,6 @@ def test_ci_lower_less_than_ci_upper():
                     )
     assert not violations, "\n".join(violations)
 
-
 def test_block_stability_count_in_range():
     """block_stability_count, where present, must be in [0, block_stability_total]."""
     data = _load()
@@ -215,19 +204,16 @@ def test_block_stability_count_in_range():
                     )
     assert not violations, "\n".join(violations)
 
-
 # ---------------------------------------------------------------------------
 # Phase 4 — Governance Consolidation
 # ---------------------------------------------------------------------------
 
 _SYNTH01_CANDIDATES_PATH = Path("signals/characterisation/synth01_candidates.yaml")
 
-
 def _load_synth01() -> list[dict]:
     with open(_SYNTH01_CANDIDATES_PATH) as f:
         data = yaml.safe_load(f)
     return data["candidates"]
-
 
 def test_all_positions_have_behavioral_reason():
     """Every signal-position entry has a non-empty behavioral_reason (Phase 4)."""
@@ -240,7 +226,6 @@ def test_all_positions_have_behavioral_reason():
             if not br or not str(br).strip():
                 violations.append(f"{signal_id} {pos}: behavioral_reason is null or empty")
     assert not violations, "\n".join(violations)
-
 
 def test_all_positions_have_source_gate_decisions():
     """Every signal-position entry has a non-empty source_gate_decisions list (Phase 4)."""
@@ -255,7 +240,6 @@ def test_all_positions_have_source_gate_decisions():
                     f"{signal_id} {pos}: source_gate_decisions is null, empty, or not a list"
                 )
     assert not violations, "\n".join(violations)
-
 
 def test_all_positions_have_leakage_risk():
     """Every signal-position entry has leakage_risk in the controlled vocabulary (Phase 4)."""
@@ -272,7 +256,6 @@ def test_all_positions_have_leakage_risk():
                 )
     assert not violations, "\n".join(violations)
 
-
 def test_candidate_entries_have_rho_pooled_not_null():
     """Every entry with lifecycle_state=candidate must have rho_pooled not null (Phase 4)."""
     data = _load()
@@ -286,7 +269,6 @@ def test_candidate_entries_have_rho_pooled_not_null():
                         f"{signal_id} {pos}: lifecycle_state=candidate but rho_pooled is null"
                     )
     assert not violations, "\n".join(violations)
-
 
 def test_candidate_entries_have_matching_synth01_entry():
     """Every lifecycle_state=candidate entry has a matching record in synth01_candidates.yaml (Phase 4)."""

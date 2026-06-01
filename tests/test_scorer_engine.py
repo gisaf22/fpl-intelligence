@@ -13,19 +13,19 @@ from dal.staging import load_staged_entities
 from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
 from intelligence.scoring.engine import NoDataForGameweek, score
 
+pytestmark = pytest.mark.unit
+
 TEST_DB = Path(__file__).parent / "fixtures" / "test.db"
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
-
 @pytest.fixture(scope="module")
 def state():
     staged = load_staged_entities(TEST_DB)
     spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
     return build_player_gameweek_state(spine)
-
 
 @pytest.fixture(scope="module")
 def minimal_manifest():
@@ -51,18 +51,15 @@ def minimal_manifest():
         positions_covered={"GK": ["goals_scored", "goals_conceded"]},
     )
 
-
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
-
 
 def test_no_data_for_gameweek_raises(state):
     """Engine raises NoDataForGameweek when the GW has no rows."""
     manifest = SignalManifest(confirmed=[], caveated=[], positions_covered={})
     with pytest.raises(NoDataForGameweek, match="99"):
         score(state, manifest, gw=99)
-
 
 def test_composite_score_between_zero_and_one(state, minimal_manifest):
     """Composite scores are in [0, 1] before rendering."""
@@ -71,7 +68,6 @@ def test_composite_score_between_zero_and_one(state, minimal_manifest):
         assert 0.0 <= p.composite_score <= 1.0, (
             f"player {p.player_id} composite_score={p.composite_score} out of range"
         )
-
 
 def test_negative_rho_inverts_rank(state):
     """A signal with negative rho should rank the player with the lowest raw value first."""
@@ -105,7 +101,6 @@ def test_negative_rho_inverts_rank(state):
     rank_last = max(gk_scores, key=lambda p: p.rank)
     assert rank1.signal_normalised["goals_conceded"] >= rank_last.signal_normalised["goals_conceded"]
 
-
 def test_players_ranked_within_position(state):
     """Ranks are assigned per position, not globally across all positions."""
     manifest = SignalManifest(
@@ -128,7 +123,6 @@ def test_players_ranked_within_position(state):
         assert all(1 <= r <= n for r in ranks), (
             f"{position}: rank out of bounds in {ranks} for {n} players"
         )
-
 
 def test_excluded_signals_absent_from_composite(state):
     """bonus and bps must not appear in signal_normalised of any player score."""

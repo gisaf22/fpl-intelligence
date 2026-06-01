@@ -258,12 +258,12 @@ def _insert_players(conn: sqlite3.Connection) -> None:
     # P3=103: MID currently at T2 (was at T1 in GW1-2, transferred to T2 by GW4)
     conn.executemany(
         """INSERT INTO players (id, first_name, second_name, web_name, code,
-           team, element_type, now_cost, status)
-           VALUES (?,?,?,?,?,?,?,?,?)""",
+           team, element_type, now_cost, status, team_join_date)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
         [
-            (101, "Alpha", "Keeper",   "A.Keeper",   1001, 1, 1, 55, "a"),
-            (102, "Beta",  "Stopper",  "B.Stopper",  1002, 2, 1, 65, "a"),
-            (103, "Gamma", "Runner",   "G.Runner",   1003, 2, 3, 75, "a"),
+            (101, "Alpha", "Keeper",   "A.Keeper",   1001, 1, 1, 55, "a", "2025-07-01"),
+            (102, "Beta",  "Stopper",  "B.Stopper",  1002, 2, 1, 65, "a", "2025-07-01"),
+            (103, "Gamma", "Runner",   "G.Runner",   1003, 2, 3, 75, "a", None),
         ],
     )
 

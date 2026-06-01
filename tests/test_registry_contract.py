@@ -6,6 +6,7 @@ from signals.governance import (
     validate_registry_contract,
 )
 
+pytestmark = pytest.mark.unit
 
 def test_current_registry_loads_and_validates():
     registry = load_registry()
@@ -17,13 +18,11 @@ def test_current_registry_loads_and_validates():
     assert registry["low_confidence"].map(type).eq(bool).all()
     assert registry["tail_sensitive"].map(type).eq(bool).all()
 
-
 def test_missing_signal_layer_fails_validation():
     registry = load_registry().drop(columns=["signal_layer"])
 
     with pytest.raises(RegistryValidationError, match="missing required columns"):
         validate_registry_contract(registry)
-
 
 def test_low_confidence_row_cannot_be_eligible():
     registry = load_registry()
@@ -32,7 +31,6 @@ def test_low_confidence_row_cannot_be_eligible():
 
     with pytest.raises(RegistryValidationError, match="low-confidence rows"):
         validate_registry_contract(registry)
-
 
 def test_insufficient_support_row_must_be_blocked():
     registry = load_registry()

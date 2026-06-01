@@ -26,6 +26,8 @@ from studies.experiments.rolling_xgi_study import (
 )
 from studies.kernels.windows import assert_no_future_leakage
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Realistic data builder — mirrors real-data characteristics
 # ---------------------------------------------------------------------------
@@ -100,7 +102,6 @@ def _realistic_fwd_dataset(
 
     return pd.DataFrame(rows)
 
-
 # ---------------------------------------------------------------------------
 # Execution path correctness
 # ---------------------------------------------------------------------------
@@ -154,7 +155,6 @@ class TestRealDataShapeCompatibility:
         # GW10 has 3 players — below minimum of 5, should be skipped
         assert result["gw_count"] == 27
 
-
 # ---------------------------------------------------------------------------
 # Deterministic replication behavior
 # ---------------------------------------------------------------------------
@@ -193,7 +193,6 @@ class TestDeterministicReplication:
         r2 = evaluate_rolling_xgi_horizons(f2)
         # At least one signal rho should differ between datasets
         assert r1["signals"]["xgi_roll3"]["mean_rho"] != r2["signals"]["xgi_roll3"]["mean_rho"]
-
 
 # ---------------------------------------------------------------------------
 # Metric reproducibility
@@ -259,7 +258,6 @@ class TestMetricReproducibility:
             if dr is not None:
                 assert 0.0 <= dr <= 1.0, f"{sig} downside_rate={dr} out of range"
 
-
 # ---------------------------------------------------------------------------
 # Temporal integrity preservation
 # ---------------------------------------------------------------------------
@@ -297,7 +295,6 @@ class TestTemporalIntegrity:
         max_gw = result["detail"]["gw"].max()
         assert min_gw >= 6
         assert max_gw <= 33
-
 
 # ---------------------------------------------------------------------------
 # Study output stability — structural invariants

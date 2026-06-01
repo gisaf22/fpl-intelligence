@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pandas as pd
 import pytest
 
@@ -14,7 +12,7 @@ from dal.staging.stg_transformer import (
     _validate_non_nullable_columns,
 )
 
-DB_PATH = Path.home() / ".fpl" / "fpl.db"
+pytestmark = pytest.mark.unit
 
 ALL_ENTITIES = [
     "element_types",
@@ -249,14 +247,13 @@ def test_validate_non_nullable_columns_checked_after_parse_datetime():
 
 
 # ---------------------------------------------------------------------------
-# stage — integration tests against live DB
+# stage — fixture DB tests (golden test.db)
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(not DB_PATH.exists(), reason="fpl.db not found")
-def test_stage_players_returns_canonical_columns():
+def test_stage_players_returns_canonical_columns(db_path):
     schema = load_schema("players")
-    df = stage(DB_PATH, schema)
+    df = stage(db_path, schema)
     assert "player_id" in df.columns
     assert "player_name" in df.columns
     assert "position_code" in df.columns
@@ -265,10 +262,9 @@ def test_stage_players_returns_canonical_columns():
     assert len(df) > 0
 
 
-@pytest.mark.skipif(not DB_PATH.exists(), reason="fpl.db not found")
-def test_stage_fixtures_returns_canonical_columns():
+def test_stage_fixtures_returns_canonical_columns(db_path):
     schema = load_schema("fixtures")
-    df = stage(DB_PATH, schema)
+    df = stage(db_path, schema)
     assert "fixture_id" in df.columns
     assert "gw" in df.columns
     assert "home_team_id" in df.columns
@@ -277,10 +273,9 @@ def test_stage_fixtures_returns_canonical_columns():
     assert len(df) > 0
 
 
-@pytest.mark.skipif(not DB_PATH.exists(), reason="fpl.db not found")
-def test_stage_player_histories_returns_canonical_columns():
+def test_stage_player_histories_returns_canonical_columns(db_path):
     schema = load_schema("player_histories")
-    df = stage(DB_PATH, schema)
+    df = stage(db_path, schema)
     assert "player_id" in df.columns
     assert "gw" in df.columns
     assert "fixture_id" in df.columns
@@ -288,38 +283,33 @@ def test_stage_player_histories_returns_canonical_columns():
     assert len(df) > 0
 
 
-@pytest.mark.skipif(not DB_PATH.exists(), reason="fpl.db not found")
-def test_stage_players_purchase_price_is_float64_divided_by_10():
+def test_stage_players_purchase_price_is_float64_divided_by_10(db_path):
     schema = load_schema("players")
-    df = stage(DB_PATH, schema)
+    df = stage(db_path, schema)
     assert df["purchase_price"].dtype == "float64"
-    # Verify divide_by_10: prices should be in range £4.0-£15.0 for FPL
     assert df["purchase_price"].min() >= 3.0
     assert df["purchase_price"].max() <= 20.0
 
 
-@pytest.mark.skipif(not DB_PATH.exists(), reason="fpl.db not found")
-def test_stage_player_histories_purchase_price_is_float64_divided_by_10():
+def test_stage_player_histories_purchase_price_is_float64_divided_by_10(db_path):
     schema = load_schema("player_histories")
-    df = stage(DB_PATH, schema)
+    df = stage(db_path, schema)
     assert df["purchase_price"].dtype == "float64"
     assert df["purchase_price"].min() >= 3.0
     assert df["purchase_price"].max() <= 20.0
 
 
-@pytest.mark.skipif(not DB_PATH.exists(), reason="fpl.db not found")
-def test_stage_players_code_present_and_populated():
+def test_stage_players_code_present_and_populated(db_path):
     schema = load_schema("players")
-    df = stage(DB_PATH, schema)
+    df = stage(db_path, schema)
     assert "code" in df.columns
     assert df["code"].dtype == "int64"
     assert df["code"].notna().all()
 
 
-@pytest.mark.skipif(not DB_PATH.exists(), reason="fpl.db not found")
-def test_stage_players_team_join_date_present_and_datetime():
+def test_stage_players_team_join_date_present_and_datetime(db_path):
     schema = load_schema("players")
-    df = stage(DB_PATH, schema)
+    df = stage(db_path, schema)
     assert "team_join_date" in df.columns
     assert pd.api.types.is_datetime64_any_dtype(df["team_join_date"])
     assert df["team_join_date"].notna().any()

@@ -17,11 +17,12 @@ from studies.kernels.stability import (
     flag_pooling_decision,
 )
 
+pytestmark = pytest.mark.unit
+
 DEFAULT_GW_BLOCKS: dict[str, tuple[int, int]] = {
     "first_half": (1, 17),
     "second_half": (18, 38),
 }
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -51,7 +52,6 @@ def _make_df(
     )
     return pd.DataFrame(rows)
 
-
 def _block_stats_for(
     df: pd.DataFrame,
     signal: str = "xg",
@@ -63,7 +63,6 @@ def _block_stats_for(
         gw_blocks=gw_blocks if gw_blocks is not None else DEFAULT_GW_BLOCKS,
     )
 
-
 # ---------------------------------------------------------------------------
 # Vocabulary contract
 # ---------------------------------------------------------------------------
@@ -71,18 +70,14 @@ def _block_stats_for(
 def test_block_homogeneity_values_complete():
     assert BLOCK_HOMOGENEITY_VALUES == {"stable", "moderate_shift", "unstable"}
 
-
 def test_pooling_decision_values_complete():
     assert POOLING_DECISION_VALUES == {"pool_confirmed", "pool_with_caveat", "restrict_to_midseason"}
-
 
 def test_default_gw_blocks_keys():
     assert set(DEFAULT_GW_BLOCKS.keys()) == {"first_half", "second_half"}
 
-
 def test_stable_threshold_less_than_unstable():
     assert STABLE_THRESHOLD < UNSTABLE_THRESHOLD
-
 
 # ---------------------------------------------------------------------------
 # compute_signal_block_distributions — output schema
@@ -94,7 +89,6 @@ def test_output_has_required_columns():
     expected_cols = {"signal", "position", "block", "n", "median", "q1", "q3", "iqr", "min_gw", "max_gw"}
     assert expected_cols.issubset(set(result.columns))
 
-
 def test_output_row_count_signal_x_position_x_block():
     df = _make_df(position="MID")
     df2 = _make_df(position="FWD")
@@ -105,7 +99,6 @@ def test_output_row_count_signal_x_position_x_block():
     # 1 signal x 2 positions x 2 blocks = 4 rows
     assert len(result) == 4
 
-
 def test_missing_signal_is_skipped():
     df = _make_df()
     result = compute_signal_block_distributions(
@@ -113,18 +106,15 @@ def test_missing_signal_is_skipped():
     )
     assert len(result) == 0
 
-
 def test_raises_on_missing_gw_column():
     df = pd.DataFrame({"position": ["MID"] * 5, "xg": [1.0] * 5})
     with pytest.raises(ValueError, match="missing required columns"):
         compute_signal_block_distributions(df, signals=["xg"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
 
-
 def test_raises_on_missing_position_column():
     df = pd.DataFrame({"gw": list(range(1, 6)), "xg": [1.0] * 5})
     with pytest.raises(ValueError, match="missing required columns"):
         compute_signal_block_distributions(df, signals=["xg"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
-
 
 # ---------------------------------------------------------------------------
 # compute_signal_block_distributions — values
@@ -137,7 +127,6 @@ def test_iqr_is_q3_minus_q1():
         if not np.isnan(row["iqr"]):
             assert abs(row["iqr"] - (row["q3"] - row["q1"])) < 1e-9
 
-
 def test_block_n_matches_gw_range():
     first = [1.0] * 14  # GW 1-14
     second = [2.0] * 10  # GW 18-27
@@ -147,7 +136,6 @@ def test_block_n_matches_gw_range():
     second_row = result[result["block"] == "second_half"].iloc[0]
     assert first_row["n"] == 14
     assert second_row["n"] == 10
-
 
 def test_insufficient_n_produces_nan_stats():
     # Only 3 rows per block — below MIN_N_FOR_BLOCK_STATS
@@ -159,7 +147,6 @@ def test_insufficient_n_produces_nan_stats():
     for _, row in result.iterrows():
         assert np.isnan(row["median"])
         assert row["n"] in (3, 0)
-
 
 # ---------------------------------------------------------------------------
 # classify_block_homogeneity — all three classifications
@@ -178,17 +165,14 @@ def _make_block_stats(
         "iqr": iqrs,
     })
 
-
 def test_classify_stable_when_identical_blocks():
     stats = _make_block_stats(medians=[5.0, 5.0], iqrs=[2.0, 2.0])
     assert classify_block_homogeneity(stats) == "stable"
-
 
 def test_classify_stable_when_small_shift():
     # normalized_shift = |5.0 - 5.1| / ((2.0 + 2.0)/2 + eps) ≈ 0.05 < STABLE_THRESHOLD
     stats = _make_block_stats(medians=[5.0, 5.1], iqrs=[2.0, 2.0])
     assert classify_block_homogeneity(stats) == "stable"
-
 
 def test_classify_moderate_shift():
     # normalized_shift = |0.0 - 1.5| / ((1.0 + 1.0)/2 + eps) = 1.5 / 1.0 = 1.5
@@ -198,12 +182,10 @@ def test_classify_moderate_shift():
     result = classify_block_homogeneity(stats)
     assert result == "moderate_shift"
 
-
 def test_classify_unstable_when_large_shift():
     # normalized_shift = |0.0 - 10.0| / ((0.1 + 0.1)/2 + eps) >> UNSTABLE_THRESHOLD
     stats = _make_block_stats(medians=[0.0, 10.0], iqrs=[0.1, 0.1])
     assert classify_block_homogeneity(stats) == "unstable"
-
 
 def test_classify_stable_boundary_just_below_threshold():
     # shift just below STABLE_THRESHOLD
@@ -214,7 +196,6 @@ def test_classify_stable_boundary_just_below_threshold():
     )
     assert classify_block_homogeneity(stats) == "stable"
 
-
 def test_classify_moderate_shift_boundary_just_above_stable():
     # shift just above STABLE_THRESHOLD
     shift = STABLE_THRESHOLD + 0.001
@@ -224,12 +205,10 @@ def test_classify_moderate_shift_boundary_just_above_stable():
     )
     assert classify_block_homogeneity(stats) == "moderate_shift"
 
-
 def test_classify_raises_on_missing_columns():
     stats = pd.DataFrame({"block": ["b1", "b2"], "median": [1.0, 2.0]})
     with pytest.raises(ValueError, match="missing required columns"):
         classify_block_homogeneity(stats)
-
 
 # ---------------------------------------------------------------------------
 # classify_block_homogeneity — edge cases
@@ -240,7 +219,6 @@ def test_all_zero_signal_is_stable():
     stats = _make_block_stats(medians=[0.0, 0.0], iqrs=[0.0, 0.0])
     assert classify_block_homogeneity(stats) == "stable"
 
-
 def test_all_nan_blocks_returns_stable():
     """All blocks insufficient data — treated as unobservable → stable."""
     stats = _make_block_stats(
@@ -249,7 +227,6 @@ def test_all_nan_blocks_returns_stable():
     )
     assert classify_block_homogeneity(stats) == "stable"
 
-
 def test_one_valid_one_nan_block_returns_unstable():
     """One block has data, the other does not — cannot pool → unstable."""
     stats = _make_block_stats(
@@ -257,7 +234,6 @@ def test_one_valid_one_nan_block_returns_unstable():
         iqrs=[2.0, float("nan")],
     )
     assert classify_block_homogeneity(stats) == "unstable"
-
 
 def test_three_blocks_uses_max_pairwise_shift():
     """With 3 blocks, worst-case pairwise shift determines classification."""
@@ -269,7 +245,6 @@ def test_three_blocks_uses_max_pairwise_shift():
     )
     # max shift = |0.0 - 20.0| / 1.0 = 20.0 >> UNSTABLE_THRESHOLD
     assert classify_block_homogeneity(stats) == "unstable"
-
 
 # ---------------------------------------------------------------------------
 # classify_block_homogeneity — via compute_signal_block_distributions
@@ -284,7 +259,6 @@ def test_stable_signal_end_to_end():
     block_stats = _block_stats_for(df)
     assert classify_block_homogeneity(block_stats) == "stable"
 
-
 def test_unstable_signal_end_to_end():
     """Signal with very different distributions → unstable."""
     first = [0.0] * 20
@@ -293,7 +267,6 @@ def test_unstable_signal_end_to_end():
     block_stats = _block_stats_for(df)
     assert classify_block_homogeneity(block_stats) == "unstable"
 
-
 def test_all_zero_signal_end_to_end():
     """All-zero signal across both halves → stable."""
     first = [0.0] * 20
@@ -301,7 +274,6 @@ def test_all_zero_signal_end_to_end():
     df = _make_df(first_half_values=first, second_half_values=second)
     block_stats = _block_stats_for(df)
     assert classify_block_homogeneity(block_stats) == "stable"
-
 
 # ---------------------------------------------------------------------------
 # Parameterized GW block behavior
@@ -324,7 +296,6 @@ def test_custom_gw_blocks_are_respected():
     assert early["n"] == 5
     assert late["n"] == 5
 
-
 def test_custom_gw_column_name():
     df = pd.DataFrame({
         "gameweek": list(range(1, 21)),
@@ -339,7 +310,6 @@ def test_custom_gw_column_name():
     assert len(result) == 2
     assert all(result["n"] == 10)
 
-
 # ---------------------------------------------------------------------------
 # flag_pooling_decision
 # ---------------------------------------------------------------------------
@@ -347,21 +317,17 @@ def test_custom_gw_column_name():
 def test_pooling_stable_maps_to_pool_confirmed():
     assert flag_pooling_decision("stable") == "pool_confirmed"
 
-
 def test_pooling_moderate_shift_maps_to_pool_with_caveat():
     assert flag_pooling_decision("moderate_shift") == "pool_with_caveat"
 
-
 def test_pooling_unstable_maps_to_restrict_to_midseason():
     assert flag_pooling_decision("unstable") == "restrict_to_midseason"
-
 
 def test_pooling_mapping_is_complete():
     """Every homogeneity value maps to a valid pooling decision."""
     for h in BLOCK_HOMOGENEITY_VALUES:
         decision = flag_pooling_decision(h)
         assert decision in POOLING_DECISION_VALUES
-
 
 def test_pooling_raises_on_unknown_value():
     with pytest.raises(ValueError, match="unrecognized homogeneity value"):

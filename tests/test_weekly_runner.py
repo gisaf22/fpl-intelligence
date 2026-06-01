@@ -7,8 +7,9 @@ import pytest
 from intelligence.reporting.weekly_report_runner import main, run_week
 from signals.governance.lifecycle import LifecycleViolationError
 
-RESEARCH_REGISTRY = Path("studies/eda/findings/eda_03_joint_registry.csv")
+pytestmark = pytest.mark.unit
 
+RESEARCH_REGISTRY = Path("studies/eda/findings/eda_03_joint_registry.csv")
 
 def test_run_week_writes_registry_snapshot(tmp_path):
     # Operational consumers require a non-exploratory registry path.
@@ -40,12 +41,10 @@ def test_run_week_writes_registry_snapshot(tmp_path):
     assert len(signal_summary) == 104
     assert "downstream_status" in snapshot.columns
 
-
 def test_run_week_rejects_exploratory_registry(tmp_path):
     """run_week must reject registries from studies/eda/ (exploratory state)."""
     with pytest.raises(LifecycleViolationError, match="exploratory"):
         run_week(gw=36, registry_path=RESEARCH_REGISTRY, output_dir=tmp_path / "gw36")
-
 
 def test_run_week_validates_before_writing_outputs(tmp_path):
     # An invalid registry at a non-exploratory path: lifecycle gate passes,
@@ -62,12 +61,10 @@ def test_run_week_validates_before_writing_outputs(tmp_path):
 
     assert not output_dir.exists()
 
-
 def test_run_week_rejects_non_positive_gameweek(tmp_path):
     # gw validation fires before lifecycle check.
     with pytest.raises(ValueError, match="gw must be positive"):
         run_week(gw=0, registry_path=tmp_path / "registry.csv", output_dir=tmp_path)
-
 
 def test_runner_cli_writes_snapshot(tmp_path, capsys):
     registry_path = tmp_path / "registry.csv"

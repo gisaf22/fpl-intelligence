@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # A-1 — no imports from pipeline/ in dal/ or research/
 # ---------------------------------------------------------------------------
@@ -34,7 +36,6 @@ def test_no_import_from_pipeline_in_dal():
     assert violations == [], (
         "dal/ contains imports from pipeline/:\n" + "\n".join(violations)
     )
-
 
 # ---------------------------------------------------------------------------
 # A-2 — GrainViolationError must be removed (zero usages)
@@ -67,7 +68,6 @@ def test_grain_violation_error_not_used():
         f"{_retired_name} is still used in dal/ source:\n" + "\n".join(usages)
     )
 
-
 # ---------------------------------------------------------------------------
 # A-3 — opponent_context.py must be in dal/intermediate/, not dal/state/
 # ---------------------------------------------------------------------------
@@ -80,7 +80,6 @@ def test_opponent_context_at_intermediate_layer():
     from dal.intermediate.int_opponent_context import build_player_opponent_defensive_context
     assert callable(build_player_opponent_defensive_context)
 
-
 def test_opponent_context_not_at_state_layer():
     """A-3: dal.state.opponent_context must not exist after reclassification.
 
@@ -88,4 +87,5 @@ def test_opponent_context_not_at_state_layer():
     """
     with pytest.raises(ImportError):
         import dal.state.opponent_context  # must no longer exist
+
         _ = dal.state.opponent_context  # suppress unused import warning

@@ -14,18 +14,19 @@ import logging
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import load_staged_entities
 
-TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
+pytestmark = pytest.mark.unit
 
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 def _load_spine():
     from dal.fct.fct_player_gameweek import build_player_gameweek_spine
     staged = load_staged_entities(TEST_DB_PATH)
     return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
-
 
 # ---------------------------------------------------------------------------
 # O-4 — FPL_DB_PATH environment variable override
@@ -44,7 +45,6 @@ def test_fpl_db_path_configurable(monkeypatch):
     assert config_mod.DB_PATH == TEST_DB_PATH, (
         f"Expected DB_PATH={TEST_DB_PATH}, got {config_mod.DB_PATH}."
     )
-
 
 # ---------------------------------------------------------------------------
 # O-1 — Staging layer must log entity row counts at INFO
@@ -67,7 +67,6 @@ def test_staging_logs_entity_row_count(caplog):
         f"Expected INFO log with entity 'players' and row count after staging. "
         f"Got messages: {logged_messages}"
     )
-
 
 # ---------------------------------------------------------------------------
 # O-2 — team_id corrections must use [AUDIT] prefix
@@ -95,7 +94,6 @@ def test_team_id_correction_uses_audit_prefix(caplog):
         f"Got messages: {[r.message for r in caplog.records]}"
     )
 
-
 # ---------------------------------------------------------------------------
 # O-5 — Spine fingerprint reproducibility
 # ---------------------------------------------------------------------------
@@ -118,7 +116,6 @@ def test_spine_fingerprint_identical_across_runs():
     )
     assert fp1["n_rows"] == fp2["n_rows"]
     assert fp1["n_cols"] == fp2["n_cols"]
-
 
 # ---------------------------------------------------------------------------
 # O-3b — All DALContractViolation raises must include error_code=

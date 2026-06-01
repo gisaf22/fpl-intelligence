@@ -20,9 +20,11 @@ fixture-derived value.
 """
 
 import pandas as pd
+import pytest
 
 from dal.intermediate.int_player_fixture import _resolve_player_side_context
 
+pytestmark = pytest.mark.unit
 
 def _make_fixture_row(was_home: int, home_team_id: int, away_team_id: int,
                       staging_opponent_team_id: int, staging_team_id: int) -> pd.DataFrame:
@@ -83,7 +85,6 @@ def _make_fixture_row(was_home: int, home_team_id: int, away_team_id: int,
         "away_team_score": 0,
     }])
 
-
 def test_opponent_team_id_overrides_staging_for_away_player():
     """SC-4 FAILING TEST: intermediate layer must derive opponent_team_id from fixture data.
 
@@ -107,7 +108,6 @@ def test_opponent_team_id_overrides_staging_for_away_player():
         f"Bug: _resolve_player_side_context does not override staging opponent_team_id."
     )
 
-
 def test_opponent_team_id_overrides_staging_for_home_player():
     """SC-4 FAILING TEST: home player's opponent must be the away team.
 
@@ -130,7 +130,6 @@ def test_opponent_team_id_overrides_staging_for_home_player():
         f"got {result['opponent_team_id'].iloc[0]}. "
         f"Bug: _resolve_player_side_context does not override staging opponent_team_id."
     )
-
 
 def test_opponent_team_id_never_null_after_fix():
     """Post-fix: opponent_team_id must never be null for any resolved player fixture."""

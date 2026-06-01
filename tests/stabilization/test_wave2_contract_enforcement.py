@@ -24,8 +24,9 @@ from dal.fct.validation.semantics import validate_bgw_correctness
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import load_staged_entities
 
-TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
+pytestmark = pytest.mark.unit
 
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 # ---------------------------------------------------------------------------
 # SC-8 — GW context columns must be in DTYPES
@@ -45,12 +46,10 @@ def test_all_spine_cols_present_in_dtypes():
     assert missing == set(), f"Columns in SPINE_COLS but missing from DTYPES: {sorted(missing)}"
     assert extra == set(), f"Columns in DTYPES but not in SPINE_COLS: {sorted(extra)}"
 
-
 def test_all_spine_cols_present_in_null_rules():
     """NULL_RULES already covers all SPINE_COLS — regression guard."""
     missing = set(SPINE_COLS) - set(NULL_RULES)
     assert missing == set(), f"Columns in SPINE_COLS but missing from NULL_RULES: {sorted(missing)}"
-
 
 # ---------------------------------------------------------------------------
 # V-1 — validate_column_contract must be called in the live build
@@ -65,7 +64,6 @@ def test_validate_column_contract_called_in_spine_build():
 
     call_count = []
 
-
     staged = load_staged_entities(TEST_DB_PATH)
     player_fixture = get_player_fixture_base(staged)
     with patch(
@@ -78,7 +76,6 @@ def test_validate_column_contract_called_in_spine_build():
         "validate_column_contract was not called during build_player_gameweek_spine. "
         "V-1: this function exists but is uncalled in the live build path."
     )
-
 
 # ---------------------------------------------------------------------------
 # V-2 — validate_row_completeness must be called in the live build
@@ -105,7 +102,6 @@ def test_validate_row_completeness_called_in_spine_build():
         "validate_row_completeness was not called during build_player_gameweek_spine. "
         "V-2: this function exists but is uncalled in the live build path."
     )
-
 
 # ---------------------------------------------------------------------------
 # V-3 — invariants.py must not import from dal.curated
@@ -136,7 +132,6 @@ def test_invariants_module_has_no_curated_imports():
         f"dal.fct.validation.invariants contains upward coupling import(s): {import_lines}. "
         "V-3: the fct validation layer must not import from fct_contracts or dal.curated."
     )
-
 
 # ---------------------------------------------------------------------------
 # SC-5 — validate_bgw_correctness must catch non-null 0.0 on BGW rows
@@ -186,7 +181,6 @@ def test_bgw_validator_catches_float64_zero():
     with pytest.raises(DALContractViolation, match="xg"):
         validate_bgw_correctness(df, performance_cols=PERFORMANCE_COLS)
 
-
 def test_bgw_validator_passes_for_pd_na():
     """SC-5: pd.NA on a BGW row must PASS — null is the correct BGW value.
 
@@ -225,7 +219,6 @@ def test_bgw_validator_passes_for_pd_na():
         "was_home": pd.array([None], dtype="boolean"),
     })
     validate_bgw_correctness(df, performance_cols=PERFORMANCE_COLS)  # must not raise
-
 
 # ---------------------------------------------------------------------------
 # SC-6 — validate_no_future_data must catch non-null 0.0 on future rows
@@ -270,7 +263,6 @@ def test_future_data_validator_catches_float64_zero():
     with pytest.raises(DALContractViolation):
         validate_no_future_data(df, reference_gw=4, performance_cols=PERFORMANCE_COLS)
 
-
 def test_future_data_validator_passes_for_all_null():
     """SC-6: future rows with all-null performance must pass."""
     df = pd.DataFrame({
@@ -303,7 +295,6 @@ def test_future_data_validator_passes_for_all_null():
     from dal.fct.fct_contracts import PERFORMANCE_COLS
     validate_no_future_data(df, reference_gw=4, performance_cols=PERFORMANCE_COLS)  # must not raise
 
-
 # ---------------------------------------------------------------------------
 # GRAIN_CONTRACTS registry
 # ---------------------------------------------------------------------------
@@ -318,13 +309,13 @@ def test_grain_contracts_registry_exists():
     missing = required - set(GRAIN_CONTRACTS)
     assert not missing, f"GRAIN_CONTRACTS missing entries: {missing}"
 
-
 def test_validate_grain_uniqueness_accepts_dataset_name():
     """Wave 2: validate_grain_uniqueness must accept dataset_name resolved from GRAIN_CONTRACTS.
 
     FAILS before the interface is updated. PASSES after.
     """
     from dal.validation.grain import validate_grain_uniqueness
+
     df = pd.DataFrame({"player_id": [1, 2], "gw": [1, 1]})
     # Should work by resolving grain from registry
     validate_grain_uniqueness(df, "player_gameweek_spine")

@@ -17,14 +17,14 @@ import pytest
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import load_staged_entities
 
-TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
+pytestmark = pytest.mark.unit
 
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 def _load_spine():
     from dal.fct.fct_player_gameweek import build_player_gameweek_spine
     staged = load_staged_entities(TEST_DB_PATH)
     return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
-
 
 # ---------------------------------------------------------------------------
 # D-1 — ORDER BY must appear in all 6 staging SQL queries
@@ -42,13 +42,11 @@ def test_staging_sql_contains_order_by_players():
         f"players staging query has no ORDER BY — row order is filesystem-defined.\n{query}"
     )
 
-
 def test_staging_sql_contains_order_by_player_histories():
     from dal.staging.stg_schema import load_schema
     from dal.staging.stg_transformer import _build_query
     query = _build_query(load_schema("player_histories"))
     assert "ORDER BY" in query, f"player_histories staging query has no ORDER BY.\n{query}"
-
 
 def test_staging_sql_contains_order_by_fixtures():
     from dal.staging.stg_schema import load_schema
@@ -56,13 +54,11 @@ def test_staging_sql_contains_order_by_fixtures():
     query = _build_query(load_schema("fixtures"))
     assert "ORDER BY" in query, f"fixtures staging query has no ORDER BY.\n{query}"
 
-
 def test_staging_sql_contains_order_by_teams():
     from dal.staging.stg_schema import load_schema
     from dal.staging.stg_transformer import _build_query
     query = _build_query(load_schema("teams"))
     assert "ORDER BY" in query, f"teams staging query has no ORDER BY.\n{query}"
-
 
 def test_staging_sql_contains_order_by_events():
     from dal.staging.stg_schema import load_schema
@@ -70,13 +66,11 @@ def test_staging_sql_contains_order_by_events():
     query = _build_query(load_schema("events"))
     assert "ORDER BY" in query, f"events staging query has no ORDER BY.\n{query}"
 
-
 def test_staging_sql_contains_order_by_element_types():
     from dal.staging.stg_schema import load_schema
     from dal.staging.stg_transformer import _build_query
     query = _build_query(load_schema("element_types"))
     assert "ORDER BY" in query, f"element_types staging query has no ORDER BY.\n{query}"
-
 
 # ---------------------------------------------------------------------------
 # F-1 — FIRST_COL_SEMANTICS registry must exist in curated contracts
@@ -102,7 +96,6 @@ def test_first_col_semantics_registry_exists():
             f"FIRST_COLS column '{col}' has invalid semantic type "
             f"'{FIRST_COL_SEMANTICS[col]}'. Must be one of {valid_types}."
         )
-
 
 # ---------------------------------------------------------------------------
 # F-2 — invariant_per_gw assertion must fire on violation
@@ -148,7 +141,6 @@ def test_invariant_per_gw_assertion_catches_violation():
 
     with pytest.raises(DALContractViolation):
         _aggregate_to_gw_grain(df)
-
 
 # ---------------------------------------------------------------------------
 # Reproducibility — two runs must produce byte-identical output

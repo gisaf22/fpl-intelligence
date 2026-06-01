@@ -21,14 +21,14 @@ from signals.governance.lifecycle import (
 )
 from signals.governance.registry_loader import load_registry
 
+pytestmark = pytest.mark.unit
+
 # The authoritative EDA output — exploratory state by definition
 RESEARCH_REGISTRY = Path("studies/eda/findings/eda_03_joint_registry.csv")
-
 
 # ---------------------------------------------------------------------------
 # Exploratory path detection
 # ---------------------------------------------------------------------------
-
 
 class TestExploratoryPathDetection:
     def test_eda_findings_path_is_exploratory(self):
@@ -56,11 +56,9 @@ class TestExploratoryPathDetection:
     def test_unrelated_path_is_not_exploratory(self):
         assert not is_exploratory_path(Path("core/governance/schema.py"))
 
-
 # ---------------------------------------------------------------------------
 # assert_operational_safe gate
 # ---------------------------------------------------------------------------
-
 
 class TestAssertOperationalSafe:
     def test_rejects_eda_findings_path(self):
@@ -90,11 +88,9 @@ class TestAssertOperationalSafe:
         with pytest.raises(ValueError):
             assert_operational_safe(RESEARCH_REGISTRY)
 
-
 # ---------------------------------------------------------------------------
 # Scorer lifecycle enforcement
 # ---------------------------------------------------------------------------
-
 
 class TestScorerLifecycleEnforcement:
     def test_load_manifest_from_path_rejects_exploratory_registry(self):
@@ -126,11 +122,9 @@ class TestScorerLifecycleEnforcement:
                 f"Path gate should not fire for non-exploratory path, got: {exc}"
             )
 
-
 # ---------------------------------------------------------------------------
 # Report runner lifecycle enforcement
 # ---------------------------------------------------------------------------
-
 
 class TestReportRunnerLifecycleEnforcement:
     def test_run_week_rejects_exploratory_registry(self, tmp_path):
@@ -168,11 +162,9 @@ class TestReportRunnerLifecycleEnforcement:
         with pytest.raises(ValueError, match="gw must be positive"):
             run_week(gw=0, registry_path=RESEARCH_REGISTRY, output_dir=tmp_path)
 
-
 # ---------------------------------------------------------------------------
 # Research consumer flexibility
 # ---------------------------------------------------------------------------
-
 
 class TestResearchConsumerFlexibility:
     def test_load_registry_accepts_exploratory_path(self):
@@ -194,11 +186,9 @@ class TestResearchConsumerFlexibility:
         research = load_registry(RESEARCH_REGISTRY_PATH)
         assert len(registry) == len(research)
 
-
 # ---------------------------------------------------------------------------
 # Lifecycle enforcement is deterministic
 # ---------------------------------------------------------------------------
-
 
 class TestLifecycleEnforcementDeterminism:
     def test_same_path_always_classified_the_same(self):

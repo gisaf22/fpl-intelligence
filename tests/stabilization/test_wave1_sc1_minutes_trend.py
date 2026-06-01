@@ -16,9 +16,11 @@ The test asserts "falling" — this FAILS before the fix and PASSES after.
 """
 
 import pandas as pd
+import pytest
 
 from dal.feat.feat_player_gameweek import build_player_gameweek_state
 
+pytestmark = pytest.mark.unit
 
 def _make_synthetic_spine(minutes_by_gw: list[int | None]) -> pd.DataFrame:
     """Build a minimal spine DataFrame for a single player with given minutes per GW.
@@ -68,7 +70,6 @@ def _make_synthetic_spine(minutes_by_gw: list[int | None]) -> pd.DataFrame:
     df["xgc"] = df["xgc"].astype("Float64")
     return df
 
-
 def test_minutes_trend_lag1_convention():
     """SC-1 FAILING TEST: minutes_trend at GW N must not use GW N minutes.
 
@@ -88,7 +89,6 @@ def test_minutes_trend_lag1_convention():
         f"got {gw7['minutes_trend']!r}. "
         f"Bug: no shift(1) on last3 causes look-ahead — last3 sees GW7's 90 min."
     )
-
 
 def test_minutes_trend_null_at_gw1():
     """minutes_trend must be null at GW 1 for all players — no prior data.

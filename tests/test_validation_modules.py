@@ -17,6 +17,8 @@ from dal.fct.validation import (
 )
 from dal.validation import validate_grain_uniqueness, validate_join_safety
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -38,7 +40,6 @@ def _make_perf_row(**overrides):
     base.update(overrides)
     return base
 
-
 def _make_bgw_row(**overrides):
     # Contract: BGW performance columns must be NULL (pd.NA), not zero — see docs/adr/012-dal-design-rationale.md
     base = dict(
@@ -57,7 +58,6 @@ def _make_bgw_row(**overrides):
     base.update(overrides)
     return base
 
-
 def _make_dgw_row(**overrides):
     base = dict(
         player_id=1, gw=3,
@@ -74,7 +74,6 @@ def _make_dgw_row(**overrides):
     )
     base.update(overrides)
     return base
-
 
 # ---------------------------------------------------------------------------
 # validate_grain_uniqueness
@@ -118,7 +117,6 @@ class TestValidateGrainUniqueness:
         assert exc.validation == 'validate_grain_uniqueness'
         assert exc.n_violations == 2
 
-
 # ---------------------------------------------------------------------------
 # validate_row_completeness
 # ---------------------------------------------------------------------------
@@ -157,7 +155,6 @@ class TestValidateRowCompleteness:
         assert exc.error_code == 'ROW_COUNT'
         assert exc.validation == 'validate_row_completeness'
         assert exc.n_violations == 3
-
 
 # ---------------------------------------------------------------------------
 # validate_bgw_correctness
@@ -211,7 +208,6 @@ class TestValidateBgwCorrectness:
         assert exc.error_code == 'BGW_VIOLATION'
         assert exc.validation == 'validate_bgw_correctness'
         assert exc.n_violations == 1
-
 
 # ---------------------------------------------------------------------------
 # validate_dgw_correctness
@@ -271,7 +267,6 @@ class TestValidateDgwCorrectness:
         assert exc.validation == 'validate_dgw_correctness'
         assert exc.n_violations == 1
 
-
 # ---------------------------------------------------------------------------
 # validate_join_safety
 # ---------------------------------------------------------------------------
@@ -324,7 +319,6 @@ class TestValidateJoinSafety:
         assert exc.error_code == 'JOIN_SAFETY'
         assert exc.validation == 'validate_join_safety'
         assert exc.n_violations == 10
-
 
 # ---------------------------------------------------------------------------
 # validate_column_contract
@@ -385,7 +379,6 @@ class TestValidateColumnContract:
         assert exc.validation == 'validate_column_contract'
         assert exc.n_violations == 1
 
-
 # ---------------------------------------------------------------------------
 # validate_null_semantics
 # ---------------------------------------------------------------------------
@@ -444,7 +437,6 @@ class TestValidateNullSemantics:
         df = pd.DataFrame({'was_home': [None, True, None]})
         assert validate_null_semantics(df, {'was_home': 'always_nullable'}) is None
 
-
 # ---------------------------------------------------------------------------
 # validate_time_continuity
 # ---------------------------------------------------------------------------
@@ -482,7 +474,6 @@ class TestValidateTimeContinuity:
         assert exc.validation == 'validate_time_continuity'
         assert exc.n_violations == 1
 
-
 # ---------------------------------------------------------------------------
 # validate_row_count_invariant
 # ---------------------------------------------------------------------------
@@ -513,7 +504,6 @@ class TestValidateRowCountInvariant:
         assert exc.error_code == 'ROW_COUNT'
         assert exc.validation == 'validate_row_count_invariant'
         assert exc.n_violations == 1
-
 
 # ---------------------------------------------------------------------------
 # validate_no_future_data

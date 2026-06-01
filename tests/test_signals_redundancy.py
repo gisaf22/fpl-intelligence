@@ -12,11 +12,12 @@ from studies.kernels.redundancy import (
     identify_redundant_pairs,
 )
 
+pytestmark = pytest.mark.unit
+
 ALGEBRAIC_DECOMPOSITIONS: tuple[tuple[str, str, str], ...] = (
     ("xgi", "xg", "xa"),
     ("ict_index", "influence", "creativity"),
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -35,7 +36,6 @@ def _make_df(n: int = 60, position: str = "MID", seed: int = 42) -> pd.DataFrame
         }
     )
 
-
 def _perfect_corr_df(n: int = 60, position: str = "MID") -> pd.DataFrame:
     x = np.arange(n, dtype=float)
     return pd.DataFrame(
@@ -47,7 +47,6 @@ def _perfect_corr_df(n: int = 60, position: str = "MID") -> pd.DataFrame:
             "total_points": np.random.default_rng(0).integers(1, 12, size=n).astype(float),
         }
     )
-
 
 # ---------------------------------------------------------------------------
 # compute_pairwise_rho
@@ -125,7 +124,6 @@ class TestComputePairwiseRho:
                 v = result.iloc[i, j]
                 if pd.notna(v):
                     assert -1.0 <= v <= 1.0
-
 
 # ---------------------------------------------------------------------------
 # identify_redundant_pairs
@@ -218,7 +216,6 @@ class TestIdentifyRedundantPairs:
         pairs = identify_redundant_pairs(rho, threshold=0.85)
         assert ("sig_a", "sig_c") in pairs
 
-
 # ---------------------------------------------------------------------------
 # compute_partial_rho
 # ---------------------------------------------------------------------------
@@ -274,7 +271,6 @@ class TestComputePartialRho:
         assert r_mid is not None
         assert r_fwd is not None
 
-
 # ---------------------------------------------------------------------------
 # ALGEBRAIC_DECOMPOSITIONS
 # ---------------------------------------------------------------------------
@@ -298,6 +294,7 @@ class TestAlgebraicDecompositions:
 
     def test_referenced_signals_exist_in_governed_set(self):
         from signals.characterisation.population import REGISTRY_BUILD_INPUT_COLUMNS
+
         governed = set(REGISTRY_BUILD_INPUT_COLUMNS)
         for derived, comp_a, comp_b in ALGEBRAIC_DECOMPOSITIONS:
             assert derived in governed, f"{derived!r} not in REGISTRY_BUILD_INPUT_COLUMNS"

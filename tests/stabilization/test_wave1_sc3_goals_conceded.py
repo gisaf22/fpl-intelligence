@@ -18,11 +18,13 @@ Tests use:
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from dal.intermediate.int_opponent_context import _build_team_defensive_records
 
-TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
+pytestmark = pytest.mark.unit
 
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 def _make_dgw_analytics() -> pd.DataFrame:
     """Minimal analytics frame: T2 has two GW4 fixtures each conceding 1 goal.
@@ -43,7 +45,6 @@ def _make_dgw_analytics() -> pd.DataFrame:
     ]
     df = pd.DataFrame(rows)
     return df
-
 
 def test_goals_conceded_sums_across_dgw_fixtures():
     """SC-3 FAILING TEST: goals_conceded for a DGW team must be sum, not mean.
@@ -66,7 +67,6 @@ def test_goals_conceded_sums_across_dgw_fixtures():
         f"Expected goals_conceded=2 for T2 in GW4 (sum of 1+1 across two fixtures), "
         f"got {actual}. Bug: mean({1},{1})={1.0} used instead of sum."
     )
-
 
 def test_goals_conceded_sgw_unchanged():
     """SGW goals_conceded must equal the single fixture value (sum of 1 = 1).

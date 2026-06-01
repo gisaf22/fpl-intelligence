@@ -16,6 +16,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -30,10 +32,8 @@ def _intelligence_module_paths() -> list[Path]:
         root / "transfers.py",
     ]
 
-
 def _module_source(path: Path) -> str:
     return path.read_text()
-
 
 def _base_features_row(
     player_id: int = 1,
@@ -80,10 +80,8 @@ def _base_features_row(
         "fixture_context": fixture_context,
     }
 
-
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(list(rows))
-
 
 # ---------------------------------------------------------------------------
 # 1. No hardcoded weight dicts in intelligence modules
@@ -134,7 +132,6 @@ class TestNoHardcodedWeights:
             f"{path}: does not import or call get_module_weights(). "
             "All module weights must be loaded from the governance registry."
         )
-
 
 # ---------------------------------------------------------------------------
 # 2. Weight registry loader contracts
@@ -200,7 +197,6 @@ class TestWeightRegistryLoader:
             f"got {set(weights.keys())}"
         )
 
-
 # ---------------------------------------------------------------------------
 # 3. Lifecycle enforcement: excluded signals raise LifecycleViolationError
 # ---------------------------------------------------------------------------
@@ -265,7 +261,6 @@ class TestLifecycleEnforcement:
 
         # Should not raise for a non-exploratory path
         assert_operational_safe("outputs/registry/joint_registry.csv")
-
 
 # ---------------------------------------------------------------------------
 # 4. score_provenance() completeness
@@ -371,7 +366,6 @@ class TestScoreProvenance:
         assert "signals" in result
         assert len(result["signals"]) > 0
 
-
 # ---------------------------------------------------------------------------
 # 5. fdr_avg excluded from scoring (informational output only)
 # ---------------------------------------------------------------------------
@@ -446,7 +440,6 @@ class TestFdrRemovedFromScoring:
             f"Player 1 (fdr=1.0): {scores[1]:.4f}, Player 2 (fdr=5.0): {scores[2]:.4f}"
         )
 
-
 # ---------------------------------------------------------------------------
 # 6. FWD scope guard: xgi_roll3/xgi_roll5 excluded at FWD
 # ---------------------------------------------------------------------------
@@ -498,7 +491,6 @@ class TestFwdScopeGuard:
             "FWD captain_score must be neutralised when xgi differs. "
             f"Player 10 (xgi=2.0): {scores[10]:.4f}, Player 11 (xgi=0.01): {scores[11]:.4f}"
         )
-
 
 # ---------------------------------------------------------------------------
 # 7. minutes_roll8 wired for DEF/MID long-horizon availability flag

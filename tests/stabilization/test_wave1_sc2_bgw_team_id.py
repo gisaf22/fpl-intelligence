@@ -21,12 +21,15 @@ FAILS before fix (returns 2). PASSES after fix (returns 1).
 
 from pathlib import Path
 
+import pytest
+
 from dal.fct.fct_player_gameweek import build_player_gameweek_spine
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import load_staged_entities
 
-TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
+pytestmark = pytest.mark.unit
 
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 def _load_spine():
     staged = load_staged_entities(TEST_DB_PATH)
@@ -36,7 +39,6 @@ P3_ID = 103
 BGW_GW = 3
 PRE_TRANSFER_TEAM = 1   # T1: P3's team in GW1-2
 POST_TRANSFER_TEAM = 2  # T2: P3's team in GW4-5 (and players.team snapshot)
-
 
 def test_bgw_team_id_uses_pre_transfer_team():
     """SC-2 FAILING TEST: BGW row must carry the player's team at the time of the BGW.
@@ -64,7 +66,6 @@ def test_bgw_team_id_uses_pre_transfer_team():
         f"Bug: _build_player_info uses latest gw team_id ({POST_TRANSFER_TEAM}=T2) for all BGW rows."
     )
 
-
 def test_bgw_team_id_post_transfer_is_correct():
     """After fix: BGW before the transfer carries pre-transfer team; non-BGW after transfer carries post-transfer team.
 
@@ -81,7 +82,6 @@ def test_bgw_team_id_post_transfer_is_correct():
         f"P1 GW3 BGW team_id should be 1 (T1, never transferred), "
         f"got {p1_bgw.iloc[0]['team_id']}"
     )
-
 
 def test_spine_has_correct_row_count():
     """Golden DB: 3 players x 5 GWs = 15 rows exactly."""

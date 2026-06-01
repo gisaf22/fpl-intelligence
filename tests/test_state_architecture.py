@@ -55,7 +55,6 @@ def _make_spine() -> pd.DataFrame:
         df[col] = df[col].astype("Float64")
     return df
 
-
 # ---------------------------------------------------------------------------
 # Test 1 — xa_roll* absent (G-EDA6-02: xa absorbed by xgi)
 # ---------------------------------------------------------------------------
@@ -70,7 +69,6 @@ def test_xa_roll_variants_absent():
     cols = set(state.columns)
     assert "xa_roll3" not in cols, "xa_roll3 present — xa must not produce rolled representations"
     assert "xa_roll5" not in cols, "xa_roll5 present — xa must not produce rolled representations"
-
 
 # ---------------------------------------------------------------------------
 # Test 2 — non-minutes roll8 absent (LENS-AVAIL AVAIL-003: minutes_roll8 only)
@@ -96,7 +94,6 @@ def test_non_minutes_roll8_absent():
     present = [col for col in forbidden_roll8 if col in cols]
     assert not present, f"Forbidden roll8 columns present in STATE output: {present}"
 
-
 # ---------------------------------------------------------------------------
 # Test 3 — derived column count = 13 (Phase 3 Representation Inventory Lock)
 # ---------------------------------------------------------------------------
@@ -118,7 +115,6 @@ def test_derived_column_count_is_13():
         f"Derived columns: {sorted(derived)}"
     )
 
-
 # ---------------------------------------------------------------------------
 # Test 4 — FEATURE_REGISTRY covers every derived column
 # ---------------------------------------------------------------------------
@@ -132,7 +128,6 @@ def test_feature_registry_covers_all_derived():
     missing = derived - set(FEATURE_REGISTRY)
     assert not missing, f"Derived columns without FEATURE_REGISTRY entries: {sorted(missing)}"
 
-
 # ---------------------------------------------------------------------------
 # Test 5 — FEATURE_REGISTRY has no orphan entries
 # ---------------------------------------------------------------------------
@@ -145,7 +140,6 @@ def test_feature_registry_no_orphan_entries():
 
     orphan = set(FEATURE_REGISTRY) - derived
     assert not orphan, f"FEATURE_REGISTRY entries for columns not in STATE output: {sorted(orphan)}"
-
 
 # ---------------------------------------------------------------------------
 # Test 6 — FEATURE_REGISTRY required governance fields
@@ -164,7 +158,6 @@ def test_feature_registry_required_fields():
         if not rec.positions:
             violations.append(f"  {col}: positions is empty")
     assert not violations, "Field violations in FEATURE_REGISTRY:\n" + "\n".join(violations)
-
 
 # ---------------------------------------------------------------------------
 # Test 7 — 16 REJECTED-BEHAVIORAL columns are individually absent
@@ -194,6 +187,9 @@ def test_rejected_behavioral_columns_absent():
 
     Phase 3 Representation Inventory Lock: these columns are permanently removed
     from STATE production. Evidence in docs/archive/state-representation-inventory.md.
+
+pytestmark = pytest.mark.unit
+
     """
     state = build_player_gameweek_state(_make_spine())
     cols = set(state.columns)
@@ -204,7 +200,6 @@ def test_rejected_behavioral_columns_absent():
         "These columns were removed by Phase 3 Representation Inventory Lock."
     )
 
-
 @pytest.mark.parametrize("col", _REJECTED_BEHAVIORAL)
 def test_each_rejected_column_individually_absent(col):
     """Each of the 16 REJECTED-BEHAVIORAL columns must be individually absent."""
@@ -213,7 +208,6 @@ def test_each_rejected_column_individually_absent(col):
         f"Rejected column '{col}' is present in STATE output — "
         "Phase 3 Representation Inventory Lock violation."
     )
-
 
 # ---------------------------------------------------------------------------
 # Test 8 — minutes_trend is present (retained, availability-domain-restricted)

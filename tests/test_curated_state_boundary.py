@@ -21,6 +21,8 @@ from dal.feat.feat_player_gameweek import (
     build_player_gameweek_state,
 )
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Synthetic spine factory
 # ---------------------------------------------------------------------------
@@ -73,17 +75,14 @@ def _make_spine(players: dict, *, extra_col: str | None = None) -> pd.DataFrame:
         df[col] = df[col].astype("Float64")
     return df
 
-
 def _default_pts(gw: int) -> int:
     return gw
-
 
 def _sgw_spine(n_gws: int = 7, pts_fn=None) -> pd.DataFrame:
     """Single player, n_gws of SGW. pts_fn(gw) → points; defaults to gw."""
     if pts_fn is None:
         pts_fn = _default_pts
     return _make_spine({1: [(gw, pts_fn(gw), False, False) for gw in range(1, n_gws + 1)]})
-
 
 # ---------------------------------------------------------------------------
 # Contract 1 — Ordering
@@ -114,7 +113,6 @@ def test_ordering_shuffled_spine_with_dgw_identical_output():
         result_shuffled.sort_values(key).reset_index(drop=True),
     )
 
-
 # ---------------------------------------------------------------------------
 # Contract 2 — Grain uniqueness at entry
 # ---------------------------------------------------------------------------
@@ -132,7 +130,6 @@ def test_grain_duplicate_input_rejected_at_state_entry():
 
     with pytest.raises(ValueError, match="grain"):
         build_player_gameweek_state(spine_with_dup)
-
 
 # ---------------------------------------------------------------------------
 # Contract 3 — BGW NULL semantics at entry
@@ -154,7 +151,6 @@ def test_bgw_zero_substitution_rejected_at_state_entry():
 
     with pytest.raises(ValueError, match="BGW"):
         build_player_gameweek_state(spine)
-
 
 # ---------------------------------------------------------------------------
 # Contract 4 — BGW NULL vs. zero divergence (demonstrates the semantic risk)
@@ -197,7 +193,6 @@ def test_bgw_null_vs_zero_rolling_divergence():
         "the test logic is wrong or pandas behavior has changed"
     )
 
-
 # ---------------------------------------------------------------------------
 # Contract 5 — Schema completeness at entry
 # ---------------------------------------------------------------------------
@@ -214,7 +209,6 @@ def test_required_input_cols_constant_is_superset_of_roll_cols():
     )
     assert {"player_id", "gw", "is_bgw", "is_dgw"}.issubset(_REQUIRED_INPUT_COLS)
 
-
 def test_missing_required_column_raises_at_state_entry():
     """STATE raises ValueError when a required CURATED column is absent from input.
 
@@ -227,7 +221,6 @@ def test_missing_required_column_raises_at_state_entry():
 
     with pytest.raises(ValueError, match="missing"):
         build_player_gameweek_state(spine_missing)
-
 
 # ---------------------------------------------------------------------------
 # Contract 6 — Schema passthrough stability
@@ -254,7 +247,6 @@ def test_extra_curated_column_passes_through_state_unchanged():
     )
     # The exit schema guard must not have fired (it checks output - spine - derived == {})
     # If this test passes without RuntimeError, the guard correctly permits pass-through columns.
-
 
 # ---------------------------------------------------------------------------
 # Contract 7 — DGW aggregation stability in STATE rolling
@@ -288,7 +280,6 @@ def test_dgw_aggregated_points_used_correctly_in_rolling():
         f"DGW xgi not correctly reflected in roll3: expected 0.9, got {gw5_roll3}. "
         "STATE may be re-aggregating DGW values instead of using CURATED sums as-is."
     )
-
 
 def test_dgw_aggregation_deterministic_regardless_of_input_order():
     """DGW rolling results are identical whether the DGW row arrives first or last in input.

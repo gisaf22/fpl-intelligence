@@ -24,6 +24,8 @@ from intelligence.intelligence_contracts import (
 from intelligence.transfers import rank_transfer_targets
 from intelligence.value import rank_value_players
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
@@ -75,10 +77,8 @@ def _base_row(
         "fixture_context": fixture_context,
     }
 
-
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
-
 
 @pytest.fixture
 def two_player_features():
@@ -90,7 +90,6 @@ def two_player_features():
                   purchase_price=5.5),
     )
 
-
 @pytest.fixture
 def multi_gw_features():
     """Four players across two GWs with mixed positions."""
@@ -100,7 +99,6 @@ def multi_gw_features():
         _base_row(1, 5, position_label="FWD", points_roll3=8.0),
         _base_row(2, 5, position_label="MID", points_roll3=5.0),
     )
-
 
 # ---------------------------------------------------------------------------
 # _base utilities
@@ -133,7 +131,6 @@ class TestNormalizeWithinPosition:
         result = normalize_within_position(df, "points_roll3")
         assert not result.isna().any()
 
-
 class TestWeightedComposite:
     def test_equal_weights_averages_components(self):
         df = pd.DataFrame({"a": [1.0], "b": [0.0]})
@@ -145,7 +142,6 @@ class TestWeightedComposite:
         result = weighted_composite(df, ["a", "b"], {"a": 0.8, "b": 0.2})
         # 1.0 * 0.8 / 1.0 + 0.0 * 0.2 / 1.0 = 0.8
         assert abs(result.iloc[0] - 0.8) < 1e-9
-
 
 class TestValidateIntelligenceInputs:
     def test_valid_input_passes(self, two_player_features):
@@ -162,7 +158,6 @@ class TestValidateIntelligenceInputs:
             validate_intelligence_inputs(df, "test")
         msg = str(exc_info.value)
         assert "xgi_roll5" in msg or "minutes_roll5" in msg
-
 
 # ---------------------------------------------------------------------------
 # Captain candidates
@@ -224,7 +219,6 @@ class TestRankCaptainCandidates:
                     "minutes_score", "captain_score"]:
             assert result[col].between(0.0, 1.0).all(), f"{col} out of [0,1]"
 
-
 # ---------------------------------------------------------------------------
 # Transfer targets
 # ---------------------------------------------------------------------------
@@ -283,7 +277,6 @@ class TestRankTransferTargets:
         with pytest.raises(IntelligenceInputError):
             rank_transfer_targets(df, target_gw=5)
 
-
 # ---------------------------------------------------------------------------
 # Value players
 # ---------------------------------------------------------------------------
@@ -338,7 +331,6 @@ class TestRankValuePlayers:
         df = two_player_features.drop(columns=["purchase_price"])
         with pytest.raises(IntelligenceInputError):
             rank_value_players(df, target_gw=5)
-
 
 # ---------------------------------------------------------------------------
 # Availability risk
@@ -416,7 +408,6 @@ class TestFlagAvailabilityRisk:
         with pytest.raises(IntelligenceInputError):
             flag_availability_risk(df, target_gw=5)
 
-
 # ---------------------------------------------------------------------------
 # Fixture opportunities
 # ---------------------------------------------------------------------------
@@ -481,7 +472,6 @@ class TestRankFixtureOpportunities:
         df = multi_gw_features.drop(columns=["fdr_avg"])
         with pytest.raises(IntelligenceInputError):
             rank_fixture_opportunities(df, target_gw=5)
-
 
 # ---------------------------------------------------------------------------
 # Cross-module: governance and explainability

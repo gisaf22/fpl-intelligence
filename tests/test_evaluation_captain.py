@@ -15,6 +15,8 @@ import pytest
 
 from tests.helpers.captain import evaluate_captain_heuristic
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Shared fixture helpers (mirrored from test_evaluation_core for isolation)
 # ---------------------------------------------------------------------------
@@ -63,10 +65,8 @@ def _state_row(
         "fixture_context": "SGW",
     }
 
-
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
-
 
 # ---------------------------------------------------------------------------
 # Tests

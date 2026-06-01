@@ -17,13 +17,13 @@ The failing test:
   - FAILS before fix (no exception raised). PASSES after fix (exception raised).
 """
 
-
 import pandas as pd
 import pytest
 
 from dal.exceptions import DALContractViolation
 from dal.fct.fct_player_gameweek import build_player_gameweek_spine
 
+pytestmark = pytest.mark.unit
 
 def _make_minimal_player_fixture_base() -> pd.DataFrame:
     """Return a minimal player_fixture_base covering GWs 1-5 for one player."""
@@ -86,7 +86,6 @@ def _make_minimal_player_fixture_base() -> pd.DataFrame:
     df = pd.DataFrame(rows)
     return df
 
-
 def _make_gw_context_missing_gw5() -> pd.DataFrame:
     """Return events covering GWs 1-4 only (GW5 is missing)."""
     rows = []
@@ -103,7 +102,6 @@ def _make_gw_context_missing_gw5() -> pd.DataFrame:
             "transfers_made": 500000,
         })
     return pd.DataFrame(rows)
-
 
 def test_missing_gw_context_raises_immediately():
     """SC-11 FAILING TEST: missing GW context must raise DALContractViolation.
@@ -123,7 +121,6 @@ def test_missing_gw_context_raises_immediately():
     assert "5" in str(exc_info.value), (
         f"Exception message should name GW 5 as missing. Got: {exc_info.value}"
     )
-
 
 def test_missing_gw_context_does_not_return_partial_result():
     """SC-11: no partial DataFrame should be returned when GW context is missing."""

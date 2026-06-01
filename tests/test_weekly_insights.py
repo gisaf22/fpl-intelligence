@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from intelligence.reporting.insight_card_writer import INSIGHT_COLUMNS, build_insight_cards, write_insight_cards
 from intelligence.reporting.reports import (
@@ -9,6 +10,7 @@ from intelligence.reporting.reports import (
 )
 from signals.governance import load_registry
 
+pytestmark = pytest.mark.unit
 
 def _marts():
     signal_summary = build_signal_summary(load_registry(), gw=36)
@@ -18,7 +20,6 @@ def _marts():
         "summary_by_layer": build_summary_by_layer(signal_summary),
         "stable_performance_signals": build_stable_performance_signals(signal_summary),
     }
-
 
 def test_build_insight_cards_creates_guardrail_cards():
     marts = _marts()
@@ -36,7 +37,6 @@ def test_build_insight_cards_creates_guardrail_cards():
     assert "EXPOSURE_NOT_QUALITY" in set(cards["category"])
     assert "BLOCKED_SUPPORT" in set(cards["category"])
 
-
 def test_insight_cards_do_not_make_player_pick_recommendations():
     cards = build_insight_cards(**_marts())
     text = " ".join(
@@ -49,13 +49,11 @@ def test_insight_cards_do_not_make_player_pick_recommendations():
     banned_terms = ["captain", "buy ", "sell ", "transfer in", "pick "]
     assert not any(term in text for term in banned_terms)
 
-
 def test_position_summary_cards_exist_for_each_position():
     cards = build_insight_cards(**_marts())
     position_cards = cards[cards["category"] == "POSITION_SUMMARY"]
 
     assert set(position_cards["position"]) == {"GK", "DEF", "MID", "FWD"}
-
 
 def test_write_insight_cards(tmp_path):
     output_path = write_insight_cards(**_marts(), output_dir=tmp_path)

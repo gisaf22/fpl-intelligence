@@ -31,6 +31,8 @@ from tests.helpers.metrics import (
 )
 from tests.helpers.windows import assert_no_future_leakage, evaluation_gameweeks
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
@@ -81,10 +83,8 @@ def _state_row(
         "fixture_context": "SGW",
     }
 
-
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
-
 
 # ---------------------------------------------------------------------------
 # evaluation.metrics
@@ -108,7 +108,6 @@ class TestMeanReturn:
         outcomes = pd.DataFrame({"player_id": [1, 2], "total_points": [5.0, 7.0]})
         assert mean_return([1, 2], outcomes) == mean_return([1, 2], outcomes)
 
-
 class TestTop1Return:
     def test_returns_correct_points(self):
         outcomes = pd.DataFrame({"player_id": [7], "total_points": [12.0]})
@@ -122,7 +121,6 @@ class TestTop1Return:
         outcomes = pd.DataFrame({"player_id": [5], "total_points": [float("nan")]})
         assert top1_return(5, outcomes) is None
 
-
 class TestHitRate:
     def test_returns_1_when_best_in_list(self):
         assert hit_rate([1, 2, 3], 2) == 1
@@ -135,7 +133,6 @@ class TestHitRate:
 
     def test_single_element_hit(self):
         assert hit_rate([42], 42) == 1
-
 
 class TestRegret:
     def test_zero_regret_for_optimal_pick(self):
@@ -151,7 +148,6 @@ class TestRegret:
         # Regret can be negative if actual_best was outside the pool
         result = regret(4.0, 8.0)
         assert result == -4.0
-
 
 class TestRankCorrelation:
     def test_perfect_positive_correlation(self):
@@ -187,7 +183,6 @@ class TestRankCorrelation:
         actual = pd.Series([4.0, 2.0, 6.0], index=[1, 2, 3])
         assert rank_correlation(pred, actual) == rank_correlation(pred, actual)
 
-
 class TestReturnVariance:
     def test_zero_variance_for_constant_returns(self):
         returns = pd.Series([5.0, 5.0, 5.0])
@@ -202,7 +197,6 @@ class TestReturnVariance:
 
     def test_returns_none_for_empty_series(self):
         assert return_variance(pd.Series([], dtype=float)) is None
-
 
 class TestDownsideRate:
     def test_all_below_threshold(self):
@@ -223,7 +217,6 @@ class TestDownsideRate:
     def test_custom_threshold(self):
         returns = pd.Series([5.0, 6.0, 7.0])
         assert downside_rate(returns, threshold=6.0) == pytest.approx(1 / 3)
-
 
 # ---------------------------------------------------------------------------
 # evaluation.windows
@@ -256,7 +249,6 @@ class TestEvaluationGameweeks:
         result = evaluation_gameweeks(features, min_gw=3, max_gw=7)
         assert 3 in result and 7 in result
 
-
 class TestAssertNoFutureleakage:
     def test_passes_for_valid_state_features(self):
         features = _make_features(_state_row(1, 5), _state_row(2, 5))
@@ -280,7 +272,6 @@ class TestAssertNoFutureleakage:
             assert_no_future_leakage(features, 5)
         msg = str(exc_info.value)
         assert "points_roll3" in msg or "xgi_roll3" in msg
-
 
 # ---------------------------------------------------------------------------
 # evaluation.baselines
@@ -328,7 +319,6 @@ class TestBaselineRecentPoints:
         result = baseline_recent_points(features, target_gw=5, min_minutes_roll3=45.0)
         assert result.empty
 
-
 class TestBaselineHighestXgi:
     def test_orders_by_xgi_roll3_descending(self):
         features = _make_features(
@@ -346,7 +336,6 @@ class TestBaselineHighestXgi:
         r1 = baseline_highest_xgi(features, target_gw=5)
         r2 = baseline_highest_xgi(features, target_gw=5)
         pd.testing.assert_frame_equal(r1, r2)
-
 
 class TestBaselineFixtureOnly:
     def test_easy_fixture_ranks_first(self):
@@ -370,7 +359,6 @@ class TestBaselineFixtureOnly:
         r1 = baseline_fixture_only(features, target_gw=5)
         r2 = baseline_fixture_only(features, target_gw=5)
         pd.testing.assert_frame_equal(r1, r2)
-
 
 class TestBaselineRandomTopN:
     def test_returns_n_players(self):

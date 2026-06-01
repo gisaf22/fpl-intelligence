@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from studies.experiments.minutes_stability_study import (
     _COHORT_FRINGE,
@@ -24,6 +25,8 @@ from studies.experiments.minutes_stability_study import (
     evaluate_minutes_stability_conditioning,
     interpret_results,
 )
+
+pytestmark = pytest.mark.unit
 
 # ---------------------------------------------------------------------------
 # Synthetic feature builder
@@ -94,7 +97,6 @@ def _make_fwd_features(
 
     return df
 
-
 # ---------------------------------------------------------------------------
 # Cohort assignment correctness
 # ---------------------------------------------------------------------------
@@ -137,7 +139,6 @@ class TestCohortAssignment:
         # 59.9 must be ROTATION, never STABLE
         assert _assign_stability_cohort(59.9) == _COHORT_ROTATION
 
-
 # ---------------------------------------------------------------------------
 # Population accounting closure
 # ---------------------------------------------------------------------------
@@ -171,7 +172,6 @@ class TestPopulationAccounting:
         count_cols = [c for c in detail.columns if c.startswith("n_")]
         for col in count_cols:
             assert (detail[col] >= 0).all(), f"Column {col} has negative values"
-
 
 # ---------------------------------------------------------------------------
 # Result structure completeness
@@ -255,7 +255,6 @@ class TestResultStructure:
 
         assert results["gw_count"] <= len(results["eval_gws"])
 
-
 # ---------------------------------------------------------------------------
 # Reproducibility
 # ---------------------------------------------------------------------------
@@ -287,7 +286,6 @@ class TestReproducibility:
 
         for criterion in r1["threshold_assessment"]:
             assert r1["threshold_assessment"][criterion]["met"] == r2["threshold_assessment"][criterion]["met"]
-
 
 # ---------------------------------------------------------------------------
 # Interpretation correctness
@@ -360,7 +358,6 @@ class TestInterpretResults:
             result = interpret_results({"gw_count": 20, "threshold_assessment": ta})
             assert result == expected, f"Expected '{expected}', got '{result}'"
             assert result in known, f"Unknown interpretation string: '{result}'"
-
 
 # ---------------------------------------------------------------------------
 # Edge cases

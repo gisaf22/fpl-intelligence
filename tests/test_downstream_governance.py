@@ -13,6 +13,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 _PROJECT_ROOT = Path(__file__).parent.parent
 
 # Directories that are NOT the DAL — downstream consumers must not bypass the DAL.
@@ -24,7 +28,6 @@ _DOWNSTREAM_DIRS = [
 
 # Tests directories are exempt from DAL-layer isolation rules (they may test internals).
 _TEST_DIR = _PROJECT_ROOT / "tests"
-
 
 def _collect_py_lines(dirs: list[Path]) -> list[tuple[Path, int, str]]:
     """Yield (file, lineno, stripped_line) for all .py files under dirs."""
@@ -38,7 +41,6 @@ def _collect_py_lines(dirs: list[Path]) -> list[tuple[Path, int, str]]:
                 if stripped:
                     results.append((py_file, lineno, stripped))
     return results
-
 
 def _collect_notebook_lines(dirs: list[Path]) -> list[tuple[Path, int, str]]:
     """Yield (file, cell_idx, source_line) for all .ipynb files under dirs."""
@@ -58,7 +60,6 @@ def _collect_notebook_lines(dirs: list[Path]) -> list[tuple[Path, int, str]]:
                         results.append((nb_file, cell_idx, stripped))
     return results
 
-
 # ---------------------------------------------------------------------------
 # G-1 — no imports from pipeline.* namespace
 # ---------------------------------------------------------------------------
@@ -74,7 +75,6 @@ def test_no_pipeline_imports_in_downstream_py():
         + "\n".join(violations)
     )
 
-
 def test_no_pipeline_imports_in_notebooks():
     """G-1b: notebooks must not import from pipeline.*"""
     violations = []
@@ -85,7 +85,6 @@ def test_no_pipeline_imports_in_notebooks():
         "Retired pipeline.* imports found in notebooks:\n"
         + "\n".join(violations)
     )
-
 
 # ---------------------------------------------------------------------------
 # G-2 — no direct sqlite3/pd.read_sql outside DAL
@@ -102,7 +101,6 @@ def test_no_direct_sql_in_downstream_py():
         + "\n".join(violations)
     )
 
-
 def test_no_direct_sql_in_notebooks():
     """G-2b: notebooks must not query the DB directly via sqlite3 or pd.read_sql."""
     violations = []
@@ -113,7 +111,6 @@ def test_no_direct_sql_in_notebooks():
         "Direct SQL access found in notebooks:\n"
         + "\n".join(violations)
     )
-
 
 # ---------------------------------------------------------------------------
 # G-3 — dal.staging and dal.intermediate not imported outside DAL and tests
@@ -126,7 +123,6 @@ _STAGING_ALLOWLIST: set = {
     # and resolve_target_gw for the weekly runner; direct staging access is intentional here.
     _PROJECT_ROOT / "intelligence/reporting/weekly_report_runner.py",
 }
-
 
 def test_no_staging_or_intermediate_imports_in_downstream():
     """G-3: downstream .py files must not import dal.staging or dal.intermediate.
@@ -147,7 +143,6 @@ def test_no_staging_or_intermediate_imports_in_downstream():
         + "\n".join(violations)
     )
 
-
 def test_no_staging_or_intermediate_imports_in_notebooks():
     """G-3b: notebooks must not import dal.staging or dal.intermediate."""
     violations = []
@@ -163,7 +158,6 @@ def test_no_staging_or_intermediate_imports_in_notebooks():
         + "\n".join(violations)
     )
 
-
 # ---------------------------------------------------------------------------
 # G-4 — dal public API is importable (smoke test)
 # ---------------------------------------------------------------------------
@@ -175,7 +169,6 @@ def test_dal_public_api_importable():
     assert callable(run)
     assert callable(load)
     assert MartResult is not None
-
 
 def test_dal_prepared_importable():
     """G-4b: dal.prepared must export build_prepared_dataset and GOVERNED_SIGNAL_COLUMNS."""

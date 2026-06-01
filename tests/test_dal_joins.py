@@ -1,7 +1,5 @@
 """DAL integrity tests — join safety between layers. Contract: Section 4, Section 9."""
 
-from pathlib import Path
-
 import pytest
 
 from dal.fct.fct_player_gameweek import build_player_gameweek_spine
@@ -10,21 +8,19 @@ from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import get_staged_player_histories, load_staged_entities
 from dal.validation import validate_grain_uniqueness
 
-pytestmark = pytest.mark.integration
-
-DB_PATH = Path.home() / ".fpl" / "fpl.db"
+pytestmark = pytest.mark.unit
 
 
-def _load_staged():
-    return load_staged_entities(DB_PATH)
+def _load_staged(db_path):
+    return load_staged_entities(db_path)
 
 
-def _load_spine():
-    staged = _load_staged()
+def _load_spine(db_path):
+    staged = _load_staged(db_path)
     return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
 
 
-def test_staging_to_intermediate_no_row_loss():
+def test_staging_to_intermediate_no_row_loss(db_path):
     """Intermediate layer preserves all staging player history rows.
 
     get_player_fixture_base joins player_histories (left) against players, positions,
@@ -33,8 +29,8 @@ def test_staging_to_intermediate_no_row_loss():
     the grain uniqueness assertion inside get_player_fixture_base itself.
     Contract Section 4, Section 9 (join safety tests).
     """
-    player_histories = get_staged_player_histories(DB_PATH)
-    player_fixture_base = get_player_fixture_base(load_staged_entities(DB_PATH))
+    player_histories = get_staged_player_histories(db_path)
+    player_fixture_base = get_player_fixture_base(load_staged_entities(db_path))
     assert len(player_fixture_base) == len(player_histories), (
         f"Row count mismatch: staging has {len(player_histories)} rows, "
         f"intermediate has {len(player_fixture_base)} rows. "
@@ -43,7 +39,7 @@ def test_staging_to_intermediate_no_row_loss():
     )
 
 
-def test_intermediate_to_curated_no_player_loss():
+def test_intermediate_to_curated_no_player_loss(db_path):
     """Curated spine contains exactly the players present in the intermediate layer.
 
     build_player_gameweek_spine derives its player universe from get_player_fixture_base.
@@ -52,8 +48,8 @@ def test_intermediate_to_curated_no_player_loss():
     DGW rows aggregated) — the invariant is player set equality, not row count equality.
     Contract Section 3 (aggregation boundary rule), Section 9 (join safety tests).
     """
-    player_fixture_base = get_player_fixture_base(load_staged_entities(DB_PATH))
-    spine = _load_spine()
+    player_fixture_base = get_player_fixture_base(load_staged_entities(db_path))
+    spine = _load_spine(db_path)
 
     intermediate_players = set(player_fixture_base["player_id"].unique())
     spine_players = set(spine["player_id"].unique())
@@ -68,9 +64,9 @@ def test_intermediate_to_curated_no_player_loss():
     )
 
 
-def test_spine_to_state_no_row_loss():
+def test_spine_to_state_no_row_loss(db_path):
     """State layer has same row count as spine — derivation must not drop rows. Contract Section 4."""
-    spine = _load_spine()
+    spine = _load_spine(db_path)
     state = build_player_gameweek_state(spine)
     assert len(state) == len(spine), (
         f"Row count mismatch between spine and state: "
@@ -79,10 +75,10 @@ def test_spine_to_state_no_row_loss():
     )
 
 
-def test_spine_to_state_no_fan_out():
+def test_spine_to_state_no_fan_out(db_path):
     """State layer has unique (player_id, gw) grain — derivation must not produce duplicate rows.
 
     Contract Section 2, 4."""
-    spine = _load_spine()
+    spine = _load_spine(db_path)
     state = build_player_gameweek_state(spine)
     validate_grain_uniqueness(state, ["player_id", "gw"], "state")

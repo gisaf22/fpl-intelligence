@@ -11,6 +11,8 @@ from intelligence.scoring.signal_selector import _PRE_LENS_SIGNAL_ALLOWLIST, loa
 from signals.governance.registry_loader import load_registry
 from signals.governance.schema import GovernanceMetadataError
 
+pytestmark = pytest.mark.unit
+
 REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
 
 _SCORING_CLASSES = frozenset({"core_signal", "review_signal"})
@@ -21,21 +23,17 @@ _OUTCOME_COMPONENT_SIGNALS = {"bps"}  # contribution_index layer_role
 # Fixtures
 # ---------------------------------------------------------------------------
 
-
 @pytest.fixture(scope="module")
 def registry():
     return load_registry(REGISTRY_PATH)
-
 
 @pytest.fixture(scope="module")
 def manifest(registry):
     return load_manifest(registry)
 
-
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
-
 
 def test_manifest_confirmed_only_scoring_classes(manifest):
     """All confirmed signals have promotion_class in (core_signal, review_signal)."""
@@ -44,14 +42,12 @@ def test_manifest_confirmed_only_scoring_classes(manifest):
             f"{sig.signal}/{sig.position} in confirmed with class '{sig.promotion_class}'"
         )
 
-
 def test_manifest_caveated_only_scoring_classes(manifest):
     """All caveated signals also come from scoring promotion classes."""
     for sig in manifest.caveated:
         assert sig.promotion_class in _SCORING_CLASSES, (
             f"{sig.signal}/{sig.position} in caveated with class '{sig.promotion_class}'"
         )
-
 
 def test_leakage_signals_in_caveated_not_confirmed(manifest):
     """bonus must be in caveated, not confirmed, due to leakage."""
@@ -72,7 +68,6 @@ def test_leakage_signals_in_caveated_not_confirmed(manifest):
             f"'{leakage_signal}' should not appear in confirmed but does"
         )
 
-
 def test_outcome_component_signals_in_caveated_not_confirmed(manifest):
     """bps must be in caveated, not confirmed, as an outcome-component."""
     for oc_signal in _OUTCOME_COMPONENT_SIGNALS:
@@ -85,14 +80,12 @@ def test_outcome_component_signals_in_caveated_not_confirmed(manifest):
             f"'{oc_signal}' should appear in caveated but is absent"
         )
 
-
 def test_confirmed_signals_have_non_null_rho(manifest):
     """Every confirmed signal has a non-null rho_pooled (CI gate, Phase 8 resolution of G-OPS-02)."""
     for sig in manifest.confirmed:
         assert sig.rho_pooled == sig.rho_pooled, (  # NaN check via self-inequality
             f"{sig.signal}/{sig.position} has rho_pooled=NaN — should be caveated, not confirmed"
         )
-
 
 def test_confirmed_directions_match_rho_sign(manifest):
     """direction is +1 for positive rho, -1 for negative rho."""
@@ -102,7 +95,6 @@ def test_confirmed_directions_match_rho_sign(manifest):
             f"{sig.signal}/{sig.position}: rho={sig.rho_pooled}, "
             f"direction={sig.direction}, expected {expected}"
         )
-
 
 def test_positions_covered_matches_confirmed(manifest):
     """positions_covered is derived exclusively from confirmed signals."""
@@ -121,7 +113,6 @@ def test_positions_covered_matches_confirmed(manifest):
             f"positions_covered[{pos}] mismatch"
         )
 
-
 def test_no_confirmed_signal_has_null_rho(registry, manifest):
     """Cross-check: no registry row that is confirmed has a null rho_pooled."""
     confirmed_keys = {(s.signal, s.position) for s in manifest.confirmed}
@@ -132,7 +123,6 @@ def test_no_confirmed_signal_has_null_rho(registry, manifest):
             assert pd.notna(row["rho_pooled"]), (
                 f"Confirmed signal {key} has null rho_pooled in registry"
             )
-
 
 def test_ungoverned_signal_raises_governance_error(registry):
     """Signal absent from both evaluation_metadata.yaml and the allowlist must raise GovernanceMetadataError.
@@ -157,7 +147,6 @@ def test_ungoverned_signal_raises_governance_error(registry):
     )
     with pytest.raises(GovernanceMetadataError):
         _assert_governance_compliance(fake_manifest)
-
 
 def test_allowlist_signals_pass_governance_without_evaluation_record(registry):
     """Pre-lens signals on _PRE_LENS_SIGNAL_ALLOWLIST pass governance compliance without an evaluation record."""

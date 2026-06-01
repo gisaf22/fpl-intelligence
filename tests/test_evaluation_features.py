@@ -15,6 +15,8 @@ import pytest
 
 from tests.helpers.features import _compute_lag1_columns, evaluate_feature_lift
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
@@ -60,10 +62,8 @@ def _spine_row(
         "minutes_trend": "stable",
     }
 
-
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
-
 
 def _sequential_player(player_id: int, gws_and_points: list[tuple[int, float, float]]) -> list[dict]:
     """Create sequential rows for a player across GWs: (gw, total_points, xgi) tuples."""
@@ -72,7 +72,6 @@ def _sequential_player(player_id: int, gws_and_points: list[tuple[int, float, fl
         roll3 = sum(p for _, p, _ in gws_and_points[max(0, i-3):i]) / max(1, min(3, i))
         rows.append(_spine_row(player_id, gw, pts, xgi, points_roll3=roll3))
     return rows
-
 
 # ---------------------------------------------------------------------------
 # _compute_lag1_columns
@@ -120,7 +119,6 @@ class TestComputeLag1Columns:
         )
         result = _compute_lag1_columns(features)
         assert "minutes_lag1" in result.columns
-
 
 # ---------------------------------------------------------------------------
 # evaluate_feature_lift

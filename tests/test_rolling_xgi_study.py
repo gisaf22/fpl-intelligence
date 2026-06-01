@@ -22,6 +22,8 @@ from studies.experiments.rolling_xgi_study import (
     interpret_results,
 )
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
@@ -73,10 +75,8 @@ def _fwd_row(
         "fixture_context": "SGW",
     }
 
-
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
-
 
 def _multi_gw_fwd_population(
     n_players: int = 8,
@@ -105,7 +105,6 @@ def _multi_gw_fwd_population(
                 minutes_roll3=85.0,
             ))
     return pd.DataFrame(rows)
-
 
 # ---------------------------------------------------------------------------
 # _add_xgi_lag1
@@ -147,7 +146,6 @@ class TestAddXgiLag1:
         features = _make_features(_fwd_row(1, 6, xgi=0.5))
         result = _add_xgi_lag1(features)
         assert "xgi_lag1" in result.columns
-
 
 # ---------------------------------------------------------------------------
 # _filter_fwd_population
@@ -194,7 +192,6 @@ class TestFilterFwdPopulation:
         result = _filter_fwd_population(features, gw=7, min_minutes=60.0)
         assert result.empty
 
-
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — no future leakage enforcement
 # ---------------------------------------------------------------------------
@@ -209,7 +206,6 @@ class TestNoFutureLeakage:
         features = features.drop(columns=["points_roll3"])
         with pytest.raises(ValueError, match="missing rolling columns"):
             evaluate_rolling_xgi_horizons(features, min_gw=6, max_gw=6)
-
 
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — forward-only filtering
@@ -235,7 +231,6 @@ class TestForwardOnlyFiltering:
         ])
         result = evaluate_rolling_xgi_horizons(mid_only, min_gw=6, max_gw=6)
         assert result["gw_count"] == 0
-
 
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — output structure
@@ -288,7 +283,6 @@ class TestOutputStructure:
         result = evaluate_rolling_xgi_horizons(features, min_gw=6, max_gw=8)
         assert result["gw_count"] == 0
 
-
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — determinism
 # ---------------------------------------------------------------------------
@@ -301,7 +295,6 @@ class TestDeterminism:
         assert r1["signals"] == r2["signals"]
         assert r1["lift_over_lag1"] == r2["lift_over_lag1"]
         assert r1["gw_count"] == r2["gw_count"]
-
 
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — lift arithmetic
@@ -331,7 +324,6 @@ class TestLiftArithmetic:
             if rho is not None:
                 assert -1.0 <= rho <= 1.0, f"{sig} rho={rho} out of [-1, 1]"
 
-
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — rolling window correctness
 # ---------------------------------------------------------------------------
@@ -357,7 +349,6 @@ class TestRollingWindowCorrectness:
             dr = metrics["downside_rate"]
             if dr is not None:
                 assert 0.0 <= dr <= 1.0, f"{sig} downside_rate={dr} not in [0, 1]"
-
 
 # ---------------------------------------------------------------------------
 # interpret_results

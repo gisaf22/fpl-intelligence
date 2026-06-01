@@ -16,14 +16,14 @@ import pytest
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import load_staged_entities
 
-TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
+pytestmark = pytest.mark.unit
 
+TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
 def _load_spine():
     from dal.fct.fct_player_gameweek import build_player_gameweek_spine
     staged = load_staged_entities(TEST_DB_PATH)
     return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
-
 
 # ---------------------------------------------------------------------------
 # SC-13 — fixture_context must produce "BGW", "SGW", "DGW" — not "SGW" for BGW
@@ -51,7 +51,6 @@ def test_fixture_context_bgw_rows():
         f"Bug: is_dgw.map({{True: 'DGW', False: 'SGW'}}) assigns 'SGW' to BGW rows."
     )
 
-
 def test_fixture_context_exhaustive():
     """After fix: fixture_context values must be exactly {{'BGW', 'SGW', 'DGW'}}."""
     from dal.feat.feat_player_gameweek import build_player_gameweek_state
@@ -66,7 +65,6 @@ def test_fixture_context_exhaustive():
         f"fixture_context contains invalid values: {bad.unique()}. "
         f"Must be one of {valid}."
     )
-
 
 # ---------------------------------------------------------------------------
 # SC-14 — validate_xgc_001 must cover all positions, not just GK
@@ -94,7 +92,6 @@ def test_validate_xgc_001_callable_on_all_positions():
     with pytest.raises(DALContractViolation, match="xgc"):
         validate_xgc_001(gk_with_variance)
 
-
 # ---------------------------------------------------------------------------
 # STATE_COL_CONTRACTS — dal/state/contracts.py must exist
 # ---------------------------------------------------------------------------
@@ -121,7 +118,6 @@ def test_state_col_contracts_exists():
             f"'{roll3_key}' must have causality='lagged'"
         )
 
-
 def test_state_col_contracts_covers_fixture_context():
     """fixture_context must be declared in STATE_COL_CONTRACTS with causality=contemporaneous."""
     from dal.feat.feat_contracts import STATE_COL_CONTRACTS
@@ -133,7 +129,6 @@ def test_state_col_contracts_covers_fixture_context():
     )
     assert STATE_COL_CONTRACTS["fixture_context"]["values"] == ["BGW", "SGW", "DGW"]
 
-
 def test_state_col_contracts_covers_minutes_trend():
     """minutes_trend must be declared in STATE_COL_CONTRACTS with causality=lagged, warmup_gws=4."""
     from dal.feat.feat_contracts import STATE_COL_CONTRACTS
@@ -143,7 +138,6 @@ def test_state_col_contracts_covers_minutes_trend():
     entry = STATE_COL_CONTRACTS["minutes_trend"]
     assert entry["causality"] == "lagged"
     assert entry["warmup_gws"] == 4
-
 
 def test_state_col_contracts_covers_all_roll_cols():
     """Every column in _ROLL_COLS must produce both roll3 and roll5 entries in STATE_COL_CONTRACTS.
@@ -176,7 +170,6 @@ def test_state_col_contracts_covers_all_roll_cols():
                 f"STATE_COL_CONTRACTS['{key}'] must have causality='lagged' — "
                 f"rolling windows use shift(1) and are safe as pre-GW features."
             )
-
 
 # ---------------------------------------------------------------------------
 # GW sequence gap detection

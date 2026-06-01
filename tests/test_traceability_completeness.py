@@ -16,30 +16,29 @@ Four core assertions:
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 from dal.feat.feat_schema import FEATURE_REGISTRY
 
+pytestmark = pytest.mark.unit
+
 TRACEABILITY_PATH = Path("signals/characterisation/signal_traceability.yaml")
 EVAL_META_PATH = Path("signals/governance/evaluation_metadata.yaml")
-
 
 def _load_traceability() -> list[dict]:
     with open(TRACEABILITY_PATH) as f:
         data = yaml.safe_load(f)
     return data["entries"]
 
-
 def _load_eval_meta_signals() -> set[str]:
     with open(EVAL_META_PATH) as f:
         data = yaml.safe_load(f)
     return {entry["signal"] for entry in data["evaluation_findings"]}
 
-
 def _load_governed_rolling_cols() -> set[str]:
     """Return the governed column set from FEATURE_REGISTRY — the single source of truth."""
     return set(FEATURE_REGISTRY.keys())
-
 
 # ---------------------------------------------------------------------------
 # 1. Every evaluated signal has a traceability entry
@@ -57,7 +56,6 @@ def test_all_evaluated_signals_have_traceability_entry():
         + "\n".join(sorted(missing))
     )
 
-
 # ---------------------------------------------------------------------------
 # 2. Every governed STATE column has a traceability entry
 # ---------------------------------------------------------------------------
@@ -73,7 +71,6 @@ def test_all_governed_rolling_cols_have_traceability_entry():
         "Governed STATE columns without any traceability entry:\n"
         + "\n".join(sorted(missing))
     )
-
 
 # ---------------------------------------------------------------------------
 # 3. Every candidate entry has a non-null operational_role
@@ -91,7 +88,6 @@ def test_candidate_entries_have_operational_role():
                     f"lifecycle_state=candidate but operational_role is null"
                 )
     assert not violations, "\n".join(violations)
-
 
 # ---------------------------------------------------------------------------
 # 4. Every non-null operational_role has consumer_modules or consumer_note
@@ -113,7 +109,6 @@ def test_operational_role_entries_have_consumer_or_note():
                 )
     assert not violations, "\n".join(violations)
 
-
 # ---------------------------------------------------------------------------
 # 5. Structural sanity: all entries have required fields
 # ---------------------------------------------------------------------------
@@ -134,7 +129,6 @@ def test_all_entries_have_required_fields():
             violations.append(f"{key}: missing fields {sorted(missing)}")
     assert not violations, "\n".join(violations)
 
-
 # ---------------------------------------------------------------------------
 # 6. Lifecycle vocabulary conformance
 # ---------------------------------------------------------------------------
@@ -153,7 +147,6 @@ def test_lifecycle_state_vocabulary():
             violations.append(f"{key}: invalid lifecycle_state '{ls}'")
     assert not violations, "\n".join(violations)
 
-
 def test_downstream_status_vocabulary():
     """downstream_status must be in the controlled vocabulary."""
     entries = _load_traceability()
@@ -164,7 +157,6 @@ def test_downstream_status_vocabulary():
         if ds not in _VALID_DOWNSTREAM:
             violations.append(f"{key}: invalid downstream_status '{ds}'")
     assert not violations, "\n".join(violations)
-
 
 # ---------------------------------------------------------------------------
 # 7. Blocked entries are not listed as eligible
@@ -183,7 +175,6 @@ def test_excluded_entries_are_blocked():
                 )
     assert not violations, "\n".join(violations)
 
-
 # ---------------------------------------------------------------------------
 # 8. Total entry count is consistent with known schema
 # ---------------------------------------------------------------------------
@@ -192,7 +183,6 @@ def test_traceability_is_non_empty():
     """signal_traceability.yaml contains entries."""
     entries = _load_traceability()
     assert len(entries) > 0, "signal_traceability.yaml has no entries"
-
 
 def test_traceability_covers_all_four_positions_for_evaluated_signals():
     """Every signal in evaluation_metadata.yaml has entries for at least 3 of 4 positions.

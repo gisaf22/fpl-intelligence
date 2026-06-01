@@ -20,10 +20,11 @@ from signals.governance.schema import (
     GovernanceMetadataError,
 )
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # GovernanceMetadata schema
 # ---------------------------------------------------------------------------
-
 
 class TestGovernanceMetadataSchema:
     def test_frozen_dataclass(self) -> None:
@@ -76,11 +77,9 @@ class TestGovernanceMetadataSchema:
         assert "excluded" in LIFECYCLE_STATE_VALUES
         assert "not_applicable" in LIFECYCLE_STATE_VALUES
 
-
 # ---------------------------------------------------------------------------
 # get_signal_governance — happy path
 # ---------------------------------------------------------------------------
-
 
 class TestGetSignalGovernance:
     def test_known_approved_signal(self) -> None:
@@ -163,11 +162,9 @@ class TestGetSignalGovernance:
         assert len(gov.source_gate_decisions) >= 2
         assert "G1-PASS" in gov.source_gate_decisions
 
-
 # ---------------------------------------------------------------------------
 # Multi-lens disambiguation: minutes_roll3 appears in FORM-006 and AVAIL-001
 # ---------------------------------------------------------------------------
-
 
 class TestMultiLensDisambiguation:
     def test_minutes_roll3_mid_returns_approved(self) -> None:
@@ -194,11 +191,9 @@ class TestMultiLensDisambiguation:
         gov = get_signal_governance("minutes_roll3", "GK")
         assert gov.lifecycle_state == "excluded"
 
-
 # ---------------------------------------------------------------------------
 # _assert_governance_compliance runtime assertions
 # ---------------------------------------------------------------------------
-
 
 def _make_confirmed(signal: str, position: str) -> object:
     """Return a minimal ConfirmedSignal-like object."""
@@ -212,12 +207,10 @@ def _make_confirmed(signal: str, position: str) -> object:
         promotion_class="core_signal",
     )
 
-
 def _make_manifest(confirmed: list) -> object:
     from intelligence.scoring.contracts import SignalManifest
 
     return SignalManifest(confirmed=confirmed, caveated=[], positions_covered={})
-
 
 class TestAssertGovernanceCompliance:
     def test_valid_candidate_passes(self) -> None:
@@ -277,11 +270,9 @@ class TestAssertGovernanceCompliance:
         manifest = _make_manifest([])
         _assert_governance_compliance(manifest)  # should not raise
 
-
 # ---------------------------------------------------------------------------
 # YAML completeness: every per-position entry must have the Phase 2 fields
 # ---------------------------------------------------------------------------
-
 
 class TestYAMLCompleteness:
     def _load_yaml(self) -> list[dict]:
@@ -380,11 +371,9 @@ class TestYAMLCompleteness:
                         f"downstream_status={pos_data['downstream_status']!r}"
                     )
 
-
 # ---------------------------------------------------------------------------
 # Phase 4 — get_signal_governance() completeness: all YAML entries resolvable
 # ---------------------------------------------------------------------------
-
 
 class TestGetSignalGovernanceCompleteness:
     """get_signal_governance() must return a complete GovernanceMetadata for every
@@ -471,11 +460,9 @@ class TestGetSignalGovernanceCompleteness:
                     )
         assert not failures, "\n".join(failures)
 
-
 # ---------------------------------------------------------------------------
 # Phase 4 — Specific violation error types
 # ---------------------------------------------------------------------------
-
 
 class TestViolationErrorTypes:
     """_assert_governance_compliance() must raise LifecycleViolationError for excluded/blocked
@@ -556,4 +543,5 @@ class TestViolationErrorTypes:
     def test_leakage_violation_error_is_value_error(self) -> None:
         """LeakageViolationError is a subclass of ValueError (backward compatibility)."""
         from signals.governance.lifecycle import LeakageViolationError
+
         assert issubclass(LeakageViolationError, ValueError)

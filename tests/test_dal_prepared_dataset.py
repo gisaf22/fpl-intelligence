@@ -10,6 +10,8 @@ from domain.fpl_scoring import CLEAN_SHEET_MIN_MINUTES
 from signals.characterisation.population import REGISTRY_BUILD_INPUT_COLUMNS
 from signals.characterisation.population_builder import _build_registry_population as build_prepared_dataset
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -67,7 +69,6 @@ def _make_spine(
 
     return pd.DataFrame(rows)
 
-
 def _spine_with_bgw(n_players: int = 2) -> pd.DataFrame:
     """Spine with BGW rows (minutes=None) mixed with normal rows."""
     rows = []
@@ -112,7 +113,6 @@ def _spine_with_bgw(n_players: int = 2) -> pd.DataFrame:
             })
     return pd.DataFrame(rows)
 
-
 # ---------------------------------------------------------------------------
 # Output column contract
 # ---------------------------------------------------------------------------
@@ -125,20 +125,17 @@ def test_output_columns_include_required_fields():
     assert "position" in result.columns
     assert "total_points" in result.columns
 
-
 def test_output_includes_all_governed_signal_columns():
     spine = _make_spine()
     result = build_prepared_dataset(spine, data_cutoff_gw=5)
     for col in REGISTRY_BUILD_INPUT_COLUMNS:
         assert col in result.columns, f"missing governed signal column: {col}"
 
-
 def test_position_code_not_in_output():
     """position_code is mapped to position string and must not appear in output."""
     spine = _make_spine()
     result = build_prepared_dataset(spine, data_cutoff_gw=5)
     assert "position_code" not in result.columns
-
 
 # ---------------------------------------------------------------------------
 # Position code mapping
@@ -150,12 +147,10 @@ def test_position_code_mapped_correctly(code: int, expected: str):
     result = build_prepared_dataset(spine, data_cutoff_gw=5)
     assert set(result["position"].unique()) == {expected}
 
-
 def test_unknown_position_code_raises():
     spine = _make_spine(position_code=99)
     with pytest.raises(ValueError, match="unrecognized position_code"):
         build_prepared_dataset(spine, data_cutoff_gw=5)
-
 
 # ---------------------------------------------------------------------------
 # Grain uniqueness
@@ -166,14 +161,12 @@ def test_grain_is_unique():
     result = build_prepared_dataset(spine, data_cutoff_gw=9)
     assert not result[["player_id", "gw"]].duplicated().any()
 
-
 def test_grain_violation_raises():
     """If spine already has duplicate (player_id, gw) after filters, raise."""
     spine = _make_spine(n_players=2, gws=[1, 2])
     duplicated = pd.concat([spine, spine], ignore_index=True)
     with pytest.raises(ValueError, match="grain violation"):
         build_prepared_dataset(duplicated, data_cutoff_gw=2)
-
 
 # ---------------------------------------------------------------------------
 # Minutes filter enforcement
@@ -187,14 +180,12 @@ def test_rows_with_minutes_below_threshold_excluded():
     excluded = result[(result["player_id"] == 2) & (result["gw"] == 2)]
     assert len(excluded) == 0
 
-
 def test_rows_at_threshold_boundary_included():
     spine = _make_spine(n_players=2, gws=[1])
     spine.loc[spine["player_id"] == 1, "minutes"] = CLEAN_SHEET_MIN_MINUTES
     result = build_prepared_dataset(spine, data_cutoff_gw=1)
     included = result[result["player_id"] == 1]
     assert len(included) == 1
-
 
 def test_bgw_rows_excluded_by_minutes_filter():
     """BGW rows have minutes=None. None >= 60 → False → excluded."""
@@ -203,13 +194,11 @@ def test_bgw_rows_excluded_by_minutes_filter():
     # GW 3 was a BGW; should not appear in output
     assert 3 not in result["gw"].values
 
-
 def test_all_low_minutes_raises():
     spine = _make_spine(n_players=2, gws=[1, 2])
     spine["minutes"] = 30
     with pytest.raises(ValueError, match="no rows remain after filtering"):
         build_prepared_dataset(spine, data_cutoff_gw=2)
-
 
 # ---------------------------------------------------------------------------
 # GW bound enforcement
@@ -220,25 +209,21 @@ def test_rows_above_cutoff_excluded():
     result = build_prepared_dataset(spine, data_cutoff_gw=5)
     assert result["gw"].max() <= 5
 
-
 def test_cutoff_gw_row_included():
     """Row exactly at data_cutoff_gw must be included."""
     spine = _make_spine(n_players=2, gws=[5])
     result = build_prepared_dataset(spine, data_cutoff_gw=5)
     assert 5 in result["gw"].values
 
-
 def test_invalid_cutoff_gw_raises():
     spine = _make_spine()
     with pytest.raises(ValueError, match="data_cutoff_gw must be positive"):
         build_prepared_dataset(spine, data_cutoff_gw=0)
 
-
 def test_cutoff_gw_before_all_data_raises():
     spine = _make_spine(gws=list(range(10, 16)))
     with pytest.raises(ValueError, match="no rows remain after applying data_cutoff_gw"):
         build_prepared_dataset(spine, data_cutoff_gw=5)
-
 
 # ---------------------------------------------------------------------------
 # Missing required columns

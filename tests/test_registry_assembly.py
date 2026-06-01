@@ -4,6 +4,7 @@ import pytest
 from signals.characterisation.registry_assembler import assemble_registry_from_sections
 from signals.governance import load_registry, validate_registry_contract
 
+pytestmark = pytest.mark.unit
 
 def _split_current_registry(registry: pd.DataFrame):
     geometry_columns = [
@@ -55,7 +56,6 @@ def _split_current_registry(registry: pd.DataFrame):
         registry[haul_columns].assign(support_flag=""),
     )
 
-
 def test_assemble_registry_from_sections_preserves_current_registry_contract():
     current = load_registry()
     geometry, stability, decomposition, haul = _split_current_registry(current)
@@ -81,7 +81,6 @@ def test_assemble_registry_from_sections_preserves_current_registry_contract():
         current["downstream_status"],
         check_names=False,
     )
-
 
 def test_assemble_registry_from_sections_rejects_duplicate_section_keys():
     current = load_registry()

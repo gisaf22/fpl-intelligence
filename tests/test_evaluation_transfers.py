@@ -16,6 +16,8 @@ import pytest
 from tests.helpers.transfers import evaluate_transfer_heuristic
 from tests.helpers.value import evaluate_value_heuristic
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
@@ -65,10 +67,8 @@ def _state_row(
         "fixture_context": "SGW",
     }
 
-
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
-
 
 def _multi_gw_features(n_players: int = 3, gws: list[int] | None = None) -> pd.DataFrame:
     """Generate a features DataFrame spanning multiple GWs for lookahead tests."""
@@ -86,7 +86,6 @@ def _multi_gw_features(n_players: int = 3, gws: list[int] | None = None) -> pd.D
                 xgi_roll3=0.1 * pid,
             ))
     return pd.DataFrame(rows)
-
 
 # ---------------------------------------------------------------------------
 # evaluate_transfer_heuristic
@@ -159,7 +158,6 @@ class TestEvaluateTransferHeuristic:
         if (r1["heuristic_avg_future_return"] is not None and
                 r2["heuristic_avg_future_return"] is not None):
             assert r2["heuristic_avg_future_return"] >= r1["heuristic_avg_future_return"]
-
 
 # ---------------------------------------------------------------------------
 # evaluate_value_heuristic

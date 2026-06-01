@@ -133,8 +133,8 @@ def test_all_entries_have_required_fields():
 # 6. Lifecycle vocabulary conformance
 # ---------------------------------------------------------------------------
 
-_VALID_LIFECYCLE = frozenset({"candidate", "excluded", "not_applicable", "provisional"})
-_VALID_DOWNSTREAM = frozenset({"eligible", "caveated", "blocked"})
+_VALID_LIFECYCLE = frozenset({"candidate", "approved", "excluded", "not_applicable", "provisional"})
+_VALID_DOWNSTREAM = frozenset({"eligible", "caveated", "approved", "blocked"})
 
 def test_lifecycle_state_vocabulary():
     """lifecycle_state must be in the controlled vocabulary."""

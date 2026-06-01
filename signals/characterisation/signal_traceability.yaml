@@ -1,31 +1,34 @@
 # Signal Traceability Matrix — Machine-Readable
-# Version: 1.0
-# Produced: 2026-05-27
-# Authority: Operational Convergence Plan Phase 5
+# Version: 1.1
+# Produced: 2026-06-01
+# Authority: Operational Convergence Plan Phase 5 + SYNTH-01 post-study update (2026-06-01)
 # Human-readable form: docs/governance/signal-traceability-matrix.md
 #
 # Each entry covers one signal × position pair. Fields:
-#   signal             — signal column name
-#   position           — DEF | MID | FWD | GK
-#   meaning            — plain-language description
-#   scope              — individual | team_context | market | schedule_context
-#   evaluation_lens    — FORM | AVAIL | MARKET | FIXTURE-GW | STATE-ONLY
-#   signal_id          — e.g. FORM-001, or null for STATE-ONLY entries
-#   evaluation_target  — total_points | played_next_gw | null
-#   lifecycle_state    — candidate | excluded | not_applicable | provisional
-#   downstream_status  — eligible | caveated | blocked
-#   rho_pooled         — Spearman rho from lens study (null if not evaluated)
-#   rejection_basis    — for excluded/not_applicable: specific gate failure or governance rule
-#   caveat             — for caveated/borderline candidates: documented limitation
-#   redundancy         — known high-redundancy relationships at this position
-#   operational_role   — form | availability | market | fixture | defensive | null
-#   consumer_modules   — intelligence modules that reference this signal (list)
-#   consumer_note      — explanation when consumer_modules is empty or there is a governance gap
+#   signal               — signal column name
+#   position             — DEF | MID | FWD | GK
+#   meaning              — plain-language description
+#   scope                — individual | team_context | market | schedule_context
+#   evaluation_lens      — FORM | AVAIL | MARKET | FIXTURE-GW | STATE-ONLY
+#   signal_id            — e.g. FORM-001, or null for STATE-ONLY entries
+#   evaluation_target    — total_points | played_next_gw | null
+#   lifecycle_state      — candidate | approved | excluded | not_applicable | provisional
+#   downstream_status    — eligible | caveated | approved | blocked
+#   rho_pooled           — Spearman rho from lens study (null if not evaluated)
+#   rejection_basis      — for excluded/not_applicable: specific gate failure or governance rule
+#   caveat               — for caveated/borderline candidates: documented limitation
+#   redundancy           — known high-redundancy relationships at this position
+#   synth01_decision     — SYNTH-01 outcome: APPROVED-PRIMARY | APPROVED-SECONDARY |
+#                          EXCLUDED-REDUNDANT | FWD-SINGLE-SIGNAL | null (not evaluated)
+#   synth01_decision_id  — G-SYNTH1-NN decision ID from signals/governance/evaluation_metadata.yaml
+#   operational_role     — form | availability | market | fixture | defensive | null
+#   consumer_modules     — intelligence modules that reference this signal (list)
+#   consumer_note        — explanation when consumer_modules is empty or there is a governance gap
 #   threshold_dependencies — threshold-registry.md IDs that govern use of this signal
 
-schema_version: "1.0"
-produced: "2026-05-27"
-authority: "docs/archive/operational-convergence-plan.md §Phase 5"
+schema_version: "1.1"
+produced: "2026-06-01"
+authority: "docs/archive/operational-convergence-plan.md §Phase 5; SYNTH-01 post-study update 2026-06-01"
 source_of_truth:
   evaluation_metadata: signals/governance/evaluation_metadata.yaml
   state_inventory: docs/archive/state-representation-inventory.md
@@ -46,20 +49,21 @@ entries:
     evaluation_lens: FORM
     signal_id: FORM-001
     evaluation_target: total_points
-    lifecycle_state: candidate
-    downstream_status: eligible
+    lifecycle_state: approved
+    downstream_status: approved
     rho_pooled: 0.123
     rejection_basis: null
-    caveat: "MIN_RHO=0.15 conflict (SCORE-T-01) incorrectly caveats this signal in scoring/signals.py; rho=0.123 clears Gate 1 (CI excludes zero) which is the correct gate per evaluation-gate-criteria.md"
-    redundancy: "Temporal window overlap with xgi_roll5 DEF; SYNTH-01 to evaluate independent contribution"
+    caveat: null
+    redundancy: "Approved alongside xgi_roll5 DEF (G-SYNTH1-02 APPROVED-SECONDARY); both retained — independent contribution confirmed by SYNTH-01 partial correlation"
+    synth01_decision: APPROVED-PRIMARY
+    synth01_decision_id: G-SYNTH1-01
     operational_role: form
     consumer_modules:
       - intelligence/captain.py
       - intelligence/value.py
       - intelligence/transfers.py
     consumer_note: null
-    threshold_dependencies:
-      - SCORE-T-01
+    threshold_dependencies: []
 
   - signal: xgi_roll3
     position: MID
@@ -68,18 +72,20 @@ entries:
     evaluation_lens: FORM
     signal_id: FORM-001
     evaluation_target: total_points
-    lifecycle_state: candidate
-    downstream_status: caveated
+    lifecycle_state: excluded
+    downstream_status: blocked
     rho_pooled: 0.144
-    rejection_basis: null
-    caveat: "Does not clear naive baseline (points_roll5 MID rho=0.158 > xgi_roll3 MID rho=0.144); SYNTH-01 must test independent contribution before operational reliance at MID"
-    redundancy: "Temporal window overlap with xgi_roll5 MID"
+    rejection_basis: "SYNTH-01 G-SYNTH1-07 EXCLUDED-REDUNDANT: xgi_roll3 provides no independent contribution over xgi_roll5 at MID; partial correlation controlling for xgi_roll5 eliminated the xgi_roll3 signal"
+    caveat: null
+    redundancy: null
+    synth01_decision: EXCLUDED-REDUNDANT
+    synth01_decision_id: G-SYNTH1-07
     operational_role: form
     consumer_modules:
       - intelligence/captain.py
       - intelligence/value.py
       - intelligence/transfers.py
-    consumer_note: null
+    consumer_note: "MID scope guard applied in captain.py, value.py, transfers.py — xgi_roll3 zeroed for MID players before normalization; zeroed group returns neutral 0.5 on all xgi_roll3-derived scores."
     threshold_dependencies: []
 
   - signal: xgi_roll3
@@ -130,20 +136,21 @@ entries:
     evaluation_lens: FORM
     signal_id: FORM-002
     evaluation_target: total_points
-    lifecycle_state: candidate
-    downstream_status: eligible
+    lifecycle_state: approved
+    downstream_status: approved
     rho_pooled: 0.113
     rejection_basis: null
-    caveat: "MIN_RHO=0.15 conflict (SCORE-T-01) incorrectly caveats this signal; rho=0.113 clears Gate 1 which is the correct gate"
-    redundancy: "Temporal window overlap with xgi_roll3 DEF; SYNTH-01 to evaluate which horizon adds independent contribution"
+    caveat: null
+    redundancy: "Approved alongside xgi_roll3 DEF (G-SYNTH1-01 APPROVED-PRIMARY); both retained as SECONDARY — independent contribution confirmed by SYNTH-01"
+    synth01_decision: APPROVED-SECONDARY
+    synth01_decision_id: G-SYNTH1-02
     operational_role: form
     consumer_modules:
       - intelligence/captain.py
       - intelligence/value.py
       - intelligence/transfers.py
     consumer_note: null
-    threshold_dependencies:
-      - SCORE-T-01
+    threshold_dependencies: []
 
   - signal: xgi_roll5
     position: MID
@@ -152,18 +159,20 @@ entries:
     evaluation_lens: FORM
     signal_id: FORM-002
     evaluation_target: total_points
-    lifecycle_state: candidate
-    downstream_status: caveated
+    lifecycle_state: approved
+    downstream_status: approved
     rho_pooled: 0.157
     rejection_basis: null
-    caveat: "Borderline below naive baseline (points_roll5 MID rho=0.158 vs xgi_roll5 MID rho=0.157); independence from xgi_roll3 and naive baseline clearance both require SYNTH-01"
-    redundancy: "Temporal window overlap with xgi_roll3 MID; pair under SYNTH-01 evaluation"
+    caveat: null
+    redundancy: "xgi_roll3 MID excluded as redundant (G-SYNTH1-07); xgi_roll5 is the sole approved xgi signal at MID"
+    synth01_decision: APPROVED-PRIMARY
+    synth01_decision_id: G-SYNTH1-08
     operational_role: form
     consumer_modules:
       - intelligence/captain.py
       - intelligence/value.py
       - intelligence/transfers.py
-    consumer_note: null
+    consumer_note: "xgi_roll3 MID guard applied in all three modules (G-SYNTH1-07); xgi_roll5 is not guarded at MID — it is the primary form signal here."
     threshold_dependencies: []
 
   - signal: xgi_roll5
@@ -486,12 +495,14 @@ entries:
     evaluation_lens: AVAIL
     signal_id: AVAIL-001
     evaluation_target: played_next_gw
-    lifecycle_state: candidate
-    downstream_status: eligible
+    lifecycle_state: approved
+    downstream_status: approved
     rho_pooled: 0.232
     rejection_basis: null
-    caveat: "FORM lens excluded at all positions (G-EDA2-02: minutes blocked as form proxy); AVAIL lens finds informative for availability prediction at MID only. Must not be used as a form signal."
-    redundancy: "Temporal window overlap with minutes_roll5 (MID rho=0.227) and minutes_roll8 (MID rho=0.222); SYNTH-01 to test which horizon(s) add independent availability information"
+    caveat: "FORM lens excluded at all positions (G-EDA2-02: minutes blocked as form proxy); approved for availability prediction only. Must not be used as a form signal."
+    redundancy: "minutes_roll5 MID excluded as redundant (G-SYNTH1-10); minutes_roll8 MID approved as secondary (G-SYNTH1-11); minutes_roll3 is the primary availability signal at MID"
+    synth01_decision: APPROVED-PRIMARY
+    synth01_decision_id: G-SYNTH1-09
     operational_role: availability
     consumer_modules:
       - intelligence/availability.py
@@ -578,19 +589,21 @@ entries:
     evaluation_lens: AVAIL
     signal_id: AVAIL-002
     evaluation_target: played_next_gw
-    lifecycle_state: candidate
-    downstream_status: eligible
+    lifecycle_state: excluded
+    downstream_status: blocked
     rho_pooled: 0.227
-    rejection_basis: null
+    rejection_basis: "SYNTH-01 G-SYNTH1-10 EXCLUDED-REDUNDANT: minutes_roll5 provides no independent contribution over minutes_roll3 and minutes_roll8 at MID; excluded as middle-window redundancy"
     caveat: null
-    redundancy: "Temporal window overlap with minutes_roll3 (MID rho=0.232) and minutes_roll8 (MID rho=0.222); SYNTH-01 to test independence"
+    redundancy: null
+    synth01_decision: EXCLUDED-REDUNDANT
+    synth01_decision_id: G-SYNTH1-10
     operational_role: availability
     consumer_modules:
       - intelligence/availability.py
       - intelligence/value.py
       - intelligence/fixtures.py
       - intelligence/transfers.py
-    consumer_note: null
+    consumer_note: "minutes_roll5 consumed by value.py, fixtures.py, transfers.py as eligibility floor (minutes_roll5 >= 30) — this is a threshold use, not a scored signal use. Threshold use continues pending VAL-T-01/TRANS-T-01/FIX-T-01 calibration."
     threshold_dependencies:
       - VAL-T-01
       - TRANS-T-01
@@ -648,12 +661,14 @@ entries:
     evaluation_lens: AVAIL
     signal_id: AVAIL-003
     evaluation_target: played_next_gw
-    lifecycle_state: candidate
-    downstream_status: eligible
+    lifecycle_state: approved
+    downstream_status: approved
     rho_pooled: 0.219
     rejection_basis: null
-    caveat: "Best availability signal at DEF — 8-GW horizon improves classification stability vs shorter windows."
-    redundancy: "All three minutes windows excluded at DEF from AVAIL (roll3 G2-FAIL, roll5 G2-FAIL); minutes_roll8 is the only DEF candidate in the availability domain"
+    caveat: "Best availability signal at DEF — 8-GW horizon improves classification stability vs shorter windows; only minutes signal passing AVAIL gates at DEF."
+    redundancy: "All three shorter windows excluded at DEF from AVAIL (roll3 G2-FAIL, roll5 G2-FAIL); minutes_roll8 is the sole approved availability signal at DEF"
+    synth01_decision: APPROVED-PRIMARY
+    synth01_decision_id: G-SYNTH1-03
     operational_role: availability
     consumer_modules:
       - intelligence/availability.py
@@ -667,16 +682,18 @@ entries:
     evaluation_lens: AVAIL
     signal_id: AVAIL-003
     evaluation_target: played_next_gw
-    lifecycle_state: candidate
-    downstream_status: eligible
+    lifecycle_state: approved
+    downstream_status: approved
     rho_pooled: 0.222
     rejection_basis: null
-    caveat: "SYNTH-01 to test whether 8-GW horizon adds independent availability information over minutes_roll3 (rho=0.232) and minutes_roll5 (rho=0.227) at MID"
-    redundancy: "Temporal overlap with minutes_roll3 and minutes_roll5 at MID — all three are MID candidates; SYNTH-01 to resolve which window(s) are independent"
+    caveat: null
+    redundancy: "minutes_roll3 approved as primary (G-SYNTH1-09); minutes_roll5 excluded as redundant (G-SYNTH1-10); minutes_roll8 approved as secondary — adds independent long-horizon stability information at MID"
+    synth01_decision: APPROVED-SECONDARY
+    synth01_decision_id: G-SYNTH1-11
     operational_role: availability
     consumer_modules:
       - intelligence/availability.py
-    consumer_note: "wired to availability.py as long_horizon_flag for MID players (minutes_roll8 < 60 threshold). Redundancy with roll3/roll5 at MID noted; SYNTH-01 to resolve."
+    consumer_note: "wired to availability.py as long_horizon_flag for MID players (minutes_roll8 < 60 threshold)."
     threshold_dependencies: []
 
   - signal: minutes_roll8
@@ -728,15 +745,17 @@ entries:
     evaluation_lens: MARKET
     signal_id: MARKET-001
     evaluation_target: total_points
-    lifecycle_state: candidate
-    downstream_status: eligible
+    lifecycle_state: approved
+    downstream_status: approved
     rho_pooled: 0.187
     rejection_basis: null
-    caveat: "HIGH REDUNDANCY with ownership_count at DEF (partial rho=0.794 per synth01-candidate-set.md); SYNTH-01 to resolve which signal to retain"
-    redundancy: "ownership_count DEF: HIGH REDUNDANCY pair (partial rho=0.794); SYNTH-01 resolution required — likely SUBSTITUTE relationship"
+    caveat: null
+    redundancy: "ownership_count DEF excluded as redundant (G-SYNTH1-05); transfers_in is the retained market signal at DEF"
+    synth01_decision: APPROVED-PRIMARY
+    synth01_decision_id: G-SYNTH1-04
     operational_role: market
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF/MID but not consumed by any intelligence module."
+    consumer_note: "GOVERNED BUT NOT WIRED: approved at DEF/MID but not yet consumed by any intelligence module. Available for Phase 7+ integration."
     threshold_dependencies: []
 
   - signal: transfers_in
@@ -746,15 +765,17 @@ entries:
     evaluation_lens: MARKET
     signal_id: MARKET-001
     evaluation_target: total_points
-    lifecycle_state: candidate
-    downstream_status: eligible
+    lifecycle_state: approved
+    downstream_status: approved
     rho_pooled: 0.190
     rejection_basis: null
-    caveat: "HIGH REDUNDANCY with ownership_count at MID (partial rho=0.831); SYNTH-01 to resolve"
-    redundancy: "ownership_count MID: HIGH REDUNDANCY pair (partial rho=0.831); SYNTH-01 resolution required"
+    caveat: null
+    redundancy: "ownership_count MID approved as secondary (G-SYNTH1-13); transfers_in retained as primary — independent contribution confirmed by SYNTH-01 partial correlation at MID"
+    synth01_decision: APPROVED-PRIMARY
+    synth01_decision_id: G-SYNTH1-12
     operational_role: market
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
+    consumer_note: "GOVERNED BUT NOT WIRED: approved at MID but not yet consumed by any intelligence module. Available for Phase 7+ integration."
     threshold_dependencies: []
 
   - signal: transfers_in
@@ -876,15 +897,17 @@ entries:
     evaluation_lens: MARKET
     signal_id: MARKET-003
     evaluation_target: total_points
-    lifecycle_state: candidate
-    downstream_status: eligible
+    lifecycle_state: excluded
+    downstream_status: blocked
     rho_pooled: 0.156
-    rejection_basis: null
-    caveat: "HIGH REDUNDANCY with transfers_in at DEF (partial rho=0.794); SYNTH-01 to resolve which signal adds independent contribution"
-    redundancy: "transfers_in DEF: HIGH REDUNDANCY pair (partial rho=0.794)"
+    rejection_basis: "SYNTH-01 G-SYNTH1-05 EXCLUDED-REDUNDANT: ownership_count provides no independent contribution over transfers_in at DEF; partial correlation (rho=0.794 pair redundancy) eliminated ownership_count"
+    caveat: null
+    redundancy: null
+    synth01_decision: EXCLUDED-REDUNDANT
+    synth01_decision_id: G-SYNTH1-05
     operational_role: market
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: candidate at DEF/MID but not consumed by any intelligence module."
+    consumer_note: "Not consumed by any module. Excluded at DEF."
     threshold_dependencies: []
 
   - signal: ownership_count
@@ -894,15 +917,17 @@ entries:
     evaluation_lens: MARKET
     signal_id: MARKET-003
     evaluation_target: total_points
-    lifecycle_state: candidate
-    downstream_status: eligible
+    lifecycle_state: approved
+    downstream_status: approved
     rho_pooled: 0.168
     rejection_basis: null
-    caveat: "HIGH REDUNDANCY with transfers_in at MID (partial rho=0.831); SYNTH-01 to resolve"
-    redundancy: "transfers_in MID: HIGH REDUNDANCY pair (partial rho=0.831)"
+    caveat: null
+    redundancy: "transfers_in MID approved as primary (G-SYNTH1-12); ownership_count approved as secondary — adds complementary market consensus signal at MID"
+    synth01_decision: APPROVED-SECONDARY
+    synth01_decision_id: G-SYNTH1-13
     operational_role: market
     consumer_modules: []
-    consumer_note: "GOVERNED BUT NOT WIRED: not consumed by any module."
+    consumer_note: "GOVERNED BUT NOT WIRED: approved at MID but not yet consumed by any intelligence module. Available for Phase 7+ integration."
     threshold_dependencies: []
 
   - signal: ownership_count
@@ -950,18 +975,19 @@ entries:
     evaluation_lens: MARKET
     signal_id: MARKET-004
     evaluation_target: total_points
-    lifecycle_state: candidate
-    downstream_status: caveated
+    lifecycle_state: approved
+    downstream_status: approved
     rho_pooled: 0.121
     rejection_basis: null
-    caveat: "Borderline temporal stability (2/3 blocks); SYNTH-01 to test partial correlation controlling for form signals. MIN_RHO=0.15 conflict (SCORE-T-01) incorrectly caveats at rho=0.121."
+    caveat: "Borderline temporal stability (2/3 blocks); partial correlation confirmed independent contribution controlling for form signals."
     redundancy: null
+    synth01_decision: APPROVED-SECONDARY
+    synth01_decision_id: G-SYNTH1-06
     operational_role: market
     consumer_modules:
       - intelligence/value.py
     consumer_note: "value.py uses purchase_price as efficiency denominator (xgi_roll5/purchase_price) at all positions — role is price normalization, not a directly scored signal."
-    threshold_dependencies:
-      - SCORE-T-01
+    threshold_dependencies: []
 
   - signal: purchase_price
     position: MID
@@ -989,16 +1015,18 @@ entries:
     evaluation_lens: MARKET
     signal_id: MARKET-004
     evaluation_target: total_points
-    lifecycle_state: candidate
-    downstream_status: caveated
+    lifecycle_state: excluded
+    downstream_status: blocked
     rho_pooled: 0.155
-    rejection_basis: null
-    caveat: "Borderline temporal stability (2/3 blocks); price may proxy role seniority and selection priority rather than direct scoring contribution"
+    rejection_basis: "SYNTH-01 G-SYNTH1-14 FWD-SINGLE-SIGNAL: purchase_price is the only market signal at FWD (xgi signals excluded by FORM-001/002); single-signal composition provides insufficient independence; excluded pending SYNTH-02 phase-conditional evaluation"
+    caveat: null
     redundancy: null
+    synth01_decision: FWD-SINGLE-SIGNAL
+    synth01_decision_id: G-SYNTH1-14
     operational_role: market
     consumer_modules:
       - intelligence/value.py
-    consumer_note: "value.py uses purchase_price as efficiency denominator at FWD."
+    consumer_note: "value.py uses purchase_price as efficiency denominator at FWD despite exclusion — role is price normalization, not a directly scored market signal. Tracking under PENDING-EVAL pending SYNTH-02."
     threshold_dependencies: []
 
   # ===========================================================================

@@ -6,9 +6,12 @@ ownership shifts, or market dynamics.
 
 Weights are loaded from the governance registry (signals/characterisation/weight_registry.yaml).
 
-Scope constraint: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
+Scope constraints:
+- xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
+- xgi_roll3 excluded at MID (SYNTH-01 G-SYNTH1-07: EXCLUDED-REDUNDANT vs xgi_roll5).
 FWD players receive neutral 0.5 on recent_form_score, form_momentum_score, and
-involvement_score — xgi signals zeroed before normalization.
+involvement_score. MID players receive neutral 0.5 on those same scores — xgi_roll3
+zeroed before normalization, momentum also neutralised at MID.
 
 fixture_score uses binary DGW indicator from STATE fixture_context column.
 """
@@ -77,10 +80,10 @@ def rank_transfer_targets(
     columns for explainability.
 
     Scoring components (registry weights):
-    - recent_form_score    30%: xgi_roll3; excluded at FWD (FORM-001/002 G2-FAIL) → neutral 0.5
-    - form_momentum_score  25%: xgi_roll3 - xgi_roll5; FWD scope guard applied
+    - recent_form_score    30%: xgi_roll3; excluded at FWD+MID → neutral 0.5
+    - form_momentum_score  25%: xgi_roll3 - xgi_roll5; FWD+MID neutralised → neutral 0.5
     - fixture_score        20%: binary DGW flag from STATE fixture_context
-    - involvement_score    15%: xgi_roll3; excluded at FWD (FORM-001/002 G2-FAIL) → neutral 0.5
+    - involvement_score    15%: xgi_roll3; excluded at FWD+MID → neutral 0.5
     - minutes_stability    10%: minutes_roll5, normalized within position
 
     Only players with minutes_roll5 >= 30 are eligible.
@@ -102,18 +105,23 @@ def rank_transfer_targets(
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # xgi_roll3 and xgi_roll5 excluded at FWD: FORM-001/002 G2-FAIL.
-    # Zero out both for FWD players; all-zero FWD group returns 0.5 from normalization.
+    # xgi_roll5 excluded at FWD: FORM-002 G2-FAIL.
+    # xgi_roll3 excluded at FWD (FORM-001 G2-FAIL) and MID (SYNTH-01 G-SYNTH1-07:
+    # EXCLUDED-REDUNDANT vs xgi_roll5). Zeroed groups return 0.5 from normalization.
     fwd_mask = eligible["position_label"] == "FWD"
-    xgi_roll3_scored = eligible["xgi_roll3"].fillna(0).where(~fwd_mask, 0.0)
+    mid_mask = eligible["position_label"] == "MID"
+    xgi_roll3_scored = eligible["xgi_roll3"].fillna(0).where(~(fwd_mask | mid_mask), 0.0)
     xgi_roll5_scored = eligible["xgi_roll5"].fillna(0).where(~fwd_mask, 0.0)
 
     eligible["_xgi_roll3_scored"] = xgi_roll3_scored
     eligible["_xgi_roll5_scored"] = xgi_roll5_scored
 
     # Form momentum: positive when recent xgi (roll3) exceeds medium-term (roll5).
-    # FWD guard: both operands zeroed → momentum = 0 for all FWD → neutral 0.5.
+    # FWD: both operands zeroed → momentum = 0 → neutral 0.5.
+    # MID: xgi_roll3 zeroed but xgi_roll5 live — comparison is invalid (always negative).
+    # Neutralise by setting _momentum to 0 for all MID; all-same → normalize → 0.5.
     eligible["_momentum"] = xgi_roll3_scored - xgi_roll5_scored
+    eligible.loc[mid_mask, "_momentum"] = 0.0
 
     # Binary DGW flag from STATE fixture_context column.
     eligible["_fixture_context_dgw"] = (

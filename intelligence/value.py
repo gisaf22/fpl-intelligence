@@ -5,10 +5,12 @@ Deterministic and price-static — does not forecast price changes.
 
 Weights are loaded from the governance registry (signals/characterisation/weight_registry.yaml).
 
-Scope constraint: xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
-FWD players receive neutral 0.5 on efficiency_score, form_score, and consistency_score —
-xgi signals zeroed before scoring computations. xgi_per_cost output column retains
-original values for informational display.
+Scope constraints:
+- xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
+- xgi_roll3 excluded at MID (SYNTH-01 G-SYNTH1-07: EXCLUDED-REDUNDANT vs xgi_roll5).
+FWD and MID players receive neutral 0.5 on form_score and consistency_score.
+FWD players also receive neutral 0.5 on efficiency_score (xgi_roll5 zeroed at FWD only).
+xgi_per_cost output column retains original values for informational display.
 """
 
 from __future__ import annotations
@@ -78,9 +80,9 @@ def rank_value_players(
     - efficiency_score  50%: xgi_roll5 / purchase_price, normalized within position
                              FWD scope guard: xgi_roll5 zeroed at FWD → neutral 0.5
     - form_score        30%: xgi_roll3, normalized within position
-                             FWD scope guard: zeroed at FWD → neutral 0.5
+                             FWD+MID scope guard: zeroed at FWD and MID → neutral 0.5
     - consistency_score 20%: alignment between xgi_roll3 and xgi_roll5
-                             FWD scope guard: both zeroed → perfect consistency → 0.5
+                             FWD: both zeroed → 0.5. MID: comparison neutralised → 0.5
 
     xgi_per_cost output column shows original (un-guarded) values for display.
     Only players with minutes_roll5 >= 30 and purchase_price >= 3.5 are eligible.
@@ -109,21 +111,27 @@ def rank_value_players(
         eligible["xgi_roll5"].fillna(0) / eligible["purchase_price"]
     )
 
-    # xgi_roll3 and xgi_roll5 excluded at FWD: FORM-001/002 G2-FAIL.
-    # Zeroed FWD group returns 0.5 from normalize_within_position (neutral, not removed).
+    # xgi_roll5 excluded at FWD: FORM-002 G2-FAIL.
+    # xgi_roll3 excluded at FWD (FORM-001 G2-FAIL) and MID (SYNTH-01 G-SYNTH1-07:
+    # EXCLUDED-REDUNDANT vs xgi_roll5). Zeroed groups return 0.5 from
+    # normalize_within_position (neutral, not removed).
     fwd_mask = eligible["position_label"] == "FWD"
+    mid_mask = eligible["position_label"] == "MID"
     xgi_roll5_scored = eligible["xgi_roll5"].fillna(0).where(~fwd_mask, 0.0)
-    xgi_roll3_scored = eligible["xgi_roll3"].fillna(0).where(~fwd_mask, 0.0)
+    xgi_roll3_scored = eligible["xgi_roll3"].fillna(0).where(~(fwd_mask | mid_mask), 0.0)
     eligible["_xgi_per_cost_scored"] = xgi_roll5_scored / eligible["purchase_price"]
 
     # Consistency: how close are xgi_roll3 and xgi_roll5?
     # High score = roll3 ≈ roll5 (stable contributor, not one-week wonder).
-    # Uses scope-guarded values; FWD players: both zero → perfect consistency → 0.5
+    # FWD: both zeroed → 0.5. MID: xgi_roll3 zeroed but xgi_roll5 live — comparison
+    # is invalid (zeroed operand vs non-zero produces wrong ranking). Neutralise by
+    # setting _consistency_raw to 0 for all MID; all-same → normalize → 0.5.
     max_roll5_scored = xgi_roll5_scored.replace(0, 1)  # avoid division by zero
     eligible["_consistency_raw"] = 1.0 - (
         (xgi_roll3_scored - xgi_roll5_scored).abs() / max_roll5_scored.abs()
     )
     eligible["_consistency_raw"] = eligible["_consistency_raw"].clip(lower=0.0)
+    eligible.loc[mid_mask, "_consistency_raw"] = 0.0
 
     eligible["_xgi_roll3_scored"] = xgi_roll3_scored
 

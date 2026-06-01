@@ -10,11 +10,10 @@ from __future__ import annotations
 
 import pandas as pd
 
-from dal.feat.feat_schema import FEATURE_REGISTRY
+from dal.mart import GOVERNED_SIGNAL_COLUMNS
 
-# Derived from FEATURE_REGISTRY — single source of truth for governed state columns.
-# Any column added to FEATURE_REGISTRY is automatically required here.
-_REQUIRED_STATE_COLS: frozenset[str] = frozenset(FEATURE_REGISTRY.keys())
+# Derived from the mart public API — governed state columns available after pipeline.load().
+_REQUIRED_STATE_COLS: frozenset[str] = frozenset(GOVERNED_SIGNAL_COLUMNS)
 
 # Spine columns required by intelligence functions.
 _REQUIRED_SPINE_COLS: frozenset[str] = frozenset([

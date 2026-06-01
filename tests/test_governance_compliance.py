@@ -5,7 +5,7 @@ and confirmed governance violations. Each test names the gate decision it
 enforces.
 
 SYNTH-01 decisions guarded:
-- G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID (captain.py involvement_score)
+- G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID (captain.py, value.py, transfers.py)
 - FORM-001/002: xgi_roll3/xgi_roll5 excluded at FWD (all modules)
 - AVAIL-003: minutes_roll8 positional guard (DEF/MID only in availability.py)
 - FIXTURE-001: fdr_avg must not contribute to fixture_opportunity_score
@@ -124,6 +124,153 @@ class TestCaptainMidXgiGuard:
 
         assert mid_rows.loc[1, "form_score"] > mid_rows.loc[2, "form_score"], (
             "MID form_score (xgi_roll5) must differentiate players"
+        )
+
+
+# ---------------------------------------------------------------------------
+# SYNTH-01 G-SYNTH1-07: xgi_roll3 zeroed at MID in value.py
+# ---------------------------------------------------------------------------
+
+class TestValueMidXgiGuard:
+    """G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID in value.py.
+
+    form_score and consistency_score must be neutral 0.5 for all MID players
+    regardless of xgi_roll3 value. efficiency_score (driven by xgi_roll5, which
+    is approved at MID) must still differentiate MID players.
+    """
+
+    def test_mid_form_score_is_neutral_regardless_of_xgi(self):
+        """Two MID players with different xgi_roll3 must have equal form_score (0.5)."""
+        features = _features(
+            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5,
+                 minutes_roll5=85.0, purchase_price=7.5),
+            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5,
+                 minutes_roll5=85.0, purchase_price=7.5),
+        )
+        result = rank_value_players(features, target_gw=5)
+        mid_rows = result[result["position_label"] == "MID"]
+        assert len(mid_rows) == 2
+
+        scores = mid_rows["form_score"].unique()
+        assert len(scores) == 1, (
+            f"G-SYNTH1-07: MID form_score must be equal for all MID players. "
+            f"Got {mid_rows['form_score'].tolist()}"
+        )
+        assert abs(scores[0] - 0.5) < 1e-9, (
+            f"G-SYNTH1-07: MID form_score must be 0.5, got {scores[0]}"
+        )
+
+    def test_mid_consistency_score_is_neutral_regardless_of_xgi(self):
+        """MID consistency_score must be 0.5 regardless of xgi_roll3 value.
+
+        Consistency compares xgi_roll3 vs xgi_roll5. Since xgi_roll3 is zeroed
+        at MID, the comparison is neutralised to prevent perverse ranking.
+        """
+        features = _features(
+            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.8,
+                 minutes_roll5=85.0, purchase_price=7.5),
+            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.8,
+                 minutes_roll5=85.0, purchase_price=7.5),
+        )
+        result = rank_value_players(features, target_gw=5)
+        mid_rows = result[result["position_label"] == "MID"]
+
+        scores = mid_rows["consistency_score"].unique()
+        assert len(scores) == 1, (
+            f"G-SYNTH1-07: MID consistency_score must be equal (neutralised). "
+            f"Got {mid_rows['consistency_score'].tolist()}"
+        )
+        assert abs(scores[0] - 0.5) < 1e-9, (
+            f"G-SYNTH1-07: MID consistency_score must be 0.5, got {scores[0]}"
+        )
+
+    def test_mid_efficiency_score_not_neutralized(self):
+        """efficiency_score uses xgi_roll5 which is approved at MID (not excluded).
+        MID players must be differentiated by efficiency_score."""
+        features = _features(
+            _row(1, 5, position_label="MID", xgi_roll5=0.9, xgi_roll3=0.5,
+                 minutes_roll5=85.0, purchase_price=7.5),
+            _row(2, 5, position_label="MID", xgi_roll5=0.1, xgi_roll3=0.5,
+                 minutes_roll5=85.0, purchase_price=7.5),
+        )
+        result = rank_value_players(features, target_gw=5)
+        mid_rows = result[result["position_label"] == "MID"].set_index("player_id")
+
+        assert mid_rows.loc[1, "efficiency_score"] > mid_rows.loc[2, "efficiency_score"], (
+            "G-SYNTH1-07: MID efficiency_score (xgi_roll5) must differentiate players"
+        )
+
+
+# ---------------------------------------------------------------------------
+# SYNTH-01 G-SYNTH1-07: xgi_roll3 zeroed at MID in transfers.py
+# ---------------------------------------------------------------------------
+
+class TestTransfersMidXgiGuard:
+    """G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID in transfers.py.
+
+    recent_form_score, involvement_score, and form_momentum_score must be neutral
+    0.5 for all MID players regardless of xgi_roll3 value. fixture_score and
+    minutes_stability_score must still differentiate MID players.
+    """
+
+    def test_mid_form_and_involvement_scores_neutral(self):
+        """recent_form_score and involvement_score must be 0.5 for all MID players."""
+        features = _features(
+            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5,
+                 minutes_roll5=85.0),
+            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5,
+                 minutes_roll5=85.0),
+        )
+        result = rank_transfer_targets(features, target_gw=5)
+        mid_rows = result[result["position_label"] == "MID"]
+        assert len(mid_rows) == 2
+
+        for score_col in ("recent_form_score", "involvement_score"):
+            scores = mid_rows[score_col].unique()
+            assert len(scores) == 1, (
+                f"G-SYNTH1-07: MID {score_col} must be equal for all MID. "
+                f"Got {mid_rows[score_col].tolist()}"
+            )
+            assert abs(scores[0] - 0.5) < 1e-9, (
+                f"G-SYNTH1-07: MID {score_col} must be 0.5, got {scores[0]}"
+            )
+
+    def test_mid_momentum_score_neutral(self):
+        """form_momentum_score must be 0.5 for all MID players.
+
+        Momentum = xgi_roll3 - xgi_roll5. Since xgi_roll3 is zeroed at MID,
+        the comparison is neutralised to prevent always-negative momentum.
+        """
+        features = _features(
+            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5,
+                 minutes_roll5=85.0),
+            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5,
+                 minutes_roll5=85.0),
+        )
+        result = rank_transfer_targets(features, target_gw=5)
+        mid_rows = result[result["position_label"] == "MID"]
+
+        scores = mid_rows["form_momentum_score"].unique()
+        assert len(scores) == 1, (
+            f"G-SYNTH1-07: MID form_momentum_score must be equal (neutralised). "
+            f"Got {mid_rows['form_momentum_score'].tolist()}"
+        )
+        assert abs(scores[0] - 0.5) < 1e-9, (
+            f"G-SYNTH1-07: MID form_momentum_score must be 0.5, got {scores[0]}"
+        )
+
+    def test_mid_fixture_score_not_neutralized(self):
+        """fixture_score uses fixture_context which is not xgi-based.
+        MID players must still be differentiated by fixture_score."""
+        features = _features(
+            _row(1, 5, position_label="MID", fixture_context="DGW", minutes_roll5=85.0),
+            _row(2, 5, position_label="MID", fixture_context="SGW", minutes_roll5=85.0),
+        )
+        result = rank_transfer_targets(features, target_gw=5)
+        mid_rows = result[result["position_label"] == "MID"].set_index("player_id")
+
+        assert mid_rows.loc[1, "fixture_score"] > mid_rows.loc[2, "fixture_score"], (
+            "G-SYNTH1-07: MID fixture_score must differentiate DGW vs SGW players"
         )
 
 

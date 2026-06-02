@@ -32,11 +32,11 @@ def _valid_mart_df() -> pd.DataFrame:
     for name, rec in FEATURE_REGISTRY.items():
         if name in df.columns:
             continue
-        if rec.values:                       # categorical signal (e.g. fixture_context)
+        if rec.values:  # categorical signal (e.g. fixture_context)
             df[name] = rec.values[1]
-        elif name == "minutes_trend":        # categorical-ish, nullable, no enum
+        elif name == "minutes_trend":  # categorical-ish, nullable, no enum
             df[name] = pd.Series(["stable", "stable"], dtype="object")
-        else:                                # numeric rolling signal
+        else:  # numeric rolling signal
             df[name] = pd.array([1.0, 1.0], dtype="Float64")
     return df
 

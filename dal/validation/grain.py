@@ -21,15 +21,15 @@ class GrainContract(TypedDict):
 GRAIN_CONTRACTS: dict[str, GrainContract] = {
     "staging_players": {"pk": ["player_id"]},
     "staging_player_histories": {"pk": ["player_id", "fixture_id"]},
-    "staging_fixtures":         {"pk": ["fixture_id"]},
-    "staging_teams":            {"pk": ["team_id"]},
-    "staging_events":           {"pk": ["gw"]},
-    "staging_element_types":    {"pk": ["position_code"]},
-    "gameweek_context":         {"pk": ["gw"]},
-    "player_fixture_base":      {"pk": ["player_id", "gw", "fixture_id"]},
-    "player_gameweek_spine":    {"pk": ["player_id", "gw"]},
-    "player_gameweek_state":    {"pk": ["player_id", "gw"]},
-    "analytical_mart":          {"pk": ["player_id", "gw"]},
+    "staging_fixtures": {"pk": ["fixture_id"]},
+    "staging_teams": {"pk": ["team_id"]},
+    "staging_events": {"pk": ["gw"]},
+    "staging_element_types": {"pk": ["position_code"]},
+    "gameweek_context": {"pk": ["gw"]},
+    "player_fixture_base": {"pk": ["player_id", "gw", "fixture_id"]},
+    "player_gameweek_spine": {"pk": ["player_id", "gw"]},
+    "player_gameweek_state": {"pk": ["player_id", "gw"]},
+    "analytical_mart": {"pk": ["player_id", "gw"]},
 }
 
 

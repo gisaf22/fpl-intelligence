@@ -58,27 +58,27 @@ def _signal_columns() -> dict[str, pa.Column]:
 # there is non-nullability + allowed values, not the storage dtype.
 _NON_SIGNAL_COLUMNS: dict[str, pa.Column] = {
     # identity / grain
-    "player_id":      pa.Column(int, nullable=False),
-    "gw":             pa.Column(int, nullable=False),
+    "player_id": pa.Column(int, nullable=False),
+    "gw": pa.Column(int, nullable=False),
     # `position` is mart-derived (mapped from position_code) — guard against silent NaN
-    "position":       pa.Column(nullable=False, checks=pa.Check.isin(POSITIONS)),
-    "position_code":  pa.Column(int, nullable=False, checks=pa.Check.isin([1, 2, 3, 4])),
-    "team_id":        pa.Column(int, nullable=False),
-    "player_name":    pa.Column(nullable=False),
+    "position": pa.Column(nullable=False, checks=pa.Check.isin(POSITIONS)),
+    "position_code": pa.Column(int, nullable=False, checks=pa.Check.isin([1, 2, 3, 4])),
+    "team_id": pa.Column(int, nullable=False),
+    "player_name": pa.Column(nullable=False),
     # market price (per-GW; consumer-critical — efficiency = xgi / purchase_price)
     "purchase_price": pa.Column(float, nullable=False, checks=pa.Check.ge(0)),
     # key performance measures (NULL on BGW rows by design)
-    "minutes":        pa.Column("Int64", nullable=True, checks=pa.Check.ge(0)),
-    "total_points":   pa.Column("Int64", nullable=True),
+    "minutes": pa.Column("Int64", nullable=True, checks=pa.Check.ge(0)),
+    "total_points": pa.Column("Int64", nullable=True),
     # structural flags
-    "is_bgw":         pa.Column("boolean", nullable=False),
-    "is_dgw":         pa.Column("boolean", nullable=False),
+    "is_bgw": pa.Column("boolean", nullable=False),
+    "is_dgw": pa.Column("boolean", nullable=False),
 }
 
 MART_SCHEMA = pa.DataFrameSchema(
     columns={**_NON_SIGNAL_COLUMNS, **_signal_columns()},
-    strict=False,   # allow incidental pass-through columns
-    coerce=False,   # detect dtype drift rather than silently fixing it
+    strict=False,  # allow incidental pass-through columns
+    coerce=False,  # detect dtype drift rather than silently fixing it
 )
 
 

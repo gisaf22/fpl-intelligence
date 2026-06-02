@@ -77,4 +77,4 @@ GK_PENALTY_SAVE_POINTS: int = 5  # VERIFIED 2025/26
 # Top 3 BPS performers each gameweek receive bonus points.
 BPS_BONUS_FIRST: int = 3  # VERIFIED 2025/26
 BPS_BONUS_SECOND: int = 2  # VERIFIED 2025/26
-BPS_BONUS_THIRD: int = 1   # VERIFIED 2025/26
+BPS_BONUS_THIRD: int = 1  # VERIFIED 2025/26

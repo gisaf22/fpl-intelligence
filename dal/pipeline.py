@@ -48,6 +48,7 @@ from dal.staging import StagedEntities, load_staged_entities
 # Path helpers
 # ---------------------------------------------------------------------------
 
+
 def _manifest_path(db_path: Path) -> Path:
     return db_path.with_suffix(".manifest.json")
 
@@ -63,6 +64,7 @@ def _mart_tmp_path(mart_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 # Manifest / schema helpers
 # ---------------------------------------------------------------------------
+
 
 def _load_manifest(path: Path) -> dict[str, Any] | None:
     if path.exists():
@@ -97,8 +99,7 @@ def _mart_schema_fingerprint(df: pd.DataFrame) -> dict[str, Any]:
 def _schema_matches(recorded: dict[str, Any], df: pd.DataFrame) -> bool:
     current = _mart_schema_fingerprint(df)
     return (  # type: ignore[no-any-return]
-        recorded.get("columns") == current["columns"]
-        and recorded.get("dtypes") == current["dtypes"]
+        recorded.get("columns") == current["columns"] and recorded.get("dtypes") == current["dtypes"]
     )
 
 
@@ -106,10 +107,7 @@ def _cache_valid(existing: dict[str, Any], source_hash: str, mrt_path: Path) -> 
     """True only when all four cache-hit conditions hold."""
     if existing.get("source_db_hash") != source_hash:
         return False
-    all_ok = all(
-        info.get("status") == "OK"
-        for info in existing.get("layers", {}).values()
-    )
+    all_ok = all(info.get("status") == "OK" for info in existing.get("layers", {}).values())
     if not all_ok:
         return False
     if not mrt_path.exists():
@@ -123,6 +121,7 @@ def _cache_valid(existing: dict[str, Any], source_hash: str, mrt_path: Path) -> 
 # ---------------------------------------------------------------------------
 # run()
 # ---------------------------------------------------------------------------
+
 
 def run(
     db_path: Path = DB_PATH,
@@ -316,6 +315,7 @@ def run(
 # load()
 # ---------------------------------------------------------------------------
 
+
 def load(
     db_path: Path = DB_PATH,
     mart_path: Path | None = None,
@@ -342,25 +342,14 @@ def load(
 
     manifest = _load_manifest(mpath)
     if manifest is None:
-        raise MartNotBuiltError(
-            f"No manifest found at {mpath}. Run dal.pipeline.run() to build the mart."
-        )
+        raise MartNotBuiltError(f"No manifest found at {mpath}. Run dal.pipeline.run() to build the mart.")
 
-    failed = [
-        name for name, info in manifest.get("layers", {}).items()
-        if info.get("status") != "OK"
-    ]
+    failed = [name for name, info in manifest.get("layers", {}).items() if info.get("status") != "OK"]
     if failed:
-        raise MartNotBuiltError(
-            f"Last build recorded failures in: {failed}. "
-            f"Run dal.pipeline.run() to rebuild."
-        )
+        raise MartNotBuiltError(f"Last build recorded failures in: {failed}. Run dal.pipeline.run() to rebuild.")
 
     if not mrt_path.exists():
-        raise MartNotBuiltError(
-            f"mart.parquet not found at {mrt_path}. "
-            f"Run dal.pipeline.run() to build the mart."
-        )
+        raise MartNotBuiltError(f"mart.parquet not found at {mrt_path}. Run dal.pipeline.run() to build the mart.")
 
     mart = pd.read_parquet(mrt_path)
 
@@ -388,6 +377,7 @@ def load(
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def _print_manifest(manifest: dict[str, Any]) -> None:
     layers = manifest.get("layers", {})
     print(f"Run:    {manifest.get('run_id')}")
@@ -396,8 +386,7 @@ def _print_manifest(manifest: dict[str, Any]) -> None:
     print(f"Cutoff: GW{manifest.get('data_cutoff_gw')}")
     print(f"Mart:   {manifest.get('mart_path')}")
     for layer, info in layers.items():
-        print(f"  {layer}: {info.get('status')} "
-              f"(rows={info.get('rows', '?')}, {info.get('duration_ms', '?')}ms)")
+        print(f"  {layer}: {info.get('status')} (rows={info.get('rows', '?')}, {info.get('duration_ms', '?')}ms)")
 
 
 if __name__ == "__main__":

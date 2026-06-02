@@ -91,13 +91,10 @@ def rank_value_players(
 
     gw_df = features[features["gw"] == target_gw].copy()
     if gw_df.empty:
-        raise IntelligenceInputError(
-            f"rank_value_players: no data for gw={target_gw}"
-        )
+        raise IntelligenceInputError(f"rank_value_players: no data for gw={target_gw}")
 
     eligible = gw_df[
-        (gw_df["purchase_price"].fillna(0) >= _MIN_PRICE)
-        & (gw_df["minutes_roll5"].fillna(0) >= _MIN_MINUTES_ROLL5)
+        (gw_df["purchase_price"].fillna(0) >= _MIN_PRICE) & (gw_df["minutes_roll5"].fillna(0) >= _MIN_MINUTES_ROLL5)
     ].copy()
 
     if max_price is not None:
@@ -107,9 +104,7 @@ def rank_value_players(
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
     # xgi_per_cost for display: uses original xgi values (informational output).
-    eligible["xgi_per_cost"] = (
-        eligible["xgi_roll5"].fillna(0) / eligible["purchase_price"]
-    )
+    eligible["xgi_per_cost"] = eligible["xgi_roll5"].fillna(0) / eligible["purchase_price"]
 
     # xgi_roll5 excluded at FWD: FORM-002 G2-FAIL.
     # xgi_roll3 excluded at FWD (FORM-001 G2-FAIL) and MID (SYNTH-01 G-SYNTH1-07:
@@ -127,34 +122,19 @@ def rank_value_players(
     # is invalid (zeroed operand vs non-zero produces wrong ranking). Neutralise by
     # setting _consistency_raw to 0 for all MID; all-same → normalize → 0.5.
     max_roll5_scored = xgi_roll5_scored.replace(0, 1)  # avoid division by zero
-    eligible["_consistency_raw"] = 1.0 - (
-        (xgi_roll3_scored - xgi_roll5_scored).abs() / max_roll5_scored.abs()
-    )
+    eligible["_consistency_raw"] = 1.0 - ((xgi_roll3_scored - xgi_roll5_scored).abs() / max_roll5_scored.abs())
     eligible["_consistency_raw"] = eligible["_consistency_raw"].clip(lower=0.0)
     eligible.loc[mid_mask, "_consistency_raw"] = 0.0
 
     eligible["_xgi_roll3_scored"] = xgi_roll3_scored
 
-    eligible["efficiency_score"] = normalize_within_position(
-        eligible, "_xgi_per_cost_scored"
-    )
+    eligible["efficiency_score"] = normalize_within_position(eligible, "_xgi_per_cost_scored")
     eligible["form_score"] = normalize_within_position(eligible, "_xgi_roll3_scored")
-    eligible["consistency_score"] = normalize_within_position(
-        eligible, "_consistency_raw"
-    )
+    eligible["consistency_score"] = normalize_within_position(eligible, "_consistency_raw")
 
-    eligible["value_score"] = weighted_composite(
-        eligible, list(_WEIGHTS.keys()), _WEIGHTS
-    )
+    eligible["value_score"] = weighted_composite(eligible, list(_WEIGHTS.keys()), _WEIGHTS)
     eligible["value_rank"] = (
-        eligible.groupby("position_label")["value_score"]
-        .rank(ascending=False, method="min")
-        .astype(int)
+        eligible.groupby("position_label")["value_score"].rank(ascending=False, method="min").astype(int)
     )
 
-    return (
-        eligible[_OUTPUT_COLS]
-        .sort_values("value_score", ascending=False)
-        .head(n)
-        .reset_index(drop=True)
-    )
+    return eligible[_OUTPUT_COLS].sort_values("value_score", ascending=False).head(n).reset_index(drop=True)

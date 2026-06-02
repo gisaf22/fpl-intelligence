@@ -23,14 +23,18 @@ pytestmark = pytest.mark.unit
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
+
 def _load_spine():
     from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+
     staged = load_staged_entities(TEST_DB_PATH)
     return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
+
 
 # ---------------------------------------------------------------------------
 # O-4 — FPL_DB_PATH environment variable override
 # ---------------------------------------------------------------------------
+
 
 def test_fpl_db_path_configurable(monkeypatch):
     """O-4: DB_PATH must be patchable via monkeypatch.setattr for test isolation.
@@ -42,13 +46,13 @@ def test_fpl_db_path_configurable(monkeypatch):
 
     monkeypatch.setattr(config_mod, "DB_PATH", TEST_DB_PATH)
 
-    assert config_mod.DB_PATH == TEST_DB_PATH, (
-        f"Expected DB_PATH={TEST_DB_PATH}, got {config_mod.DB_PATH}."
-    )
+    assert config_mod.DB_PATH == TEST_DB_PATH, f"Expected DB_PATH={TEST_DB_PATH}, got {config_mod.DB_PATH}."
+
 
 # ---------------------------------------------------------------------------
 # O-1 — Staging layer must log entity row counts at INFO
 # ---------------------------------------------------------------------------
+
 
 def test_staging_logs_entity_row_count(caplog):
     """O-1 FAILING TEST: stage() must log entity name and row count after staging.
@@ -62,15 +66,15 @@ def test_staging_logs_entity_row_count(caplog):
         stage(TEST_DB_PATH, load_schema("players"))
 
     logged_messages = [r.message for r in caplog.records]
-    assert any("players" in msg and ("rows=" in msg or "staged" in msg)
-               for msg in logged_messages), (
-        f"Expected INFO log with entity 'players' and row count after staging. "
-        f"Got messages: {logged_messages}"
+    assert any("players" in msg and ("rows=" in msg or "staged" in msg) for msg in logged_messages), (
+        f"Expected INFO log with entity 'players' and row count after staging. Got messages: {logged_messages}"
     )
+
 
 # ---------------------------------------------------------------------------
 # O-2 — team_id corrections must use [AUDIT] prefix
 # ---------------------------------------------------------------------------
+
 
 def test_team_id_correction_uses_audit_prefix(caplog):
     """O-2 FAILING TEST: team_id corrections must log with [AUDIT] prefix.
@@ -79,10 +83,17 @@ def test_team_id_correction_uses_audit_prefix(caplog):
     """
     from dal.intermediate.int_player_fixture import _validate_and_log_team_id_resolution
 
-    df = pd.DataFrame([{
-        "player_id": 1, "player_name": "Test", "gw": 1, "fixture_id": 1,
-        "team_id": 99,  # wrong team — will be corrected to true_team_id
-    }])
+    df = pd.DataFrame(
+        [
+            {
+                "player_id": 1,
+                "player_name": "Test",
+                "gw": 1,
+                "fixture_id": 1,
+                "team_id": 99,  # wrong team — will be corrected to true_team_id
+            }
+        ]
+    )
     true_team_id = pd.Series([1])  # correct value differs from df["team_id"]
 
     with caplog.at_level(logging.INFO, logger="dal.intermediate.int_player_fixture"):
@@ -94,9 +105,11 @@ def test_team_id_correction_uses_audit_prefix(caplog):
         f"Got messages: {[r.message for r in caplog.records]}"
     )
 
+
 # ---------------------------------------------------------------------------
 # O-5 — Spine fingerprint reproducibility
 # ---------------------------------------------------------------------------
+
 
 def test_spine_fingerprint_identical_across_runs():
     """O-5 FAILING TEST: spine fingerprint must be identical across two runs.
@@ -117,9 +130,11 @@ def test_spine_fingerprint_identical_across_runs():
     assert fp1["n_rows"] == fp2["n_rows"]
     assert fp1["n_cols"] == fp2["n_cols"]
 
+
 # ---------------------------------------------------------------------------
 # O-3b — All DALContractViolation raises must include error_code=
 # ---------------------------------------------------------------------------
+
 
 def test_all_contract_violations_have_error_code():
     """O-3b: Every DALContractViolation raise site in dal/ must include error_code=.
@@ -140,12 +155,8 @@ def test_all_contract_violations_have_error_code():
         lines = source.splitlines()
         for i, line in enumerate(lines):
             if "raise DALContractViolation(" in line:
-                block = "\n".join(lines[i:i+10])
+                block = "\n".join(lines[i : i + 10])
                 if "error_code=" not in block:
-                    missing_code.append(
-                        f"{py_file.relative_to(project_root)}:{i+1}: {line.strip()}"
-                    )
+                    missing_code.append(f"{py_file.relative_to(project_root)}:{i + 1}: {line.strip()}")
 
-    assert missing_code == [], (
-        "DALContractViolation raises missing error_code=:\n" + "\n".join(missing_code)
-    )
+    assert missing_code == [], "DALContractViolation raises missing error_code=:\n" + "\n".join(missing_code)

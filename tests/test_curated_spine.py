@@ -25,8 +25,7 @@ def test_spine_column_presence():
     """Spine returns exactly the columns declared in SPINE_COLS — no more, no fewer."""
     df = _load_spine()
     assert set(df.columns) == set(SPINE_COLS), (
-        f"Column mismatch. Extra: {set(df.columns) - set(SPINE_COLS)}. "
-        f"Missing: {set(SPINE_COLS) - set(df.columns)}"
+        f"Column mismatch. Extra: {set(df.columns) - set(SPINE_COLS)}. Missing: {set(SPINE_COLS) - set(df.columns)}"
     )
     assert len(df.columns) == len(SPINE_COLS), f"Expected {len(SPINE_COLS)} columns, got {len(df.columns)}"
 
@@ -79,8 +78,7 @@ def test_spine_total_points_sum_correctness():
     actual_points = int(spine_row["total_points"].iloc[0])
 
     assert actual_points == expected_points, (
-        f"Player {first_player_id} GW 26: spine total_points={actual_points}, "
-        f"expected sum={expected_points}"
+        f"Player {first_player_id} GW 26: spine total_points={actual_points}, expected sum={expected_points}"
     )
 
 

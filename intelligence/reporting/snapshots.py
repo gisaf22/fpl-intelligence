@@ -40,9 +40,7 @@ def default_previous_snapshot_path(gw: int, output_dir: str | Path) -> Path | No
 
 
 def _empty_changes(gw: int, previous_gw: int | None) -> pd.DataFrame:
-    return pd.DataFrame(
-        columns=SNAPSHOT_CHANGE_COLUMNS
-    ).astype({"gw": "int64", "previous_gw": "Int64"})
+    return pd.DataFrame(columns=SNAPSHOT_CHANGE_COLUMNS).astype({"gw": "int64", "previous_gw": "Int64"})
 
 
 def _value(value: object) -> str:
@@ -107,9 +105,7 @@ def build_snapshot_changes(
 
     previous_gw = previous_gw if previous_gw is not None else gw - 1
     key_columns = list(PRIMARY_KEY_COLUMNS)
-    compare_columns = key_columns + [
-        field for field in SNAPSHOT_COMPARE_FIELDS if field in current_snapshot.columns
-    ]
+    compare_columns = key_columns + [field for field in SNAPSHOT_COMPARE_FIELDS if field in current_snapshot.columns]
     previous_compare_columns = key_columns + [
         field for field in SNAPSHOT_COMPARE_FIELDS if field in previous_snapshot.columns
     ]
@@ -209,11 +205,7 @@ def write_snapshot_changes(
         if previous_snapshot_path is not None
         else default_previous_snapshot_path(gw, target_dir)
     )
-    previous_snapshot = (
-        pd.read_csv(previous_path)
-        if previous_path is not None and previous_path.exists()
-        else None
-    )
+    previous_snapshot = pd.read_csv(previous_path) if previous_path is not None and previous_path.exists() else None
 
     output_path = target_dir / "snapshot_changes.csv"
     build_snapshot_changes(

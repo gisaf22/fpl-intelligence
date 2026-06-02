@@ -83,9 +83,7 @@ def test_every_schema_column_has_registry_entry() -> None:
     """Every column declared in FEAT_SCHEMA must have a FEATURE_REGISTRY entry."""
     schema_cols = set(FEAT_SCHEMA.columns.keys()) - {"player_id", "gw"}
     missing = schema_cols - set(FEATURE_REGISTRY.keys())
-    assert not missing, (
-        f"Schema columns with no FEATURE_REGISTRY entry: {sorted(missing)}"
-    )
+    assert not missing, f"Schema columns with no FEATURE_REGISTRY entry: {sorted(missing)}"
 
 
 @pytest.mark.unit
@@ -93,9 +91,7 @@ def test_every_registry_entry_has_schema_column() -> None:
     """Every FEATURE_REGISTRY entry must correspond to a declared FEAT_SCHEMA column."""
     schema_cols = set(FEAT_SCHEMA.columns.keys())
     orphaned = set(FEATURE_REGISTRY.keys()) - schema_cols
-    assert not orphaned, (
-        f"FEATURE_REGISTRY entries with no FEAT_SCHEMA column: {sorted(orphaned)}"
-    )
+    assert not orphaned, f"FEATURE_REGISTRY entries with no FEAT_SCHEMA column: {sorted(orphaned)}"
 
 
 @pytest.mark.unit

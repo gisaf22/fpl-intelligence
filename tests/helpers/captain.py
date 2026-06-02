@@ -67,10 +67,7 @@ def evaluate_captain_heuristic(
             continue
         assert_no_future_leakage(features, gw)
 
-        gw_outcomes = (
-            features[features["gw"] == gw][["player_id", "total_points"]]
-            .dropna(subset=["total_points"])
-        )
+        gw_outcomes = features[features["gw"] == gw][["player_id", "total_points"]].dropna(subset=["total_points"])
         if gw_outcomes.empty:
             continue
 
@@ -97,18 +94,20 @@ def evaluate_captain_heuristic(
         actual_best_id = int(best_row["player_id"])
         actual_best_pts = float(best_row["total_points"])
 
-        rows.append({
-            "gw": gw,
-            "heuristic_top1_id": top1_id,
-            "heuristic_top1_return": top1_pts,
-            "baseline_recent_return": bl_recent_pts,
-            "baseline_xgi_return": bl_xgi_pts,
-            "actual_best_id": actual_best_id,
-            "actual_best_return": actual_best_pts,
-            "top1_hit": hit_rate([top1_id], actual_best_id),
-            "top3_hit": hit_rate(top3_ids, actual_best_id),
-            "regret": regret(actual_best_pts, top1_pts),
-        })
+        rows.append(
+            {
+                "gw": gw,
+                "heuristic_top1_id": top1_id,
+                "heuristic_top1_return": top1_pts,
+                "baseline_recent_return": bl_recent_pts,
+                "baseline_xgi_return": bl_xgi_pts,
+                "actual_best_id": actual_best_id,
+                "actual_best_return": actual_best_pts,
+                "top1_hit": hit_rate([top1_id], actual_best_id),
+                "top3_hit": hit_rate(top3_ids, actual_best_id),
+                "regret": regret(actual_best_pts, top1_pts),
+            }
+        )
 
     if not rows:
         return {"gw_count": 0}

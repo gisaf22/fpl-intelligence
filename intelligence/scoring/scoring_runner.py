@@ -59,9 +59,7 @@ def run_scorer(input: ScorerInput) -> Path:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Score FPL players for a gameweek and write an HTML report."
-    )
+    parser = argparse.ArgumentParser(description="Score FPL players for a gameweek and write an HTML report.")
     parser.add_argument(
         "--gw",
         type=int,

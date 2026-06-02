@@ -27,7 +27,10 @@ def stage(db_path: Path, schema: Schema) -> pd.DataFrame:
     elapsed_ms = (time.perf_counter() - t0) * 1000
     logger.info(
         "[DAL:staging:%s] staged | rows=%d cols=%d elapsed_ms=%.0f",
-        schema.source_table, len(staged), len(staged.columns), elapsed_ms,
+        schema.source_table,
+        len(staged),
+        len(staged.columns),
+        elapsed_ms,
     )
     return staged
 
@@ -55,9 +58,7 @@ def _normalize_canonical_columns(df: pd.DataFrame, schema: Schema) -> pd.DataFra
     """Apply transform and dtype cast to every canonical column in place."""
     staged = df.copy()
     for column in schema.columns:
-        staged[column.canonical] = _cast_column_dtype(
-            _apply_column_transform(staged[column.canonical], column), column
-        )
+        staged[column.canonical] = _cast_column_dtype(_apply_column_transform(staged[column.canonical], column), column)
     return staged
 
 
@@ -86,9 +87,7 @@ def _cast_column_dtype(series: pd.Series, column: ColumnMapping) -> pd.Series:
             return pd.to_datetime(series, errors="coerce")
         return series.astype(target_dtype)
     except (ValueError, TypeError) as exc:
-        raise ValueError(
-            f"Failed to cast column '{column.canonical}' to dtype '{target_dtype}': {exc}"
-        ) from exc
+        raise ValueError(f"Failed to cast column '{column.canonical}' to dtype '{target_dtype}': {exc}") from exc
 
 
 def _validate_non_nullable_columns(df: pd.DataFrame, schema: Schema) -> None:
@@ -99,6 +98,5 @@ def _validate_non_nullable_columns(df: pd.DataFrame, schema: Schema) -> None:
         null_count = int(df[column.canonical].isna().sum())
         if null_count:
             raise ValueError(
-                f"Column '{column.canonical}' is declared non-nullable but contains "
-                f"{null_count} null value(s)"
+                f"Column '{column.canonical}' is declared non-nullable but contains {null_count} null value(s)"
             )

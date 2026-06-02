@@ -14,11 +14,13 @@ from __future__ import annotations
 
 import pandas as pd
 
-_REQUIRED_ROLLING_COLS: frozenset[str] = frozenset({
-    "points_roll3",
-    "minutes_roll3",
-    "xgi_roll3",
-})
+_REQUIRED_ROLLING_COLS: frozenset[str] = frozenset(
+    {
+        "points_roll3",
+        "minutes_roll3",
+        "xgi_roll3",
+    }
+)
 
 
 def evaluation_gameweeks(
@@ -49,9 +51,7 @@ def assert_no_future_leakage(features: pd.DataFrame, eval_gw: int) -> None:
     """
     gw_rows = features[features["gw"] == eval_gw]
     if gw_rows.empty:
-        raise ValueError(
-            f"assert_no_future_leakage: no rows for gw={eval_gw} in features"
-        )
+        raise ValueError(f"assert_no_future_leakage: no rows for gw={eval_gw} in features")
     missing = _REQUIRED_ROLLING_COLS - set(features.columns)
     if missing:
         raise ValueError(

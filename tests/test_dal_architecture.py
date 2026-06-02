@@ -27,12 +27,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DAL_ROOT = REPO_ROOT / "dal"
 INTELLIGENCE_ROOT = REPO_ROOT / "intelligence"
 
+
 def _python_files(root: Path) -> list[Path]:
-    return sorted(
-        path
-        for path in root.rglob("*.py")
-        if "__pycache__" not in str(path)
-    )
+    return sorted(path for path in root.rglob("*.py") if "__pycache__" not in str(path))
+
 
 def _imports_from(path: Path, forbidden_module: str) -> list[str]:
     """Return violation strings for any import of forbidden_module in path."""
@@ -47,15 +45,12 @@ def _imports_from(path: Path, forbidden_module: str) -> list[str]:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 if alias.name == forbidden_module or alias.name.startswith(forbidden_module + "."):
-                    violations.append(
-                        f"{path.relative_to(REPO_ROOT)} imports {alias.name}"
-                    )
+                    violations.append(f"{path.relative_to(REPO_ROOT)} imports {alias.name}")
         if isinstance(node, ast.ImportFrom) and node.module:
             if node.module == forbidden_module or node.module.startswith(forbidden_module + "."):
-                violations.append(
-                    f"{path.relative_to(REPO_ROOT)} imports from {node.module}"
-                )
+                violations.append(f"{path.relative_to(REPO_ROOT)} imports from {node.module}")
     return violations
+
 
 def test_feat_does_not_import_staging() -> None:
     """Feature layer must not import from dal.staging.
@@ -68,6 +63,7 @@ def test_feat_does_not_import_staging() -> None:
         violations.extend(_imports_from(path, "dal.staging"))
     assert not violations, "Feature layer imports from staging:\n" + "\n".join(violations)
 
+
 def test_feat_does_not_import_intermediate() -> None:
     """Feature layer must not import from dal.intermediate.
 
@@ -77,6 +73,7 @@ def test_feat_does_not_import_intermediate() -> None:
     for path in _python_files(DAL_ROOT / "feat"):
         violations.extend(_imports_from(path, "dal.intermediate"))
     assert not violations, "Feature layer imports from intermediate:\n" + "\n".join(violations)
+
 
 def test_feat_does_not_import_fct() -> None:
     """Feature layer must not import from dal.fct.
@@ -89,6 +86,7 @@ def test_feat_does_not_import_fct() -> None:
         violations.extend(_imports_from(path, "dal.fct"))
     assert not violations, "Feature layer imports from fct:\n" + "\n".join(violations)
 
+
 def test_validation_does_not_import_fct() -> None:
     """Validation layer must not import from dal.fct.
 
@@ -100,10 +98,8 @@ def test_validation_does_not_import_fct() -> None:
     violations: list[str] = []
     for path in _python_files(DAL_ROOT / "validation"):
         violations.extend(_imports_from(path, "dal.fct"))
-    assert not violations, (
-        "Validation layer imports from fct — V-3 contract violation:\n"
-        + "\n".join(violations)
-    )
+    assert not violations, "Validation layer imports from fct — V-3 contract violation:\n" + "\n".join(violations)
+
 
 def test_intelligence_does_not_import_studies() -> None:
     """Intelligence layer must not import from studies.
@@ -116,9 +112,9 @@ def test_intelligence_does_not_import_studies() -> None:
     for path in _python_files(INTELLIGENCE_ROOT):
         violations.extend(_imports_from(path, "studies"))
     assert not violations, (
-        "Intelligence layer imports from studies — runtime/research boundary violation:\n"
-        + "\n".join(violations)
+        "Intelligence layer imports from studies — runtime/research boundary violation:\n" + "\n".join(violations)
     )
+
 
 def test_dal_architecture_tests_are_not_vacuous() -> None:
     """Sanity check: dal/ subdirectories and intelligence/ actually exist and contain Python files.
@@ -130,11 +126,9 @@ def test_dal_architecture_tests_are_not_vacuous() -> None:
         assert path.exists(), f"Expected dal/{subdir}/ to exist — check DAL_ROOT={DAL_ROOT}"
         py_files = _python_files(path)
         assert len(py_files) > 0, (
-            f"dal/{subdir}/ exists but contains no .py files — "
-            "architecture tests would scan no code"
+            f"dal/{subdir}/ exists but contains no .py files — architecture tests would scan no code"
         )
     assert INTELLIGENCE_ROOT.exists(), f"Expected intelligence/ to exist — check REPO_ROOT={REPO_ROOT}"
     assert len(_python_files(INTELLIGENCE_ROOT)) > 0, (
-        "intelligence/ exists but contains no .py files — "
-        "architecture tests would scan no code"
+        "intelligence/ exists but contains no .py files — architecture tests would scan no code"
     )

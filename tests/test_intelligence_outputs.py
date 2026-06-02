@@ -30,6 +30,7 @@ pytestmark = pytest.mark.unit
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
 
+
 def _base_row(
     player_id: int,
     gw: int,
@@ -79,18 +80,19 @@ def _base_row(
         "fixture_context": fixture_context,
     }
 
+
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
+
 
 @pytest.fixture
 def two_player_features():
     """Two players at GW 5: player 1 has better form, player 2 is cheaper."""
     return _make_features(
-        _base_row(1, 5, points_roll3=8.0, xgi_roll3=0.9, fdr_avg=2.0,
-                  purchase_price=9.0),
-        _base_row(2, 5, points_roll3=5.0, xgi_roll3=0.4, fdr_avg=3.5,
-                  purchase_price=5.5),
+        _base_row(1, 5, points_roll3=8.0, xgi_roll3=0.9, fdr_avg=2.0, purchase_price=9.0),
+        _base_row(2, 5, points_roll3=5.0, xgi_roll3=0.4, fdr_avg=3.5, purchase_price=5.5),
     )
+
 
 @pytest.fixture
 def multi_gw_features():
@@ -102,9 +104,11 @@ def multi_gw_features():
         _base_row(2, 5, position_label="MID", points_roll3=5.0),
     )
 
+
 # ---------------------------------------------------------------------------
 # _base utilities
 # ---------------------------------------------------------------------------
+
 
 class TestNormalizeWithinPosition:
     def test_values_in_0_1_range(self, two_player_features):
@@ -133,6 +137,7 @@ class TestNormalizeWithinPosition:
         result = normalize_within_position(df, "points_roll3")
         assert not result.isna().any()
 
+
 class TestWeightedComposite:
     def test_equal_weights_averages_components(self):
         df = pd.DataFrame({"a": [1.0], "b": [0.0]})
@@ -144,6 +149,7 @@ class TestWeightedComposite:
         result = weighted_composite(df, ["a", "b"], {"a": 0.8, "b": 0.2})
         # 1.0 * 0.8 / 1.0 + 0.0 * 0.2 / 1.0 = 0.8
         assert abs(result.iloc[0] - 0.8) < 1e-9
+
 
 class TestValidateIntelligenceInputs:
     def test_valid_input_passes(self, two_player_features):
@@ -161,15 +167,23 @@ class TestValidateIntelligenceInputs:
         msg = str(exc_info.value)
         assert "xgi_roll5" in msg or "minutes_roll5" in msg
 
+
 # ---------------------------------------------------------------------------
 # Captain candidates
 # ---------------------------------------------------------------------------
 
+
 class TestRankCaptainCandidates:
     def test_returns_expected_columns(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)
-        for col in ["form_score", "involvement_score", "fixture_score",
-                    "minutes_score", "captain_score", "captain_rank"]:
+        for col in [
+            "form_score",
+            "involvement_score",
+            "fixture_score",
+            "minutes_score",
+            "captain_score",
+            "captain_rank",
+        ]:
             assert col in result.columns, f"missing column: {col}"
 
     def test_is_deterministic(self, two_player_features):
@@ -217,20 +231,27 @@ class TestRankCaptainCandidates:
 
     def test_scores_in_0_1_range(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)
-        for col in ["form_score", "involvement_score", "fixture_score",
-                    "minutes_score", "captain_score"]:
+        for col in ["form_score", "involvement_score", "fixture_score", "minutes_score", "captain_score"]:
             assert result[col].between(0.0, 1.0).all(), f"{col} out of [0,1]"
+
 
 # ---------------------------------------------------------------------------
 # Transfer targets
 # ---------------------------------------------------------------------------
 
+
 class TestRankTransferTargets:
     def test_returns_expected_columns(self, two_player_features):
         result = rank_transfer_targets(two_player_features, target_gw=5)
-        for col in ["recent_form_score", "form_momentum_score", "fixture_score",
-                    "involvement_score", "minutes_stability_score",
-                    "transfer_score", "transfer_rank"]:
+        for col in [
+            "recent_form_score",
+            "form_momentum_score",
+            "fixture_score",
+            "involvement_score",
+            "minutes_stability_score",
+            "transfer_score",
+            "transfer_rank",
+        ]:
             assert col in result.columns
 
     def test_is_deterministic(self, two_player_features):
@@ -239,17 +260,11 @@ class TestRankTransferTargets:
         pd.testing.assert_frame_equal(r1, r2)
 
     def test_position_filter_works(self, multi_gw_features):
-        result_fwd = rank_transfer_targets(
-            multi_gw_features, target_gw=5, position="FWD"
-        )
+        result_fwd = rank_transfer_targets(multi_gw_features, target_gw=5, position="FWD")
         assert (result_fwd["position_label"] == "FWD").all()
 
-    def test_position_filter_unknown_position_returns_empty(
-        self, two_player_features
-    ):
-        result = rank_transfer_targets(
-            two_player_features, target_gw=5, position="GK"
-        )
+    def test_position_filter_unknown_position_returns_empty(self, two_player_features):
+        result = rank_transfer_targets(two_player_features, target_gw=5, position="GK")
         assert result.empty
 
     def test_rising_form_player_preferred(self):
@@ -279,15 +294,16 @@ class TestRankTransferTargets:
         with pytest.raises(IntelligenceInputError):
             rank_transfer_targets(df, target_gw=5)
 
+
 # ---------------------------------------------------------------------------
 # Value players
 # ---------------------------------------------------------------------------
 
+
 class TestRankValuePlayers:
     def test_returns_expected_columns(self, two_player_features):
         result = rank_value_players(two_player_features, target_gw=5)
-        for col in ["xgi_per_cost", "efficiency_score", "form_score",
-                    "consistency_score", "value_score", "value_rank"]:
+        for col in ["xgi_per_cost", "efficiency_score", "form_score", "consistency_score", "value_score", "value_rank"]:
             assert col in result.columns
 
     def test_is_deterministic(self, two_player_features):
@@ -334,15 +350,23 @@ class TestRankValuePlayers:
         with pytest.raises(IntelligenceInputError):
             rank_value_players(df, target_gw=5)
 
+
 # ---------------------------------------------------------------------------
 # Availability risk
 # ---------------------------------------------------------------------------
 
+
 class TestFlagAvailabilityRisk:
     def test_returns_expected_columns(self, two_player_features):
         result = flag_availability_risk(two_player_features, target_gw=5)
-        for col in ["risk_level", "risk_reason", "low_minutes_flag",
-                    "falling_trend_flag", "divergence_flag", "minutes_divergence"]:
+        for col in [
+            "risk_level",
+            "risk_reason",
+            "low_minutes_flag",
+            "falling_trend_flag",
+            "divergence_flag",
+            "minutes_divergence",
+        ]:
             assert col in result.columns
 
     def test_all_players_included(self, two_player_features):
@@ -372,8 +396,7 @@ class TestFlagAvailabilityRisk:
 
     def test_medium_risk_for_divergence(self):
         features = _make_features(
-            _base_row(1, 5, minutes_roll3=65.0, minutes_roll5=90.0,
-                      minutes_trend="stable"),
+            _base_row(1, 5, minutes_roll3=65.0, minutes_roll5=90.0, minutes_trend="stable"),
         )
         result = flag_availability_risk(features, target_gw=5)
         # divergence = 90 - 65 = 25 > 20 threshold
@@ -382,8 +405,7 @@ class TestFlagAvailabilityRisk:
 
     def test_low_risk_for_stable_player(self):
         features = _make_features(
-            _base_row(1, 5, minutes_roll3=90.0, minutes_roll5=88.0,
-                      minutes_trend="stable"),
+            _base_row(1, 5, minutes_roll3=90.0, minutes_roll5=88.0, minutes_trend="stable"),
         )
         result = flag_availability_risk(features, target_gw=5)
         assert result.iloc[0]["risk_level"] == "LOW"
@@ -410,18 +432,25 @@ class TestFlagAvailabilityRisk:
         with pytest.raises(IntelligenceInputError):
             flag_availability_risk(df, target_gw=5)
 
+
 # ---------------------------------------------------------------------------
 # Fixture opportunities
 # ---------------------------------------------------------------------------
+
 
 class TestRankFixtureOpportunities:
     def test_returns_expected_columns(self, multi_gw_features):
         result = rank_fixture_opportunities(multi_gw_features, target_gw=5)
         # fdr_opportunity_score not in fixtures registry (fdr_avg G2-FAIL at all positions)
-        for col in ["fdr_window_avg", "dgw_in_window", "team_goals_roll5",
-                    "team_attack_score",
-                    "dgw_bonus_score", "fixture_opportunity_score",
-                    "fixture_opportunity_rank"]:
+        for col in [
+            "fdr_window_avg",
+            "dgw_in_window",
+            "team_goals_roll5",
+            "team_attack_score",
+            "dgw_bonus_score",
+            "fixture_opportunity_score",
+            "fixture_opportunity_rank",
+        ]:
             assert col in result.columns
         # Confirm fdr_opportunity_score is no longer present
         assert "fdr_opportunity_score" not in result.columns
@@ -434,8 +463,8 @@ class TestRankFixtureOpportunities:
     def test_dgw_fixture_scores_higher(self):
         # fixture_score uses binary DGW indicator from STATE fixture_context column
         features = _make_features(
-            _base_row(1, 5, fixture_context="DGW"),   # double gameweek → higher score
-            _base_row(2, 5, fixture_context="SGW"),   # single gameweek
+            _base_row(1, 5, fixture_context="DGW"),  # double gameweek → higher score
+            _base_row(2, 5, fixture_context="SGW"),  # single gameweek
         )
         result = rank_fixture_opportunities(features, target_gw=5)
         assert result.iloc[0]["player_id"] == 1
@@ -475,9 +504,11 @@ class TestRankFixtureOpportunities:
         with pytest.raises(IntelligenceInputError):
             rank_fixture_opportunities(df, target_gw=5)
 
+
 # ---------------------------------------------------------------------------
 # Cross-module: governance and explainability
 # ---------------------------------------------------------------------------
+
 
 class TestIntelligenceGovernance:
     """Governance contracts across all intelligence outputs."""
@@ -509,12 +540,9 @@ class TestIntelligenceGovernance:
             with open(src) as f:
                 content = f.read()
             assert "studies/eda" not in content, (
-                f"{mod.__name__} imports from studies/eda — "
-                "research artifacts must not enter operational outputs"
+                f"{mod.__name__} imports from studies/eda — research artifacts must not enter operational outputs"
             )
-            assert "RESEARCH_REGISTRY_PATH" not in content, (
-                f"{mod.__name__} references RESEARCH_REGISTRY_PATH"
-            )
+            assert "RESEARCH_REGISTRY_PATH" not in content, f"{mod.__name__} references RESEARCH_REGISTRY_PATH"
 
     def test_captain_explainability_columns_present(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)

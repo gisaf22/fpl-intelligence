@@ -20,9 +20,7 @@ INSIGHT_COLUMNS: tuple[str, ...] = (
     "caveat",
 )
 
-DIRECT_SCORING_SIGNALS: frozenset[str] = frozenset(
-    {"bonus", "bps", "goals_scored", "assists", "clean_sheets"}
-)
+DIRECT_SCORING_SIGNALS: frozenset[str] = frozenset({"bonus", "bps", "goals_scored", "assists", "clean_sheets"})
 
 
 def _csv(values: list[str]) -> str:
@@ -80,9 +78,7 @@ def build_insight_cards(
     cards: list[dict[str, object]] = []
 
     direct = signal_summary[signal_summary["signal"].isin(DIRECT_SCORING_SIGNALS)]
-    direct_stable = stable_performance_signals[
-        stable_performance_signals["signal"].isin(DIRECT_SCORING_SIGNALS)
-    ]
+    direct_stable = stable_performance_signals[stable_performance_signals["signal"].isin(DIRECT_SCORING_SIGNALS)]
     if not direct.empty:
         cards.append(
             _card(
@@ -102,8 +98,7 @@ def build_insight_cards(
                 ),
                 confidence="high",
                 actionability=(
-                    "Use these rows to explain where points came from, not as raw "
-                    "independent feature candidates."
+                    "Use these rows to explain where points came from, not as raw independent feature candidates."
                 ),
                 caveat=(
                     "Predictive use requires lagging or leakage controls because these "
@@ -127,10 +122,7 @@ def build_insight_cards(
                     f"{counts['eligible']} eligible, {counts['caveated']} caveated, "
                     f"{counts['blocked']} blocked context rows"
                 ),
-                interpretation=(
-                    "Context signals should condition interpretation rather than rank "
-                    "players directly."
-                ),
+                interpretation=("Context signals should condition interpretation rather than rank players directly."),
                 confidence="high",
                 actionability="Use as segmentation or conditioning axes.",
                 caveat=(
@@ -205,8 +197,7 @@ def build_insight_cards(
                 signals=low_conf["signal"].tolist(),
                 evidence=f"{len(low_conf)} rows have low_confidence=true",
                 interpretation=(
-                    "These rows retain directional geometry but do not have enough "
-                    "bootstrap stability for promotion."
+                    "These rows retain directional geometry but do not have enough bootstrap stability for promotion."
                 ),
                 confidence="medium",
                 actionability="Review as watchlist signals only.",
@@ -225,10 +216,7 @@ def build_insight_cards(
                 position="ALL",
                 signals=blocked["signal"].tolist(),
                 evidence=f"{len(blocked)} rows are blocked by support or geometry rules",
-                interpretation=(
-                    "Blocked rows failed minimum support, degeneracy, or unassessable "
-                    "geometry checks."
-                ),
+                interpretation=("Blocked rows failed minimum support, degeneracy, or unassessable geometry checks."),
                 confidence="high",
                 actionability="Exclude from weekly interpretation except as data-quality notes.",
                 caveat="A blocked row is not evidence that the underlying football concept is useless.",
@@ -237,9 +225,9 @@ def build_insight_cards(
 
     for _, row in summary_by_position.sort_values("position").iterrows():
         position = str(row["position"])
-        position_signals = stable_performance_signals[
-            stable_performance_signals["position"] == position
-        ]["signal"].tolist()
+        position_signals = stable_performance_signals[stable_performance_signals["position"] == position][
+            "signal"
+        ].tolist()
         cards.append(
             _card(
                 insight_id=f"POSITION_SUMMARY_{position}",
@@ -254,8 +242,7 @@ def build_insight_cards(
                     f"{int(row['stable_performance_count'])} stable performance rows"
                 ),
                 interpretation=(
-                    "Position-level signal health should guide where analysis is more or "
-                    "less structurally reliable."
+                    "Position-level signal health should guide where analysis is more or less structurally reliable."
                 ),
                 confidence="medium",
                 actionability="Use to prioritize review depth by position.",
@@ -285,10 +272,7 @@ def build_insight_cards(
                 ),
                 confidence="medium",
                 actionability="Use stable rows as governed descriptive anchors.",
-                caveat=(
-                    "Separate descriptive stability from predictive usefulness and "
-                    "target-proximity risk."
-                ),
+                caveat=("Separate descriptive stability from predictive usefulness and target-proximity risk."),
             )
         )
 
@@ -314,4 +298,3 @@ def write_insight_cards(
         stable_performance_signals=stable_performance_signals,
     ).to_csv(output_path, index=False)
     return output_path
-

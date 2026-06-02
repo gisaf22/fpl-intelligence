@@ -22,6 +22,7 @@ _LEAKAGE_ROLES: frozenset[str] = frozenset({"points_component"})
 # layer_role values that are outcome-components (mechanistically tautological to the target)
 _OUTCOME_COMPONENT_ROLES: frozenset[str] = frozenset({"contribution_index"})
 
+
 def _exclusion_reason(row: dict) -> str | None:
     """Return a human-readable exclusion reason, or None if the signal is clear."""
     caveat = str(row.get("interpretation_caveat") or "").lower()

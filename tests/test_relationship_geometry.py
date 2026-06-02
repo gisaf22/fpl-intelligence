@@ -14,6 +14,7 @@ from studies.eda.notebooks import _joint_helpers
 
 pytestmark = pytest.mark.unit
 
+
 def _bin_stats(means: list[float]) -> pd.DataFrame:
     return pd.DataFrame(
         {
@@ -23,6 +24,7 @@ def _bin_stats(means: list[float]) -> pd.DataFrame:
         }
     )
 
+
 def test_select_bucketing_scheme_routes_fdr_to_ordinal_before_discrete():
     series = pd.Series([1, 2, 3, 4, 5] * 25)
 
@@ -31,12 +33,14 @@ def test_select_bucketing_scheme_routes_fdr_to_ordinal_before_discrete():
     assert scheme_type == "ordinal"
     assert param == (FDR_ORDINAL_BINS, FDR_ORDINAL_LABELS)
 
+
 def test_select_bucketing_scheme_handles_sparse_and_quantile_cases():
     sparse = pd.Series([0, 1, 2] * 40)
     continuous = pd.Series(np.arange(120))
 
     assert select_bucketing_scheme(sparse)[0] == "discrete"
     assert select_bucketing_scheme(continuous)[0] == "quantile"
+
 
 def test_bin_analysis_uses_scheme_specific_active_bin_thresholds():
     df = pd.DataFrame(
@@ -59,6 +63,7 @@ def test_bin_analysis_uses_scheme_specific_active_bin_thresholds():
     assert bin_stats is not None
     assert len(bin_stats) == 3
 
+
 def test_classify_geometry_controlled_shapes():
     assert classify_geometry(_bin_stats([1, 2, 3, 4])) == "monotonic_positive"
     assert classify_geometry(_bin_stats([4, 3, 2, 1])) == "monotonic_negative"
@@ -66,17 +71,13 @@ def test_classify_geometry_controlled_shapes():
     assert classify_geometry(_bin_stats([1, 4, 4, 4])) == "threshold_negative"
     assert classify_geometry(_bin_stats([1, 4, 2, 5])) == "non_monotonic"
 
+
 def test_stability_classify_gap_patterns():
     assert stability_classify(2.0, {"early": 2.0, "mid": 1.5, "late": 2.5}) == "stable"
-    assert (
-        stability_classify(2.0, {"early": 2.0, "mid": 0.5, "late": 2.5})
-        == "moderate_shift"
-    )
+    assert stability_classify(2.0, {"early": 2.0, "mid": 0.5, "late": 2.5}) == "moderate_shift"
     assert stability_classify(2.0, {"early": 2.0, "mid": -1.0, "late": 2.5}) == "unstable"
-    assert (
-        stability_classify(np.nan, {"early": 2.0, "mid": None, "late": None})
-        == "insufficient_data"
-    )
+    assert stability_classify(np.nan, {"early": 2.0, "mid": None, "late": None}) == "insufficient_data"
+
 
 def test_notebook_helper_imports_shared_geometry_functions():
     import studies.eda.association as association

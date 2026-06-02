@@ -162,18 +162,10 @@ def _markdown_table(df: pd.DataFrame, columns: list[str]) -> list[str]:
         return ["No rows."]
 
     rows = df[columns].astype(str).values.tolist()
-    widths = [
-        max(len(str(column)), *(len(row[i]) for row in rows))
-        for i, column in enumerate(columns)
-    ]
-    header = "| " + " | ".join(
-        str(column).ljust(widths[i]) for i, column in enumerate(columns)
-    ) + " |"
+    widths = [max(len(str(column)), *(len(row[i]) for row in rows)) for i, column in enumerate(columns)]
+    header = "| " + " | ".join(str(column).ljust(widths[i]) for i, column in enumerate(columns)) + " |"
     divider = "| " + " | ".join("-" * widths[i] for i in range(len(columns))) + " |"
-    body = [
-        "| " + " | ".join(row[i].ljust(widths[i]) for i in range(len(columns))) + " |"
-        for row in rows
-    ]
+    body = ["| " + " | ".join(row[i].ljust(widths[i]) for i in range(len(columns))) + " |" for row in rows]
     return [header, divider, *body]
 
 

@@ -45,7 +45,6 @@ GW_MAX: int = 33
 RHO_TOLERANCE: float = 0.02
 
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -119,12 +118,8 @@ def test_schema_parity(
     only_in_seed = seed_cols - computed_cols
     only_in_computed = computed_cols - seed_cols
 
-    assert not only_in_seed, (
-        f"columns present in seed but missing from computed: {sorted(only_in_seed)}"
-    )
-    assert not only_in_computed, (
-        f"columns present in computed but missing from seed: {sorted(only_in_computed)}"
-    )
+    assert not only_in_seed, f"columns present in seed but missing from computed: {sorted(only_in_seed)}"
+    assert not only_in_computed, f"columns present in computed but missing from seed: {sorted(only_in_computed)}"
 
 
 # ---------------------------------------------------------------------------
@@ -138,8 +133,7 @@ def test_seed_registry_has_expected_row_count(
 ) -> None:
     """Seed registry must have exactly 104 rows (26 signals x 4 positions)."""
     assert len(seed_registry) == EXPECTED_REGISTRY_ROWS, (
-        f"seed registry row count changed: expected {EXPECTED_REGISTRY_ROWS}, "
-        f"got {len(seed_registry)}"
+        f"seed registry row count changed: expected {EXPECTED_REGISTRY_ROWS}, got {len(seed_registry)}"
     )
 
 
@@ -149,8 +143,7 @@ def test_computed_registry_row_count(
 ) -> None:
     """Computed registry must produce exactly 104 rows (26 signals x 4 positions)."""
     assert len(computed_registry) == EXPECTED_REGISTRY_ROWS, (
-        f"computed registry row count: expected {EXPECTED_REGISTRY_ROWS}, "
-        f"got {len(computed_registry)}"
+        f"computed registry row count: expected {EXPECTED_REGISTRY_ROWS}, got {len(computed_registry)}"
     )
 
 
@@ -160,9 +153,7 @@ def test_no_duplicate_keys_in_computed(
 ) -> None:
     """Computed registry must not have duplicate (signal, position) pairs."""
     dups = int(computed_registry[["signal", "position"]].duplicated().sum())
-    assert dups == 0, (
-        f"computed registry has {dups} duplicate (signal, position) rows"
-    )
+    assert dups == 0, f"computed registry has {dups} duplicate (signal, position) rows"
 
 
 # ---------------------------------------------------------------------------
@@ -181,16 +172,13 @@ def test_rho_pooled_tolerance(
     are non-null. NaN rows in either side are skipped safely.
     """
     merged = seed_registry[["signal", "position", "rho_pooled"]].merge(
-        computed_registry[["signal", "position", "rho_pooled"]].rename(
-            columns={"rho_pooled": "rho_computed"}
-        ),
+        computed_registry[["signal", "position", "rho_pooled"]].rename(columns={"rho_pooled": "rho_computed"}),
         on=["signal", "position"],
         how="inner",
     )
 
     assert len(merged) == EXPECTED_REGISTRY_ROWS, (
-        f"inner join on (signal, position) dropped rows: "
-        f"expected {EXPECTED_REGISTRY_ROWS}, merged={len(merged)}"
+        f"inner join on (signal, position) dropped rows: expected {EXPECTED_REGISTRY_ROWS}, merged={len(merged)}"
     )
 
     # Only compare where both values are available.

@@ -12,6 +12,7 @@ pytestmark = pytest.mark.unit
 
 SOURCE_REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
 
+
 def _prepared_relationship_data() -> pd.DataFrame:
     rows = []
     for position_index, position in enumerate(["GK", "DEF", "MID", "FWD"]):
@@ -23,16 +24,13 @@ def _prepared_relationship_data() -> pd.DataFrame:
                         "player_id": f"{position}-{player_id}",
                         "position": position,
                         "gw": gw + 1,
-                        "gw_block": "early"
-                        if gw < 2
-                        else "mid"
-                        if gw < 4
-                        else "late",
+                        "gw_block": "early" if gw < 2 else "mid" if gw < 4 else "late",
                         "bps": value,
                         "total_points": value * 0.5 + position_index,
                     }
                 )
     return pd.DataFrame(rows)
+
 
 def test_registry_build_writes_valid_registry_and_metadata(tmp_path):
     result = run_registry_build(
@@ -65,6 +63,7 @@ def test_registry_build_writes_valid_registry_and_metadata(tmp_path):
     assert metadata["signal_count"] == generated["signal"].nunique()
     assert metadata["position_count"] == 4
 
+
 def test_registry_build_validates_before_writing_outputs(tmp_path):
     invalid_registry = tmp_path / "invalid_registry.csv"
     output_dir = tmp_path / "gw36"
@@ -81,12 +80,14 @@ def test_registry_build_validates_before_writing_outputs(tmp_path):
 
     assert not output_dir.exists()
 
+
 def test_registry_build_rejects_invalid_gameweek_values(tmp_path):
     with pytest.raises(ValueError, match="gw must be positive"):
         run_registry_build(gw=0, output_dir=tmp_path)
 
     with pytest.raises(ValueError, match="data_cutoff_gw cannot be greater"):
         run_registry_build(gw=35, data_cutoff_gw=36, output_dir=tmp_path)
+
 
 def test_registry_build_cli_writes_artifacts(tmp_path, capsys):
     output_dir = tmp_path / "gw36"
@@ -107,6 +108,7 @@ def test_registry_build_cli_writes_artifacts(tmp_path, capsys):
     assert "GW36 registry build complete" in captured.out
     assert (output_dir / "registry.csv").exists()
     assert (output_dir / "build_metadata.json").exists()
+
 
 def test_registry_build_computed_mode_writes_valid_registry_and_comparison(tmp_path):
     prepared_data_path = tmp_path / "prepared.csv"
@@ -137,6 +139,7 @@ def test_registry_build_computed_mode_writes_valid_registry_and_comparison(tmp_p
     assert metadata["source_registry_path"] == str(SOURCE_REGISTRY_PATH)
     assert metadata["comparison_summary"]["candidate_rows"] == 4
 
+
 def test_registry_build_computed_mode_requires_prepared_data_path(tmp_path):
     with pytest.raises(ValueError, match="require prepared_data_path"):
         run_registry_build(
@@ -145,6 +148,7 @@ def test_registry_build_computed_mode_requires_prepared_data_path(tmp_path):
             build_mode="computed",
             signals=["bps"],
         )
+
 
 def test_weekly_runner_consumes_generated_registry(tmp_path):
     build_result = run_registry_build(

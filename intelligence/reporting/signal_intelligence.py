@@ -119,9 +119,7 @@ def build_stable_signal_observations(
         DataFrame with columns defined by STABLE_OBSERVATION_COLUMNS.
         Empty if no core_signal or review_signal rows exist.
     """
-    stable = registry[
-        registry["promotion_class"].isin(STABLE_PROMOTION_CLASSES)
-    ].copy()
+    stable = registry[registry["promotion_class"].isin(STABLE_PROMOTION_CLASSES)].copy()
 
     rows: list[dict] = []
     for r in stable.to_dict(orient="records"):
@@ -148,9 +146,7 @@ def build_stable_signal_observations(
         )
 
     df = pd.DataFrame(rows, columns=list(STABLE_OBSERVATION_COLUMNS))
-    return df.sort_values(
-        ["promotion_class", "position", "signal"], kind="stable"
-    ).reset_index(drop=True)
+    return df.sort_values(["promotion_class", "position", "signal"], kind="stable").reset_index(drop=True)
 
 
 def build_positional_signal_summary(registry: pd.DataFrame) -> pd.DataFrame:
@@ -170,12 +166,7 @@ def build_positional_signal_summary(registry: pd.DataFrame) -> pd.DataFrame:
 
     for position, group in registry.groupby("position", sort=False):
         blocked_count = int((group["downstream_status"] == "blocked").sum())
-        class_counts = (
-            group["promotion_class"]
-            .dropna()
-            .value_counts()
-            .to_dict()
-        )
+        class_counts = group["promotion_class"].dropna().value_counts().to_dict()
         rows.append(
             {
                 "position": position,
@@ -190,11 +181,7 @@ def build_positional_signal_summary(registry: pd.DataFrame) -> pd.DataFrame:
 
     df = pd.DataFrame(rows, columns=list(POSITIONAL_SUMMARY_COLUMNS))
     df["_order"] = df["position"].map(position_order).fillna(99)
-    return (
-        df.sort_values("_order", kind="stable")
-        .drop(columns=["_order"])
-        .reset_index(drop=True)
-    )
+    return df.sort_values("_order", kind="stable").drop(columns=["_order"]).reset_index(drop=True)
 
 
 def build_context_condition_notes(registry: pd.DataFrame) -> pd.DataFrame:
@@ -210,9 +197,7 @@ def build_context_condition_notes(registry: pd.DataFrame) -> pd.DataFrame:
         DataFrame with columns defined by CONTEXT_NOTE_COLUMNS.
         Empty if no context or exposure layer rows exist.
     """
-    condition = registry[
-        registry["signal_layer"].isin(CONTEXT_CONDITION_LAYERS)
-    ].copy()
+    condition = registry[registry["signal_layer"].isin(CONTEXT_CONDITION_LAYERS)].copy()
 
     rows: list[dict] = []
     for r in condition.to_dict(orient="records"):
@@ -232,9 +217,7 @@ def build_context_condition_notes(registry: pd.DataFrame) -> pd.DataFrame:
         )
 
     df = pd.DataFrame(rows, columns=list(CONTEXT_NOTE_COLUMNS))
-    return df.sort_values(
-        ["signal_layer", "position", "signal"], kind="stable"
-    ).reset_index(drop=True)
+    return df.sort_values(["signal_layer", "position", "signal"], kind="stable").reset_index(drop=True)
 
 
 # ---------------------------------------------------------------------------

@@ -36,18 +36,13 @@ def _load_raw() -> list[dict[str, Any]]:
     """Load and cache the raw evaluation_metadata.yaml findings list."""
     path = _EVAL_METADATA_PATH
     if not path.exists():
-        raise FileNotFoundError(
-            f"Evaluation metadata not found at {path}. "
-            "Run from the project root directory."
-        )
+        raise FileNotFoundError(f"Evaluation metadata not found at {path}. Run from the project root directory.")
     with path.open() as fh:
         data = yaml.safe_load(fh)
     return data["evaluation_findings"]
 
 
-def _build_metadata(
-    signal_entry: dict[str, Any], position: str, pos_data: dict[str, Any]
-) -> GovernanceMetadata:
+def _build_metadata(signal_entry: dict[str, Any], position: str, pos_data: dict[str, Any]) -> GovernanceMetadata:
     source_decisions = pos_data.get("source_gate_decisions") or []
     return GovernanceMetadata(
         signal=signal_entry["signal"],

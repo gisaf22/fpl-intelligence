@@ -26,7 +26,7 @@ from intelligence.intelligence_contracts import (
 
 # Risk thresholds — explicit and static.
 # These reflect playing-time patterns, not injury likelihood.
-_HIGH_RISK_MINUTES_ROLL3 = 30.0    # threshold not evaluation-derived — see threshold-registry.md §AVAIL-T-01
+_HIGH_RISK_MINUTES_ROLL3 = 30.0  # threshold not evaluation-derived — see threshold-registry.md §AVAIL-T-01
 _MEDIUM_RISK_MINUTES_ROLL3 = 60.0  # threshold not evaluation-derived — see threshold-registry.md §AVAIL-T-02
 
 # Divergence threshold: roll3 significantly below roll5 signals a recent drop.
@@ -89,9 +89,7 @@ def flag_availability_risk(
 
     gw_df = features[features["gw"] == target_gw].copy()
     if gw_df.empty:
-        raise IntelligenceInputError(
-            f"flag_availability_risk: no data for gw={target_gw}"
-        )
+        raise IntelligenceInputError(f"flag_availability_risk: no data for gw={target_gw}")
 
     roll3 = gw_df["minutes_roll3"].fillna(0)
     roll5 = gw_df["minutes_roll5"].fillna(0)
@@ -102,16 +100,13 @@ def flag_availability_risk(
     gw_df["minutes_divergence"] = (roll5 - roll3).clip(lower=0)
     gw_df["low_minutes_flag"] = (roll3 < _MEDIUM_RISK_MINUTES_ROLL3).astype(int)
     gw_df["falling_trend_flag"] = (trend == "falling").astype(int)
-    gw_df["divergence_flag"] = (
-        gw_df["minutes_divergence"] > _DIVERGENCE_THRESHOLD
-    ).astype(int)
+    gw_df["divergence_flag"] = (gw_df["minutes_divergence"] > _DIVERGENCE_THRESHOLD).astype(int)
 
     # Long-horizon availability signal for DEF/MID (minutes_roll8; AVAIL-003): flagged when
     # 8-GW baseline also shows low participation. minutes_roll3/roll5 are AVAIL-excluded at
     # DEF, making minutes_roll8 the only governed DEF availability signal.
     gw_df["long_horizon_flag"] = (
-        (roll8 < _MEDIUM_RISK_MINUTES_ROLL3)
-        & gw_df["position_label"].isin(_MINUTES_ROLL8_POSITIONS)
+        (roll8 < _MEDIUM_RISK_MINUTES_ROLL3) & gw_df["position_label"].isin(_MINUTES_ROLL8_POSITIONS)
     ).astype(int)
 
     # Risk level: evaluated in priority order (HIGH → MEDIUM → LOW).
@@ -136,14 +131,9 @@ def flag_availability_risk(
             if row["falling_trend_flag"]:
                 parts.append("falling minutes trend")
             if row["divergence_flag"]:
-                parts.append(
-                    f"recent drop ({row['minutes_roll3']:.0f} vs "
-                    f"{row['minutes_roll5']:.0f} 5-GW avg)"
-                )
+                parts.append(f"recent drop ({row['minutes_roll3']:.0f} vs {row['minutes_roll5']:.0f} 5-GW avg)")
             if row["long_horizon_flag"]:
-                parts.append(
-                    f"8-GW avg {row['minutes_roll8']:.0f} min also low"
-                )
+                parts.append(f"8-GW avg {row['minutes_roll8']:.0f} min also low")
             return "; ".join(parts) if parts else "borderline minutes"
         return "stable minutes"
 

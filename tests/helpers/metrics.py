@@ -97,7 +97,7 @@ def rank_correlation(
     pred_ranks = pred.rank()
     actual_ranks = actual.rank()
     d_sq = float(((pred_ranks - actual_ranks) ** 2).sum())
-    denominator = n * (n ** 2 - 1)
+    denominator = n * (n**2 - 1)
     if denominator == 0:
         return None
     return float(1.0 - (6.0 * d_sq) / denominator)

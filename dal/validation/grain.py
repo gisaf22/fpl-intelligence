@@ -19,16 +19,16 @@ class GrainContract(TypedDict):
 
 
 GRAIN_CONTRACTS: dict[str, GrainContract] = {
-    "staging_players":          {"pk": ["player_id"]},
+    "staging_players": {"pk": ["player_id"]},
     "staging_player_histories": {"pk": ["player_id", "fixture_id"]},
-    "staging_fixtures":         {"pk": ["fixture_id"]},
-    "staging_teams":            {"pk": ["team_id"]},
-    "staging_events":           {"pk": ["gw"]},
-    "staging_element_types":    {"pk": ["position_code"]},
-    "gameweek_context":         {"pk": ["gw"]},
-    "player_fixture_base":      {"pk": ["player_id", "gw", "fixture_id"]},
-    "player_gameweek_spine":    {"pk": ["player_id", "gw"]},
-    "player_gameweek_state":    {"pk": ["player_id", "gw"]},
+    "staging_fixtures": {"pk": ["fixture_id"]},
+    "staging_teams": {"pk": ["team_id"]},
+    "staging_events": {"pk": ["gw"]},
+    "staging_element_types": {"pk": ["position_code"]},
+    "gameweek_context": {"pk": ["gw"]},
+    "player_fixture_base": {"pk": ["player_id", "gw", "fixture_id"]},
+    "player_gameweek_spine": {"pk": ["player_id", "gw"]},
+    "player_gameweek_state": {"pk": ["player_id", "gw"]},
 }
 
 
@@ -59,20 +59,13 @@ def validate_grain_uniqueness(
         grain_cols = list(dataset_name_or_cols)
         label = layer_name or ", ".join(grain_cols)
 
-    dupes = (
-        df.groupby(grain_cols)
-        .size()
-        .reset_index(name='count')
-        .query('count > 1')
-    )
+    dupes = df.groupby(grain_cols).size().reset_index(name="count").query("count > 1")
     if len(dupes) != 0:
         raise DALContractViolation(
             message=(
-                f"{label} grain violation: "
-                f"{len(dupes)} duplicate ({', '.join(grain_cols)}) pairs\n"
-                f"{dupes.head(10)}"
+                f"{label} grain violation: {len(dupes)} duplicate ({', '.join(grain_cols)}) pairs\n{dupes.head(10)}"
             ),
-            validation='validate_grain_uniqueness',
+            validation="validate_grain_uniqueness",
             n_violations=len(dupes),
-            error_code='GRAIN_DUPLICATE',
+            error_code="GRAIN_DUPLICATE",
         )

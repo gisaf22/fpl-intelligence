@@ -45,14 +45,13 @@ def load_registry(
     registry_path = Path(path)
     if operational:
         from signals.governance.lifecycle import assert_operational_safe
+
         assert_operational_safe(registry_path)
     registry = pd.read_csv(registry_path, keep_default_na=True)
 
     for column in BOOLEAN_COLUMNS:
         if column in registry.columns:
-            registry[column] = [
-                _coerce_bool(value, column) for value in registry[column]
-            ]
+            registry[column] = [_coerce_bool(value, column) for value in registry[column]]
 
     for column in INTEGER_COLUMNS:
         if column in registry.columns:
@@ -66,4 +65,3 @@ def load_registry(
             registry[column] = pd.to_numeric(registry[column], errors="raise")
 
     return registry
-

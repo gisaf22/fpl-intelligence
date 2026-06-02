@@ -9,6 +9,7 @@ from signals.characterisation.registry_build_contracts import (
 
 pytestmark = pytest.mark.unit
 
+
 def _prepared_data() -> pd.DataFrame:
     return pd.DataFrame(
         {
@@ -21,11 +22,13 @@ def _prepared_data() -> pd.DataFrame:
         }
     )
 
+
 def test_validate_prepared_dataset_requires_core_columns():
     data = _prepared_data().drop(columns=["player_id"])
 
     with pytest.raises(ValueError, match="prepared data missing required columns"):
         validate_prepared_dataset(data, signals=["bps"], data_cutoff_gw=2)
+
 
 def test_normalize_signal_config_rejects_invalid_signals():
     with pytest.raises(ValueError, match="at least one signal"):
@@ -37,9 +40,11 @@ def test_normalize_signal_config_rejects_invalid_signals():
     with pytest.raises(ValueError, match="duplicate signals"):
         normalize_signal_config(["bps", "bps"])
 
+
 def test_validate_prepared_dataset_rejects_missing_signal_columns():
     with pytest.raises(ValueError, match="prepared data missing required columns"):
         validate_prepared_dataset(_prepared_data(), signals=["missing"], data_cutoff_gw=2)
+
 
 def test_validate_prepared_dataset_requires_valid_gameweek_values():
     data = _prepared_data()
@@ -48,6 +53,7 @@ def test_validate_prepared_dataset_requires_valid_gameweek_values():
 
     with pytest.raises(ValueError, match="non-numeric gameweek values"):
         validate_prepared_dataset(data, signals=["bps"], data_cutoff_gw=2)
+
 
 def test_validate_prepared_dataset_filters_future_rows():
     result = validate_prepared_dataset(
@@ -60,12 +66,14 @@ def test_validate_prepared_dataset_filters_future_rows():
     assert result["gw"].max() == 2
     assert set(result["player_id"]) == {1, 2}
 
+
 def test_validate_prepared_dataset_rejects_invalid_positions():
     data = _prepared_data()
     data.loc[0, "position"] = "MANAGER"
 
     with pytest.raises(ValueError, match="invalid positions"):
         validate_prepared_dataset(data, signals=["bps"], data_cutoff_gw=2)
+
 
 def test_validate_prepared_dataset_rejects_invalid_population_scope():
     contract = PreparedDatasetContract(population_scope="experimental")
@@ -77,6 +85,7 @@ def test_validate_prepared_dataset_rejects_invalid_population_scope():
             data_cutoff_gw=2,
             contract=contract,
         )
+
 
 def test_validate_prepared_dataset_enforces_minimum_cutoff_support():
     data = _prepared_data()

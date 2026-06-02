@@ -36,9 +36,7 @@ def normalize_signal_config(signals: Iterable[str] | None) -> tuple[str, ...]:
     if any(not signal for signal in signal_list):
         raise ValueError("signal config must include at least one non-empty signal")
 
-    duplicates = sorted(
-        {signal for signal in signal_list if signal_list.count(signal) > 1}
-    )
+    duplicates = sorted({signal for signal in signal_list if signal_list.count(signal) > 1})
     if duplicates:
         raise ValueError(f"signal config has duplicate signals: {duplicates}")
 
@@ -90,20 +88,14 @@ def validate_prepared_dataset(
 
     filtered = data.loc[gameweeks.le(data_cutoff_gw)].copy()
     if len(filtered) < cfg.min_rows_after_cutoff:
-        raise ValueError(
-            "prepared data has insufficient rows at or before "
-            f"GW{data_cutoff_gw}: {len(filtered)}"
-        )
+        raise ValueError(f"prepared data has insufficient rows at or before GW{data_cutoff_gw}: {len(filtered)}")
 
     sparse_signals = [
-        signal
-        for signal in signal_list
-        if int(filtered[signal].notna().sum()) < cfg.min_non_null_signal_rows
+        signal for signal in signal_list if int(filtered[signal].notna().sum()) < cfg.min_non_null_signal_rows
     ]
     if sparse_signals:
         raise ValueError(
-            "prepared data has insufficient non-null signal rows at or before "
-            f"GW{data_cutoff_gw}: {sparse_signals}"
+            f"prepared data has insufficient non-null signal rows at or before GW{data_cutoff_gw}: {sparse_signals}"
         )
 
     return filtered

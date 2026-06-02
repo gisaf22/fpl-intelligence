@@ -43,10 +43,14 @@ columns:
     nullable: false
     description: FPL position type identifier (1=GKP, 2=DEF, 3=MID, 4=FWD)
   - source: now_cost
-    canonical: purchase_price
+    canonical: now_cost
     dtype: float64
     nullable: false
-    description: Current purchase price in £ (raw integer divided by 10)
+    description: >-
+      Current price snapshot in £ (raw integer divided by 10) — one static value per
+      player from bootstrap-static. NOT per-gameweek. For the per-GW market price use
+      purchase_price (sourced from player_histories.value); the two were previously
+      collapsed under one canonical name.
     transform: divide_by_10
   - source: status
     canonical: status

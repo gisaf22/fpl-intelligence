@@ -85,12 +85,21 @@ def _hash_db(db_path: Path) -> str:
     return f"sha256:{h.hexdigest()}"
 
 
+def _normalise_dtype(dtype_str: str) -> str:
+    # Parquet round-trips can change the dtype string representation of string
+    # columns: pandas writes object, pyarrow reads back as str/string depending on
+    # version. Treat all three as equivalent so fingerprints survive the round-trip.
+    if dtype_str in ("object", "str", "string"):
+        return "string"
+    return dtype_str
+
+
 def _mart_schema_fingerprint(df: pd.DataFrame) -> dict[str, Any]:
-    """Column names + dtypes — used as the schema cache-invalidation key."""
+    """Column names + normalised dtypes — used as the schema cache-invalidation key."""
     cols = sorted(df.columns.tolist())
     return {
         "columns": cols,
-        "dtypes": {col: str(df[col].dtype) for col in cols},
+        "dtypes": {col: _normalise_dtype(str(df[col].dtype)) for col in cols},
     }
 
 

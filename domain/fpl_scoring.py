@@ -42,7 +42,7 @@ CLEAN_SHEET_POINTS_FWD: int = 0  # VERIFIED 2025/26
 # Goals
 # ---------------------------------------------------------------------------
 
-GOAL_POINTS_GK: int = 6  # VERIFIED 2025/26
+GOAL_POINTS_GK: int = 10  # VERIFIED 2025/26 — corrected from 6 (API game_config: 10 for GKP)
 GOAL_POINTS_DEF: int = 6  # VERIFIED 2025/26
 GOAL_POINTS_MID: int = 5  # VERIFIED 2025/26
 GOAL_POINTS_FWD: int = 4  # VERIFIED 2025/26
@@ -61,10 +61,7 @@ OWN_GOAL_POINTS: int = -2  # VERIFIED 2025/26
 
 YELLOW_CARD_POINTS: int = -1  # VERIFIED 2025/26
 
-# UNVERIFIED — red card deduction confirmed by community sources but not
-# cross-checked against bootstrap-static for 2025/26.
-# Do not use in production scoring without verifying against bootstrap-static.
-RED_CARD_POINTS: int = -3  # UNVERIFIED
+RED_CARD_POINTS: int = -3  # VERIFIED 2025/26
 
 # ---------------------------------------------------------------------------
 # Goalkeeping
@@ -81,8 +78,3 @@ GK_PENALTY_SAVE_POINTS: int = 5  # VERIFIED 2025/26
 BPS_BONUS_FIRST: int = 3  # VERIFIED 2025/26
 BPS_BONUS_SECOND: int = 2  # VERIFIED 2025/26
 BPS_BONUS_THIRD: int = 1  # VERIFIED 2025/26
-
-# UNVERIFIED — FPL incorporates minutes played into BPS calculation but the
-# exact per-minute contribution coefficient has not been confirmed against
-# bootstrap-static. Do not use in production BPS modelling without verification.
-BPS_MINUTES_CONTRIBUTION_RATE: float = 0.0  # UNVERIFIED — value is placeholder

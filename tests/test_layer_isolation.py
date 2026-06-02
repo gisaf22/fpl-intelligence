@@ -48,7 +48,9 @@ def test_mart_builds_from_minimal_spine(minimal_spine_df: pd.DataFrame) -> None:
     """mart layer builds and adds position string from a synthetic spine — no DB required."""
     from dal.mart.mart_analytical import build_prepared_dataset
 
-    mart = build_prepared_dataset(minimal_spine_df, data_cutoff_gw=3)
+    # validate=False: this exercises the position-mapping mechanics on a deliberately
+    # partial synthetic frame; the full MART_SCHEMA is covered in test_mart_schema.py.
+    mart = build_prepared_dataset(minimal_spine_df, data_cutoff_gw=3, validate=False)
 
     assert len(mart) == len(minimal_spine_df)
     assert "position" in mart.columns

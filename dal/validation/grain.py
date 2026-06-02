@@ -29,6 +29,7 @@ GRAIN_CONTRACTS: dict[str, GrainContract] = {
     "player_fixture_base": {"pk": ["player_id", "gw", "fixture_id"]},
     "player_gameweek_spine": {"pk": ["player_id", "gw"]},
     "player_gameweek_state": {"pk": ["player_id", "gw"]},
+    "analytical_mart": {"pk": ["player_id", "gw"]},
 }
 
 

@@ -261,7 +261,7 @@ def test_stage_players_returns_canonical_columns(db_path):
     assert "player_name" in df.columns
     assert "position_code" in df.columns
     assert "team_id" in df.columns
-    assert "purchase_price" in df.columns
+    assert "now_cost" in df.columns  # static current price (per-GW price comes from histories)
     assert len(df) > 0
 
 
@@ -286,12 +286,15 @@ def test_stage_player_histories_returns_canonical_columns(db_path):
     assert len(df) > 0
 
 
-def test_stage_players_purchase_price_is_float64_divided_by_10(db_path):
+def test_stage_players_now_cost_is_float64_divided_by_10(db_path):
+    # players.now_cost is the static current-price snapshot, staged under its own
+    # canonical name (it must NOT collide with the per-GW purchase_price from histories).
     schema = load_schema("players")
     df = stage(db_path, schema)
-    assert df["purchase_price"].dtype == "float64"
-    assert df["purchase_price"].min() >= 3.0
-    assert df["purchase_price"].max() <= 20.0
+    assert "purchase_price" not in df.columns
+    assert df["now_cost"].dtype == "float64"
+    assert df["now_cost"].min() >= 3.0
+    assert df["now_cost"].max() <= 20.0
 
 
 def test_stage_player_histories_purchase_price_is_float64_divided_by_10(db_path):

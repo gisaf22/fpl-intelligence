@@ -27,7 +27,8 @@ def test_clean_sheet_points_by_position():
 
 
 def test_goal_points_decrease_with_attack():
-    assert fpl.GOAL_POINTS_GK == fpl.GOAL_POINTS_DEF > fpl.GOAL_POINTS_MID > fpl.GOAL_POINTS_FWD
+    # GKP goals (10) are worth more than DEF (6) — FPL rule change for 2025/26.
+    assert fpl.GOAL_POINTS_GK > fpl.GOAL_POINTS_DEF > fpl.GOAL_POINTS_MID > fpl.GOAL_POINTS_FWD
 
 
 def test_discipline_constants_are_negative():

@@ -84,7 +84,7 @@ class TestRollingWindowsWithBGW:
             # Check for roll5 values where BGW exists in window
             for idx, row in player_state[player_state["gw"] >= 6].iterrows():
                 gw = row["gw"]
-                prior_gws = player_state[player_state["gw"].between(gw-5, gw-1)]
+                prior_gws = player_state[player_state["gw"].between(gw - 5, gw - 1)]
 
                 # Count non-NULL xgi values in prior window
                 prior_xgi = prior_gws["xgi"].dropna()
@@ -93,8 +93,7 @@ class TestRollingWindowsWithBGW:
                 if len(prior_xgi) >= 1:
                     # roll5 should be numeric, not NA
                     assert pd.notna(row["xgi_roll5"]), (
-                        f"Player {player_id} GW {gw}: xgi_roll5 is NA but has "
-                        f"{len(prior_xgi)} prior non-NULL values"
+                        f"Player {player_id} GW {gw}: xgi_roll5 is NA but has {len(prior_xgi)} prior non-NULL values"
                     )
 
     def test_bgw_does_not_prevent_rolling_computation(self):
@@ -112,7 +111,7 @@ class TestRollingWindowsWithBGW:
             # Find GWs where prior window has mix of BGW and SGW
             for idx, row in player_state[player_state["gw"] >= 7].iterrows():
                 gw = row["gw"]
-                prior_rows = player_spine[player_spine["gw"].between(gw-5, gw-1)]
+                prior_rows = player_spine[player_spine["gw"].between(gw - 5, gw - 1)]
 
                 bgw_count = prior_rows["is_bgw"].astype(bool).sum()
                 sgw_count = (~prior_rows["is_bgw"].astype(bool)).sum()
@@ -123,8 +122,7 @@ class TestRollingWindowsWithBGW:
                     # Should compute from SGW values, skipping BGW NULLs
                     # Either computed value or NA if all SGWs are NA
                     assert pd.notna(roll5_val) or sgw_count == 0, (
-                        f"Player {player_id} GW {gw}: "
-                        f"xgi_roll5 is NA but has {sgw_count} non-BGW rows in window"
+                        f"Player {player_id} GW {gw}: xgi_roll5 is NA but has {sgw_count} non-BGW rows in window"
                     )
 
 
@@ -163,8 +161,7 @@ class TestRollingWindowsWithDGW:
                         # DGW xgi (summed) is included in rolling average
                         # We can't directly verify the value, but we can verify it computed
                         assert isinstance(roll5_val, (int, float)), (
-                            f"Player {player_id} GW {next_gw}: "
-                            f"xgi_roll5 after DGW should be numeric"
+                            f"Player {player_id} GW {next_gw}: xgi_roll5 after DGW should be numeric"
                         )
 
     def test_dgw_minutes_sum_in_rolling(self):
@@ -196,8 +193,7 @@ class TestRollingWindowsWithDGW:
                     # If DGW had minutes and roll5 computed, it includes those minutes
                     if pd.notna(dgw_minutes) and dgw_minutes > 0 and pd.notna(roll5_minutes):
                         assert roll5_minutes >= 0, (
-                            f"Player {player_id} GW {next_gw}: "
-                            f"roll5_minutes should include DGW minutes"
+                            f"Player {player_id} GW {next_gw}: roll5_minutes should include DGW minutes"
                         )
 
 

@@ -28,8 +28,8 @@ class ConfirmedSignal:
     signal: str
     position: str
     rho_pooled: float
-    direction: int          # +1 if higher raw value = better, -1 if lower = better
-    promotion_class: str    # 'core_signal' or 'review_signal'
+    direction: int  # +1 if higher raw value = better, -1 if lower = better
+    promotion_class: str  # 'core_signal' or 'review_signal'
 
 
 @dataclass(frozen=True)
@@ -38,8 +38,8 @@ class CaveatedSignal:
 
     signal: str
     position: str
-    reason: str             # human-readable exclusion reason
-    promotion_class: str    # 'core_signal' or 'review_signal'
+    reason: str  # human-readable exclusion reason
+    promotion_class: str  # 'core_signal' or 'review_signal'
 
 
 @dataclass(frozen=True)
@@ -48,7 +48,7 @@ class SignalManifest:
 
     confirmed: list[ConfirmedSignal]
     caveated: list[CaveatedSignal]
-    positions_covered: dict[str, list[str]]   # position → signal names (confirmed only)
+    positions_covered: dict[str, list[str]]  # position → signal names (confirmed only)
 
 
 @dataclass
@@ -59,8 +59,8 @@ class PlayerScore:
     player_name: str
     position: str
     rank: int
-    composite_score: float                    # [0, 1] — multiply by 10 at render time
-    signal_values: dict[str, float | None]    # raw value per confirmed signal
+    composite_score: float  # [0, 1] — multiply by 10 at render time
+    signal_values: dict[str, float | None]  # raw value per confirmed signal
     signal_normalised: dict[str, float | None]  # [0,1] normalised per confirmed signal
 
 
@@ -69,8 +69,8 @@ class ScorerOutput:
     """Complete scorer result for one gameweek, ready for the renderer."""
 
     gw: int
-    scored_at: str                  # ISO-8601 UTC timestamp
+    scored_at: str  # ISO-8601 UTC timestamp
     players: list[PlayerScore]
     manifest: SignalManifest
-    registry_path: str = ""         # path used; empty string if not provided
+    registry_path: str = ""  # path used; empty string if not provided
     registry_meta: dict[str, object] = field(default_factory=dict)  # build_metadata.json contents if available

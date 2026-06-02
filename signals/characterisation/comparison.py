@@ -49,17 +49,11 @@ def compare_registries(
     compare_columns = [
         column
         for column in REQUIRED_COLUMNS
-        if column not in key_columns
-        and column in reference.columns
-        and column in candidate.columns
+        if column not in key_columns and column in reference.columns and column in candidate.columns
     ]
 
-    reference_compare = reference[key_columns + compare_columns].drop_duplicates(
-        key_columns
-    )
-    candidate_compare = candidate[key_columns + compare_columns].drop_duplicates(
-        key_columns
-    )
+    reference_compare = reference[key_columns + compare_columns].drop_duplicates(key_columns)
+    candidate_compare = candidate[key_columns + compare_columns].drop_duplicates(key_columns)
     merged = reference_compare.merge(
         candidate_compare,
         on=key_columns,
@@ -114,16 +108,12 @@ def compare_registries(
         "reference_rows": len(reference_compare),
         "candidate_rows": len(candidate_compare),
         "difference_rows": len(differences),
-        "missing_from_candidate": int(
-            differences["change_type"].eq("missing_from_candidate").sum()
-        )
+        "missing_from_candidate": int(differences["change_type"].eq("missing_from_candidate").sum())
         if not differences.empty
         else 0,
         "new_in_candidate": int(differences["change_type"].eq("new_in_candidate").sum())
         if not differences.empty
         else 0,
-        "field_changes": int(differences["change_type"].eq("field_changed").sum())
-        if not differences.empty
-        else 0,
+        "field_changes": int(differences["change_type"].eq("field_changed").sum()) if not differences.empty else 0,
     }
     return RegistryComparison(differences=differences, summary=summary)

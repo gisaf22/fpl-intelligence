@@ -29,6 +29,7 @@ _DOWNSTREAM_DIRS = [
 # Tests directories are exempt from DAL-layer isolation rules (they may test internals).
 _TEST_DIR = _PROJECT_ROOT / "tests"
 
+
 def _collect_py_lines(dirs: list[Path]) -> list[tuple[Path, int, str]]:
     """Yield (file, lineno, stripped_line) for all .py files under dirs."""
     results = []
@@ -41,6 +42,7 @@ def _collect_py_lines(dirs: list[Path]) -> list[tuple[Path, int, str]]:
                 if stripped:
                     results.append((py_file, lineno, stripped))
     return results
+
 
 def _collect_notebook_lines(dirs: list[Path]) -> list[tuple[Path, int, str]]:
     """Yield (file, cell_idx, source_line) for all .ipynb files under dirs."""
@@ -60,9 +62,11 @@ def _collect_notebook_lines(dirs: list[Path]) -> list[tuple[Path, int, str]]:
                         results.append((nb_file, cell_idx, stripped))
     return results
 
+
 # ---------------------------------------------------------------------------
 # G-1 — no imports from pipeline.* namespace
 # ---------------------------------------------------------------------------
+
 
 def test_no_pipeline_imports_in_downstream_py():
     """G-1a: .py files in downstream dirs must not import from pipeline.*"""
@@ -70,10 +74,8 @@ def test_no_pipeline_imports_in_downstream_py():
     for path, lineno, line in _collect_py_lines(_DOWNSTREAM_DIRS):
         if line.startswith(("from ", "import ")) and "pipeline." in line:
             violations.append(f"{path.relative_to(_PROJECT_ROOT)}:{lineno}: {line}")
-    assert violations == [], (
-        "Retired pipeline.* imports found in downstream .py files:\n"
-        + "\n".join(violations)
-    )
+    assert violations == [], "Retired pipeline.* imports found in downstream .py files:\n" + "\n".join(violations)
+
 
 def test_no_pipeline_imports_in_notebooks():
     """G-1b: notebooks must not import from pipeline.*"""
@@ -81,14 +83,13 @@ def test_no_pipeline_imports_in_notebooks():
     for path, cell_idx, line in _collect_notebook_lines(_DOWNSTREAM_DIRS):
         if line.startswith(("from ", "import ")) and "pipeline." in line:
             violations.append(f"{path.relative_to(_PROJECT_ROOT)} cell {cell_idx}: {line}")
-    assert violations == [], (
-        "Retired pipeline.* imports found in notebooks:\n"
-        + "\n".join(violations)
-    )
+    assert violations == [], "Retired pipeline.* imports found in notebooks:\n" + "\n".join(violations)
+
 
 # ---------------------------------------------------------------------------
 # G-2 — no direct sqlite3/pd.read_sql outside DAL
 # ---------------------------------------------------------------------------
+
 
 def test_no_direct_sql_in_downstream_py():
     """G-2a: .py files outside DAL must not query the DB directly via sqlite3."""
@@ -96,10 +97,8 @@ def test_no_direct_sql_in_downstream_py():
     for path, lineno, line in _collect_py_lines(_DOWNSTREAM_DIRS):
         if "sqlite3" in line or "pd.read_sql" in line or "read_sql_query" in line:
             violations.append(f"{path.relative_to(_PROJECT_ROOT)}:{lineno}: {line}")
-    assert violations == [], (
-        "Direct SQL access found outside DAL in .py files:\n"
-        + "\n".join(violations)
-    )
+    assert violations == [], "Direct SQL access found outside DAL in .py files:\n" + "\n".join(violations)
+
 
 def test_no_direct_sql_in_notebooks():
     """G-2b: notebooks must not query the DB directly via sqlite3 or pd.read_sql."""
@@ -107,10 +106,8 @@ def test_no_direct_sql_in_notebooks():
     for path, cell_idx, line in _collect_notebook_lines(_DOWNSTREAM_DIRS):
         if "sqlite3" in line or "pd.read_sql" in line or "read_sql_query" in line:
             violations.append(f"{path.relative_to(_PROJECT_ROOT)} cell {cell_idx}: {line}")
-    assert violations == [], (
-        "Direct SQL access found in notebooks:\n"
-        + "\n".join(violations)
-    )
+    assert violations == [], "Direct SQL access found in notebooks:\n" + "\n".join(violations)
+
 
 # ---------------------------------------------------------------------------
 # G-3 — dal.staging and dal.intermediate not imported outside DAL and tests
@@ -123,6 +120,7 @@ _STAGING_ALLOWLIST: set = {
     # and resolve_target_gw for the weekly runner; direct staging access is intentional here.
     _PROJECT_ROOT / "intelligence/reporting/weekly_report_runner.py",
 }
+
 
 def test_no_staging_or_intermediate_imports_in_downstream():
     """G-3: downstream .py files must not import dal.staging or dal.intermediate.
@@ -138,10 +136,10 @@ def test_no_staging_or_intermediate_imports_in_downstream():
             for forbidden in _FORBIDDEN_DAL_IMPORTS:
                 if forbidden in line:
                     violations.append(f"{path.relative_to(_PROJECT_ROOT)}:{lineno}: {line}")
-    assert violations == [], (
-        "Forbidden dal.staging / dal.intermediate imports in downstream modules:\n"
-        + "\n".join(violations)
+    assert violations == [], "Forbidden dal.staging / dal.intermediate imports in downstream modules:\n" + "\n".join(
+        violations
     )
+
 
 def test_no_staging_or_intermediate_imports_in_notebooks():
     """G-3b: notebooks must not import dal.staging or dal.intermediate."""
@@ -150,25 +148,24 @@ def test_no_staging_or_intermediate_imports_in_notebooks():
         if line.startswith(("from ", "import ")):
             for forbidden in _FORBIDDEN_DAL_IMPORTS:
                 if forbidden in line:
-                    violations.append(
-                        f"{path.relative_to(_PROJECT_ROOT)} cell {cell_idx}: {line}"
-                    )
-    assert violations == [], (
-        "Forbidden dal.staging / dal.intermediate imports in notebooks:\n"
-        + "\n".join(violations)
-    )
+                    violations.append(f"{path.relative_to(_PROJECT_ROOT)} cell {cell_idx}: {line}")
+    assert violations == [], "Forbidden dal.staging / dal.intermediate imports in notebooks:\n" + "\n".join(violations)
+
 
 # ---------------------------------------------------------------------------
 # G-4 — dal public API is importable (smoke test)
 # ---------------------------------------------------------------------------
 
+
 def test_dal_public_api_importable():
     """G-4a: dal.pipeline must export run and load; dal must export MartResult."""
     from dal import MartResult
     from dal.pipeline import load, run
+
     assert callable(run)
     assert callable(load)
     assert MartResult is not None
+
 
 def test_dal_prepared_importable():
     """G-4b: dal.prepared must export build_prepared_dataset and GOVERNED_SIGNAL_COLUMNS."""
@@ -176,6 +173,7 @@ def test_dal_prepared_importable():
         GOVERNED_SIGNAL_COLUMNS,
         build_prepared_dataset,
     )
+
     assert callable(build_prepared_dataset)
     assert len(GOVERNED_SIGNAL_COLUMNS) > 0
     assert all(isinstance(c, str) for c in GOVERNED_SIGNAL_COLUMNS)

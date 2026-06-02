@@ -28,6 +28,7 @@ pytestmark = pytest.mark.unit
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
 
+
 def _fwd_row(
     player_id: int,
     gw: int,
@@ -75,8 +76,10 @@ def _fwd_row(
         "fixture_context": "SGW",
     }
 
+
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
+
 
 def _multi_gw_fwd_population(
     n_players: int = 8,
@@ -94,21 +97,25 @@ def _multi_gw_fwd_population(
     for pid in range(1, n_players + 1):
         ability = pid / n_players  # 0.125..1.0
         for gw in gws:
-            rows.append(_fwd_row(
-                player_id=pid,
-                gw=gw,
-                total_points=ability * 10.0,
-                xgi=ability,
-                xgi_roll3=ability,
-                xgi_roll5=ability * 0.95,
-                xgi_roll8=ability * 0.90,
-                minutes_roll3=85.0,
-            ))
+            rows.append(
+                _fwd_row(
+                    player_id=pid,
+                    gw=gw,
+                    total_points=ability * 10.0,
+                    xgi=ability,
+                    xgi_roll3=ability,
+                    xgi_roll5=ability * 0.95,
+                    xgi_roll8=ability * 0.90,
+                    minutes_roll3=85.0,
+                )
+            )
     return pd.DataFrame(rows)
+
 
 # ---------------------------------------------------------------------------
 # _add_xgi_lag1
 # ---------------------------------------------------------------------------
+
 
 class TestAddXgiLag1:
     def test_lag1_is_prior_gw_value(self):
@@ -147,9 +154,11 @@ class TestAddXgiLag1:
         result = _add_xgi_lag1(features)
         assert "xgi_lag1" in result.columns
 
+
 # ---------------------------------------------------------------------------
 # _filter_fwd_population
 # ---------------------------------------------------------------------------
+
 
 class TestFilterFwdPopulation:
     def test_excludes_non_fwd_positions(self):
@@ -192,33 +201,37 @@ class TestFilterFwdPopulation:
         result = _filter_fwd_population(features, gw=7, min_minutes=60.0)
         assert result.empty
 
+
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — no future leakage enforcement
 # ---------------------------------------------------------------------------
 
+
 class TestNoFutureLeakage:
     def test_raises_when_rolling_columns_missing(self):
         features = _make_features(
-            _fwd_row(1, 6), _fwd_row(2, 6), _fwd_row(3, 6),
-            _fwd_row(4, 6), _fwd_row(5, 6),
+            _fwd_row(1, 6),
+            _fwd_row(2, 6),
+            _fwd_row(3, 6),
+            _fwd_row(4, 6),
+            _fwd_row(5, 6),
         )
         features = features.drop(columns=["xgi_roll3"])
         features = features.drop(columns=["points_roll3"])
         with pytest.raises(ValueError, match="missing rolling columns"):
             evaluate_rolling_xgi_horizons(features, min_gw=6, max_gw=6)
 
+
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — forward-only filtering
 # ---------------------------------------------------------------------------
 
+
 class TestForwardOnlyFiltering:
     def test_mid_players_excluded_from_evaluation(self):
         """MID players should not contribute to the FWD study metrics."""
-        fwd_rows = [_fwd_row(i, 6, total_points=float(i), xgi_roll3=float(i) / 10)
-                    for i in range(1, 8)]
-        mid_rows = [_fwd_row(i + 100, 6, total_points=15.0, xgi_roll3=5.0,
-                             position_label="MID")
-                    for i in range(5)]
+        fwd_rows = [_fwd_row(i, 6, total_points=float(i), xgi_roll3=float(i) / 10) for i in range(1, 8)]
+        mid_rows = [_fwd_row(i + 100, 6, total_points=15.0, xgi_roll3=5.0, position_label="MID") for i in range(5)]
         features = pd.DataFrame(fwd_rows + mid_rows)
         result = evaluate_rolling_xgi_horizons(features, min_gw=6, max_gw=6)
         # MID players with xgi_roll3=5.0 should not dominate rho if excluded
@@ -226,15 +239,15 @@ class TestForwardOnlyFiltering:
 
     def test_results_differ_when_mids_present_vs_absent(self):
         """Evaluation should use only FWDs — MID-only data should produce 0 evaluated GWs."""
-        mid_only = pd.DataFrame([
-            _fwd_row(i, 6, position_label="MID") for i in range(1, 10)
-        ])
+        mid_only = pd.DataFrame([_fwd_row(i, 6, position_label="MID") for i in range(1, 10)])
         result = evaluate_rolling_xgi_horizons(mid_only, min_gw=6, max_gw=6)
         assert result["gw_count"] == 0
+
 
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — output structure
 # ---------------------------------------------------------------------------
+
 
 class TestOutputStructure:
     def _minimal_features(self) -> pd.DataFrame:
@@ -242,8 +255,16 @@ class TestOutputStructure:
 
     def test_required_keys_present(self):
         result = evaluate_rolling_xgi_horizons(self._minimal_features(), min_gw=6, max_gw=8)
-        for key in ("eval_gws", "gw_count", "signals", "lift_over_lag1",
-                    "top1_metrics", "threshold_assessment", "best_signal", "detail"):
+        for key in (
+            "eval_gws",
+            "gw_count",
+            "signals",
+            "lift_over_lag1",
+            "top1_metrics",
+            "threshold_assessment",
+            "best_signal",
+            "detail",
+        ):
             assert key in result, f"Missing key: {key}"
 
     def test_signals_contains_all_four_variants(self):
@@ -283,9 +304,11 @@ class TestOutputStructure:
         result = evaluate_rolling_xgi_horizons(features, min_gw=6, max_gw=8)
         assert result["gw_count"] == 0
 
+
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — determinism
 # ---------------------------------------------------------------------------
+
 
 class TestDeterminism:
     def test_identical_results_on_repeated_calls(self):
@@ -296,9 +319,11 @@ class TestDeterminism:
         assert r1["lift_over_lag1"] == r2["lift_over_lag1"]
         assert r1["gw_count"] == r2["gw_count"]
 
+
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — lift arithmetic
 # ---------------------------------------------------------------------------
+
 
 class TestLiftArithmetic:
     def test_lift_equals_difference_of_rhos(self):
@@ -324,9 +349,11 @@ class TestLiftArithmetic:
             if rho is not None:
                 assert -1.0 <= rho <= 1.0, f"{sig} rho={rho} out of [-1, 1]"
 
+
 # ---------------------------------------------------------------------------
 # evaluate_rolling_xgi_horizons — rolling window correctness
 # ---------------------------------------------------------------------------
+
 
 class TestRollingWindowCorrectness:
     def test_rolling_beats_lag1_in_controlled_data(self):
@@ -350,20 +377,24 @@ class TestRollingWindowCorrectness:
             if dr is not None:
                 assert 0.0 <= dr <= 1.0, f"{sig} downside_rate={dr} not in [0, 1]"
 
+
 # ---------------------------------------------------------------------------
 # interpret_results
 # ---------------------------------------------------------------------------
 
+
 class TestInterpretResults:
-    _KNOWN_INTERPRETATIONS = frozenset({
-        "insufficient_data",
-        "no_rolling_horizon_beats_lag1",
-        "signal_remains_investigational_unstable",
-        "signal_remains_investigational_below_threshold",
-        "roll5_materially_improves_over_roll3",
-        "roll3_supported_no_change_warranted",
-        "signal_remains_investigational",
-    })
+    _KNOWN_INTERPRETATIONS = frozenset(
+        {
+            "insufficient_data",
+            "no_rolling_horizon_beats_lag1",
+            "signal_remains_investigational_unstable",
+            "signal_remains_investigational_below_threshold",
+            "roll5_materially_improves_over_roll3",
+            "roll3_supported_no_change_warranted",
+            "signal_remains_investigational",
+        }
+    )
 
     def test_returns_known_interpretation_string(self):
         features = _multi_gw_fwd_population(n_players=10, gws=list(range(6, 16)))

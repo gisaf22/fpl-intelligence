@@ -22,6 +22,7 @@ pytestmark = pytest.mark.unit
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
 
+
 def _state_row(
     player_id: int,
     gw: int,
@@ -69,8 +70,10 @@ def _state_row(
         "fixture_context": "SGW",
     }
 
+
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
+
 
 def _multi_gw_features(n_players: int = 3, gws: list[int] | None = None) -> pd.DataFrame:
     """Generate a features DataFrame spanning multiple GWs for lookahead tests."""
@@ -79,19 +82,23 @@ def _multi_gw_features(n_players: int = 3, gws: list[int] | None = None) -> pd.D
     rows = []
     for gw in gws:
         for pid in range(1, n_players + 1):
-            rows.append(_state_row(
-                player_id=pid,
-                gw=gw,
-                total_points=float(pid * 2 + gw),  # deterministic variety
-                points_roll3=float(pid + 3),
-                points_roll5=float(pid + 2),
-                xgi_roll3=0.1 * pid,
-            ))
+            rows.append(
+                _state_row(
+                    player_id=pid,
+                    gw=gw,
+                    total_points=float(pid * 2 + gw),  # deterministic variety
+                    points_roll3=float(pid + 3),
+                    points_roll5=float(pid + 2),
+                    xgi_roll3=0.1 * pid,
+                )
+            )
     return pd.DataFrame(rows)
+
 
 # ---------------------------------------------------------------------------
 # evaluate_transfer_heuristic
 # ---------------------------------------------------------------------------
+
 
 class TestEvaluateTransferHeuristic:
     def test_returns_gw_count(self):
@@ -110,10 +117,12 @@ class TestEvaluateTransferHeuristic:
         features = _multi_gw_features(n_players=4)
         result = evaluate_transfer_heuristic(features, gameweeks=[5], lookahead=2)
         for key in [
-            "gw_count", "heuristic_avg_future_return",
+            "gw_count",
+            "heuristic_avg_future_return",
             "baseline_recent_avg_future_return",
             "baseline_fixture_avg_future_return",
-            "heuristic_variance", "detail",
+            "heuristic_variance",
+            "detail",
         ]:
             assert key in result, f"missing key: {key}"
 
@@ -130,9 +139,7 @@ class TestEvaluateTransferHeuristic:
 
     def test_multi_gw_evaluation(self):
         features = _multi_gw_features(n_players=4, gws=[3, 4, 5, 6, 7, 8])
-        result = evaluate_transfer_heuristic(
-            features, gameweeks=[3, 4, 5], lookahead=2
-        )
+        result = evaluate_transfer_heuristic(features, gameweeks=[3, 4, 5], lookahead=2)
         assert result["gw_count"] == 3
 
     def test_temporal_integrity_enforced(self):
@@ -157,13 +164,14 @@ class TestEvaluateTransferHeuristic:
         r1 = evaluate_transfer_heuristic(features, gameweeks=[5], lookahead=1)
         r2 = evaluate_transfer_heuristic(features, gameweeks=[5], lookahead=2)
         # Longer lookahead should accumulate more points
-        if (r1["heuristic_avg_future_return"] is not None and
-                r2["heuristic_avg_future_return"] is not None):
+        if r1["heuristic_avg_future_return"] is not None and r2["heuristic_avg_future_return"] is not None:
             assert r2["heuristic_avg_future_return"] >= r1["heuristic_avg_future_return"]
+
 
 # ---------------------------------------------------------------------------
 # evaluate_value_heuristic
 # ---------------------------------------------------------------------------
+
 
 class TestEvaluateValueHeuristic:
     def test_returns_gw_count(self):
@@ -182,9 +190,12 @@ class TestEvaluateValueHeuristic:
         features = _multi_gw_features(n_players=4, gws=[5, 6, 7, 8, 9])
         result = evaluate_value_heuristic(features, gameweeks=[5], lookahead=3)
         for key in [
-            "gw_count", "heuristic_avg_ppc",
-            "baseline_recent_avg_ppc", "baseline_fixture_avg_ppc",
-            "heuristic_variance", "detail",
+            "gw_count",
+            "heuristic_avg_ppc",
+            "baseline_recent_avg_ppc",
+            "baseline_fixture_avg_ppc",
+            "heuristic_variance",
+            "detail",
         ]:
             assert key in result, f"missing key: {key}"
 

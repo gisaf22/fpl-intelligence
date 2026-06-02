@@ -22,6 +22,7 @@ pytestmark = pytest.mark.unit
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _intelligence_module_paths() -> list[Path]:
     """Return paths to the four operational intelligence modules."""
     root = Path("intelligence")
@@ -32,8 +33,10 @@ def _intelligence_module_paths() -> list[Path]:
         root / "transfers.py",
     ]
 
+
 def _module_source(path: Path) -> str:
     return path.read_text()
+
 
 def _base_features_row(
     player_id: int = 1,
@@ -84,12 +87,15 @@ def _base_features_row(
         "fixture_context": fixture_context,
     }
 
+
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(list(rows))
+
 
 # ---------------------------------------------------------------------------
 # 1. No hardcoded weight dicts in intelligence modules
 # ---------------------------------------------------------------------------
+
 
 class TestNoHardcodedWeights:
     """Verify intelligence modules do not contain literal float weight dicts.
@@ -119,8 +125,7 @@ class TestNoHardcodedWeights:
                 # A registry call looks like a Call node, not a Dict.
                 if isinstance(node.value, ast.Dict):
                     float_vals = [
-                        v for v in node.value.values
-                        if isinstance(v, ast.Constant) and isinstance(v.value, float)
+                        v for v in node.value.values if isinstance(v, ast.Constant) and isinstance(v.value, float)
                     ]
                     assert float_vals == [], (
                         f"{path}: _WEIGHTS is assigned a literal dict with float values "
@@ -137,9 +142,11 @@ class TestNoHardcodedWeights:
             "All module weights must be loaded from the governance registry."
         )
 
+
 # ---------------------------------------------------------------------------
 # 2. Weight registry loader contracts
 # ---------------------------------------------------------------------------
+
 
 class TestWeightRegistryLoader:
     """Verify weight_registry.py loads correctly and hard-fails on bad input."""
@@ -197,20 +204,19 @@ class TestWeightRegistryLoader:
 
         weights = get_module_weights("fixtures")
         assert set(weights.keys()) == {"team_attack_score", "dgw_bonus_score"}, (
-            f"fixtures weights: expected {{team_attack_score, dgw_bonus_score}}, "
-            f"got {set(weights.keys())}"
+            f"fixtures weights: expected {{team_attack_score, dgw_bonus_score}}, got {set(weights.keys())}"
         )
+
 
 # ---------------------------------------------------------------------------
 # 3. Lifecycle enforcement: excluded signals raise LifecycleViolationError
 # ---------------------------------------------------------------------------
 
+
 class TestLifecycleEnforcement:
     """Verify _assert_governance_compliance rejects excluded lifecycle signals."""
 
-    def _make_manifest_with_signal(
-        self, signal: str, position: str, rho: float = 0.30
-    ):
+    def _make_manifest_with_signal(self, signal: str, position: str, rho: float = 0.30):
         """Build a synthetic SignalManifest containing a single confirmed signal."""
         from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
 
@@ -266,9 +272,11 @@ class TestLifecycleEnforcement:
         # Should not raise for a non-exploratory path
         assert_operational_safe("outputs/registry/joint_registry.csv")
 
+
 # ---------------------------------------------------------------------------
 # 4. score_provenance() completeness
 # ---------------------------------------------------------------------------
+
 
 class TestScoreProvenance:
     """Verify score_provenance() returns a complete, well-structured audit trail."""
@@ -316,14 +324,10 @@ class TestScoreProvenance:
             assert "signal_id" in entry, f"{module}.{component}: missing 'signal_id'"
             assert "provenance" in entry, f"{module}.{component}: missing 'provenance'"
             assert "caveats" in entry, f"{module}.{component}: missing 'caveats'"
-            assert isinstance(entry["caveats"], list), (
-                f"{module}.{component}: 'caveats' must be a list"
-            )
+            assert isinstance(entry["caveats"], list), f"{module}.{component}: 'caveats' must be a list"
 
     @pytest.mark.parametrize("module", ["captain", "value", "fixtures", "transfers"])
-    def test_provenance_weights_match_registry(
-        self, module: str, synthetic_features: pd.DataFrame
-    ) -> None:
+    def test_provenance_weights_match_registry(self, module: str, synthetic_features: pd.DataFrame) -> None:
         from intelligence.provenance import score_provenance
         from intelligence.weight_registry import get_module_weights
 
@@ -333,8 +337,7 @@ class TestScoreProvenance:
         for component, expected_weight in registry_weights.items():
             actual_weight = result["signals"][component]["weight"]
             assert actual_weight == pytest.approx(expected_weight), (
-                f"{module}.{component}: provenance weight {actual_weight} "
-                f"!= registry weight {expected_weight}"
+                f"{module}.{component}: provenance weight {actual_weight} != registry weight {expected_weight}"
             )
 
     def test_provenance_unknown_module_raises(self, synthetic_features: pd.DataFrame) -> None:
@@ -349,9 +352,7 @@ class TestScoreProvenance:
         with pytest.raises(ValueError, match="no data for player_id=999"):
             score_provenance(synthetic_features, player_id=999, gw=5, module="captain")
 
-    def test_provenance_registry_source_references_yaml(
-        self, synthetic_features: pd.DataFrame
-    ) -> None:
+    def test_provenance_registry_source_references_yaml(self, synthetic_features: pd.DataFrame) -> None:
         from intelligence.provenance import score_provenance
 
         result = score_provenance(synthetic_features, player_id=1, gw=5, module="captain")
@@ -370,9 +371,11 @@ class TestScoreProvenance:
         assert "signals" in result
         assert len(result["signals"]) > 0
 
+
 # ---------------------------------------------------------------------------
 # 5. fdr_avg excluded from scoring (informational output only)
 # ---------------------------------------------------------------------------
+
 
 class TestFdrRemovedFromScoring:
     """fdr_avg must not contribute to any scored output.
@@ -385,13 +388,17 @@ class TestFdrRemovedFromScoring:
         """Two players: identical except one has a much better (lower) FDR."""
         rows = [
             _base_features_row(
-                player_id=1, gw=5, team_id=1,
+                player_id=1,
+                gw=5,
+                team_id=1,
                 fdr_avg=1.0,  # very easy fixture
                 fixture_context="SGW",
                 minutes_roll5=85.0,
             ),
             _base_features_row(
-                player_id=2, gw=5, team_id=2,
+                player_id=2,
+                gw=5,
+                team_id=2,
                 fdr_avg=5.0,  # very hard fixture
                 fixture_context="SGW",
                 minutes_roll5=85.0,
@@ -425,14 +432,24 @@ class TestFdrRemovedFromScoring:
 
         rows = [
             _base_features_row(
-                player_id=1, gw=5, position_label="MID",
-                fdr_avg=1.0, fixture_context="SGW",
-                xgi_roll5=0.5, xgi_roll3=0.5, minutes_roll3=90.0,
+                player_id=1,
+                gw=5,
+                position_label="MID",
+                fdr_avg=1.0,
+                fixture_context="SGW",
+                xgi_roll5=0.5,
+                xgi_roll3=0.5,
+                minutes_roll3=90.0,
             ),
             _base_features_row(
-                player_id=2, gw=5, position_label="MID",
-                fdr_avg=5.0, fixture_context="SGW",
-                xgi_roll5=0.5, xgi_roll3=0.5, minutes_roll3=90.0,
+                player_id=2,
+                gw=5,
+                position_label="MID",
+                fdr_avg=5.0,
+                fixture_context="SGW",
+                xgi_roll5=0.5,
+                xgi_roll3=0.5,
+                minutes_roll3=90.0,
             ),
         ]
         features = _make_features(*rows)
@@ -444,9 +461,11 @@ class TestFdrRemovedFromScoring:
             f"Player 1 (fdr=1.0): {scores[1]:.4f}, Player 2 (fdr=5.0): {scores[2]:.4f}"
         )
 
+
 # ---------------------------------------------------------------------------
 # 6. FWD scope guard: xgi_roll3/xgi_roll5 excluded at FWD
 # ---------------------------------------------------------------------------
+
 
 class TestFwdScopeGuard:
     """xgi_roll3/xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL); scores neutralised to 0.5."""
@@ -455,12 +474,18 @@ class TestFwdScopeGuard:
         """Two FWD players with very different xgi — scores should be equal (0.5)."""
         return _make_features(
             _base_features_row(
-                player_id=10, gw=5, position_label="FWD",
-                xgi_roll3=2.0, xgi_roll5=2.0,
+                player_id=10,
+                gw=5,
+                position_label="FWD",
+                xgi_roll3=2.0,
+                xgi_roll5=2.0,
             ),
             _base_features_row(
-                player_id=11, gw=5, position_label="FWD",
-                xgi_roll3=0.01, xgi_roll5=0.01,
+                player_id=11,
+                gw=5,
+                position_label="FWD",
+                xgi_roll3=0.01,
+                xgi_roll5=0.01,
             ),
         )
 
@@ -496,9 +521,11 @@ class TestFwdScopeGuard:
             f"Player 10 (xgi=2.0): {scores[10]:.4f}, Player 11 (xgi=0.01): {scores[11]:.4f}"
         )
 
+
 # ---------------------------------------------------------------------------
 # 7. minutes_roll8 wired for DEF/MID long-horizon availability flag
 # ---------------------------------------------------------------------------
+
 
 class TestMinutesRoll8Wired:
     """availability.py must use minutes_roll8 for DEF/MID long_horizon_flag (AVAIL-003)."""
@@ -507,8 +534,9 @@ class TestMinutesRoll8Wired:
         from intelligence.availability import flag_availability_risk
 
         features = _make_features(
-            _base_features_row(player_id=1, gw=5, position_label="DEF",
-                               minutes_roll3=90.0, minutes_roll5=85.0, minutes_roll8=88.0),
+            _base_features_row(
+                player_id=1, gw=5, position_label="DEF", minutes_roll3=90.0, minutes_roll5=85.0, minutes_roll8=88.0
+            ),
         )
         result = flag_availability_risk(features, target_gw=5)
         assert "long_horizon_flag" in result.columns
@@ -519,8 +547,11 @@ class TestMinutesRoll8Wired:
 
         features = _make_features(
             _base_features_row(
-                player_id=1, gw=5, position_label="DEF",
-                minutes_roll3=90.0, minutes_roll5=85.0,
+                player_id=1,
+                gw=5,
+                position_label="DEF",
+                minutes_roll3=90.0,
+                minutes_roll5=85.0,
                 minutes_roll8=30.0,  # low 8-GW average
             ),
         )
@@ -536,8 +567,11 @@ class TestMinutesRoll8Wired:
 
         features = _make_features(
             _base_features_row(
-                player_id=2, gw=5, position_label="GK",
-                minutes_roll3=90.0, minutes_roll5=85.0,
+                player_id=2,
+                gw=5,
+                position_label="GK",
+                minutes_roll3=90.0,
+                minutes_roll5=85.0,
                 minutes_roll8=30.0,  # would trigger if GK was governed
             ),
         )
@@ -554,14 +588,16 @@ class TestMinutesRoll8Wired:
 
         features = _make_features(
             _base_features_row(
-                player_id=3, gw=5, position_label="FWD",
-                minutes_roll3=90.0, minutes_roll5=85.0,
+                player_id=3,
+                gw=5,
+                position_label="FWD",
+                minutes_roll3=90.0,
+                minutes_roll5=85.0,
                 minutes_roll8=30.0,
             ),
         )
         result = flag_availability_risk(features, target_gw=5)
         row = result.iloc[0]
         assert row["long_horizon_flag"] == 0, (
-            "FWD players must not receive long_horizon_flag — "
-            "AVAIL-003 G2-FAIL at FWD, excluded from roll8 governance."
+            "FWD players must not receive long_horizon_flag — AVAIL-003 G2-FAIL at FWD, excluded from roll8 governance."
         )

@@ -81,9 +81,7 @@ def run_week(gw: int, registry_path: str | Path, output_dir: str | Path | None =
         signal_summary=pd.read_csv(report_paths["signal_summary"]),
         summary_by_position=pd.read_csv(report_paths["summary_by_position"]),
         summary_by_layer=pd.read_csv(report_paths["summary_by_layer"]),
-        stable_performance_signals=pd.read_csv(
-            report_paths["stable_performance_signals"]
-        ),
+        stable_performance_signals=pd.read_csv(report_paths["stable_performance_signals"]),
         output_dir=target_dir,
     )
     signal_intelligence_paths = write_signal_intelligence(
@@ -95,9 +93,7 @@ def run_week(gw: int, registry_path: str | Path, output_dir: str | Path | None =
         signal_summary=pd.read_csv(report_paths["signal_summary"]),
         summary_by_position=pd.read_csv(report_paths["summary_by_position"]),
         summary_by_layer=pd.read_csv(report_paths["summary_by_layer"]),
-        stable_performance_signals=pd.read_csv(
-            report_paths["stable_performance_signals"]
-        ),
+        stable_performance_signals=pd.read_csv(report_paths["stable_performance_signals"]),
         insight_cards=pd.read_csv(insight_cards_path),
         output_dir=target_dir,
     )
@@ -123,9 +119,7 @@ def run_week(gw: int, registry_path: str | Path, output_dir: str | Path | None =
 
 def build_parser() -> argparse.ArgumentParser:
     """Build CLI parser for weekly runner."""
-    parser = argparse.ArgumentParser(
-        description="Generate governed weekly FPL signal intelligence outputs."
-    )
+    parser = argparse.ArgumentParser(description="Generate governed weekly FPL signal intelligence outputs.")
     parser.add_argument(
         "--gw",
         type=int,

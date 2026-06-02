@@ -34,6 +34,7 @@ pytestmark = pytest.mark.unit
 # Shared helper
 # ---------------------------------------------------------------------------
 
+
 def _row(
     player_id: int,
     gw: int,
@@ -85,6 +86,7 @@ def _features(*rows: dict) -> pd.DataFrame:
 # SYNTH-01 G-SYNTH1-07: xgi_roll3 zeroed at MID in captain.py
 # ---------------------------------------------------------------------------
 
+
 class TestCaptainMidXgiGuard:
     """G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID in captain.py.
 
@@ -108,9 +110,7 @@ class TestCaptainMidXgiGuard:
             f"G-SYNTH1-07: MID players with different xgi_roll3 must have identical "
             f"involvement_score (all zeroed → 0.5). Got {mid_rows['involvement_score'].tolist()}"
         )
-        assert abs(scores[0] - 0.5) < 1e-9, (
-            f"G-SYNTH1-07: MID involvement_score must be 0.5, got {scores[0]}"
-        )
+        assert abs(scores[0] - 0.5) < 1e-9, f"G-SYNTH1-07: MID involvement_score must be 0.5, got {scores[0]}"
 
     def test_mid_form_score_not_neutralized(self):
         """form_score uses xgi_roll5 which is NOT excluded at MID.
@@ -131,6 +131,7 @@ class TestCaptainMidXgiGuard:
 # SYNTH-01 G-SYNTH1-07: xgi_roll3 zeroed at MID in value.py
 # ---------------------------------------------------------------------------
 
+
 class TestValueMidXgiGuard:
     """G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID in value.py.
 
@@ -142,10 +143,8 @@ class TestValueMidXgiGuard:
     def test_mid_form_score_is_neutral_regardless_of_xgi(self):
         """Two MID players with different xgi_roll3 must have equal form_score (0.5)."""
         features = _features(
-            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5,
-                 minutes_roll5=85.0, purchase_price=7.5),
-            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5,
-                 minutes_roll5=85.0, purchase_price=7.5),
+            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5, minutes_roll5=85.0, purchase_price=7.5),
+            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5, minutes_roll5=85.0, purchase_price=7.5),
         )
         result = rank_value_players(features, target_gw=5)
         mid_rows = result[result["position_label"] == "MID"]
@@ -153,12 +152,9 @@ class TestValueMidXgiGuard:
 
         scores = mid_rows["form_score"].unique()
         assert len(scores) == 1, (
-            f"G-SYNTH1-07: MID form_score must be equal for all MID players. "
-            f"Got {mid_rows['form_score'].tolist()}"
+            f"G-SYNTH1-07: MID form_score must be equal for all MID players. Got {mid_rows['form_score'].tolist()}"
         )
-        assert abs(scores[0] - 0.5) < 1e-9, (
-            f"G-SYNTH1-07: MID form_score must be 0.5, got {scores[0]}"
-        )
+        assert abs(scores[0] - 0.5) < 1e-9, f"G-SYNTH1-07: MID form_score must be 0.5, got {scores[0]}"
 
     def test_mid_consistency_score_is_neutral_regardless_of_xgi(self):
         """MID consistency_score must be 0.5 regardless of xgi_roll3 value.
@@ -167,10 +163,8 @@ class TestValueMidXgiGuard:
         at MID, the comparison is neutralised to prevent perverse ranking.
         """
         features = _features(
-            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.8,
-                 minutes_roll5=85.0, purchase_price=7.5),
-            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.8,
-                 minutes_roll5=85.0, purchase_price=7.5),
+            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.8, minutes_roll5=85.0, purchase_price=7.5),
+            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.8, minutes_roll5=85.0, purchase_price=7.5),
         )
         result = rank_value_players(features, target_gw=5)
         mid_rows = result[result["position_label"] == "MID"]
@@ -180,18 +174,14 @@ class TestValueMidXgiGuard:
             f"G-SYNTH1-07: MID consistency_score must be equal (neutralised). "
             f"Got {mid_rows['consistency_score'].tolist()}"
         )
-        assert abs(scores[0] - 0.5) < 1e-9, (
-            f"G-SYNTH1-07: MID consistency_score must be 0.5, got {scores[0]}"
-        )
+        assert abs(scores[0] - 0.5) < 1e-9, f"G-SYNTH1-07: MID consistency_score must be 0.5, got {scores[0]}"
 
     def test_mid_efficiency_score_not_neutralized(self):
         """efficiency_score uses xgi_roll5 which is approved at MID (not excluded).
         MID players must be differentiated by efficiency_score."""
         features = _features(
-            _row(1, 5, position_label="MID", xgi_roll5=0.9, xgi_roll3=0.5,
-                 minutes_roll5=85.0, purchase_price=7.5),
-            _row(2, 5, position_label="MID", xgi_roll5=0.1, xgi_roll3=0.5,
-                 minutes_roll5=85.0, purchase_price=7.5),
+            _row(1, 5, position_label="MID", xgi_roll5=0.9, xgi_roll3=0.5, minutes_roll5=85.0, purchase_price=7.5),
+            _row(2, 5, position_label="MID", xgi_roll5=0.1, xgi_roll3=0.5, minutes_roll5=85.0, purchase_price=7.5),
         )
         result = rank_value_players(features, target_gw=5)
         mid_rows = result[result["position_label"] == "MID"].set_index("player_id")
@@ -205,6 +195,7 @@ class TestValueMidXgiGuard:
 # SYNTH-01 G-SYNTH1-07: xgi_roll3 zeroed at MID in transfers.py
 # ---------------------------------------------------------------------------
 
+
 class TestTransfersMidXgiGuard:
     """G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID in transfers.py.
 
@@ -216,10 +207,8 @@ class TestTransfersMidXgiGuard:
     def test_mid_form_and_involvement_scores_neutral(self):
         """recent_form_score and involvement_score must be 0.5 for all MID players."""
         features = _features(
-            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5,
-                 minutes_roll5=85.0),
-            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5,
-                 minutes_roll5=85.0),
+            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5, minutes_roll5=85.0),
+            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5, minutes_roll5=85.0),
         )
         result = rank_transfer_targets(features, target_gw=5)
         mid_rows = result[result["position_label"] == "MID"]
@@ -228,12 +217,9 @@ class TestTransfersMidXgiGuard:
         for score_col in ("recent_form_score", "involvement_score"):
             scores = mid_rows[score_col].unique()
             assert len(scores) == 1, (
-                f"G-SYNTH1-07: MID {score_col} must be equal for all MID. "
-                f"Got {mid_rows[score_col].tolist()}"
+                f"G-SYNTH1-07: MID {score_col} must be equal for all MID. Got {mid_rows[score_col].tolist()}"
             )
-            assert abs(scores[0] - 0.5) < 1e-9, (
-                f"G-SYNTH1-07: MID {score_col} must be 0.5, got {scores[0]}"
-            )
+            assert abs(scores[0] - 0.5) < 1e-9, f"G-SYNTH1-07: MID {score_col} must be 0.5, got {scores[0]}"
 
     def test_mid_momentum_score_neutral(self):
         """form_momentum_score must be 0.5 for all MID players.
@@ -242,10 +228,8 @@ class TestTransfersMidXgiGuard:
         the comparison is neutralised to prevent always-negative momentum.
         """
         features = _features(
-            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5,
-                 minutes_roll5=85.0),
-            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5,
-                 minutes_roll5=85.0),
+            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5, minutes_roll5=85.0),
+            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5, minutes_roll5=85.0),
         )
         result = rank_transfer_targets(features, target_gw=5)
         mid_rows = result[result["position_label"] == "MID"]
@@ -255,9 +239,7 @@ class TestTransfersMidXgiGuard:
             f"G-SYNTH1-07: MID form_momentum_score must be equal (neutralised). "
             f"Got {mid_rows['form_momentum_score'].tolist()}"
         )
-        assert abs(scores[0] - 0.5) < 1e-9, (
-            f"G-SYNTH1-07: MID form_momentum_score must be 0.5, got {scores[0]}"
-        )
+        assert abs(scores[0] - 0.5) < 1e-9, f"G-SYNTH1-07: MID form_momentum_score must be 0.5, got {scores[0]}"
 
     def test_mid_fixture_score_not_neutralized(self):
         """fixture_score uses fixture_context which is not xgi-based.
@@ -278,6 +260,7 @@ class TestTransfersMidXgiGuard:
 # FORM-001/002: FWD zeroing guard in captain.py, value.py, transfers.py
 # ---------------------------------------------------------------------------
 
+
 class TestFwdZeroingGuard:
     """FORM-001/002 G2-FAIL: xgi signals excluded at FWD across all three modules.
 
@@ -297,8 +280,7 @@ class TestFwdZeroingGuard:
 
         for _, row in fwd_rows.iterrows():
             assert abs(row["form_score"] - 0.5) < 1e-9, (
-                f"FORM-002: FWD form_score must be 0.5, got {row['form_score']} "
-                f"for player {row['player_id']}"
+                f"FORM-002: FWD form_score must be 0.5, got {row['form_score']} for player {row['player_id']}"
             )
 
     def test_captain_fwd_involvement_score_neutral(self):
@@ -336,10 +318,8 @@ class TestFwdZeroingGuard:
     def test_value_fwd_efficiency_score_neutral(self):
         """FWD efficiency_score and form_score must be 0.5 in value.py."""
         features = _features(
-            _row(1, 5, position_label="FWD", xgi_roll3=0.9, xgi_roll5=0.8,
-                 minutes_roll5=85.0, purchase_price=8.0),
-            _row(2, 5, position_label="FWD", xgi_roll3=0.1, xgi_roll5=0.1,
-                 minutes_roll5=85.0, purchase_price=8.0),
+            _row(1, 5, position_label="FWD", xgi_roll3=0.9, xgi_roll5=0.8, minutes_roll5=85.0, purchase_price=8.0),
+            _row(2, 5, position_label="FWD", xgi_roll3=0.1, xgi_roll5=0.1, minutes_roll5=85.0, purchase_price=8.0),
         )
         result = rank_value_players(features, target_gw=5)
         fwd_rows = result[result["position_label"] == "FWD"]
@@ -349,14 +329,13 @@ class TestFwdZeroingGuard:
             assert abs(row["efficiency_score"] - 0.5) < 1e-9, (
                 f"FORM-002: FWD efficiency_score must be 0.5, got {row['efficiency_score']}"
             )
-            assert abs(row["form_score"] - 0.5) < 1e-9, (
-                f"FORM-001: FWD form_score must be 0.5, got {row['form_score']}"
-            )
+            assert abs(row["form_score"] - 0.5) < 1e-9, f"FORM-001: FWD form_score must be 0.5, got {row['form_score']}"
 
 
 # ---------------------------------------------------------------------------
 # AVAIL-003: minutes_roll8 positional guard in availability.py
 # ---------------------------------------------------------------------------
+
 
 class TestMinutesRoll8PositionalGuard:
     """AVAIL-003: minutes_roll8 wired only for DEF and MID in availability.py.
@@ -380,9 +359,7 @@ class TestMinutesRoll8PositionalGuard:
         )
         result = flag_availability_risk(features, target_gw=5)
         fwd_row = result[result["position_label"] == "FWD"].iloc[0]
-        assert fwd_row["long_horizon_flag"] == 0, (
-            "AVAIL-003: FWD must not receive long_horizon_flag (G2-FAIL at FWD)"
-        )
+        assert fwd_row["long_horizon_flag"] == 0, "AVAIL-003: FWD must not receive long_horizon_flag (G2-FAIL at FWD)"
 
     def test_def_gets_long_horizon_flag_when_roll8_low(self):
         features = _features(
@@ -409,6 +386,7 @@ class TestMinutesRoll8PositionalGuard:
 # FIXTURE-001: fdr_avg must not affect fixture_opportunity_score
 # ---------------------------------------------------------------------------
 
+
 class TestFdrAvgNotScored:
     """FIXTURE-001 G2-FAIL: fdr_avg excluded at all positions.
 
@@ -419,10 +397,8 @@ class TestFdrAvgNotScored:
         """Two players identical except for fdr_avg must have equal
         fixture_opportunity_score (FIXTURE-001: fdr_avg not scored)."""
         features = _features(
-            _row(1, 5, fdr_avg=2.0, fixture_context="SGW", goals_scored=1.0,
-                 minutes_roll5=80.0, team_id=10),
-            _row(2, 5, fdr_avg=5.0, fixture_context="SGW", goals_scored=1.0,
-                 minutes_roll5=80.0, team_id=10),
+            _row(1, 5, fdr_avg=2.0, fixture_context="SGW", goals_scored=1.0, minutes_roll5=80.0, team_id=10),
+            _row(2, 5, fdr_avg=5.0, fixture_context="SGW", goals_scored=1.0, minutes_roll5=80.0, team_id=10),
         )
         result = rank_fixture_opportunities(features, target_gw=5, horizon=1)
         assert len(result) == 2
@@ -438,6 +414,7 @@ class TestFdrAvgNotScored:
 # ---------------------------------------------------------------------------
 # fixture_context: DGW detection wired in captain.py and transfers.py
 # ---------------------------------------------------------------------------
+
 
 class TestFixtureContextWired:
     """fixture_context candidate consumed by captain.py and transfers.py.
@@ -456,8 +433,7 @@ class TestFixtureContextWired:
         p1 = result[result["player_id"] == 1]["fixture_score"].iloc[0]
         p2 = result[result["player_id"] == 2]["fixture_score"].iloc[0]
         assert p1 > p2, (
-            f"captain.py: DGW player must have higher fixture_score than SGW. "
-            f"Got DGW={p1:.3f}, SGW={p2:.3f}"
+            f"captain.py: DGW player must have higher fixture_score than SGW. Got DGW={p1:.3f}, SGW={p2:.3f}"
         )
 
     def test_transfers_fixture_score_higher_for_dgw(self):
@@ -471,6 +447,5 @@ class TestFixtureContextWired:
         p1 = result[result["player_id"] == 1]["fixture_score"].iloc[0]
         p2 = result[result["player_id"] == 2]["fixture_score"].iloc[0]
         assert p1 > p2, (
-            f"transfers.py: DGW player must have higher fixture_score than SGW. "
-            f"Got DGW={p1:.3f}, SGW={p2:.3f}"
+            f"transfers.py: DGW player must have higher fixture_score than SGW. Got DGW={p1:.3f}, SGW={p2:.3f}"
         )

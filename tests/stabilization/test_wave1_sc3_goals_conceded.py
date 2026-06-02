@@ -26,6 +26,7 @@ pytestmark = pytest.mark.unit
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
+
 def _make_dgw_analytics() -> pd.DataFrame:
     """Minimal analytics frame: T2 has two GW4 fixtures each conceding 1 goal.
 
@@ -34,17 +35,42 @@ def _make_dgw_analytics() -> pd.DataFrame:
     """
     rows = [
         # GK row: team_id=2, GW4, fixture_id=5 — T2 concedes 1
-        {"player_id": 102, "team_id": 2, "gw": 4, "fixture_id": 5,
-         "position_code": 1, "minutes": 90, "goals_conceded": 1, "xgc": 1.0},
+        {
+            "player_id": 102,
+            "team_id": 2,
+            "gw": 4,
+            "fixture_id": 5,
+            "position_code": 1,
+            "minutes": 90,
+            "goals_conceded": 1,
+            "xgc": 1.0,
+        },
         # GK row: team_id=2, GW4, fixture_id=6 — T2 concedes 1
-        {"player_id": 102, "team_id": 2, "gw": 4, "fixture_id": 6,
-         "position_code": 1, "minutes": 90, "goals_conceded": 1, "xgc": 1.0},
+        {
+            "player_id": 102,
+            "team_id": 2,
+            "gw": 4,
+            "fixture_id": 6,
+            "position_code": 1,
+            "minutes": 90,
+            "goals_conceded": 1,
+            "xgc": 1.0,
+        },
         # SGW row for baseline comparison: team_id=2, GW3, fixture_id=4 — T2 concedes 1
-        {"player_id": 102, "team_id": 2, "gw": 3, "fixture_id": 4,
-         "position_code": 1, "minutes": 90, "goals_conceded": 1, "xgc": 0.9},
+        {
+            "player_id": 102,
+            "team_id": 2,
+            "gw": 3,
+            "fixture_id": 4,
+            "position_code": 1,
+            "minutes": 90,
+            "goals_conceded": 1,
+            "xgc": 0.9,
+        },
     ]
     df = pd.DataFrame(rows)
     return df
+
 
 def test_goals_conceded_sums_across_dgw_fixtures():
     """SC-3 FAILING TEST: goals_conceded for a DGW team must be sum, not mean.
@@ -68,6 +94,7 @@ def test_goals_conceded_sums_across_dgw_fixtures():
         f"got {actual}. Bug: mean({1},{1})={1.0} used instead of sum."
     )
 
+
 def test_goals_conceded_sgw_unchanged():
     """SGW goals_conceded must equal the single fixture value (sum of 1 = 1).
 
@@ -80,6 +107,4 @@ def test_goals_conceded_sgw_unchanged():
 
     t2_gw3 = team_def[(team_def["team_id"] == 2) & (team_def["gw"] == 3)]
     assert len(t2_gw3) == 1
-    assert t2_gw3.iloc[0]["goals_conceded"] == 1, (
-        "SGW goals_conceded should be 1 (sum of single fixture)"
-    )
+    assert t2_gw3.iloc[0]["goals_conceded"] == 1, "SGW goals_conceded should be 1 (sum of single fixture)"

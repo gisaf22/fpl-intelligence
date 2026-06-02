@@ -14,14 +14,31 @@ def _load_spine(db_path):
     staged = load_staged_entities(db_path)
     return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
 
+
 _IDENTITY_COLS = ["player_id", "gw", "player_name", "team_id", "position_code"]
 _SCHEDULE_COLS = ["fixture_count", "is_bgw", "is_dgw", "home_count", "away_count"]
 _PERFORMANCE_COLS = [
-    "total_points", "minutes", "goals_scored", "assists",
-    "clean_sheets", "yellow_cards", "red_cards", "saves",
-    "bonus", "bps", "xg", "xa", "xgi", "goals_conceded", "xgc",
-    "starts", "penalties_saved",
-    "influence", "creativity", "threat", "ict_index",
+    "total_points",
+    "minutes",
+    "goals_scored",
+    "assists",
+    "clean_sheets",
+    "yellow_cards",
+    "red_cards",
+    "saves",
+    "bonus",
+    "bps",
+    "xg",
+    "xa",
+    "xgi",
+    "goals_conceded",
+    "xgc",
+    "starts",
+    "penalties_saved",
+    "influence",
+    "creativity",
+    "threat",
+    "ict_index",
 ]
 _MARKET_COLS = ["transfers_in", "transfers_out", "ownership_count"]
 

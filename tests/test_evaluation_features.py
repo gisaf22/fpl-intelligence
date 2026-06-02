@@ -21,6 +21,7 @@ pytestmark = pytest.mark.unit
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
 
+
 def _spine_row(
     player_id: int,
     gw: int,
@@ -62,20 +63,24 @@ def _spine_row(
         "minutes_trend": "stable",
     }
 
+
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
+
 
 def _sequential_player(player_id: int, gws_and_points: list[tuple[int, float, float]]) -> list[dict]:
     """Create sequential rows for a player across GWs: (gw, total_points, xgi) tuples."""
     rows = []
     for i, (gw, pts, xgi) in enumerate(gws_and_points):
-        roll3 = sum(p for _, p, _ in gws_and_points[max(0, i-3):i]) / max(1, min(3, i))
+        roll3 = sum(p for _, p, _ in gws_and_points[max(0, i - 3) : i]) / max(1, min(3, i))
         rows.append(_spine_row(player_id, gw, pts, xgi, points_roll3=roll3))
     return rows
+
 
 # ---------------------------------------------------------------------------
 # _compute_lag1_columns
 # ---------------------------------------------------------------------------
+
 
 class TestComputeLag1Columns:
     def test_lag1_is_prior_gw_value(self):
@@ -120,9 +125,11 @@ class TestComputeLag1Columns:
         result = _compute_lag1_columns(features)
         assert "minutes_lag1" in result.columns
 
+
 # ---------------------------------------------------------------------------
 # evaluate_feature_lift
 # ---------------------------------------------------------------------------
+
 
 class TestEvaluateFeatureLift:
     def test_returns_gw_count(self):
@@ -163,8 +170,7 @@ class TestEvaluateFeatureLift:
             _spine_row(3, 5, total_points=6.0, xgi=0.5),
         )
         result = evaluate_feature_lift(features, gameweeks=[5])
-        expected = {"points_roll3", "points_lag1", "xgi_roll3", "xgi_lag1",
-                    "minutes_roll5", "minutes_lag1"}
+        expected = {"points_roll3", "points_lag1", "xgi_roll3", "xgi_lag1", "minutes_roll5", "minutes_lag1"}
         assert expected.issubset(set(result["predictors"].keys()))
 
     def test_predictor_has_label_and_mean_rho(self):

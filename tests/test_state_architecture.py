@@ -22,42 +22,57 @@ from dal.feat.feat_schema import FEATURE_REGISTRY
 # Shared synthetic spine
 # ---------------------------------------------------------------------------
 
+
 def _make_spine() -> pd.DataFrame:
     rows = []
     for pid in [1, 2, 3]:
         for gw in range(1, 11):
-            rows.append({
-                "player_id": pid,
-                "gw": gw,
-                "is_bgw": False,
-                "is_dgw": False,
-                "fixture_count": 1,
-                "total_points": 5,
-                "minutes": 60,
-                "xg": 0.1,
-                "xa": 0.1,
-                "xgi": 0.2,
-                "xgc": 0.3,
-                "goals_scored": 0,
-                "assists": 0,
-                "clean_sheets": 0,
-                "goals_conceded": 1,
-                "saves": 0,
-                "penalties_saved": 0,
-                "bonus": 1,
-                "bps": 10,
-            })
+            rows.append(
+                {
+                    "player_id": pid,
+                    "gw": gw,
+                    "is_bgw": False,
+                    "is_dgw": False,
+                    "fixture_count": 1,
+                    "total_points": 5,
+                    "minutes": 60,
+                    "xg": 0.1,
+                    "xa": 0.1,
+                    "xgi": 0.2,
+                    "xgc": 0.3,
+                    "goals_scored": 0,
+                    "assists": 0,
+                    "clean_sheets": 0,
+                    "goals_conceded": 1,
+                    "saves": 0,
+                    "penalties_saved": 0,
+                    "bonus": 1,
+                    "bps": 10,
+                }
+            )
     df = pd.DataFrame(rows)
-    for col in ["total_points", "minutes", "goals_scored", "assists", "clean_sheets",
-                "goals_conceded", "saves", "penalties_saved", "bonus", "bps"]:
+    for col in [
+        "total_points",
+        "minutes",
+        "goals_scored",
+        "assists",
+        "clean_sheets",
+        "goals_conceded",
+        "saves",
+        "penalties_saved",
+        "bonus",
+        "bps",
+    ]:
         df[col] = df[col].astype("Int64")
     for col in ["xg", "xa", "xgi", "xgc"]:
         df[col] = df[col].astype("Float64")
     return df
 
+
 # ---------------------------------------------------------------------------
 # Test 1 — xa_roll* absent (G-EDA6-02: xa absorbed by xgi)
 # ---------------------------------------------------------------------------
+
 
 def test_xa_roll_variants_absent():
     """xa_roll3 and xa_roll5 must not appear in STATE output.
@@ -70,9 +85,11 @@ def test_xa_roll_variants_absent():
     assert "xa_roll3" not in cols, "xa_roll3 present — xa must not produce rolled representations"
     assert "xa_roll5" not in cols, "xa_roll5 present — xa must not produce rolled representations"
 
+
 # ---------------------------------------------------------------------------
 # Test 2 — non-minutes roll8 absent (LENS-AVAIL AVAIL-003: minutes_roll8 only)
 # ---------------------------------------------------------------------------
+
 
 def test_non_minutes_roll8_absent():
     """roll8 variants must not appear for any signal except minutes.
@@ -83,20 +100,18 @@ def test_non_minutes_roll8_absent():
     state = build_player_gameweek_state(_make_spine())
     cols = set(state.columns)
 
-    forbidden_roll8 = [
-        f"{'points' if c == 'total_points' else c}_roll8"
-        for c in _ROLL_COLS
-        if c != "minutes"
-    ]
+    forbidden_roll8 = [f"{'points' if c == 'total_points' else c}_roll8" for c in _ROLL_COLS if c != "minutes"]
     # xa and xg are not in _ROLL_COLS but were historically candidates — confirm explicitly
     forbidden_roll8 += ["xa_roll8", "xg_roll8"]
 
     present = [col for col in forbidden_roll8 if col in cols]
     assert not present, f"Forbidden roll8 columns present in STATE output: {present}"
 
+
 # ---------------------------------------------------------------------------
 # Test 3 — derived column count = 13 (Phase 3 Representation Inventory Lock)
 # ---------------------------------------------------------------------------
+
 
 def test_derived_column_count_is_13():
     """STATE must produce exactly 13 derived columns.
@@ -110,14 +125,13 @@ def test_derived_column_count_is_13():
     spine = _make_spine()
     state = build_player_gameweek_state(spine)
     derived = set(state.columns) - set(spine.columns)
-    assert len(derived) == 13, (
-        f"Expected 13 derived columns, got {len(derived)}.\n"
-        f"Derived columns: {sorted(derived)}"
-    )
+    assert len(derived) == 13, f"Expected 13 derived columns, got {len(derived)}.\nDerived columns: {sorted(derived)}"
+
 
 # ---------------------------------------------------------------------------
 # Test 4 — FEATURE_REGISTRY covers every derived column
 # ---------------------------------------------------------------------------
+
 
 def test_feature_registry_covers_all_derived():
     """FEATURE_REGISTRY must have an entry for every column STATE produces."""
@@ -128,9 +142,11 @@ def test_feature_registry_covers_all_derived():
     missing = derived - set(FEATURE_REGISTRY)
     assert not missing, f"Derived columns without FEATURE_REGISTRY entries: {sorted(missing)}"
 
+
 # ---------------------------------------------------------------------------
 # Test 5 — FEATURE_REGISTRY has no orphan entries
 # ---------------------------------------------------------------------------
+
 
 def test_feature_registry_no_orphan_entries():
     """FEATURE_REGISTRY must not contain entries for columns STATE does not produce."""
@@ -141,9 +157,11 @@ def test_feature_registry_no_orphan_entries():
     orphan = set(FEATURE_REGISTRY) - derived
     assert not orphan, f"FEATURE_REGISTRY entries for columns not in STATE output: {sorted(orphan)}"
 
+
 # ---------------------------------------------------------------------------
 # Test 6 — FEATURE_REGISTRY required governance fields
 # ---------------------------------------------------------------------------
+
 
 def test_feature_registry_required_fields():
     """Every FEATURE_REGISTRY entry must carry non-empty gate, scope, causality, and positions."""
@@ -159,36 +177,46 @@ def test_feature_registry_required_fields():
             violations.append(f"  {col}: positions is empty")
     assert not violations, "Field violations in FEATURE_REGISTRY:\n" + "\n".join(violations)
 
+
 # ---------------------------------------------------------------------------
 # Test 7 — 16 REJECTED-BEHAVIORAL columns are individually absent
 # ---------------------------------------------------------------------------
 
 _REJECTED_BEHAVIORAL = [
     # Target leakage — component of total_points
-    "bonus_roll3", "bonus_roll5",
+    "bonus_roll3",
+    "bonus_roll5",
     # Target leakage — input to bonus allocation
-    "bps_roll3", "bps_roll5",
+    "bps_roll3",
+    "bps_roll5",
     # Rolling mean destroys burst structure (LENS-FORM FORM-003)
-    "goals_scored_roll3", "goals_scored_roll5",
+    "goals_scored_roll3",
+    "goals_scored_roll5",
     # No variant clears naive baseline (G-EDA8-07/08/09)
-    "assists_roll3", "assists_roll5",
+    "assists_roll3",
+    "assists_roll5",
     # Structural zero at outfield; uninformative at GKP (G-EDA8-01/02, G-EDA2-03)
-    "saves_roll3", "saves_roll5",
+    "saves_roll3",
+    "saves_roll5",
     # 99.7% zero-rate; structural sparsity (G-EDA8-06)
-    "penalties_saved_roll3", "penalties_saved_roll5",
+    "penalties_saved_roll3",
+    "penalties_saved_roll5",
     # Absorbed by xgi at FWD/MID; blocked at DEF/GK (G-EDA6-03)
-    "xg_roll3", "xg_roll5",
+    "xg_roll3",
+    "xg_roll5",
     # Analytically circular (target rolling mean) — LENS-FORM FORM-004/005
-    "points_roll3", "points_roll5",
+    "points_roll3",
+    "points_roll5",
 ]
+
 
 def test_rejected_behavioral_columns_absent():
     """All 16 REJECTED-BEHAVIORAL columns must not appear in STATE output.
 
-    Phase 3 Representation Inventory Lock: these columns are permanently removed
-    from STATE production. Evidence in docs/archive/state-representation-inventory.md.
+        Phase 3 Representation Inventory Lock: these columns are permanently removed
+        from STATE production. Evidence in docs/archive/state-representation-inventory.md.
 
-pytestmark = pytest.mark.unit
+    pytestmark = pytest.mark.unit
 
     """
     state = build_player_gameweek_state(_make_spine())
@@ -200,18 +228,20 @@ pytestmark = pytest.mark.unit
         "These columns were removed by Phase 3 Representation Inventory Lock."
     )
 
+
 @pytest.mark.parametrize("col", _REJECTED_BEHAVIORAL)
 def test_each_rejected_column_individually_absent(col):
     """Each of the 16 REJECTED-BEHAVIORAL columns must be individually absent."""
     state = build_player_gameweek_state(_make_spine())
     assert col not in state.columns, (
-        f"Rejected column '{col}' is present in STATE output — "
-        "Phase 3 Representation Inventory Lock violation."
+        f"Rejected column '{col}' is present in STATE output — Phase 3 Representation Inventory Lock violation."
     )
+
 
 # ---------------------------------------------------------------------------
 # Test 8 — minutes_trend is present (retained, availability-domain-restricted)
 # ---------------------------------------------------------------------------
+
 
 def test_minutes_trend_present():
     """minutes_trend must be present in STATE output.

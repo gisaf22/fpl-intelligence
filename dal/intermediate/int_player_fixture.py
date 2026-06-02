@@ -111,19 +111,13 @@ def _resolve_player_side_context(df: pd.DataFrame) -> pd.DataFrame:
     _resolve_fixture_difficulty(result, is_home)
     _resolve_team_id(result, is_home)
     # Derive from fixture data — authoritative over staging's opponent_team field
-    result["opponent_team_id"] = (
-        result["away_team_id"].where(is_home, result["home_team_id"]).astype("int64")
-    )
-    return result.drop(
-        columns=["home_team_id", "away_team_id", "home_team_difficulty", "away_team_difficulty"]
-    )
+    result["opponent_team_id"] = result["away_team_id"].where(is_home, result["home_team_id"]).astype("int64")
+    return result.drop(columns=["home_team_id", "away_team_id", "home_team_difficulty", "away_team_difficulty"])
 
 
 def _resolve_fixture_difficulty(df: pd.DataFrame, is_home: pd.Series) -> None:
     """Derive fixture_difficulty from the player's side of the fixture."""
-    df["fixture_difficulty"] = (
-        df["home_team_difficulty"].where(is_home, df["away_team_difficulty"]).astype("Int64")
-    )
+    df["fixture_difficulty"] = df["home_team_difficulty"].where(is_home, df["away_team_difficulty"]).astype("Int64")
 
 
 def _resolve_team_id(df: pd.DataFrame, is_home: pd.Series) -> None:
@@ -154,7 +148,6 @@ def _validate_and_log_team_id_resolution(df: pd.DataFrame, true_team_id: pd.Seri
         raise DALContractViolation(
             f"team_id resolution failed for {n_rows} row(s) across fixture_id(s) {fixture_ids}."
             f" These rows have no matching fixture and cannot be used downstream.",
-
             validation="_resolve_player_side_context",
             n_violations=n_rows,
             error_code="JOIN_SAFETY",

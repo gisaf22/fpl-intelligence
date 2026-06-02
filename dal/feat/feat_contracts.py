@@ -22,7 +22,4 @@ def _to_state_contract(rec: FeatureRecord) -> dict:
     return contract
 
 
-STATE_COL_CONTRACTS: dict[str, dict] = {
-    col: _to_state_contract(rec)
-    for col, rec in FEATURE_REGISTRY.items()
-}
+STATE_COL_CONTRACTS: dict[str, dict] = {col: _to_state_contract(rec) for col, rec in FEATURE_REGISTRY.items()}

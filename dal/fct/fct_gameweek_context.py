@@ -62,7 +62,6 @@ def _validate_gw_sequence(events: pd.DataFrame) -> None:
         raise DALContractViolation(
             f"GW sequence gap in events table: GWs {missing} are missing. "
             f"The events table must have a contiguous sequence of GW rows.",
-
             validation="get_gameweek_context",
             n_violations=len(missing),
             error_code="TIME_CONTINUITY",

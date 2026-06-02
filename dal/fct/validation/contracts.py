@@ -15,19 +15,17 @@ def validate_column_contract(df: pd.DataFrame, expected_cols: list[str], dtypes:
     if extra:
         raise DALContractViolation(
             message=f"Extra columns: {sorted(extra)}",
-
-            validation='validate_column_contract',
+            validation="validate_column_contract",
             n_violations=len(extra),
-            error_code='COLUMN_EXTRA',
+            error_code="COLUMN_EXTRA",
         )
 
     if missing:
         raise DALContractViolation(
             message=f"Missing columns: {sorted(missing)}",
-
-            validation='validate_column_contract',
+            validation="validate_column_contract",
             n_violations=len(missing),
-            error_code='MISSING_COLUMNS',
+            error_code="MISSING_COLUMNS",
         )
 
     dtype_mismatches = []
@@ -36,15 +34,12 @@ def validate_column_contract(df: pd.DataFrame, expected_cols: list[str], dtypes:
             continue
         actual_dtype = str(df[col].dtype)
         if actual_dtype != str(expected_dtype):
-            dtype_mismatches.append(
-                f"  {col}: expected {expected_dtype}, got {actual_dtype}"
-            )
+            dtype_mismatches.append(f"  {col}: expected {expected_dtype}, got {actual_dtype}")
 
     if dtype_mismatches:
         raise DALContractViolation(
             message="Dtype mismatches:\n" + "\n".join(dtype_mismatches),
-
-            validation='validate_column_contract',
+            validation="validate_column_contract",
             n_violations=len(dtype_mismatches),
-            error_code='DTYPE_MISMATCH',
+            error_code="DTYPE_MISMATCH",
         )

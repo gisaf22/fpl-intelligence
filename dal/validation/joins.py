@@ -10,31 +10,23 @@ def validate_join_safety(
     join_type: str,
     description: str,
 ) -> None:
-    if join_type == 'left':
+    if join_type == "left":
         if result_n < left_n:
             raise DALContractViolation(
-                message=(
-                    f"Join safety violation [{description}]: left join expected {left_n} rows, "
-                    f"got {result_n}"
-                ),
+                message=(f"Join safety violation [{description}]: left join expected {left_n} rows, got {result_n}"),
                 validation="validate_join_safety",
-
                 n_violations=left_n - result_n,
-                error_code='JOIN_SAFETY',
+                error_code="JOIN_SAFETY",
             )
         if result_n > left_n:
             raise DALContractViolation(
-                message=(
-                    f"Join safety violation [{description}]: left join expected {left_n} rows, "
-                    f"got {result_n}"
-                ),
+                message=(f"Join safety violation [{description}]: left join expected {left_n} rows, got {result_n}"),
                 validation="validate_join_safety",
-
                 n_violations=result_n - left_n,
-                error_code='JOIN_SAFETY',
+                error_code="JOIN_SAFETY",
             )
 
-    elif join_type == 'inner':
+    elif join_type == "inner":
         # Note: this only detects result_n > min(left_n, right_n). It does NOT catch fanout
         # caused by duplicate keys on the right side — that requires the right frame's join
         # key to be validated for uniqueness before the merge.
@@ -42,16 +34,14 @@ def validate_join_safety(
         if result_n > expected_max:
             raise DALContractViolation(
                 message=(
-                    f"Join safety violation [{description}]: inner join expected <= "
-                    f"{expected_max} rows, got {result_n}"
+                    f"Join safety violation [{description}]: inner join expected <= {expected_max} rows, got {result_n}"
                 ),
                 validation="validate_join_safety",
-
                 n_violations=result_n - expected_max,
-                error_code='JOIN_SAFETY',
+                error_code="JOIN_SAFETY",
             )
 
-    elif join_type == 'cross':
+    elif join_type == "cross":
         expected = left_n * right_n
         if result_n < expected:
             raise DALContractViolation(
@@ -60,9 +50,8 @@ def validate_join_safety(
                     f"({left_n} x {right_n}), got {result_n}"
                 ),
                 validation="validate_join_safety",
-
                 n_violations=expected - result_n,
-                error_code='JOIN_SAFETY',
+                error_code="JOIN_SAFETY",
             )
         if result_n > expected:
             raise DALContractViolation(
@@ -71,9 +60,8 @@ def validate_join_safety(
                     f"({left_n} x {right_n}), got {result_n}"
                 ),
                 validation="validate_join_safety",
-
                 n_violations=result_n - expected,
-                error_code='JOIN_SAFETY',
+                error_code="JOIN_SAFETY",
             )
 
     else:

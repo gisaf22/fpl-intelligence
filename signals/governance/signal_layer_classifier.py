@@ -238,10 +238,7 @@ def enrich_signal_layers(registry: pd.DataFrame) -> pd.DataFrame:
     """
     missing = sorted(set(registry["signal"]) - set(SIGNAL_LAYER_MAPPING))
     if missing:
-        raise ValueError(
-            "Signal-layer mapping missing entries for signals: "
-            + ", ".join(missing)
-        )
+        raise ValueError("Signal-layer mapping missing entries for signals: " + ", ".join(missing))
 
     layer_df = pd.DataFrame.from_dict(SIGNAL_LAYER_MAPPING, orient="index")
     layer_df.index.name = "signal"
@@ -254,15 +251,9 @@ def enrich_signal_layers(registry: pd.DataFrame) -> pd.DataFrame:
         "interpretation_caveat",
         "downstream_status",
     ]
-    enriched = registry.drop(
-        columns=[column for column in semantic_cols if column in registry.columns]
-    ).merge(layer_df, on="signal", how="left")
-    enriched["feature_candidate_eligible"] = (
-        enriched["feature_candidate_eligible"].astype(bool)
+    enriched = registry.drop(columns=[column for column in semantic_cols if column in registry.columns]).merge(
+        layer_df, on="signal", how="left"
     )
-    enriched["downstream_status"] = [
-        assign_downstream_status(row)
-        for row in enriched.to_dict(orient="records")
-    ]
+    enriched["feature_candidate_eligible"] = enriched["feature_candidate_eligible"].astype(bool)
+    enriched["downstream_status"] = [assign_downstream_status(row) for row in enriched.to_dict(orient="records")]
     return enriched
-

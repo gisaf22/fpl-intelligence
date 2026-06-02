@@ -34,17 +34,9 @@ def _points_per_cost(
     manager evaluates value: cost is known now, returns accrue later.
     """
     future_gws = list(range(from_gw + 1, from_gw + lookahead + 1))
-    current_prices = (
-        features[features["gw"] == from_gw]
-        .set_index("player_id")["purchase_price"]
-    )
+    current_prices = features[features["gw"] == from_gw].set_index("player_id")["purchase_price"]
     mask = features["gw"].isin(future_gws) & features["player_id"].isin(player_ids)
-    future_pts = (
-        features[mask]
-        .dropna(subset=["total_points"])
-        .groupby("player_id")["total_points"]
-        .sum()
-    )
+    future_pts = features[mask].dropna(subset=["total_points"]).groupby("player_id")["total_points"].sum()
     if future_pts.empty:
         return pd.Series(dtype=float)
     prices = current_prices.reindex(future_pts.index)
@@ -125,12 +117,14 @@ def evaluate_value_heuristic(
         r_ppc = _points_per_cost(r_ids, features, gw, lookahead)
         f_ppc = _points_per_cost(f_ids, features, gw, lookahead)
 
-        rows.append({
-            "gw": gw,
-            "heuristic_mean_ppc": float(h_ppc.mean()) if not h_ppc.empty else None,
-            "baseline_recent_mean_ppc": float(r_ppc.mean()) if not r_ppc.empty else None,
-            "baseline_fixture_mean_ppc": float(f_ppc.mean()) if not f_ppc.empty else None,
-        })
+        rows.append(
+            {
+                "gw": gw,
+                "heuristic_mean_ppc": float(h_ppc.mean()) if not h_ppc.empty else None,
+                "baseline_recent_mean_ppc": float(r_ppc.mean()) if not r_ppc.empty else None,
+                "baseline_fixture_mean_ppc": float(f_ppc.mean()) if not f_ppc.empty else None,
+            }
+        )
 
     if not rows:
         return {"gw_count": 0}

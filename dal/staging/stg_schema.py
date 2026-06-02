@@ -16,6 +16,7 @@ VALID_TRANSFORMS = {"divide_by_10", "parse_datetime"}
 @dataclass
 class ColumnMapping:
     """Maps one source column to its canonical form, dtype, and optional transform."""
+
     source: str
     canonical: str
     dtype: str
@@ -27,6 +28,7 @@ class ColumnMapping:
 @dataclass
 class Schema:
     """Full contract for a source table: its name and all column mappings."""
+
     source_table: str
     columns: list[ColumnMapping]
     pk_columns: list[str] = None  # source column names for ORDER BY
@@ -80,17 +82,13 @@ def _require_bool(raw: dict[str, object], field_name: str, context: str) -> bool
 def _validate_identifier(identifier: str, entity: str, field_name: str) -> None:
     """Raise if identifier is not a valid Python/SQL identifier."""
     if not identifier.isidentifier():
-        raise ValueError(
-            f"Schema for '{entity}' field '{field_name}' has invalid identifier '{identifier}'"
-        )
+        raise ValueError(f"Schema for '{entity}' field '{field_name}' has invalid identifier '{identifier}'")
 
 
 def _validate_in_set(value: str, valid: set[str], context: str, field_name: str) -> None:
     """Raise if value is not in the allowed set."""
     if value not in valid:
-        raise ValueError(
-            f"{context} field '{field_name}' has invalid value '{value}'. Valid: {valid}"
-        )
+        raise ValueError(f"{context} field '{field_name}' has invalid value '{value}'. Valid: {valid}")
 
 
 def _parse_column_mapping(entity: str, index: int, raw: object) -> ColumnMapping:

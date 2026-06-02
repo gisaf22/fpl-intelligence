@@ -22,6 +22,7 @@ from dal.feat.feat_player_gameweek import build_player_gameweek_state
 
 pytestmark = pytest.mark.unit
 
+
 def _make_synthetic_spine(minutes_by_gw: list[int | None]) -> pd.DataFrame:
     """Build a minimal spine DataFrame for a single player with given minutes per GW.
 
@@ -32,27 +33,29 @@ def _make_synthetic_spine(minutes_by_gw: list[int | None]) -> pd.DataFrame:
     for i, m in enumerate(minutes_by_gw):
         gw = i + 1
         is_bgw = m is None
-        rows.append({
-            "player_id": 1,
-            "gw": gw,
-            "is_bgw": is_bgw,
-            "is_dgw": False,
-            "fixture_count": 0 if is_bgw else 1,
-            "minutes": pd.NA if is_bgw else m,
-            "total_points": pd.NA if is_bgw else 2,
-            "xg": pd.NA if is_bgw else 0.0,
-            "xa": pd.NA if is_bgw else 0.0,
-            "xgi": pd.NA if is_bgw else 0.0,
-            "xgc": pd.NA if is_bgw else 0.5,
-            "goals_scored": pd.NA if is_bgw else 0,
-            "assists": pd.NA if is_bgw else 0,
-            "clean_sheets": pd.NA if is_bgw else (1 if not is_bgw else pd.NA),
-            "goals_conceded": pd.NA if is_bgw else 0,
-            "saves": pd.NA if is_bgw else 0,
-            "penalties_saved": pd.NA if is_bgw else 0,
-            "bonus": pd.NA if is_bgw else 0,
-            "bps": pd.NA if is_bgw else 0,
-        })
+        rows.append(
+            {
+                "player_id": 1,
+                "gw": gw,
+                "is_bgw": is_bgw,
+                "is_dgw": False,
+                "fixture_count": 0 if is_bgw else 1,
+                "minutes": pd.NA if is_bgw else m,
+                "total_points": pd.NA if is_bgw else 2,
+                "xg": pd.NA if is_bgw else 0.0,
+                "xa": pd.NA if is_bgw else 0.0,
+                "xgi": pd.NA if is_bgw else 0.0,
+                "xgc": pd.NA if is_bgw else 0.5,
+                "goals_scored": pd.NA if is_bgw else 0,
+                "assists": pd.NA if is_bgw else 0,
+                "clean_sheets": pd.NA if is_bgw else (1 if not is_bgw else pd.NA),
+                "goals_conceded": pd.NA if is_bgw else 0,
+                "saves": pd.NA if is_bgw else 0,
+                "penalties_saved": pd.NA if is_bgw else 0,
+                "bonus": pd.NA if is_bgw else 0,
+                "bps": pd.NA if is_bgw else 0,
+            }
+        )
     df = pd.DataFrame(rows)
     df["minutes"] = df["minutes"].astype("Int64")
     df["total_points"] = df["total_points"].astype("Int64")
@@ -69,6 +72,7 @@ def _make_synthetic_spine(minutes_by_gw: list[int | None]) -> pd.DataFrame:
     df["xgi"] = df["xgi"].astype("Float64")
     df["xgc"] = df["xgc"].astype("Float64")
     return df
+
 
 def test_minutes_trend_lag1_convention():
     """SC-1 FAILING TEST: minutes_trend at GW N must not use GW N minutes.
@@ -89,6 +93,7 @@ def test_minutes_trend_lag1_convention():
         f"got {gw7['minutes_trend']!r}. "
         f"Bug: no shift(1) on last3 causes look-ahead — last3 sees GW7's 90 min."
     )
+
 
 def test_minutes_trend_null_at_gw1():
     """minutes_trend must be null at GW 1 for all players — no prior data.

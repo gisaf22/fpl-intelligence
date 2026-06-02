@@ -10,6 +10,7 @@ from studies.kernels.correlation.tail import haul_concentration
 
 pytestmark = pytest.mark.unit
 
+
 def test_decompose_rho_returns_panel_metrics_for_supported_slice():
     rows = []
     for player_id in range(20):
@@ -37,6 +38,7 @@ def test_decompose_rho_returns_panel_metrics_for_supported_slice():
     }
     assert pd.notna(result["rho_pooled"])
 
+
 def test_haul_concentration_uses_fixed_haul_threshold():
     df = pd.DataFrame(
         {
@@ -52,6 +54,7 @@ def test_haul_concentration_uses_fixed_haul_threshold():
     assert result["n_haul"] == 20
     assert result["haul_pct"] == 20.0
     assert isinstance(result["tail_sensitive"], bool)
+
 
 def test_association_class_precedence_and_flag_consolidation():
     assert (
@@ -99,6 +102,7 @@ def test_association_class_precedence_and_flag_consolidation():
         == "insufficient_support:bin_density,degenerate"
     )
 
+
 def test_compute_relationship_sections_iterates_signal_position_pairs():
     rows = []
     for position_index, position in enumerate(["GK", "DEF", "MID", "FWD"]):
@@ -131,6 +135,7 @@ def test_compute_relationship_sections_iterates_signal_position_pairs():
     assert sections.geometry["population_scope"].eq("primary").all()
     assert sections.geometry["variable_level"].eq("player_level").all()
     assert sections.geometry["n_records"].eq(100).all()
+
 
 def test_compute_relationship_sections_can_feed_registry_assembly():
     rows = []

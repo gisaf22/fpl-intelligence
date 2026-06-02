@@ -15,6 +15,7 @@ def _load_spine(db_path):
     staged = load_staged_entities(db_path)
     return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
 
+
 EXPECTED_COLS = set(SPINE_COLS)
 
 

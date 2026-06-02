@@ -35,6 +35,9 @@ jobs:
         run: uv run mypy
         continue-on-error: true  # 8 pre-existing errors; remove once Day 3 mypy fixes land
 
+      - name: Build fixture DB
+        run: uv run python tests/fixtures/create_test_db.py
+
       - name: Unit tests
         run: uv run pytest -m unit -v --tb=short
 

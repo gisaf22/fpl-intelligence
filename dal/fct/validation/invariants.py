@@ -7,8 +7,8 @@ from dal.exceptions import DALContractViolation
 
 def validate_time_continuity(
     df: pd.DataFrame,
-    player_col: str = 'player_id',
-    gw_col: str = 'gw',
+    player_col: str = "player_id",
+    gw_col: str = "gw",
 ) -> None:
     player_errors = []
     for player_id, group in df.groupby(player_col):
@@ -20,14 +20,10 @@ def validate_time_continuity(
 
     if player_errors:
         raise DALContractViolation(
-            message=(
-                f"Time continuity violation for {len(player_errors)} player(s):\n"
-                + "\n".join(player_errors)
-            ),
-
-            validation='validate_time_continuity',
+            message=(f"Time continuity violation for {len(player_errors)} player(s):\n" + "\n".join(player_errors)),
+            validation="validate_time_continuity",
             n_violations=len(player_errors),
-            error_code='TIME_CONTINUITY',
+            error_code="TIME_CONTINUITY",
         )
 
 
@@ -36,21 +32,16 @@ def validate_row_count_invariant(df: pd.DataFrame, n_players: int, n_gws: int) -
     actual = len(df)
     if actual != expected:
         raise DALContractViolation(
-            message=(
-                f"Row count violation: expected {expected} "
-                f"({n_players} players x {n_gws} GWs), "
-                f"got {actual}"
-            ),
-
-            validation='validate_row_count_invariant',
+            message=(f"Row count violation: expected {expected} ({n_players} players x {n_gws} GWs), got {actual}"),
+            validation="validate_row_count_invariant",
             n_violations=abs(actual - expected),
-            error_code='ROW_COUNT',
+            error_code="ROW_COUNT",
         )
 
 
 def validate_no_future_data(
     df: pd.DataFrame,
-    gw_col: str = 'gw',
+    gw_col: str = "gw",
     reference_gw: int | None = None,
     performance_cols: set[str] | list[str] | None = None,
 ) -> None:
@@ -77,21 +68,16 @@ def validate_no_future_data(
             continue
         bad = future_rows[future_rows[col].notna()]
         if not bad.empty:
-            pairs = list(zip(bad['player_id'], bad[gw_col]))[:10]
+            pairs = list(zip(bad["player_id"], bad[gw_col]))[:10]
             violation_messages.append(
-                f"{col}: {len(bad)} rows with non-null values beyond GW {reference_gw} "
-                f"(first pairs: {pairs})"
+                f"{col}: {len(bad)} rows with non-null values beyond GW {reference_gw} (first pairs: {pairs})"
             )
             total_violations += len(bad)
 
     if violation_messages:
         raise DALContractViolation(
-            message=(
-                f"Future data violation (reference_gw={reference_gw}):\n"
-                + "\n".join(violation_messages)
-            ),
-
-            validation='validate_no_future_data',
+            message=(f"Future data violation (reference_gw={reference_gw}):\n" + "\n".join(violation_messages)),
+            validation="validate_no_future_data",
             n_violations=total_violations,
-            error_code='FUTURE_DATA',
+            error_code="FUTURE_DATA",
         )

@@ -57,10 +57,7 @@ def _load_traceability() -> list[dict]:
     """Load and cache signal_traceability.yaml entries."""
     path = _TRACEABILITY_PATH
     if not path.exists():
-        raise FileNotFoundError(
-            f"Signal traceability not found at {path}. "
-            "Run from the project root directory."
-        )
+        raise FileNotFoundError(f"Signal traceability not found at {path}. Run from the project root directory.")
     with path.open() as fh:
         data = yaml.safe_load(fh)
     return data.get("entries", [])
@@ -118,17 +115,12 @@ def score_provenance(
     ValueError if module is not registered, or player/gw not found in features.
     """
     if module not in _VALID_MODULES:
-        raise ValueError(
-            f"Module {module!r} not in provenance map. "
-            f"Valid modules: {sorted(_VALID_MODULES)}"
-        )
+        raise ValueError(f"Module {module!r} not in provenance map. Valid modules: {sorted(_VALID_MODULES)}")
 
     mask = (features["player_id"] == player_id) & (features["gw"] == gw)
     player_row = features[mask]
     if player_row.empty:
-        raise ValueError(
-            f"score_provenance: no data for player_id={player_id}, gw={gw}."
-        )
+        raise ValueError(f"score_provenance: no data for player_id={player_id}, gw={gw}.")
 
     row = player_row.iloc[0]
     position = str(row.get("position_label", "UNKNOWN"))
@@ -138,10 +130,7 @@ def score_provenance(
     signals_provenance: dict[str, Any] = {}
     for component, weight_value in weights.items():
         state_cols = signal_map.get(component, [])
-        state_values = {
-            col: (row[col] if col in row.index else None)
-            for col in state_cols
-        }
+        state_values = {col: (row[col] if col in row.index else None) for col in state_cols}
 
         try:
             meta = get_weight_metadata(module, component)
@@ -156,10 +145,7 @@ def score_provenance(
             "weight": weight_value,
             "signals": state_cols,
             "state_values": state_values,
-            "registry_source": (
-                f"signals/characterisation/weight_registry.yaml "
-                f"§modules.{module}.weights.{component}"
-            ),
+            "registry_source": (f"signals/characterisation/weight_registry.yaml §modules.{module}.weights.{component}"),
             "signal_id": meta.get("signal_id"),
             "provenance": str(meta.get("note", "")).strip(),
             "caveats": caveats,
@@ -170,8 +156,6 @@ def score_provenance(
         "gw": int(gw),
         "module": module,
         "position": position,
-        "registry_source": (
-            f"signals/characterisation/weight_registry.yaml §modules.{module}"
-        ),
+        "registry_source": (f"signals/characterisation/weight_registry.yaml §modules.{module}"),
         "signals": signals_provenance,
     }

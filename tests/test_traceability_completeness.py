@@ -26,23 +26,28 @@ pytestmark = pytest.mark.unit
 TRACEABILITY_PATH = Path("signals/characterisation/signal_traceability.yaml")
 EVAL_META_PATH = Path("signals/governance/evaluation_metadata.yaml")
 
+
 def _load_traceability() -> list[dict]:
     with open(TRACEABILITY_PATH) as f:
         data = yaml.safe_load(f)
     return data["entries"]
+
 
 def _load_eval_meta_signals() -> set[str]:
     with open(EVAL_META_PATH) as f:
         data = yaml.safe_load(f)
     return {entry["signal"] for entry in data["evaluation_findings"]}
 
+
 def _load_governed_rolling_cols() -> set[str]:
     """Return the governed column set from FEATURE_REGISTRY — the single source of truth."""
     return set(FEATURE_REGISTRY.keys())
 
+
 # ---------------------------------------------------------------------------
 # 1. Every evaluated signal has a traceability entry
 # ---------------------------------------------------------------------------
+
 
 def test_all_evaluated_signals_have_traceability_entry():
     """Every signal in evaluation_metadata.yaml appears in signal_traceability.yaml."""
@@ -51,14 +56,15 @@ def test_all_evaluated_signals_have_traceability_entry():
     traced_signals = {e["signal"] for e in entries}
 
     missing = eval_signals - traced_signals
-    assert not missing, (
-        "Signals in evaluation_metadata.yaml without any traceability entry:\n"
-        + "\n".join(sorted(missing))
+    assert not missing, "Signals in evaluation_metadata.yaml without any traceability entry:\n" + "\n".join(
+        sorted(missing)
     )
+
 
 # ---------------------------------------------------------------------------
 # 2. Every governed STATE column has a traceability entry
 # ---------------------------------------------------------------------------
+
 
 def test_all_governed_rolling_cols_have_traceability_entry():
     """Every column in _GOVERNED_ROLLING_COLS appears in signal_traceability.yaml."""
@@ -67,14 +73,13 @@ def test_all_governed_rolling_cols_have_traceability_entry():
     traced_signals = {e["signal"] for e in entries}
 
     missing = governed - traced_signals
-    assert not missing, (
-        "Governed STATE columns without any traceability entry:\n"
-        + "\n".join(sorted(missing))
-    )
+    assert not missing, "Governed STATE columns without any traceability entry:\n" + "\n".join(sorted(missing))
+
 
 # ---------------------------------------------------------------------------
 # 3. Every candidate entry has a non-null operational_role
 # ---------------------------------------------------------------------------
+
 
 def test_candidate_entries_have_operational_role():
     """Every entry with lifecycle_state=candidate has a non-null operational_role."""
@@ -84,14 +89,15 @@ def test_candidate_entries_have_operational_role():
         if e.get("lifecycle_state") == "candidate":
             if e.get("operational_role") is None:
                 violations.append(
-                    f"{e.get('signal')} {e.get('position')}: "
-                    f"lifecycle_state=candidate but operational_role is null"
+                    f"{e.get('signal')} {e.get('position')}: lifecycle_state=candidate but operational_role is null"
                 )
     assert not violations, "\n".join(violations)
+
 
 # ---------------------------------------------------------------------------
 # 4. Every non-null operational_role has consumer_modules or consumer_note
 # ---------------------------------------------------------------------------
+
 
 def test_operational_role_entries_have_consumer_or_note():
     """Entries with a non-null operational_role have consumer_modules or consumer_note."""
@@ -109,14 +115,22 @@ def test_operational_role_entries_have_consumer_or_note():
                 )
     assert not violations, "\n".join(violations)
 
+
 # ---------------------------------------------------------------------------
 # 5. Structural sanity: all entries have required fields
 # ---------------------------------------------------------------------------
 
-_REQUIRED_ENTRY_FIELDS = frozenset({
-    "signal", "position", "lifecycle_state", "downstream_status",
-    "operational_role", "consumer_modules",
-})
+_REQUIRED_ENTRY_FIELDS = frozenset(
+    {
+        "signal",
+        "position",
+        "lifecycle_state",
+        "downstream_status",
+        "operational_role",
+        "consumer_modules",
+    }
+)
+
 
 def test_all_entries_have_required_fields():
     """Every traceability entry has the minimum required fields."""
@@ -129,12 +143,14 @@ def test_all_entries_have_required_fields():
             violations.append(f"{key}: missing fields {sorted(missing)}")
     assert not violations, "\n".join(violations)
 
+
 # ---------------------------------------------------------------------------
 # 6. Lifecycle vocabulary conformance
 # ---------------------------------------------------------------------------
 
 _VALID_LIFECYCLE = frozenset({"candidate", "approved", "excluded", "not_applicable", "provisional"})
 _VALID_DOWNSTREAM = frozenset({"eligible", "caveated", "approved", "blocked"})
+
 
 def test_lifecycle_state_vocabulary():
     """lifecycle_state must be in the controlled vocabulary."""
@@ -147,6 +163,7 @@ def test_lifecycle_state_vocabulary():
             violations.append(f"{key}: invalid lifecycle_state '{ls}'")
     assert not violations, "\n".join(violations)
 
+
 def test_downstream_status_vocabulary():
     """downstream_status must be in the controlled vocabulary."""
     entries = _load_traceability()
@@ -158,9 +175,11 @@ def test_downstream_status_vocabulary():
             violations.append(f"{key}: invalid downstream_status '{ds}'")
     assert not violations, "\n".join(violations)
 
+
 # ---------------------------------------------------------------------------
 # 7. Blocked entries are not listed as eligible
 # ---------------------------------------------------------------------------
+
 
 def test_excluded_entries_are_blocked():
     """Entries with lifecycle_state=excluded must not have downstream_status=eligible."""
@@ -170,19 +189,20 @@ def test_excluded_entries_are_blocked():
         key = f"{e.get('signal')} {e.get('position')}"
         if e.get("lifecycle_state") == "excluded":
             if e.get("downstream_status") == "eligible":
-                violations.append(
-                    f"{key}: lifecycle_state=excluded but downstream_status=eligible"
-                )
+                violations.append(f"{key}: lifecycle_state=excluded but downstream_status=eligible")
     assert not violations, "\n".join(violations)
+
 
 # ---------------------------------------------------------------------------
 # 8. Total entry count is consistent with known schema
 # ---------------------------------------------------------------------------
 
+
 def test_traceability_is_non_empty():
     """signal_traceability.yaml contains entries."""
     entries = _load_traceability()
     assert len(entries) > 0, "signal_traceability.yaml has no entries"
+
 
 def test_traceability_covers_all_four_positions_for_evaluated_signals():
     """Every signal in evaluation_metadata.yaml has entries for at least 3 of 4 positions.
@@ -203,8 +223,5 @@ def test_traceability_covers_all_four_positions_for_evaluated_signals():
     for sig in eval_signals:
         positions = by_signal.get(sig, set())
         if len(positions) < 3:
-            violations.append(
-                f"{sig}: only {len(positions)} position entries ({sorted(positions)}); "
-                f"expected ≥ 3"
-            )
+            violations.append(f"{sig}: only {len(positions)} position entries ({sorted(positions)}); expected ≥ 3")
     assert not violations, "\n".join(violations)

@@ -59,6 +59,7 @@ def test_load_schema_missing_source_table(tmp_path, monkeypatch):
     )
     bad.write_text(schema_yaml)
     import dal.staging.stg_schema as staging_module
+
     monkeypatch.setattr(staging_module, "SCHEMA_DIR", tmp_path)
     with pytest.raises(ValueError, match="source_table"):
         load_schema("bad")
@@ -68,6 +69,7 @@ def test_load_schema_missing_columns(tmp_path, monkeypatch):
     bad = tmp_path / "bad.yaml"
     bad.write_text("source_table: foo\n")
     import dal.staging.stg_schema as staging_module
+
     monkeypatch.setattr(staging_module, "SCHEMA_DIR", tmp_path)
     with pytest.raises(ValueError, match="columns"):
         load_schema("bad")
@@ -85,6 +87,7 @@ def test_load_schema_invalid_dtype(tmp_path, monkeypatch):
         "    description: x\n"
     )
     import dal.staging.stg_schema as staging_module
+
     monkeypatch.setattr(staging_module, "SCHEMA_DIR", tmp_path)
     with pytest.raises(ValueError, match="has invalid value"):
         load_schema("bad")
@@ -94,14 +97,10 @@ def test_load_schema_missing_required_field(tmp_path, monkeypatch):
     bad = tmp_path / "bad.yaml"
     # missing 'description'
     bad.write_text(
-        "source_table: foo\n"
-        "columns:\n"
-        "  - source: x\n"
-        "    canonical: x\n"
-        "    dtype: int64\n"
-        "    nullable: false\n"
+        "source_table: foo\ncolumns:\n  - source: x\n    canonical: x\n    dtype: int64\n    nullable: false\n"
     )
     import dal.staging.stg_schema as staging_module
+
     monkeypatch.setattr(staging_module, "SCHEMA_DIR", tmp_path)
     with pytest.raises(ValueError, match="missing required field"):
         load_schema("bad")
@@ -111,6 +110,7 @@ def test_load_schema_column_must_be_mapping(tmp_path, monkeypatch):
     bad = tmp_path / "bad.yaml"
     bad.write_text("source_table: foo\ncolumns:\n  - [not, a, mapping]\n")
     import dal.staging.stg_schema as staging_module
+
     monkeypatch.setattr(staging_module, "SCHEMA_DIR", tmp_path)
     with pytest.raises(ValueError, match="must be a YAML mapping"):
         load_schema("bad")
@@ -128,6 +128,7 @@ def test_load_schema_nullable_must_be_boolean(tmp_path, monkeypatch):
         "    description: x\n"
     )
     import dal.staging.stg_schema as staging_module
+
     monkeypatch.setattr(staging_module, "SCHEMA_DIR", tmp_path)
     with pytest.raises(ValueError, match="must be a boolean"):
         load_schema("bad")
@@ -146,6 +147,7 @@ def test_load_schema_invalid_transform(tmp_path, monkeypatch):
         "    transform: unknown\n"
     )
     import dal.staging.stg_schema as staging_module
+
     monkeypatch.setattr(staging_module, "SCHEMA_DIR", tmp_path)
     with pytest.raises(ValueError, match="has invalid value"):
         load_schema("bad")
@@ -163,6 +165,7 @@ def test_load_schema_invalid_identifier(tmp_path, monkeypatch):
         "    description: x\n"
     )
     import dal.staging.stg_schema as staging_module
+
     monkeypatch.setattr(staging_module, "SCHEMA_DIR", tmp_path)
     with pytest.raises(ValueError, match="invalid identifier"):
         load_schema("bad")

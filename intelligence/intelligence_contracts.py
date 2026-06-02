@@ -16,18 +16,20 @@ from dal.mart import GOVERNED_SIGNAL_COLUMNS
 _REQUIRED_STATE_COLS: frozenset[str] = frozenset(GOVERNED_SIGNAL_COLUMNS)
 
 # Spine columns required by intelligence functions.
-_REQUIRED_SPINE_COLS: frozenset[str] = frozenset([
-    "player_id",
-    "gw",
-    "player_name",
-    "position_label",
-    "position_code",
-    "team_id",
-    "purchase_price",
-    "fdr_avg",
-    "is_bgw",
-    "goals_scored",
-])
+_REQUIRED_SPINE_COLS: frozenset[str] = frozenset(
+    [
+        "player_id",
+        "gw",
+        "player_name",
+        "position_label",
+        "position_code",
+        "team_id",
+        "purchase_price",
+        "fdr_avg",
+        "is_bgw",
+        "goals_scored",
+    ]
+)
 
 REQUIRED_INTELLIGENCE_COLS: frozenset[str] = _REQUIRED_STATE_COLS | _REQUIRED_SPINE_COLS
 

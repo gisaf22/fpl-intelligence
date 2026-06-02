@@ -30,12 +30,8 @@ GEOMETRY_TAXONOMY: list[str] = [
     "indeterminate",
     "unassessable",
 ]
-MONOTONIC_GEOMETRIES: frozenset[str] = frozenset(
-    {"monotonic_positive", "monotonic_negative"}
-)
-UPPER_TAIL_GEOMETRIES: frozenset[str] = frozenset(
-    {"threshold_positive", "threshold_negative", "saturation"}
-)
+MONOTONIC_GEOMETRIES: frozenset[str] = frozenset({"monotonic_positive", "monotonic_negative"})
+UPPER_TAIL_GEOMETRIES: frozenset[str] = frozenset({"threshold_positive", "threshold_negative", "saturation"})
 
 ASSOCIATION_CLASS_TAXONOMY: list[str] = [
     "continuous_monotonic",
@@ -78,7 +74,6 @@ SUPPORT_TYPE_TAXONOMY: list[str] = [
     "ordinal_scheme_mismatch",
     "insufficient_n",
 ]
-
 
 
 def select_bucketing_scheme(
@@ -128,15 +123,11 @@ def bin_analysis(
     try:
         if scheme_type in ("discrete", "ordinal"):
             bins, labels = param
-            subset["bin"] = pd.cut(
-                sig, bins=bins, labels=labels, include_lowest=True
-            )
+            subset["bin"] = pd.cut(sig, bins=bins, labels=labels, include_lowest=True)
         elif scheme_type == "two_stage":
             nz_mask = sig > 0
             nz_series = sig[nz_mask]
-            q_bins = pd.qcut(
-                nz_series, q=3, labels=TWO_STAGE_NZ_LABELS, duplicates="drop"
-            )
+            q_bins = pd.qcut(nz_series, q=3, labels=TWO_STAGE_NZ_LABELS, duplicates="drop")
             subset["bin"] = "zero"
             subset.loc[nz_mask, "bin"] = q_bins.astype(str)
         else:
@@ -217,9 +208,7 @@ def classify_geometry(bin_stats: pd.DataFrame) -> str:
 def get_bin_direction(bin_stats: pd.DataFrame) -> tuple[float, ...]:
     """Return signs between adjacent bin means."""
     means = bin_stats["mean"].values
-    return tuple(
-        float(np.sign(means[i + 1] - means[i])) for i in range(len(means) - 1)
-    )
+    return tuple(float(np.sign(means[i + 1] - means[i])) for i in range(len(means) - 1))
 
 
 def monotonicity_confidence(
@@ -249,9 +238,7 @@ def monotonicity_confidence(
     attempts = 0
 
     for _ in range(n_bootstrap):
-        sample = subset.sample(
-            frac=1.0, replace=True, random_state=int(rng.integers(1_000_000))
-        )
+        sample = subset.sample(frac=1.0, replace=True, random_state=int(rng.integers(1_000_000)))
         bs_stats, _ = bin_analysis(
             sample.assign(position=position),
             signal,
@@ -275,9 +262,7 @@ def stability_classify(
     block_gaps: dict[str, float | None],
 ) -> str:
     """Classify temporal stability of a signal's Q1-vs-top-bin gap."""
-    valid_gaps = [
-        value for value in block_gaps.values() if value is not None and not np.isnan(value)
-    ]
+    valid_gaps = [value for value in block_gaps.values() if value is not None and not np.isnan(value)]
 
     if len(valid_gaps) < 2 or np.isnan(pooled_gap):
         return "insufficient_data"

@@ -52,8 +52,7 @@ def score(
     gw_data = state[state["gw"] == gw].copy()
     if gw_data.empty:
         raise NoDataForGameweek(
-            f"No data found for gameweek {gw}. "
-            "Ensure the database has been populated for this gameweek."
+            f"No data found for gameweek {gw}. Ensure the database has been populated for this gameweek."
         )
 
     # Derive registry-compatible position string from position_code (GKP→GK etc.)
@@ -113,17 +112,11 @@ def score(
                 PlayerScore(
                     player_id=int(row["player_id"]),
                     player_name=str(row.get("player_name", row["player_id"])),
-                    position=position,   # registry-canonical position (GK not GKP)
+                    position=position,  # registry-canonical position (GK not GKP)
                     rank=int(ranks[idx]),
                     composite_score=float(composite[idx]),
-                    signal_values={
-                        s: (float(raw[s][idx]) if not pd.isna(raw[s][idx]) else None)
-                        for s in signal_names
-                    },
-                    signal_normalised={
-                        s: float(normalised[s][idx])
-                        for s in signal_names
-                    },
+                    signal_values={s: (float(raw[s][idx]) if not pd.isna(raw[s][idx]) else None) for s in signal_names},
+                    signal_normalised={s: float(normalised[s][idx]) for s in signal_names},
                 )
             )
 

@@ -21,6 +21,7 @@ pytestmark = pytest.mark.unit
 # Shared fixture helpers (mirrored from test_evaluation_core for isolation)
 # ---------------------------------------------------------------------------
 
+
 def _state_row(
     player_id: int,
     gw: int,
@@ -67,12 +68,15 @@ def _state_row(
         "fixture_context": "SGW",
     }
 
+
 def _make_features(*rows: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
+
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestEvaluateCaptainHeuristic:
     def test_returns_gw_count(self):
@@ -101,9 +105,16 @@ class TestEvaluateCaptainHeuristic:
         )
         result = evaluate_captain_heuristic(features, gameweeks=[5])
         for key in [
-            "gw_count", "heuristic_avg_return", "baseline_recent_avg_return",
-            "baseline_xgi_avg_return", "top1_hit_rate", "top3_hit_rate",
-            "mean_regret", "heuristic_variance", "heuristic_downside_rate", "detail",
+            "gw_count",
+            "heuristic_avg_return",
+            "baseline_recent_avg_return",
+            "baseline_xgi_avg_return",
+            "top1_hit_rate",
+            "top3_hit_rate",
+            "mean_regret",
+            "heuristic_variance",
+            "heuristic_downside_rate",
+            "detail",
         ]:
             assert key in result, f"missing key: {key}"
 
@@ -122,8 +133,7 @@ class TestEvaluateCaptainHeuristic:
             _state_row(2, 5, total_points=4.0, points_roll3=3.0),
         )
         result = evaluate_captain_heuristic(features, gameweeks=[5])
-        for col in ["gw", "heuristic_top1_id", "heuristic_top1_return",
-                    "top1_hit", "top3_hit", "regret"]:
+        for col in ["gw", "heuristic_top1_id", "heuristic_top1_return", "top1_hit", "top3_hit", "regret"]:
             assert col in result["detail"].columns, f"missing detail column: {col}"
 
     def test_hit_rate_in_0_1_range(self):
@@ -139,10 +149,8 @@ class TestEvaluateCaptainHeuristic:
         # Player 1 has high form and will be picked as top captain
         # Player 1 also scores the most → top1_hit_rate should be 1.0
         features = _make_features(
-            _state_row(1, 5, total_points=18.0, points_roll3=9.0, xgi_roll3=1.0,
-                       fdr_avg=2.0, minutes_roll3=90.0),
-            _state_row(2, 5, total_points=2.0, points_roll3=2.0, xgi_roll3=0.1,
-                       fdr_avg=4.0, minutes_roll3=85.0),
+            _state_row(1, 5, total_points=18.0, points_roll3=9.0, xgi_roll3=1.0, fdr_avg=2.0, minutes_roll3=90.0),
+            _state_row(2, 5, total_points=2.0, points_roll3=2.0, xgi_roll3=0.1, fdr_avg=4.0, minutes_roll3=85.0),
         )
         result = evaluate_captain_heuristic(features, gameweeks=[5])
         assert result["top1_hit_rate"] == 1.0
@@ -150,10 +158,8 @@ class TestEvaluateCaptainHeuristic:
     def test_regret_is_non_negative_when_heuristic_is_suboptimal(self):
         # Player 2 scores more but player 1 is picked by heuristic (higher roll3)
         features = _make_features(
-            _state_row(1, 5, total_points=6.0, points_roll3=9.0, xgi_roll3=1.0,
-                       fdr_avg=2.0),
-            _state_row(2, 5, total_points=20.0, points_roll3=2.0, xgi_roll3=0.1,
-                       fdr_avg=4.5),
+            _state_row(1, 5, total_points=6.0, points_roll3=9.0, xgi_roll3=1.0, fdr_avg=2.0),
+            _state_row(2, 5, total_points=20.0, points_roll3=2.0, xgi_roll3=0.1, fdr_avg=4.5),
         )
         result = evaluate_captain_heuristic(features, gameweeks=[5])
         if result["mean_regret"] is not None:

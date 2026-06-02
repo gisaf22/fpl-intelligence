@@ -32,6 +32,7 @@ pytestmark = pytest.mark.unit
 # Realistic data builder — mirrors real-data characteristics
 # ---------------------------------------------------------------------------
 
+
 def _realistic_fwd_dataset(
     n_players: int = 18,
     gws: list[int] | None = None,
@@ -63,48 +64,52 @@ def _realistic_fwd_dataset(
             noise = np_rng.normal(0, 0.3)
             xgi_base = max(0.0, true_ability * 0.8 + noise)
 
-            rows.append({
-                "player_id": pid,
-                "gw": gw,
-                "player_name": f"FWD_{pid}",
-                "position_label": "FWD",
-                "position_code": 4,
-                "team_id": (pid % 10) + 1,
-                "purchase_price": 7.5 + true_ability * 2,
-                "fdr_avg": 3.0,
-                "fdr_min": 2.0,
-                "fdr_max": 4.0,
-                "is_bgw": False,
-                "is_dgw": False,
-                # Target: noisy relationship with ability
-                "total_points": max(0.0, true_ability * 8 + np_rng.normal(0, 3)),
-                "xgi": xgi_base,
-                "minutes": 90.0,
-                "points_roll3": max(0.0, true_ability * 7 + np_rng.normal(0, 2)),
-                "points_roll5": max(0.0, true_ability * 7 + np_rng.normal(0, 1.5)),
-                "points_roll8": max(0.0, true_ability * 7 + np_rng.normal(0, 1.2)),
-                # Rolling signals: smoother versions of xgi
-                "xgi_roll3": max(0.0, true_ability * 0.8 + np_rng.normal(0, 0.2)),
-                "xgi_roll5": max(0.0, true_ability * 0.8 + np_rng.normal(0, 0.15)),
-                "xgi_roll8": max(0.0, true_ability * 0.8 + np_rng.normal(0, 0.1)),
-                "xgc_roll3": 0.4,
-                "xgc_roll5": 0.4,
-                "xgc_roll8": 0.4,
-                "goals_conceded_roll3": 1.2,
-                "goals_conceded_roll5": 1.2,
-                "goals_conceded_roll8": 1.2,
-                "minutes_roll3": 82.0 + rng.uniform(-10, 5),
-                "minutes_roll5": 80.0,
-                "minutes_roll8": 78.0,
-                "minutes_trend": "stable",
-                "fixture_context": "SGW",
-            })
+            rows.append(
+                {
+                    "player_id": pid,
+                    "gw": gw,
+                    "player_name": f"FWD_{pid}",
+                    "position_label": "FWD",
+                    "position_code": 4,
+                    "team_id": (pid % 10) + 1,
+                    "purchase_price": 7.5 + true_ability * 2,
+                    "fdr_avg": 3.0,
+                    "fdr_min": 2.0,
+                    "fdr_max": 4.0,
+                    "is_bgw": False,
+                    "is_dgw": False,
+                    # Target: noisy relationship with ability
+                    "total_points": max(0.0, true_ability * 8 + np_rng.normal(0, 3)),
+                    "xgi": xgi_base,
+                    "minutes": 90.0,
+                    "points_roll3": max(0.0, true_ability * 7 + np_rng.normal(0, 2)),
+                    "points_roll5": max(0.0, true_ability * 7 + np_rng.normal(0, 1.5)),
+                    "points_roll8": max(0.0, true_ability * 7 + np_rng.normal(0, 1.2)),
+                    # Rolling signals: smoother versions of xgi
+                    "xgi_roll3": max(0.0, true_ability * 0.8 + np_rng.normal(0, 0.2)),
+                    "xgi_roll5": max(0.0, true_ability * 0.8 + np_rng.normal(0, 0.15)),
+                    "xgi_roll8": max(0.0, true_ability * 0.8 + np_rng.normal(0, 0.1)),
+                    "xgc_roll3": 0.4,
+                    "xgc_roll5": 0.4,
+                    "xgc_roll8": 0.4,
+                    "goals_conceded_roll3": 1.2,
+                    "goals_conceded_roll5": 1.2,
+                    "goals_conceded_roll8": 1.2,
+                    "minutes_roll3": 82.0 + rng.uniform(-10, 5),
+                    "minutes_roll5": 80.0,
+                    "minutes_roll8": 78.0,
+                    "minutes_trend": "stable",
+                    "fixture_context": "SGW",
+                }
+            )
 
     return pd.DataFrame(rows)
+
 
 # ---------------------------------------------------------------------------
 # Execution path correctness
 # ---------------------------------------------------------------------------
+
 
 class TestRealDataShapeCompatibility:
     """Study executes correctly on data shaped like real 2024-25 FWD population."""
@@ -155,9 +160,11 @@ class TestRealDataShapeCompatibility:
         # GW10 has 3 players — below minimum of 5, should be skipped
         assert result["gw_count"] == 27
 
+
 # ---------------------------------------------------------------------------
 # Deterministic replication behavior
 # ---------------------------------------------------------------------------
+
 
 class TestDeterministicReplication:
     """Same input data always produces identical outputs."""
@@ -194,9 +201,11 @@ class TestDeterministicReplication:
         # At least one signal rho should differ between datasets
         assert r1["signals"]["xgi_roll3"]["mean_rho"] != r2["signals"]["xgi_roll3"]["mean_rho"]
 
+
 # ---------------------------------------------------------------------------
 # Metric reproducibility
 # ---------------------------------------------------------------------------
+
 
 class TestMetricReproducibility:
     """Metric computations are consistent and arithmetically correct."""
@@ -229,9 +238,7 @@ class TestMetricReproducibility:
             lift = result["lift_over_lag1"][sig]
             if sig_rho is not None and lag1_rho is not None and lift is not None:
                 expected = round(sig_rho - lag1_rho, 4)
-                assert abs(lift - expected) < 1e-3, (
-                    f"{sig} lift={lift} != expected {expected}"
-                )
+                assert abs(lift - expected) < 1e-3, f"{sig} lift={lift} != expected {expected}"
 
     def test_lag1_lift_is_zero(self):
         """xgi_lag1 lift over itself is always 0.0."""
@@ -245,9 +252,7 @@ class TestMetricReproducibility:
         features = _realistic_fwd_dataset(n_players=18, gws=list(range(5, 34)))
         result = evaluate_rolling_xgi_horizons(features, min_gw=6, max_gw=33)
         for sig, info in result["signals"].items():
-            assert info["n_gws"] == result["gw_count"], (
-                f"{sig} n_gws={info['n_gws']} != gw_count={result['gw_count']}"
-            )
+            assert info["n_gws"] == result["gw_count"], f"{sig} n_gws={info['n_gws']} != gw_count={result['gw_count']}"
 
     def test_downside_rates_in_valid_range(self):
         """All downside rates are in [0, 1]."""
@@ -258,9 +263,11 @@ class TestMetricReproducibility:
             if dr is not None:
                 assert 0.0 <= dr <= 1.0, f"{sig} downside_rate={dr} out of range"
 
+
 # ---------------------------------------------------------------------------
 # Temporal integrity preservation
 # ---------------------------------------------------------------------------
+
 
 class TestTemporalIntegrity:
     """assert_no_future_leakage is enforced throughout the evaluation window."""
@@ -296,16 +303,24 @@ class TestTemporalIntegrity:
         assert min_gw >= 6
         assert max_gw <= 33
 
+
 # ---------------------------------------------------------------------------
 # Study output stability — structural invariants
 # ---------------------------------------------------------------------------
+
 
 class TestStudyOutputStability:
     """Study output structure is stable and complete regardless of data characteristics."""
 
     _REQUIRED_KEYS = (
-        "eval_gws", "gw_count", "signals", "lift_over_lag1",
-        "top1_metrics", "threshold_assessment", "best_signal", "detail",
+        "eval_gws",
+        "gw_count",
+        "signals",
+        "lift_over_lag1",
+        "top1_metrics",
+        "threshold_assessment",
+        "best_signal",
+        "detail",
     )
     _REQUIRED_SIGNALS = ("xgi_lag1", "xgi_roll3", "xgi_roll5", "xgi_roll8")
     _REQUIRED_THRESHOLD_KEYS = ("positive_lift", "operational_usefulness", "stability")
@@ -377,9 +392,7 @@ class TestStudyOutputStability:
         features = _realistic_fwd_dataset(n_players=18, gws=list(range(6, 34)))
         result = evaluate_rolling_xgi_horizons(features, min_gw=6, max_gw=33)
         for criterion, entry in result["threshold_assessment"].items():
-            assert isinstance(entry["met"], bool), (
-                f"{criterion}: 'met' is not bool (got {type(entry['met'])})"
-            )
+            assert isinstance(entry["met"], bool), f"{criterion}: 'met' is not bool (got {type(entry['met'])})"
 
     def test_empty_result_on_all_non_fwd_data(self):
         """gw_count=0 is returned when no FWDs are in the population."""

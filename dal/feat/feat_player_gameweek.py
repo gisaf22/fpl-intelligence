@@ -24,9 +24,7 @@ _ROLL_COLS = [
 # Columns that FCT must provide for FEAT to function correctly.
 # Used by the entry contract guard — any caller (test or production) that omits
 # these columns will get a clear error before any computation runs.
-_REQUIRED_INPUT_COLS: frozenset[str] = frozenset(
-    ["player_id", "gw", "is_bgw", "is_dgw", *_ROLL_COLS]
-)
+_REQUIRED_INPUT_COLS: frozenset[str] = frozenset(["player_id", "gw", "is_bgw", "is_dgw", *_ROLL_COLS])
 
 # Derived from FEATURE_REGISTRY — the single source of truth for governed output columns.
 # Add a column by registering it in FEATURE_REGISTRY (feat_schema.py), not here.
@@ -45,9 +43,7 @@ def _validate_spine_entry_contract(spine: pd.DataFrame) -> None:
     """
     missing = _REQUIRED_INPUT_COLS - set(spine.columns)
     if missing:
-        raise ValueError(
-            f"build_player_gameweek_state: required input columns missing: {sorted(missing)}"
-        )
+        raise ValueError(f"build_player_gameweek_state: required input columns missing: {sorted(missing)}")
 
     dupes = spine.duplicated(subset=["player_id", "gw"])
     if dupes.any():
@@ -99,18 +95,15 @@ def build_player_gameweek_state(spine: pd.DataFrame) -> pd.DataFrame:
     # Excluded cols (total_points, xg, goals_scored, assists, saves, penalties_saved, bonus, bps):
     # removed by lens evaluation (evaluation_circularity or G2-FAIL).
     for col in _ROLL_COLS:
-        df[f"{col}_roll3"] = (
-            df.groupby("player_id")[col]
-            .transform(lambda x: x.shift(1).rolling(3, min_periods=1).mean())
+        df[f"{col}_roll3"] = df.groupby("player_id")[col].transform(
+            lambda x: x.shift(1).rolling(3, min_periods=1).mean()
         )
-        df[f"{col}_roll5"] = (
-            df.groupby("player_id")[col]
-            .transform(lambda x: x.shift(1).rolling(5, min_periods=1).mean())
+        df[f"{col}_roll5"] = df.groupby("player_id")[col].transform(
+            lambda x: x.shift(1).rolling(5, min_periods=1).mean()
         )
         if col == "minutes":
-            df["minutes_roll8"] = (
-                df.groupby("player_id")[col]
-                .transform(lambda x: x.shift(1).rolling(8, min_periods=1).mean())
+            df["minutes_roll8"] = df.groupby("player_id")[col].transform(
+                lambda x: x.shift(1).rolling(8, min_periods=1).mean()
             )
 
     # BGW rows were previously mapped to "SGW" — three-way label introduced to fix that
@@ -121,10 +114,7 @@ def build_player_gameweek_state(spine: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Availability domain only — CONDITIONAL, no empirical threshold calibration
-    df["minutes_trend"] = (
-        df.groupby("player_id")["minutes"]
-        .transform(_compute_minutes_trend)
-    )
+    df["minutes_trend"] = df.groupby("player_id")["minutes"].transform(_compute_minutes_trend)
 
     # Governance assertion: derived columns must exactly equal _GOVERNED_ROLLING_COLS
     _produced = set(df.columns) - set(spine.columns)

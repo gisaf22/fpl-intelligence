@@ -11,13 +11,13 @@ from signals.governance import load_registry
 
 pytestmark = pytest.mark.unit
 
+
 def test_default_previous_snapshot_path_uses_prior_gameweek_folder(tmp_path):
     output_dir = tmp_path / "gw36"
 
-    assert default_previous_snapshot_path(36, output_dir) == (
-        tmp_path / "gw35" / "registry_snapshot.csv"
-    )
+    assert default_previous_snapshot_path(36, output_dir) == (tmp_path / "gw35" / "registry_snapshot.csv")
     assert default_previous_snapshot_path(1, tmp_path / "gw1") is None
+
 
 def test_snapshot_changes_marks_baseline_without_previous_snapshot():
     current = load_registry()
@@ -33,14 +33,11 @@ def test_snapshot_changes_marks_baseline_without_previous_snapshot():
     assert changes.loc[0, "change_type"] == "baseline"
     assert changes.loc[0, "current_value"] == "104 rows"
 
+
 def test_snapshot_changes_detects_governance_transitions_by_key_not_row_order():
     previous = load_registry()
     current = previous.copy()
-    target = (
-        current["signal"].eq("xgi")
-        & current["position"].eq("MID")
-        & current["population_scope"].eq("primary")
-    )
+    target = current["signal"].eq("xgi") & current["position"].eq("MID") & current["population_scope"].eq("primary")
 
     previous.loc[target, "downstream_status"] = "caveated"
     previous.loc[target, "relationship_geometry"] = "threshold_positive"
@@ -60,9 +57,7 @@ def test_snapshot_changes_detects_governance_transitions_by_key_not_row_order():
         previous_gw=35,
     )
     changed_target = changes[
-        changes["signal"].eq("xgi")
-        & changes["position"].eq("MID")
-        & changes["population_scope"].eq("primary")
+        changes["signal"].eq("xgi") & changes["position"].eq("MID") & changes["population_scope"].eq("primary")
     ]
 
     assert {
@@ -74,6 +69,7 @@ def test_snapshot_changes_detects_governance_transitions_by_key_not_row_order():
     assert "downstream_status" in set(changed_target["field"])
     assert changed_target["previous_downstream_status"].eq("caveated").all()
     assert changed_target["current_downstream_status"].eq("eligible").all()
+
 
 def test_write_snapshot_changes_uses_previous_snapshot_when_available(tmp_path):
     previous = load_registry()

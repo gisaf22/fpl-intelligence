@@ -196,6 +196,7 @@ def test_failed_layer_stops_pipeline(tmp_path: Path) -> None:
     db.write_bytes(b"stub")
 
     from dal.staging import StagedEntities
+
     mock_staged = StagedEntities(
         player_histories=pd.DataFrame({"gw": [1]}),
         players=pd.DataFrame(),
@@ -225,6 +226,7 @@ def test_failed_layer_records_error_message(tmp_path: Path) -> None:
     db.write_bytes(b"stub")
 
     from dal.staging import StagedEntities
+
     mock_staged = StagedEntities(
         player_histories=pd.DataFrame({"gw": [1]}),
         players=pd.DataFrame(),

@@ -41,9 +41,7 @@ def test_all_error_code_constants_are_strings() -> None:
 @pytest.mark.unit
 def test_error_code_constants_are_unique() -> None:
     """No two ErrorCode constants may share the same string value."""
-    assert len(_ALL_ERROR_CODES) == len(set(_ALL_ERROR_CODES)), (
-        "Duplicate ErrorCode string values found"
-    )
+    assert len(_ALL_ERROR_CODES) == len(set(_ALL_ERROR_CODES)), "Duplicate ErrorCode string values found"
 
 
 # ---------------------------------------------------------------------------

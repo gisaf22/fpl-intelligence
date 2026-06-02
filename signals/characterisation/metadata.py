@@ -27,17 +27,11 @@ def build_registry_metadata(
         "gw": gw,
         "data_cutoff_gw": data_cutoff_gw,
         "build_mode": build_mode,
-        "source_dataset_path": str(
-            source_dataset_path
-            if source_dataset_path is not None
-            else source_registry_path
-        ),
+        "source_dataset_path": str(source_dataset_path if source_dataset_path is not None else source_registry_path),
         "source_registry_path": str(source_registry_path),
         "registry_version": registry_version,
         "schema_version": schema_version,
-        "build_timestamp": datetime.now(UTC)
-        .replace(microsecond=0)
-        .isoformat(),
+        "build_timestamp": datetime.now(UTC).replace(microsecond=0).isoformat(),
         "row_count": len(registry),
         "signal_count": int(registry["signal"].nunique()),
         "position_count": int(registry["position"].nunique()),

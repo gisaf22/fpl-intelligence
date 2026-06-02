@@ -20,14 +20,18 @@ pytestmark = pytest.mark.unit
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
+
 def _load_spine():
     from dal.fct.fct_player_gameweek import build_player_gameweek_spine
+
     staged = load_staged_entities(TEST_DB_PATH)
     return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
+
 
 # ---------------------------------------------------------------------------
 # SC-13 — fixture_context must produce "BGW", "SGW", "DGW" — not "SGW" for BGW
 # ---------------------------------------------------------------------------
+
 
 def test_fixture_context_bgw_rows():
     """SC-13 FAILING TEST: BGW rows must have fixture_context="BGW", not "SGW".
@@ -51,6 +55,7 @@ def test_fixture_context_bgw_rows():
         f"Bug: is_dgw.map({{True: 'DGW', False: 'SGW'}}) assigns 'SGW' to BGW rows."
     )
 
+
 def test_fixture_context_exhaustive():
     """After fix: fixture_context values must be exactly {{'BGW', 'SGW', 'DGW'}}."""
     from dal.feat.feat_player_gameweek import build_player_gameweek_state
@@ -61,14 +66,13 @@ def test_fixture_context_exhaustive():
     valid = {"BGW", "SGW", "DGW"}
     non_null_contexts = state["fixture_context"].dropna()
     bad = non_null_contexts[~non_null_contexts.isin(valid)]
-    assert bad.empty, (
-        f"fixture_context contains invalid values: {bad.unique()}. "
-        f"Must be one of {valid}."
-    )
+    assert bad.empty, f"fixture_context contains invalid values: {bad.unique()}. Must be one of {valid}."
+
 
 # ---------------------------------------------------------------------------
 # SC-14 — validate_xgc_001 must cover all positions, not just GK
 # ---------------------------------------------------------------------------
+
 
 def test_validate_xgc_001_callable_on_all_positions():
     """SC-14: validate_xgc_001 as a function accepts all positions.
@@ -83,18 +87,28 @@ def test_validate_xgc_001_callable_on_all_positions():
     from dal.intermediate.int_opponent_context import validate_xgc_001
 
     # GK players in same team/gw/fixture with different xgc — raises correctly
-    gk_with_variance = pd.DataFrame([
-        {"player_id": 1, "team_id": 1, "gw": 1, "fixture_id": 1,
-         "position_code": 1, "minutes": 90, "xgc": 0.5},
-        {"player_id": 2, "team_id": 1, "gw": 1, "fixture_id": 1,
-         "position_code": 1, "minutes": 90, "xgc": 0.8},  # different GK xgc — violation
-    ])
+    gk_with_variance = pd.DataFrame(
+        [
+            {"player_id": 1, "team_id": 1, "gw": 1, "fixture_id": 1, "position_code": 1, "minutes": 90, "xgc": 0.5},
+            {
+                "player_id": 2,
+                "team_id": 1,
+                "gw": 1,
+                "fixture_id": 1,
+                "position_code": 1,
+                "minutes": 90,
+                "xgc": 0.8,
+            },  # different GK xgc — violation
+        ]
+    )
     with pytest.raises(DALContractViolation, match="xgc"):
         validate_xgc_001(gk_with_variance)
+
 
 # ---------------------------------------------------------------------------
 # STATE_COL_CONTRACTS — dal/state/contracts.py must exist
 # ---------------------------------------------------------------------------
+
 
 def test_state_col_contracts_exists():
     """Wave 4 FAILING TEST: dal/state/contracts.py must define STATE_COL_CONTRACTS.
@@ -102,42 +116,40 @@ def test_state_col_contracts_exists():
     FAILS before dal/state/contracts.py is created. PASSES after.
     """
     from dal.feat.feat_contracts import STATE_COL_CONTRACTS
+
     assert isinstance(STATE_COL_CONTRACTS, dict), "STATE_COL_CONTRACTS must be a dict"
 
     required_keys = {"causality", "warmup_gws", "min_obs_for_reliability", "null_if_no_obs"}
     for col_suffix in ["xgi", "minutes"]:
         # roll3 is the primary entry
         roll3_key = f"{col_suffix}_roll3"
-        assert roll3_key in STATE_COL_CONTRACTS, (
-            f"STATE_COL_CONTRACTS missing entry for '{roll3_key}'"
-        )
+        assert roll3_key in STATE_COL_CONTRACTS, f"STATE_COL_CONTRACTS missing entry for '{roll3_key}'"
         entry = STATE_COL_CONTRACTS[roll3_key]
         for k in required_keys:
             assert k in entry, f"STATE_COL_CONTRACTS['{roll3_key}'] missing '{k}'"
-        assert entry["causality"] == "lagged", (
-            f"'{roll3_key}' must have causality='lagged'"
-        )
+        assert entry["causality"] == "lagged", f"'{roll3_key}' must have causality='lagged'"
+
 
 def test_state_col_contracts_covers_fixture_context():
     """fixture_context must be declared in STATE_COL_CONTRACTS with causality=contemporaneous."""
     from dal.feat.feat_contracts import STATE_COL_CONTRACTS
-    assert "fixture_context" in STATE_COL_CONTRACTS, (
-        "STATE_COL_CONTRACTS must include 'fixture_context'"
-    )
+
+    assert "fixture_context" in STATE_COL_CONTRACTS, "STATE_COL_CONTRACTS must include 'fixture_context'"
     assert STATE_COL_CONTRACTS["fixture_context"]["causality"] == "contemporaneous", (
         "fixture_context causality must be 'contemporaneous'"
     )
     assert STATE_COL_CONTRACTS["fixture_context"]["values"] == ["BGW", "SGW", "DGW"]
 
+
 def test_state_col_contracts_covers_minutes_trend():
     """minutes_trend must be declared in STATE_COL_CONTRACTS with causality=lagged, warmup_gws=4."""
     from dal.feat.feat_contracts import STATE_COL_CONTRACTS
-    assert "minutes_trend" in STATE_COL_CONTRACTS, (
-        "STATE_COL_CONTRACTS must include 'minutes_trend'"
-    )
+
+    assert "minutes_trend" in STATE_COL_CONTRACTS, "STATE_COL_CONTRACTS must include 'minutes_trend'"
     entry = STATE_COL_CONTRACTS["minutes_trend"]
     assert entry["causality"] == "lagged"
     assert entry["warmup_gws"] == 4
+
 
 def test_state_col_contracts_covers_all_roll_cols():
     """Every column in _ROLL_COLS must produce both roll3 and roll5 entries in STATE_COL_CONTRACTS.
@@ -163,17 +175,17 @@ def test_state_col_contracts_covers_all_roll_cols():
             )
             entry = STATE_COL_CONTRACTS[key]
             for field in required_fields:
-                assert field in entry, (
-                    f"STATE_COL_CONTRACTS['{key}'] missing required field '{field}'."
-                )
+                assert field in entry, f"STATE_COL_CONTRACTS['{key}'] missing required field '{field}'."
             assert entry["causality"] == "lagged", (
                 f"STATE_COL_CONTRACTS['{key}'] must have causality='lagged' — "
                 f"rolling windows use shift(1) and are safe as pre-GW features."
             )
 
+
 # ---------------------------------------------------------------------------
 # GW sequence gap detection
 # ---------------------------------------------------------------------------
+
 
 def test_gameweek_context_raises_on_gw_gap():
     """Wave 4: get_gameweek_context must raise DALContractViolation on GW sequence gaps.
@@ -186,17 +198,43 @@ def test_gameweek_context_raises_on_gw_gap():
     from dal.fct.fct_gameweek_context import get_gameweek_context
 
     # Events with a gap: GW 1, 2, 4 (missing GW 3)
-    events_with_gap = pd.DataFrame([
-        {"gw": 1, "deadline_time": "2025-08-15T18:00:00Z", "finished": 1,
-         "is_previous": 0, "is_live": 0, "is_next": 0,
-         "average_entry_score": 52, "highest_score": 120, "transfers_made": 500000},
-        {"gw": 2, "deadline_time": "2025-08-22T18:00:00Z", "finished": 1,
-         "is_previous": 0, "is_live": 0, "is_next": 0,
-         "average_entry_score": 54, "highest_score": 130, "transfers_made": 520000},
-        {"gw": 4, "deadline_time": "2025-09-05T18:00:00Z", "finished": 0,
-         "is_previous": 0, "is_live": 0, "is_next": 1,
-         "average_entry_score": None, "highest_score": None, "transfers_made": 0},
-    ])
+    events_with_gap = pd.DataFrame(
+        [
+            {
+                "gw": 1,
+                "deadline_time": "2025-08-15T18:00:00Z",
+                "finished": 1,
+                "is_previous": 0,
+                "is_live": 0,
+                "is_next": 0,
+                "average_entry_score": 52,
+                "highest_score": 120,
+                "transfers_made": 500000,
+            },
+            {
+                "gw": 2,
+                "deadline_time": "2025-08-22T18:00:00Z",
+                "finished": 1,
+                "is_previous": 0,
+                "is_live": 0,
+                "is_next": 0,
+                "average_entry_score": 54,
+                "highest_score": 130,
+                "transfers_made": 520000,
+            },
+            {
+                "gw": 4,
+                "deadline_time": "2025-09-05T18:00:00Z",
+                "finished": 0,
+                "is_previous": 0,
+                "is_live": 0,
+                "is_next": 1,
+                "average_entry_score": None,
+                "highest_score": None,
+                "transfers_made": 0,
+            },
+        ]
+    )
 
     with pytest.raises(DALContractViolation):
         get_gameweek_context(events_with_gap)

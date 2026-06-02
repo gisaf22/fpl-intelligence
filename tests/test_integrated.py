@@ -18,6 +18,7 @@ DB_PATH = Path.home() / ".fpl" / "fpl.db"
 def _load_staged():
     return load_staged_entities(DB_PATH)
 
+
 _ANALYTICS_REQUIRED_COLS = [
     "player_id",
     "player_name",

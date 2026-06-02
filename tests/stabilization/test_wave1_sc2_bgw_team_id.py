@@ -31,14 +31,17 @@ pytestmark = pytest.mark.unit
 
 TEST_DB_PATH = Path(__file__).parent.parent / "fixtures" / "test.db"
 
+
 def _load_spine():
     staged = load_staged_entities(TEST_DB_PATH)
     return build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
 
+
 P3_ID = 103
 BGW_GW = 3
-PRE_TRANSFER_TEAM = 1   # T1: P3's team in GW1-2
+PRE_TRANSFER_TEAM = 1  # T1: P3's team in GW1-2
 POST_TRANSFER_TEAM = 2  # T2: P3's team in GW4-5 (and players.team snapshot)
+
 
 def test_bgw_team_id_uses_pre_transfer_team():
     """SC-2 FAILING TEST: BGW row must carry the player's team at the time of the BGW.
@@ -66,6 +69,7 @@ def test_bgw_team_id_uses_pre_transfer_team():
         f"Bug: _build_player_info uses latest gw team_id ({POST_TRANSFER_TEAM}=T2) for all BGW rows."
     )
 
+
 def test_bgw_team_id_post_transfer_is_correct():
     """After fix: BGW before the transfer carries pre-transfer team; non-BGW after transfer carries post-transfer team.
 
@@ -79,9 +83,9 @@ def test_bgw_team_id_post_transfer_is_correct():
     assert len(p1_bgw) == 1, "P1 should have exactly one GW3 row (BGW)"
     assert p1_bgw.iloc[0]["is_bgw"], "P1 GW3 should be BGW"
     assert p1_bgw.iloc[0]["team_id"] == 1, (
-        f"P1 GW3 BGW team_id should be 1 (T1, never transferred), "
-        f"got {p1_bgw.iloc[0]['team_id']}"
+        f"P1 GW3 BGW team_id should be 1 (T1, never transferred), got {p1_bgw.iloc[0]['team_id']}"
     )
+
 
 def test_spine_has_correct_row_count():
     """Golden DB: 3 players x 5 GWs = 15 rows exactly."""

@@ -37,17 +37,18 @@ class ErrorCode(StrEnum):
     All DALContractViolation raises must use one of these constants so that
     consumers catching the exception know what to expect without reading source code.
     """
-    GRAIN_DUPLICATE = "GRAIN_DUPLICATE"    # duplicate (player_id, gw) pairs
-    ROW_COUNT       = "ROW_COUNT"          # n_players x n_gws invariant violated
-    MISSING_COLUMNS = "MISSING_COLUMNS"    # required columns absent from layer output
-    COLUMN_EXTRA    = "COLUMN_EXTRA"       # unexpected columns present in layer output
-    DTYPE_MISMATCH  = "DTYPE_MISMATCH"    # column type does not match declared dtype
-    NULL_VIOLATION  = "NULL_VIOLATION"     # never_null column contains nulls
-    JOIN_SAFETY     = "JOIN_SAFETY"        # row loss or fan-out detected after join
-    TIME_CONTINUITY = "TIME_CONTINUITY"   # gap in per-player GW sequence
-    FUTURE_DATA     = "FUTURE_DATA"        # performance data present for future GW
-    BGW_VIOLATION   = "BGW_VIOLATION"      # BGW row has non-null performance value
-    DGW_VIOLATION   = "DGW_VIOLATION"      # DGW row has incorrect fixture counts
+
+    GRAIN_DUPLICATE = "GRAIN_DUPLICATE"  # duplicate (player_id, gw) pairs
+    ROW_COUNT = "ROW_COUNT"  # n_players x n_gws invariant violated
+    MISSING_COLUMNS = "MISSING_COLUMNS"  # required columns absent from layer output
+    COLUMN_EXTRA = "COLUMN_EXTRA"  # unexpected columns present in layer output
+    DTYPE_MISMATCH = "DTYPE_MISMATCH"  # column type does not match declared dtype
+    NULL_VIOLATION = "NULL_VIOLATION"  # never_null column contains nulls
+    JOIN_SAFETY = "JOIN_SAFETY"  # row loss or fan-out detected after join
+    TIME_CONTINUITY = "TIME_CONTINUITY"  # gap in per-player GW sequence
+    FUTURE_DATA = "FUTURE_DATA"  # performance data present for future GW
+    BGW_VIOLATION = "BGW_VIOLATION"  # BGW row has non-null performance value
+    DGW_VIOLATION = "DGW_VIOLATION"  # DGW row has incorrect fixture counts
 
 
 _VALID_CODES = frozenset(ErrorCode)
@@ -72,9 +73,7 @@ class DALContractViolation(DALError):
         error_code: str | ErrorCode | None = None,
     ) -> None:
         if error_code is not None and error_code not in _VALID_CODES:
-            raise ValueError(
-                f"Invalid error_code {error_code!r}. Must be one of: {sorted(_VALID_CODES)}"
-            )
+            raise ValueError(f"Invalid error_code {error_code!r}. Must be one of: {sorted(_VALID_CODES)}")
 
         self.message = message
         self.validation = validation

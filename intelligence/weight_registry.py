@@ -23,10 +23,7 @@ def _load_raw() -> dict:
     """Load and cache the raw weight_registry.yaml."""
     path = _WEIGHT_REGISTRY_PATH
     if not path.exists():
-        raise FileNotFoundError(
-            f"Weight registry not found at {path}. "
-            "Run from the project root directory."
-        )
+        raise FileNotFoundError(f"Weight registry not found at {path}. Run from the project root directory.")
     with path.open() as fh:
         return yaml.safe_load(fh)
 
@@ -59,16 +56,12 @@ def get_module_weights(module: str) -> dict[str, float]:
     module_data = modules[module]
     weights_data = module_data.get("weights")
     if not weights_data:
-        raise WeightRegistryError(
-            f"No weights defined for module {module!r} in registry "
-            f"({_WEIGHT_REGISTRY_PATH})."
-        )
+        raise WeightRegistryError(f"No weights defined for module {module!r} in registry ({_WEIGHT_REGISTRY_PATH}).")
     result: dict[str, float] = {}
     for key, entry in weights_data.items():
         if "value" not in entry:
             raise WeightRegistryError(
-                f"Weight {key!r} in module {module!r} has no 'value' field "
-                f"in {_WEIGHT_REGISTRY_PATH}."
+                f"Weight {key!r} in module {module!r} has no 'value' field in {_WEIGHT_REGISTRY_PATH}."
             )
         result[key] = float(entry["value"])
     return result
@@ -87,10 +80,7 @@ def get_weight_metadata(module: str, weight_key: str) -> dict:
         raise WeightRegistryError(f"Module {module!r} not in weight registry.")
     weights_data = modules[module].get("weights", {})
     if weight_key not in weights_data:
-        raise WeightRegistryError(
-            f"Weight {weight_key!r} not found for module {module!r} "
-            f"in weight registry."
-        )
+        raise WeightRegistryError(f"Weight {weight_key!r} not found for module {module!r} in weight registry.")
     return dict(weights_data[weight_key])
 
 

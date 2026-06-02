@@ -86,9 +86,7 @@ def rank_captain_candidates(
 
     gw_df = features[features["gw"] == target_gw].copy()
     if gw_df.empty:
-        raise IntelligenceInputError(
-            f"rank_captain_candidates: no data for gw={target_gw}"
-        )
+        raise IntelligenceInputError(f"rank_captain_candidates: no data for gw={target_gw}")
 
     # Filter to players starting reliably — captaincy requires regular minutes.
     eligible = gw_df[gw_df["minutes_roll3"].fillna(0) >= _MIN_MINUTES_ROLL3].copy()
@@ -105,32 +103,17 @@ def rank_captain_candidates(
     eligible["_xgi_roll3_scored"] = eligible["xgi_roll3"].where(~(fwd_mask | mid_mask), 0.0)
 
     # Binary DGW flag from STATE fixture_context column.
-    eligible["_fixture_context_dgw"] = (
-        eligible["fixture_context"].fillna("SGW") == "DGW"
-    ).astype(float)
+    eligible["_fixture_context_dgw"] = (eligible["fixture_context"].fillna("SGW") == "DGW").astype(float)
 
     eligible["form_score"] = normalize_within_position(eligible, "_xgi_roll5_scored")
-    eligible["involvement_score"] = normalize_within_position(
-        eligible, "_xgi_roll3_scored"
-    )
-    eligible["fixture_score"] = normalize_within_position(
-        eligible, "_fixture_context_dgw"
-    )
+    eligible["involvement_score"] = normalize_within_position(eligible, "_xgi_roll3_scored")
+    eligible["fixture_score"] = normalize_within_position(eligible, "_fixture_context_dgw")
     eligible["minutes_score"] = normalize_within_position(eligible, "minutes_roll3")
 
-    eligible["captain_score"] = weighted_composite(
-        eligible, list(_WEIGHTS.keys()), _WEIGHTS
-    )
+    eligible["captain_score"] = weighted_composite(eligible, list(_WEIGHTS.keys()), _WEIGHTS)
 
     eligible["captain_rank"] = (
-        eligible.groupby("position_label")["captain_score"]
-        .rank(ascending=False, method="min")
-        .astype(int)
+        eligible.groupby("position_label")["captain_score"].rank(ascending=False, method="min").astype(int)
     )
 
-    return (
-        eligible[_OUTPUT_COLS]
-        .sort_values("captain_score", ascending=False)
-        .head(n)
-        .reset_index(drop=True)
-    )
+    return eligible[_OUTPUT_COLS].sort_values("captain_score", ascending=False).head(n).reset_index(drop=True)

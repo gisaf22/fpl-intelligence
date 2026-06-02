@@ -19,21 +19,21 @@ import pandera.pandas as pa
 # pa.DataFrameSchema — not pa.DataFrameModel — to avoid inner class Config pattern.
 FEAT_SCHEMA = pa.DataFrameSchema(
     columns={
-        "player_id":            pa.Column(int,   nullable=False),
-        "gw":                   pa.Column(int,   nullable=False),
-        "xgi_roll3":            pa.Column(float, nullable=True),
-        "xgi_roll5":            pa.Column(float, nullable=True),
-        "xgc_roll3":            pa.Column(float, nullable=True),
-        "xgc_roll5":            pa.Column(float, nullable=True),
-        "clean_sheets_roll3":   pa.Column(float, nullable=True),
-        "clean_sheets_roll5":   pa.Column(float, nullable=True),
+        "player_id": pa.Column(int, nullable=False),
+        "gw": pa.Column(int, nullable=False),
+        "xgi_roll3": pa.Column(float, nullable=True),
+        "xgi_roll5": pa.Column(float, nullable=True),
+        "xgc_roll3": pa.Column(float, nullable=True),
+        "xgc_roll5": pa.Column(float, nullable=True),
+        "clean_sheets_roll3": pa.Column(float, nullable=True),
+        "clean_sheets_roll5": pa.Column(float, nullable=True),
         "goals_conceded_roll3": pa.Column(float, nullable=True),
         "goals_conceded_roll5": pa.Column(float, nullable=True),
-        "minutes_roll3":        pa.Column(float, nullable=True),
-        "minutes_roll5":        pa.Column(float, nullable=True),
-        "minutes_roll8":        pa.Column(float, nullable=True),
-        "minutes_trend":        pa.Column(str, nullable=True),
-        "fixture_context":      pa.Column(str, pa.Check.isin(["BGW", "SGW", "DGW"])),
+        "minutes_roll3": pa.Column(float, nullable=True),
+        "minutes_roll5": pa.Column(float, nullable=True),
+        "minutes_roll8": pa.Column(float, nullable=True),
+        "minutes_trend": pa.Column(str, nullable=True),
+        "fixture_context": pa.Column(str, pa.Check.isin(["BGW", "SGW", "DGW"])),
     },
     strict=False,
 )
@@ -41,16 +41,16 @@ FEAT_SCHEMA = pa.DataFrameSchema(
 
 @dataclass
 class FeatureRecord:
-    gate: str                            # lens study gate that approved this column
-    scope: str                           # Individual | Team | Match
-    positions: list[str]                 # FPL positions for which this column is approved
-    status: str                          # APPROVED | CONDITIONAL
-    causality: str                       # lagged | contemporaneous
+    gate: str  # lens study gate that approved this column
+    scope: str  # Individual | Team | Match
+    positions: list[str]  # FPL positions for which this column is approved
+    status: str  # APPROVED | CONDITIONAL
+    causality: str  # lagged | contemporaneous
     note: str = field(default="")
-    warmup_gws: int | None = field(default=None)   # first GW where column is non-null
-    min_obs: int | None = field(default=None)      # window size at which rolling avg is reliable
+    warmup_gws: int | None = field(default=None)  # first GW where column is non-null
+    min_obs: int | None = field(default=None)  # window size at which rolling avg is reliable
     null_if_no_obs: bool | None = field(default=None)
-    values: list[str] | None = field(default=None) # allowed values for categorical columns
+    values: list[str] | None = field(default=None)  # allowed values for categorical columns
 
 
 # Single source of truth for every governed output column.

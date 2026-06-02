@@ -21,15 +21,31 @@ _REQUIRED_FIELDS = {"family", "scope", "temporal_type", "semantic_constraint"}
 _VALID_TEMPORAL_TYPES = {"count", "rate", "stock", "indicator", "estimate"}
 _VALID_SCOPES = {"Individual", "Team", "Population", "Match"}
 _VALID_FAMILIES = {
-    "Outcome", "Allocation", "Event", "Process",
-    "Participation", "Market", "Structural Tier", "Context",
+    "Outcome",
+    "Allocation",
+    "Event",
+    "Process",
+    "Participation",
+    "Market",
+    "Structural Tier",
+    "Context",
 }
 
 # Base signals referenced by STATE rolling windows (total_points aliased to points in column names)
 _STATE_BASE_SIGNALS = {
-    "total_points", "minutes", "xg", "xgi", "xgc",
-    "goals_scored", "assists", "clean_sheets", "goals_conceded",
-    "saves", "penalties_saved", "bonus", "bps",
+    "total_points",
+    "minutes",
+    "xg",
+    "xgi",
+    "xgc",
+    "goals_scored",
+    "assists",
+    "clean_sheets",
+    "goals_conceded",
+    "saves",
+    "penalties_saved",
+    "bonus",
+    "bps",
 }
 
 
@@ -45,9 +61,7 @@ def test_yaml_loads(ontology):
 
 def test_all_required_fields_present(ontology):
     missing = {
-        signal: _REQUIRED_FIELDS - set(attrs)
-        for signal, attrs in ontology.items()
-        if _REQUIRED_FIELDS - set(attrs)
+        signal: _REQUIRED_FIELDS - set(attrs) for signal, attrs in ontology.items() if _REQUIRED_FIELDS - set(attrs)
     }
     assert not missing, f"Signals missing fields: {missing}"
 
@@ -62,19 +76,13 @@ def test_temporal_types_are_valid(ontology):
 
 
 def test_scopes_are_valid(ontology):
-    invalid = {
-        signal: attrs["scope"]
-        for signal, attrs in ontology.items()
-        if attrs.get("scope") not in _VALID_SCOPES
-    }
+    invalid = {signal: attrs["scope"] for signal, attrs in ontology.items() if attrs.get("scope") not in _VALID_SCOPES}
     assert not invalid, f"Invalid scope values: {invalid}"
 
 
 def test_families_are_valid(ontology):
     invalid = {
-        signal: attrs["family"]
-        for signal, attrs in ontology.items()
-        if attrs.get("family") not in _VALID_FAMILIES
+        signal: attrs["family"] for signal, attrs in ontology.items() if attrs.get("family") not in _VALID_FAMILIES
     }
     assert not invalid, f"Invalid family values: {invalid}"
 
@@ -82,9 +90,7 @@ def test_families_are_valid(ontology):
 def test_state_base_signals_present_in_ontology(ontology):
     """Every signal STATE derives rolling columns from must exist in the ontology."""
     missing = _STATE_BASE_SIGNALS - set(ontology)
-    assert not missing, (
-        f"STATE base signals missing from ontology: {sorted(missing)}"
-    )
+    assert not missing, f"STATE base signals missing from ontology: {sorted(missing)}"
 
 
 def test_state_base_signals_have_rollable_temporal_type(ontology):

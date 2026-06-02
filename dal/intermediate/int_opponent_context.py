@@ -33,9 +33,7 @@ def validate_xgc_001(analytics_90: pd.DataFrame) -> None:
     violators = xgc_var[xgc_var > 0.001]
     if not violators.empty:
         raise DALContractViolation(
-            f"CONTRACT-XGC-001: xgc not invariant within 90-min players for groups: "
-            f"{violators.index.tolist()}",
-
+            f"CONTRACT-XGC-001: xgc not invariant within 90-min players for groups: {violators.index.tolist()}",
             validation="validate_xgc_001",
             n_violations=len(violators),
             error_code="GRAIN_DUPLICATE",
@@ -57,7 +55,8 @@ def _validate_contracts(analytics: pd.DataFrame, analytics_90: pd.DataFrame) -> 
     if missing:
         logger.warning(
             "[build_player_opponent_defensive_context] CONTRACT-XGC-002: "
-            "no 90-minute players for (team_id, gw) groups: %s", sorted(missing)
+            "no 90-minute players for (team_id, gw) groups: %s",
+            sorted(missing),
         )
 
 
@@ -70,9 +69,7 @@ def _build_team_defensive_records(
     analytics_90_def = analytics_90[analytics_90["position_code"] == 2]
 
     # sum: goals_conceded is additive across fixtures — a DGW team conceding 1+1 = 2 goals
-    team_gc = analytics.groupby(["team_id", "gw"], as_index=False).agg(
-        goals_conceded=("goals_conceded", "sum")
-    )
+    team_gc = analytics.groupby(["team_id", "gw"], as_index=False).agg(goals_conceded=("goals_conceded", "sum"))
     xgc_gk = analytics_90_gk.groupby(["team_id", "gw"], as_index=False).agg(xgc_gk=("xgc", "mean"))
     xgc_def = analytics_90_def.groupby(["team_id", "gw"], as_index=False).agg(xgc_def=("xgc", "mean"))
     xgc_any = analytics_90.groupby(["team_id", "gw"], as_index=False).agg(xgc_any=("xgc", "mean"))

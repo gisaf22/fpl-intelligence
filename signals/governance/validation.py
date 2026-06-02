@@ -51,9 +51,7 @@ def _validate_primary_key(registry: pd.DataFrame, errors: list[str]) -> None:
 
     duplicates = registry[list(PRIMARY_KEY_COLUMNS)].duplicated().sum()
     if duplicates:
-        errors.append(
-            f"{int(duplicates)} duplicate primary keys on {PRIMARY_KEY_COLUMNS}"
-        )
+        errors.append(f"{int(duplicates)} duplicate primary keys on {PRIMARY_KEY_COLUMNS}")
 
 
 def _validate_non_empty(registry: pd.DataFrame, errors: list[str]) -> None:
@@ -108,42 +106,29 @@ def _validate_layer_status_consistency(
         return
 
     bad_match_level = registry[
-        registry["signal"].isin(MATCH_LEVEL_SIGNALS)
-        & (registry["variable_level"] != "match_level")
+        registry["signal"].isin(MATCH_LEVEL_SIGNALS) & (registry["variable_level"] != "match_level")
     ]
     if not bad_match_level.empty:
-        errors.append(
-            f"{len(bad_match_level)} match-level signal rows are not variable_level=match_level"
-        )
+        errors.append(f"{len(bad_match_level)} match-level signal rows are not variable_level=match_level")
 
     bad_feature_layers = registry[
-        registry["signal_layer"].isin(NON_FEATURE_SIGNAL_LAYERS)
-        & registry["feature_candidate_eligible"].astype(bool)
+        registry["signal_layer"].isin(NON_FEATURE_SIGNAL_LAYERS) & registry["feature_candidate_eligible"].astype(bool)
     ]
     if not bad_feature_layers.empty:
-        errors.append(
-            f"{len(bad_feature_layers)} non-feature-layer rows are feature_candidate_eligible=True"
-        )
+        errors.append(f"{len(bad_feature_layers)} non-feature-layer rows are feature_candidate_eligible=True")
 
     insuff_not_blocked = registry[
-        registry["support_flags"]
-        .astype(str)
-        .str.contains("insufficient_support", na=False)
+        registry["support_flags"].astype(str).str.contains("insufficient_support", na=False)
         & (registry["downstream_status"] != "blocked")
     ]
     if not insuff_not_blocked.empty:
-        errors.append(
-            f"{len(insuff_not_blocked)} insufficient_support rows are not blocked"
-        )
+        errors.append(f"{len(insuff_not_blocked)} insufficient_support rows are not blocked")
 
     low_conf_eligible = registry[
-        registry["low_confidence"].astype(bool)
-        & (registry["downstream_status"] == "eligible")
+        registry["low_confidence"].astype(bool) & (registry["downstream_status"] == "eligible")
     ]
     if not low_conf_eligible.empty:
-        errors.append(
-            f"{len(low_conf_eligible)} low-confidence rows are marked eligible"
-        )
+        errors.append(f"{len(low_conf_eligible)} low-confidence rows are marked eligible")
 
 
 def _validate_promotion_coherence(
@@ -159,16 +144,12 @@ def _validate_promotion_coherence(
     # Blocked rows must have null promotion_class.
     blocked_with_class = registry[blocked & registry["promotion_class"].notna()]
     if not blocked_with_class.empty:
-        errors.append(
-            f"{len(blocked_with_class)} blocked rows have a non-null promotion_class"
-        )
+        errors.append(f"{len(blocked_with_class)} blocked rows have a non-null promotion_class")
 
     # Non-blocked rows must have a non-null promotion_class.
     non_blocked_without_class = registry[non_blocked & registry["promotion_class"].isna()]
     if not non_blocked_without_class.empty:
-        errors.append(
-            f"{len(non_blocked_without_class)} non-blocked rows have null promotion_class"
-        )
+        errors.append(f"{len(non_blocked_without_class)} non-blocked rows have null promotion_class")
 
 
 def validate_registry_contract(registry: pd.DataFrame) -> None:

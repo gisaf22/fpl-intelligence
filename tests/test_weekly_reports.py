@@ -12,6 +12,7 @@ from signals.governance import load_registry
 
 pytestmark = pytest.mark.unit
 
+
 def test_signal_summary_is_compact_weekly_mart():
     registry = load_registry()
 
@@ -31,6 +32,7 @@ def test_signal_summary_is_compact_weekly_mart():
         "interpretation_caveat",
     }.issubset(summary.columns)
 
+
 def test_summary_by_position_matches_status_counts():
     summary = build_signal_summary(load_registry(), gw=36)
 
@@ -42,6 +44,7 @@ def test_summary_by_position_matches_status_counts():
     assert int(by_position["caveated"].sum()) == 71
     assert int(by_position["blocked"].sum()) == 24
 
+
 def test_summary_by_layer_matches_status_counts():
     summary = build_signal_summary(load_registry(), gw=36)
 
@@ -51,6 +54,7 @@ def test_summary_by_layer_matches_status_counts():
     assert int(by_layer["eligible"].sum()) == 9
     assert int(by_layer["caveated"].sum()) == 71
     assert int(by_layer["blocked"].sum()) == 24
+
 
 def test_stable_performance_signals_follow_v1_rule():
     summary = build_signal_summary(load_registry(), gw=36)
@@ -62,6 +66,7 @@ def test_stable_performance_signals_follow_v1_rule():
     assert stable["downstream_status"].eq("eligible").all()
     assert stable["association_class"].eq("continuous_monotonic").all()
     assert stable["low_confidence"].eq(False).all()
+
 
 def test_write_weekly_report_tables(tmp_path):
     outputs = write_weekly_report_tables(load_registry(), gw=36, output_dir=tmp_path)
@@ -79,4 +84,3 @@ def test_write_weekly_report_tables(tmp_path):
     stable = pd.read_csv(outputs["stable_performance_signals"])
     assert len(signal_summary) == 104
     assert len(stable) == 9
-

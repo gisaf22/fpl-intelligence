@@ -92,9 +92,7 @@ def rank_transfer_targets(
 
     gw_df = features[features["gw"] == target_gw].copy()
     if gw_df.empty:
-        raise IntelligenceInputError(
-            f"rank_transfer_targets: no data for gw={target_gw}"
-        )
+        raise IntelligenceInputError(f"rank_transfer_targets: no data for gw={target_gw}")
 
     if position is not None:
         gw_df = gw_df[gw_df["position_label"] == position]
@@ -124,38 +122,17 @@ def rank_transfer_targets(
     eligible.loc[mid_mask, "_momentum"] = 0.0
 
     # Binary DGW flag from STATE fixture_context column.
-    eligible["_fixture_context_dgw"] = (
-        eligible["fixture_context"].fillna("SGW") == "DGW"
-    ).astype(float)
+    eligible["_fixture_context_dgw"] = (eligible["fixture_context"].fillna("SGW") == "DGW").astype(float)
 
-    eligible["recent_form_score"] = normalize_within_position(
-        eligible, "_xgi_roll3_scored"
-    )
-    eligible["form_momentum_score"] = normalize_within_position(
-        eligible, "_momentum"
-    )
-    eligible["fixture_score"] = normalize_within_position(
-        eligible, "_fixture_context_dgw"
-    )
-    eligible["involvement_score"] = normalize_within_position(
-        eligible, "_xgi_roll3_scored"
-    )
-    eligible["minutes_stability_score"] = normalize_within_position(
-        eligible, "minutes_roll5"
-    )
+    eligible["recent_form_score"] = normalize_within_position(eligible, "_xgi_roll3_scored")
+    eligible["form_momentum_score"] = normalize_within_position(eligible, "_momentum")
+    eligible["fixture_score"] = normalize_within_position(eligible, "_fixture_context_dgw")
+    eligible["involvement_score"] = normalize_within_position(eligible, "_xgi_roll3_scored")
+    eligible["minutes_stability_score"] = normalize_within_position(eligible, "minutes_roll5")
 
-    eligible["transfer_score"] = weighted_composite(
-        eligible, list(_WEIGHTS.keys()), _WEIGHTS
-    )
+    eligible["transfer_score"] = weighted_composite(eligible, list(_WEIGHTS.keys()), _WEIGHTS)
     eligible["transfer_rank"] = (
-        eligible.groupby("position_label")["transfer_score"]
-        .rank(ascending=False, method="min")
-        .astype(int)
+        eligible.groupby("position_label")["transfer_score"].rank(ascending=False, method="min").astype(int)
     )
 
-    return (
-        eligible[_OUTPUT_COLS]
-        .sort_values("transfer_score", ascending=False)
-        .head(n)
-        .reset_index(drop=True)
-    )
+    return eligible[_OUTPUT_COLS].sort_values("transfer_score", ascending=False).head(n).reset_index(drop=True)

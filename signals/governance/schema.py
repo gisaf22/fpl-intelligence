@@ -128,9 +128,7 @@ NON_EMPTY_COLUMNS: tuple[str, ...] = (
 
 POSITION_VALUES: frozenset[str] = frozenset({"GK", "DEF", "MID", "FWD"})
 POPULATION_SCOPE_VALUES: frozenset[str] = frozenset({"primary", "secondary"})
-POPULATION_ROBUSTNESS_VALUES: frozenset[str] = frozenset(
-    {"stable", "scope_sensitive", "untested"}
-)
+POPULATION_ROBUSTNESS_VALUES: frozenset[str] = frozenset({"stable", "scope_sensitive", "untested"})
 VARIABLE_LEVEL_VALUES: frozenset[str] = frozenset({"player_level", "match_level"})
 SIGNAL_LAYER_VALUES: frozenset[str] = frozenset(
     {
@@ -143,9 +141,7 @@ SIGNAL_LAYER_VALUES: frozenset[str] = frozenset(
         "defensive_context",
     }
 )
-DOWNSTREAM_STATUS_VALUES: frozenset[str] = frozenset(
-    {"eligible", "caveated", "blocked", "approved"}
-)
+DOWNSTREAM_STATUS_VALUES: frozenset[str] = frozenset({"eligible", "caveated", "blocked", "approved"})
 GEOMETRY_VALUES: frozenset[str] = frozenset(
     {
         "monotonic_positive",
@@ -178,9 +174,7 @@ SUPPORT_TYPE_VALUES: frozenset[str] = frozenset(
         "insufficient_n",
     }
 )
-PANEL_CLASS_VALUES: frozenset[str] = frozenset(
-    {"state_sensitive", "mixed", "identity_dominant", "indeterminate"}
-)
+PANEL_CLASS_VALUES: frozenset[str] = frozenset({"state_sensitive", "mixed", "identity_dominant", "indeterminate"})
 TEMPORAL_STABILITY_VALUES: frozenset[str] = frozenset(
     {"stable", "moderate_shift", "unstable", "unassessable", "insufficient_data"}
 )
@@ -195,9 +189,7 @@ MATCH_LEVEL_SIGNALS: frozenset[str] = frozenset(
     }
 )
 
-NON_FEATURE_SIGNAL_LAYERS: frozenset[str] = frozenset(
-    {"context", "market_behavior", "valuation", "exposure"}
-)
+NON_FEATURE_SIGNAL_LAYERS: frozenset[str] = frozenset({"context", "market_behavior", "valuation", "exposure"})
 
 CONTROLLED_VALUE_COLUMNS: dict[str, frozenset[str]] = {
     "position": POSITION_VALUES,
@@ -227,12 +219,8 @@ NULLABLE_CONTROLLED_COLUMNS: frozenset[str] = frozenset({"support_type", "promot
 # Runtime governance metadata
 # ---------------------------------------------------------------------------
 
-LIFECYCLE_STATE_VALUES: frozenset[str] = frozenset(
-    {"candidate", "excluded", "not_applicable", "approved"}
-)
-LEAKAGE_RISK_VALUES: frozenset[str] = frozenset(
-    {"none", "evaluation_circularity", "direct"}
-)
+LIFECYCLE_STATE_VALUES: frozenset[str] = frozenset({"candidate", "excluded", "not_applicable", "approved"})
+LEAKAGE_RISK_VALUES: frozenset[str] = frozenset({"none", "evaluation_circularity", "direct"})
 
 
 @dataclass(frozen=True)
@@ -246,11 +234,11 @@ class GovernanceMetadata:
 
     signal: str
     position: str
-    signal_id: str           # e.g. "FORM-001"
-    lens: str                # e.g. "FORM"
-    lifecycle_state: str     # candidate | excluded | not_applicable
-    downstream_status: str   # eligible | caveated | blocked
-    leakage_risk: str        # none | evaluation_circularity | direct
+    signal_id: str  # e.g. "FORM-001"
+    lens: str  # e.g. "FORM"
+    lifecycle_state: str  # candidate | excluded | not_applicable
+    downstream_status: str  # eligible | caveated | blocked
+    leakage_risk: str  # none | evaluation_circularity | direct
     behavioral_reason: str
     source_gate_decisions: tuple[str, ...]
     rho_pooled: float | None
@@ -265,19 +253,21 @@ class GovernanceMetadataError(ValueError):
 # Signals that predate the lens-study methodology and have no evaluation_metadata.yaml record.
 # Any confirmed signal absent from both this set and evaluation_metadata.yaml is ungoverned
 # and must not enter the scoring manifest.
-PRE_LENS_SIGNAL_ALLOWLIST: frozenset[str] = frozenset({
-    "assists",
-    "clean_sheets",
-    "creativity",
-    "goals_conceded",
-    "goals_scored",
-    "ict_index",
-    "influence",
-    "saves",
-    "threat",
-    "xa",
-    "xg",
-    "xgc",
-    "xgi",
-    "yellow_cards",
-})
+PRE_LENS_SIGNAL_ALLOWLIST: frozenset[str] = frozenset(
+    {
+        "assists",
+        "clean_sheets",
+        "creativity",
+        "goals_conceded",
+        "goals_scored",
+        "ict_index",
+        "influence",
+        "saves",
+        "threat",
+        "xa",
+        "xg",
+        "xgc",
+        "xgi",
+        "yellow_cards",
+    }
+)

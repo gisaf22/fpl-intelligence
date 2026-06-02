@@ -23,6 +23,7 @@ ALGEBRAIC_DECOMPOSITIONS: tuple[tuple[str, str, str], ...] = (
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 def _make_df(n: int = 60, position: str = "MID", seed: int = 42) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     base = rng.standard_normal(n)
@@ -31,10 +32,11 @@ def _make_df(n: int = 60, position: str = "MID", seed: int = 42) -> pd.DataFrame
             "position": position,
             "sig_a": base + rng.standard_normal(n) * 0.05,
             "sig_b": base + rng.standard_normal(n) * 0.05,  # nearly perfectly correlated with sig_a
-            "sig_c": rng.standard_normal(n),                 # independent
+            "sig_c": rng.standard_normal(n),  # independent
             "total_points": rng.integers(1, 12, size=n).astype(float),
         }
     )
+
 
 def _perfect_corr_df(n: int = 60, position: str = "MID") -> pd.DataFrame:
     x = np.arange(n, dtype=float)
@@ -48,9 +50,11 @@ def _perfect_corr_df(n: int = 60, position: str = "MID") -> pd.DataFrame:
         }
     )
 
+
 # ---------------------------------------------------------------------------
 # compute_pairwise_rho
 # ---------------------------------------------------------------------------
+
 
 class TestComputePairwiseRho:
     def test_returns_symmetric_dataframe(self):
@@ -125,9 +129,11 @@ class TestComputePairwiseRho:
                 if pd.notna(v):
                     assert -1.0 <= v <= 1.0
 
+
 # ---------------------------------------------------------------------------
 # identify_redundant_pairs
 # ---------------------------------------------------------------------------
+
 
 class TestIdentifyRedundantPairs:
     def _perfect_matrix(self, signals: list[str]) -> pd.DataFrame:
@@ -194,18 +200,15 @@ class TestIdentifyRedundantPairs:
         rho = compute_pairwise_rho(df, signals, "MID")
         pairs = identify_redundant_pairs(rho, threshold=0.0)
         # All non-NaN off-diagonal pairs should be flagged
-        non_nan_count = sum(
-            1
-            for i, j in [(0, 1), (0, 2), (1, 2)]
-            if pd.notna(rho.iloc[i, j])
-        )
+        non_nan_count = sum(1 for i, j in [(0, 1), (0, 2), (1, 2)] if pd.notna(rho.iloc[i, j]))
         assert len(pairs) == non_nan_count
 
     def test_nan_cells_not_flagged(self):
         signals = ["sig_a", "sig_b"]
         mat = pd.DataFrame(
             [[1.0, np.nan], [np.nan, 1.0]],
-            index=signals, columns=signals,
+            index=signals,
+            columns=signals,
         )
         pairs = identify_redundant_pairs(mat, threshold=0.0)
         assert pairs == []
@@ -216,9 +219,11 @@ class TestIdentifyRedundantPairs:
         pairs = identify_redundant_pairs(rho, threshold=0.85)
         assert ("sig_a", "sig_c") in pairs
 
+
 # ---------------------------------------------------------------------------
 # compute_partial_rho
 # ---------------------------------------------------------------------------
+
 
 class TestComputePartialRho:
     def test_returns_float_in_valid_range(self):
@@ -271,9 +276,11 @@ class TestComputePartialRho:
         assert r_mid is not None
         assert r_fwd is not None
 
+
 # ---------------------------------------------------------------------------
 # ALGEBRAIC_DECOMPOSITIONS
 # ---------------------------------------------------------------------------
+
 
 class TestAlgebraicDecompositions:
     def test_is_tuple_of_triples(self):

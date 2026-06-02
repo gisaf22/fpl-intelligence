@@ -32,6 +32,7 @@ pytestmark = pytest.mark.unit
 # Synthetic feature builder
 # ---------------------------------------------------------------------------
 
+
 def _make_fwd_features(
     n_players: int = 30,
     n_gws: int = 35,
@@ -68,25 +69,25 @@ def _make_fwd_features(
             minutes = float(np.clip(base_minutes + rng.normal(0, 8), 0, 90))
             xgi = float(max(0.0, rng.normal(0.3, 0.2)))
             # minutes_roll5 tracks the base profile with small noise
-            minutes_roll5 = float(
-                np.clip(base_minutes + rng.normal(0, 5), 0, 90)
-            ) if gw > 5 else None
+            minutes_roll5 = float(np.clip(base_minutes + rng.normal(0, 5), 0, 90)) if gw > 5 else None
 
-            records.append({
-                "player_id": pid,
-                "gw": gw,
-                "position_label": "FWD",
-                "minutes": minutes,
-                "xgi": xgi,
-                "total_points": float(max(0.0, rng.normal(4, 3))),
-                # State-layer rolling columns (lag-1 warm-up applied below)
-                "minutes_roll3": float(np.clip(base_minutes + rng.normal(0, 5), 0, 90)),
-                "minutes_roll5": minutes_roll5,
-                "points_roll3": float(max(0.0, rng.normal(4, 2))),
-                "xgi_roll3": float(max(0.0, rng.normal(0.3, 0.1))),
-                "xgi_roll5": float(max(0.0, rng.normal(0.28, 0.1))),
-                "xgi_roll8": float(max(0.0, rng.normal(0.28, 0.08))),
-            })
+            records.append(
+                {
+                    "player_id": pid,
+                    "gw": gw,
+                    "position_label": "FWD",
+                    "minutes": minutes,
+                    "xgi": xgi,
+                    "total_points": float(max(0.0, rng.normal(4, 3))),
+                    # State-layer rolling columns (lag-1 warm-up applied below)
+                    "minutes_roll3": float(np.clip(base_minutes + rng.normal(0, 5), 0, 90)),
+                    "minutes_roll5": minutes_roll5,
+                    "points_roll3": float(max(0.0, rng.normal(4, 2))),
+                    "xgi_roll3": float(max(0.0, rng.normal(0.3, 0.1))),
+                    "xgi_roll5": float(max(0.0, rng.normal(0.28, 0.1))),
+                    "xgi_roll8": float(max(0.0, rng.normal(0.28, 0.08))),
+                }
+            )
 
     df = pd.DataFrame(records)
 
@@ -97,9 +98,11 @@ def _make_fwd_features(
 
     return df
 
+
 # ---------------------------------------------------------------------------
 # Cohort assignment correctness
 # ---------------------------------------------------------------------------
+
 
 class TestCohortAssignment:
     def test_stable_at_exactly_60(self):
@@ -139,9 +142,11 @@ class TestCohortAssignment:
         # 59.9 must be ROTATION, never STABLE
         assert _assign_stability_cohort(59.9) == _COHORT_ROTATION
 
+
 # ---------------------------------------------------------------------------
 # Population accounting closure
 # ---------------------------------------------------------------------------
+
 
 class TestPopulationAccounting:
     def test_cohort_counts_sum_to_all_fwd(self):
@@ -155,14 +160,9 @@ class TestPopulationAccounting:
         for _, row in detail.iterrows():
             total = int(row["n_all_fwd"])
             cohort_sum = int(
-                row.get("n_stable", 0)
-                + row.get("n_rotation", 0)
-                + row.get("n_fringe", 0)
-                + row.get("n_unknown", 0)
+                row.get("n_stable", 0) + row.get("n_rotation", 0) + row.get("n_fringe", 0) + row.get("n_unknown", 0)
             )
-            assert cohort_sum == total, (
-                f"GW {row['gw']}: cohort sum {cohort_sum} != n_all_fwd {total}"
-            )
+            assert cohort_sum == total, f"GW {row['gw']}: cohort sum {cohort_sum} != n_all_fwd {total}"
 
     def test_no_negative_counts(self):
         features = _make_fwd_features(n_players=30, n_gws=35, seed=42)
@@ -173,9 +173,11 @@ class TestPopulationAccounting:
         for col in count_cols:
             assert (detail[col] >= 0).all(), f"Column {col} has negative values"
 
+
 # ---------------------------------------------------------------------------
 # Result structure completeness
 # ---------------------------------------------------------------------------
+
 
 class TestResultStructure:
     def test_top_level_keys_present(self):
@@ -183,8 +185,14 @@ class TestResultStructure:
         results = evaluate_minutes_stability_conditioning(features, min_gw=6, max_gw=33)
 
         required = {
-            "eval_gws", "gw_count", "cohort_gw_counts", "cohorts",
-            "full_fwd", "differential", "threshold_assessment", "detail",
+            "eval_gws",
+            "gw_count",
+            "cohort_gw_counts",
+            "cohorts",
+            "full_fwd",
+            "differential",
+            "threshold_assessment",
+            "detail",
         }
         for key in required:
             assert key in results, f"Missing top-level key: '{key}'"
@@ -228,9 +236,7 @@ class TestResultStructure:
         diff = results["differential"]
         for signal in ("xgi_lag1", "xgi_roll3", "xgi_roll8"):
             assert signal in diff, f"Signal '{signal}' missing from differential"
-            assert "delta_stable_fringe" in diff[signal], (
-                f"Signal '{signal}' missing 'delta_stable_fringe'"
-            )
+            assert "delta_stable_fringe" in diff[signal], f"Signal '{signal}' missing 'delta_stable_fringe'"
 
     def test_cohort_signal_results_have_expected_keys(self):
         features = _make_fwd_features(n_players=30, n_gws=35, seed=42)
@@ -245,9 +251,7 @@ class TestResultStructure:
                 if not sig_result:
                     continue
                 for key in ("label", "mean_rho", "std_rho", "n_gws", "mean_top1_return", "downside_rate"):
-                    assert key in sig_result, (
-                        f"Cohort '{cohort}', signal '{signal}' missing key '{key}'"
-                    )
+                    assert key in sig_result, f"Cohort '{cohort}', signal '{signal}' missing key '{key}'"
 
     def test_gw_count_matches_eval_gws(self):
         features = _make_fwd_features(n_players=30, n_gws=35, seed=42)
@@ -255,9 +259,11 @@ class TestResultStructure:
 
         assert results["gw_count"] <= len(results["eval_gws"])
 
+
 # ---------------------------------------------------------------------------
 # Reproducibility
 # ---------------------------------------------------------------------------
+
 
 class TestReproducibility:
     def test_identical_output_on_two_calls(self):
@@ -287,9 +293,11 @@ class TestReproducibility:
         for criterion in r1["threshold_assessment"]:
             assert r1["threshold_assessment"][criterion]["met"] == r2["threshold_assessment"][criterion]["met"]
 
+
 # ---------------------------------------------------------------------------
 # Interpretation correctness
 # ---------------------------------------------------------------------------
+
 
 class TestInterpretResults:
     def test_insufficient_data_on_zero_gw_count(self):
@@ -344,32 +352,63 @@ class TestInterpretResults:
         }
         # Test each threshold combination that produces a distinct path
         scenarios = [
-            ({"cohort_viability": {"met": True}, "primary_differential": {"met": True},
-              "horizon_stability_interaction": {"met": False}, "downside_improvement": {"met": True}},
-             "stability_conditions_downside_not_horizon"),
-            ({"cohort_viability": {"met": True}, "primary_differential": {"met": True},
-              "horizon_stability_interaction": {"met": True}, "downside_improvement": {"met": False}},
-             "stability_conditions_horizon_not_downside"),
-            ({"cohort_viability": {"met": True}, "primary_differential": {"met": True},
-              "horizon_stability_interaction": {"met": False}, "downside_improvement": {"met": False}},
-             "stability_conditions_rho_only"),
+            (
+                {
+                    "cohort_viability": {"met": True},
+                    "primary_differential": {"met": True},
+                    "horizon_stability_interaction": {"met": False},
+                    "downside_improvement": {"met": True},
+                },
+                "stability_conditions_downside_not_horizon",
+            ),
+            (
+                {
+                    "cohort_viability": {"met": True},
+                    "primary_differential": {"met": True},
+                    "horizon_stability_interaction": {"met": True},
+                    "downside_improvement": {"met": False},
+                },
+                "stability_conditions_horizon_not_downside",
+            ),
+            (
+                {
+                    "cohort_viability": {"met": True},
+                    "primary_differential": {"met": True},
+                    "horizon_stability_interaction": {"met": False},
+                    "downside_improvement": {"met": False},
+                },
+                "stability_conditions_rho_only",
+            ),
         ]
         for ta, expected in scenarios:
             result = interpret_results({"gw_count": 20, "threshold_assessment": ta})
             assert result == expected, f"Expected '{expected}', got '{result}'"
             assert result in known, f"Unknown interpretation string: '{result}'"
 
+
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestEdgeCases:
     def test_empty_dataframe_returns_zero_gw_count(self):
-        empty = pd.DataFrame(columns=[
-            "player_id", "gw", "position_label", "minutes", "xgi", "total_points",
-            "minutes_roll3", "minutes_roll5", "points_roll3",
-            "xgi_roll3", "xgi_roll5", "xgi_roll8",
-        ])
+        empty = pd.DataFrame(
+            columns=[
+                "player_id",
+                "gw",
+                "position_label",
+                "minutes",
+                "xgi",
+                "total_points",
+                "minutes_roll3",
+                "minutes_roll5",
+                "points_roll3",
+                "xgi_roll3",
+                "xgi_roll5",
+                "xgi_roll8",
+            ]
+        )
         results = evaluate_minutes_stability_conditioning(empty, min_gw=6, max_gw=33)
         assert results["gw_count"] == 0
 
@@ -381,9 +420,7 @@ class TestEdgeCases:
 
         detail = results["detail"]
         if not detail.empty:
-            assert (detail["n_all_fwd"] <= 10).all(), (
-                "MID rows should be excluded from n_all_fwd"
-            )
+            assert (detail["n_all_fwd"] <= 10).all(), "MID rows should be excluded from n_all_fwd"
 
     def test_all_stable_population_produces_empty_fringe(self):
         features = _make_fwd_features(n_players=20, n_gws=35, seed=42, minutes_profile="all_stable")
@@ -409,6 +446,4 @@ class TestEdgeCases:
         diff = results["differential"]
         for signal in ("xgi_lag1", "xgi_roll3", "xgi_roll8"):
             delta = diff.get(signal, {}).get("delta_stable_fringe")
-            assert delta is None, (
-                f"Expected None delta for {signal} when FRINGE is empty, got {delta}"
-            )
+            assert delta is None, f"Expected None delta for {signal} when FRINGE is empty, got {delta}"

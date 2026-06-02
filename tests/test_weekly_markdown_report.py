@@ -1,4 +1,3 @@
-
 import pytest
 
 from intelligence.reporting.insight_card_writer import build_insight_cards
@@ -13,6 +12,7 @@ from intelligence.reporting.reports import (
 from signals.governance import load_registry
 
 pytestmark = pytest.mark.unit
+
 
 def _marts():
     signal_summary = build_signal_summary(load_registry(), gw=36)
@@ -32,6 +32,7 @@ def _marts():
         "stable_performance_signals": stable_performance_signals,
         "insight_cards": insight_cards,
     }
+
 
 def test_build_weekly_markdown_report_has_required_sections_and_caveats():
     report = build_weekly_markdown_report(**_marts())
@@ -54,6 +55,7 @@ def test_build_weekly_markdown_report_has_required_sections_and_caveats():
     for text in required_text:
         assert text in report
 
+
 def test_weekly_markdown_report_contains_concrete_signal_evidence():
     report = build_weekly_markdown_report(**_marts())
 
@@ -62,6 +64,7 @@ def test_weekly_markdown_report_contains_concrete_signal_evidence():
     assert "14" in report
     assert "registry_snapshot.csv" in report
     assert "snapshot_changes.csv" in report
+
 
 def test_write_weekly_markdown_report(tmp_path):
     output_path = write_weekly_markdown_report(**_marts(), output_dir=tmp_path)

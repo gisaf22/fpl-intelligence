@@ -26,6 +26,7 @@ pytestmark = pytest.mark.unit
 # GovernanceMetadata schema
 # ---------------------------------------------------------------------------
 
+
 class TestGovernanceMetadataSchema:
     def test_frozen_dataclass(self) -> None:
         gov = GovernanceMetadata(
@@ -77,9 +78,11 @@ class TestGovernanceMetadataSchema:
         assert "excluded" in LIFECYCLE_STATE_VALUES
         assert "not_applicable" in LIFECYCLE_STATE_VALUES
 
+
 # ---------------------------------------------------------------------------
 # get_signal_governance — happy path
 # ---------------------------------------------------------------------------
+
 
 class TestGetSignalGovernance:
     def test_known_approved_signal(self) -> None:
@@ -162,9 +165,11 @@ class TestGetSignalGovernance:
         assert len(gov.source_gate_decisions) >= 2
         assert "G1-PASS" in gov.source_gate_decisions
 
+
 # ---------------------------------------------------------------------------
 # Multi-lens disambiguation: minutes_roll3 appears in FORM-006 and AVAIL-001
 # ---------------------------------------------------------------------------
+
 
 class TestMultiLensDisambiguation:
     def test_minutes_roll3_mid_returns_approved(self) -> None:
@@ -191,9 +196,11 @@ class TestMultiLensDisambiguation:
         gov = get_signal_governance("minutes_roll3", "GK")
         assert gov.lifecycle_state == "excluded"
 
+
 # ---------------------------------------------------------------------------
 # _assert_governance_compliance runtime assertions
 # ---------------------------------------------------------------------------
+
 
 def _make_confirmed(signal: str, position: str) -> object:
     """Return a minimal ConfirmedSignal-like object."""
@@ -207,10 +214,12 @@ def _make_confirmed(signal: str, position: str) -> object:
         promotion_class="core_signal",
     )
 
+
 def _make_manifest(confirmed: list) -> object:
     from intelligence.scoring.contracts import SignalManifest
 
     return SignalManifest(confirmed=confirmed, caveated=[], positions_covered={})
+
 
 class TestAssertGovernanceCompliance:
     def test_valid_candidate_passes(self) -> None:
@@ -270,9 +279,11 @@ class TestAssertGovernanceCompliance:
         manifest = _make_manifest([])
         _assert_governance_compliance(manifest)  # should not raise
 
+
 # ---------------------------------------------------------------------------
 # YAML completeness: every per-position entry must have the Phase 2 fields
 # ---------------------------------------------------------------------------
+
 
 class TestYAMLCompleteness:
     def _load_yaml(self) -> list[dict]:
@@ -288,19 +299,13 @@ class TestYAMLCompleteness:
     def test_all_positions_have_behavioral_reason(self) -> None:
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
-                assert "behavioral_reason" in pos_data, (
-                    f"{entry['signal_id']} {pos} missing behavioral_reason"
-                )
-                assert pos_data["behavioral_reason"], (
-                    f"{entry['signal_id']} {pos} behavioral_reason is empty"
-                )
+                assert "behavioral_reason" in pos_data, f"{entry['signal_id']} {pos} missing behavioral_reason"
+                assert pos_data["behavioral_reason"], f"{entry['signal_id']} {pos} behavioral_reason is empty"
 
     def test_all_positions_have_source_gate_decisions(self) -> None:
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
-                assert "source_gate_decisions" in pos_data, (
-                    f"{entry['signal_id']} {pos} missing source_gate_decisions"
-                )
+                assert "source_gate_decisions" in pos_data, f"{entry['signal_id']} {pos} missing source_gate_decisions"
                 decisions = pos_data["source_gate_decisions"]
                 assert isinstance(decisions, list) and len(decisions) >= 1, (
                     f"{entry['signal_id']} {pos} source_gate_decisions must be non-empty list"
@@ -309,12 +314,9 @@ class TestYAMLCompleteness:
     def test_all_positions_have_leakage_risk(self) -> None:
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
-                assert "leakage_risk" in pos_data, (
-                    f"{entry['signal_id']} {pos} missing leakage_risk"
-                )
+                assert "leakage_risk" in pos_data, f"{entry['signal_id']} {pos} missing leakage_risk"
                 assert pos_data["leakage_risk"] in LEAKAGE_RISK_VALUES, (
-                    f"{entry['signal_id']} {pos} leakage_risk={pos_data['leakage_risk']!r} "
-                    f"not in {LEAKAGE_RISK_VALUES}"
+                    f"{entry['signal_id']} {pos} leakage_risk={pos_data['leakage_risk']!r} not in {LEAKAGE_RISK_VALUES}"
                 )
 
     def test_all_positions_have_downstream_status(self) -> None:
@@ -322,9 +324,7 @@ class TestYAMLCompleteness:
 
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
-                assert "downstream_status" in pos_data, (
-                    f"{entry['signal_id']} {pos} missing downstream_status"
-                )
+                assert "downstream_status" in pos_data, f"{entry['signal_id']} {pos} missing downstream_status"
                 assert pos_data["downstream_status"] in DOWNSTREAM_STATUS_VALUES, (
                     f"{entry['signal_id']} {pos} downstream_status={pos_data['downstream_status']!r} "
                     f"not in {DOWNSTREAM_STATUS_VALUES}"
@@ -333,9 +333,7 @@ class TestYAMLCompleteness:
     def test_all_positions_have_lifecycle_state(self) -> None:
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
-                assert "lifecycle_state" in pos_data, (
-                    f"{entry['signal_id']} {pos} missing lifecycle_state"
-                )
+                assert "lifecycle_state" in pos_data, f"{entry['signal_id']} {pos} missing lifecycle_state"
                 assert pos_data["lifecycle_state"] in LIFECYCLE_STATE_VALUES, (
                     f"{entry['signal_id']} {pos} lifecycle_state={pos_data['lifecycle_state']!r} "
                     f"not in {LIFECYCLE_STATE_VALUES}"
@@ -371,9 +369,11 @@ class TestYAMLCompleteness:
                         f"downstream_status={pos_data['downstream_status']!r}"
                     )
 
+
 # ---------------------------------------------------------------------------
 # Phase 4 — get_signal_governance() completeness: all YAML entries resolvable
 # ---------------------------------------------------------------------------
+
 
 class TestGetSignalGovernanceCompleteness:
     """get_signal_governance() must return a complete GovernanceMetadata for every
@@ -404,9 +404,7 @@ class TestGetSignalGovernanceCompleteness:
                         f"{entry['signal_id']} ({signal}, {pos}): returned non-GovernanceMetadata"
                     )
                 except Exception as exc:
-                    failures.append(
-                        f"{entry['signal_id']} ({signal}, {pos}): {type(exc).__name__}: {exc}"
-                    )
+                    failures.append(f"{entry['signal_id']} ({signal}, {pos}): {type(exc).__name__}: {exc}")
         assert not failures, "get_signal_governance() failed for entries:\n" + "\n".join(failures)
 
     def test_returned_metadata_has_all_required_fields(self) -> None:
@@ -455,14 +453,14 @@ class TestGetSignalGovernanceCompleteness:
                 except GovernanceMetadataError:
                     continue
                 if gov.rho_pooled is None:
-                    failures.append(
-                        f"({signal}, {pos}): lifecycle_state=candidate but rho_pooled is None"
-                    )
+                    failures.append(f"({signal}, {pos}): lifecycle_state=candidate but rho_pooled is None")
         assert not failures, "\n".join(failures)
+
 
 # ---------------------------------------------------------------------------
 # Phase 4 — Specific violation error types
 # ---------------------------------------------------------------------------
+
 
 class TestViolationErrorTypes:
     """_assert_governance_compliance() must raise LifecycleViolationError for excluded/blocked
@@ -474,13 +472,18 @@ class TestViolationErrorTypes:
 
     def _make_confirmed(self, signal: str, position: str) -> object:
         from intelligence.scoring.contracts import ConfirmedSignal
+
         return ConfirmedSignal(
-            signal=signal, position=position, rho_pooled=0.20,
-            direction=1, promotion_class="core_signal",
+            signal=signal,
+            position=position,
+            rho_pooled=0.20,
+            direction=1,
+            promotion_class="core_signal",
         )
 
     def _make_manifest(self, confirmed: list) -> object:
         from intelligence.scoring.contracts import SignalManifest
+
         return SignalManifest(confirmed=confirmed, caveated=[], positions_covered={})
 
     def test_excluded_signal_raises_lifecycle_violation_error(self) -> None:
@@ -538,6 +541,7 @@ class TestViolationErrorTypes:
     def test_lifecycle_violation_error_is_value_error(self) -> None:
         """LifecycleViolationError is a subclass of ValueError (backward compatibility)."""
         from signals.governance.lifecycle import LifecycleViolationError
+
         assert issubclass(LifecycleViolationError, ValueError)
 
     def test_leakage_violation_error_is_value_error(self) -> None:

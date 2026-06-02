@@ -57,9 +57,7 @@ def _validate_section_keys(frame: pd.DataFrame, frame_name: str) -> None:
     _require_columns(frame, SECTION_KEY_COLUMNS, frame_name)
     duplicates = int(frame[list(SECTION_KEY_COLUMNS)].duplicated().sum())
     if duplicates:
-        raise ValueError(
-            f"{frame_name} has {duplicates} duplicate signal-position keys"
-        )
+        raise ValueError(f"{frame_name} has {duplicates} duplicate signal-position keys")
 
 
 def assemble_registry_from_sections(
@@ -86,14 +84,9 @@ def assemble_registry_from_sections(
             "decomposition": len(decomposition),
             "haul": len(haul),
         }
-        mismatches = {
-            name: count for name, count in counts.items() if count != expected_n
-        }
+        mismatches = {name: count for name, count in counts.items() if count != expected_n}
         if mismatches:
-            raise ValueError(
-                f"section row counts do not match expected_n={expected_n}: "
-                f"{mismatches}"
-            )
+            raise ValueError(f"section row counts do not match expected_n={expected_n}: {mismatches}")
 
     registry = geometry.copy()
     registry = registry.merge(
@@ -102,16 +95,12 @@ def assemble_registry_from_sections(
         how="left",
     )
     registry = registry.merge(
-        decomposition[list(DECOMPOSITION_COLUMNS)].rename(
-            columns={"support_flag": "decomp_support_flag"}
-        ),
+        decomposition[list(DECOMPOSITION_COLUMNS)].rename(columns={"support_flag": "decomp_support_flag"}),
         on=list(SECTION_KEY_COLUMNS),
         how="left",
     )
     registry = registry.merge(
-        haul[list(HAUL_COLUMNS)].rename(
-            columns={"support_flag": "haul_support_flag"}
-        ),
+        haul[list(HAUL_COLUMNS)].rename(columns={"support_flag": "haul_support_flag"}),
         on=list(SECTION_KEY_COLUMNS),
         how="left",
     )
@@ -121,19 +110,11 @@ def assemble_registry_from_sections(
         consolidate_flags(*[str(row.get(column) or "") for column in flag_columns])
         for row in registry.to_dict(orient="records")
     ]
-    registry = registry.drop(
-        columns=[column for column in flag_columns[1:] if column in registry.columns]
-    )
+    registry = registry.drop(columns=[column for column in flag_columns[1:] if column in registry.columns])
 
-    registry["association_class"] = [
-        assign_association_class(row)
-        for row in registry.to_dict(orient="records")
-    ]
+    registry["association_class"] = [assign_association_class(row) for row in registry.to_dict(orient="records")]
     registry = enrich_signal_layers(registry)
     registry = enrich_promotion_class(registry)
 
     extra_columns = [column for column in registry.columns if column not in REQUIRED_COLUMNS]
-    return registry[
-        [column for column in REQUIRED_COLUMNS if column in registry.columns]
-        + extra_columns
-    ]
+    return registry[[column for column in REQUIRED_COLUMNS if column in registry.columns] + extra_columns]

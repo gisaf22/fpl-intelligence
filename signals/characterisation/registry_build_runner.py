@@ -23,7 +23,6 @@ from signals.governance import load_registry, validate_registry_contract
 BUILD_MODES: tuple[str, ...] = ("packaged", "computed")
 
 
-
 @dataclass(frozen=True)
 class RegistryBuildResult:
     """Output locations and counts from one registry build."""
@@ -46,9 +45,7 @@ def _load_tabular(path: str | Path) -> pd.DataFrame:
         return pd.read_csv(source_path)
     if source_path.suffix.lower() in {".parquet", ".pq"}:
         return pd.read_parquet(source_path)
-    raise ValueError(
-        f"Unsupported tabular input format for {source_path}; use CSV or Parquet"
-    )
+    raise ValueError(f"Unsupported tabular input format for {source_path}; use CSV or Parquet")
 
 
 def _signals_from_metadata(signal_metadata: pd.DataFrame | None) -> tuple[str, ...]:
@@ -57,9 +54,7 @@ def _signals_from_metadata(signal_metadata: pd.DataFrame | None) -> tuple[str, .
     if "signal" not in signal_metadata.columns:
         raise ValueError("signal metadata missing required columns: ['signal']")
     if "status" in signal_metadata.columns:
-        signal_metadata = signal_metadata[
-            signal_metadata["status"].astype(str).str.upper().eq("INCLUDE")
-        ]
+        signal_metadata = signal_metadata[signal_metadata["status"].astype(str).str.upper().eq("INCLUDE")]
     return tuple(dict.fromkeys(signal_metadata["signal"].astype(str)))
 
 
@@ -71,19 +66,16 @@ def _build_computed_registry(
     n_bootstrap: int = 200,
 ) -> pd.DataFrame:
     import importlib
+
     _study = importlib.import_module("studies.experiments.registry_sections_study")
     SectionBuildConfig = _study.SectionBuildConfig
     compute_relationship_sections = _study.compute_relationship_sections
 
     data = _load_tabular(prepared_data_path)
-    signal_metadata = (
-        pd.read_csv(signal_metadata_path) if signal_metadata_path is not None else None
-    )
+    signal_metadata = pd.read_csv(signal_metadata_path) if signal_metadata_path is not None else None
     signal_list = tuple(signals or _signals_from_metadata(signal_metadata))
     if not signal_list:
-        raise ValueError(
-            "computed registry builds require --signals or --signal-metadata-path"
-        )
+        raise ValueError("computed registry builds require --signals or --signal-metadata-path")
     data = validate_prepared_dataset(
         data=data,
         signals=signal_list,
@@ -128,14 +120,10 @@ def run_registry_build(
     if cutoff <= 0:
         raise ValueError(f"data_cutoff_gw must be positive, got {cutoff}")
     if cutoff > gw:
-        raise ValueError(
-            f"data_cutoff_gw cannot be greater than gw: {cutoff} > {gw}"
-        )
+        raise ValueError(f"data_cutoff_gw cannot be greater than gw: {cutoff} > {gw}")
 
     source_path = Path(source_registry_path)
-    target_dir = (
-        Path(output_dir) if output_dir is not None else default_registry_output_dir(gw)
-    )
+    target_dir = Path(output_dir) if output_dir is not None else default_registry_output_dir(gw)
 
     source_dataset_path = source_path
     comparison_summary: dict[str, int] | None = None
@@ -166,7 +154,9 @@ def run_registry_build(
     reference_path = (
         Path(compare_registry_path)
         if compare_registry_path is not None
-        else source_path if build_mode == "computed" else None
+        else source_path
+        if build_mode == "computed"
+        else None
     )
     if reference_path is not None and reference_path.exists():
         reference = load_registry(reference_path)
@@ -205,9 +195,7 @@ def run_registry_build(
 
 def build_parser() -> argparse.ArgumentParser:
     """Build CLI parser for registry build workflow."""
-    parser = argparse.ArgumentParser(
-        description="Create a validated gameweek-scoped registry artifact."
-    )
+    parser = argparse.ArgumentParser(description="Create a validated gameweek-scoped registry artifact.")
     parser.add_argument(
         "--gw",
         type=int,
@@ -260,10 +248,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--compare-registry-path",
         type=Path,
         default=None,
-        help=(
-            "Reference registry for computed comparison. "
-            "Default in computed mode: --source-registry-path."
-        ),
+        help=("Reference registry for computed comparison. Default in computed mode: --source-registry-path."),
     )
     parser.add_argument(
         "--n-bootstrap",

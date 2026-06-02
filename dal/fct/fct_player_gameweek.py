@@ -46,10 +46,7 @@ def _assert_invariant_per_gw_columns(df: pd.DataFrame) -> None:
     has more than one distinct value within a (player_id, gw) group, which would indicate
     an upstream API change or join error.
     """
-    invariant_cols = [
-        c for c, s in FIRST_COL_SEMANTICS.items()
-        if s == "invariant_per_gw" and c in df.columns
-    ]
+    invariant_cols = [c for c, s in FIRST_COL_SEMANTICS.items() if s == "invariant_per_gw" and c in df.columns]
     for col in invariant_cols:
         unique_counts = df.groupby(["player_id", "gw"])[col].nunique()
         violators = unique_counts[unique_counts > 1].reset_index()
@@ -58,7 +55,6 @@ def _assert_invariant_per_gw_columns(df: pd.DataFrame) -> None:
                 f"invariant_per_gw violated for column '{col}': "
                 f"{len(violators)} (player_id, gw) groups have >1 distinct value. "
                 f"First violators:\n{violators.head(5)}",
-
                 validation="_assert_invariant_per_gw_columns",
                 n_violations=len(violators),
                 error_code="GRAIN_DUPLICATE",
@@ -75,13 +71,17 @@ def _aggregate_to_gw_grain(df: pd.DataFrame) -> pd.DataFrame:
     # SC-9: explicit sort ensures FIRST_COLS take-first is deterministic
     df = df.sort_values(["player_id", "gw", "fixture_id"]).reset_index(drop=True)
 
-    result = df.groupby(["player_id", "gw"]).agg(
-        **{col: (col, "first") for col in FIRST_COLS},
-        **{col: (col, "sum") for col in SUM_COLS},
-        **{col: (col, "mean") for col in MEAN_COLS},
-        fixture_count=("fixture_id", "count"),
-        fdr_avg=("fixture_difficulty", "mean"),
-    ).reset_index()
+    result = (
+        df.groupby(["player_id", "gw"])
+        .agg(
+            **{col: (col, "first") for col in FIRST_COLS},
+            **{col: (col, "sum") for col in SUM_COLS},
+            **{col: (col, "mean") for col in MEAN_COLS},
+            fixture_count=("fixture_id", "count"),
+            fdr_avg=("fixture_difficulty", "mean"),
+        )
+        .reset_index()
+    )
     result["fdr_avg"] = result["fdr_avg"].astype("Float64")
     return result
 
@@ -97,11 +97,9 @@ def _build_player_info(df: pd.DataFrame) -> pd.DataFrame:
     Columns returned: player_name, position_code, position_label, team_id, purchase_price.
     The index is reset; caller uses merge-as-of to find the last known state per player.
     """
-    return (
-        df.sort_values(["player_id", "gw"])
-        [["player_id", "gw", "player_name", "position_code", "position_label", "team_id", "purchase_price"]]
-        .reset_index(drop=True)
-    )
+    return df.sort_values(["player_id", "gw"])[
+        ["player_id", "gw", "player_name", "position_code", "position_label", "team_id", "purchase_price"]
+    ].reset_index(drop=True)
 
 
 def _build_full_spine(player_universe: list[int], gw_range: list[int]) -> pd.DataFrame:
@@ -207,8 +205,7 @@ def _cast_and_validate(
 
     validate_column_contract(result, SPINE_COLS, DTYPES)
     validate_grain_uniqueness(result, "player_gameweek_spine")
-    validate_row_completeness(result,
-        result["player_id"].unique(), sorted(result["gw"].unique()))
+    validate_row_completeness(result, result["player_id"].unique(), sorted(result["gw"].unique()))
     validate_row_count_invariant(result, n_players=n_players, n_gws=n_gws)
     validate_time_continuity(result)
     validate_no_future_data(result, reference_gw=max_gw, performance_cols=PERFORMANCE_COLS)
@@ -264,7 +261,10 @@ def build_player_gameweek_spine(
     player_universe = sorted(df["player_id"].unique().tolist())
     logger.info(
         "Building spine: %d players x %d GWs (GW%d-GW%d)",
-        len(player_universe), len(gw_range), min_gw, max_gw,
+        len(player_universe),
+        len(gw_range),
+        min_gw,
+        max_gw,
     )
 
     spine = _build_full_spine(player_universe, gw_range)
@@ -297,8 +297,9 @@ def build_player_gameweek_spine(
 
     result["is_bgw"] = result["fixture_count"] == 0
 
-    assert not (result["is_bgw"] & result["is_dgw"]).any(), \
+    assert not (result["is_bgw"] & result["is_dgw"]).any(), (
         "is_bgw and is_dgw are mutually exclusive — logic error in spine construction"
+    )
 
     n_bgw = int(result["is_bgw"].sum())
     n_dgw = int(result["is_dgw"].sum())
@@ -308,6 +309,8 @@ def build_player_gameweek_spine(
     elapsed_ms = (time.perf_counter() - _t0) * 1000
     logger.info(
         "[DAL:fct:spine] build complete | rows=%d cols=%d elapsed_ms=%.0f",
-        len(result), len(SPINE_COLS), elapsed_ms,
+        len(result),
+        len(SPINE_COLS),
+        elapsed_ms,
     )
     return result[SPINE_COLS]

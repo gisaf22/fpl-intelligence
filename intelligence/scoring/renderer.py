@@ -331,10 +331,7 @@ def _render_provenance(registry_path: str, registry_meta: dict) -> str:
         if "data_cutoff_gw" in registry_meta:
             parts.append(f"data cutoff: GW{registry_meta['data_cutoff_gw']}")
         if "row_count" in registry_meta and "signal_count" in registry_meta:
-            parts.append(
-                f"signals: {registry_meta['row_count']} total, "
-                f"{registry_meta['signal_count']} passed filters"
-            )
+            parts.append(f"signals: {registry_meta['row_count']} total, {registry_meta['signal_count']} passed filters")
         if "registry_version" in registry_meta:
             parts.append(f"version: {html.escape(registry_meta['registry_version'])}")
     return f'<div class="provenance">{" · ".join(parts)}</div>'
@@ -385,18 +382,18 @@ def _render_position_table(
         rho_display = f"{abs(sig.rho_pooled):.2f}"
         th_signals += (
             f'<th class="signal-col">'
-            f'{html.escape(sig.signal)}{badge}'
+            f"{html.escape(sig.signal)}{badge}"
             f'<br><span class="signal-meta">{direction_arrow} ρ={rho_display}</span>'  # noqa: RUF001
-            f'</th>'
+            f"</th>"
         )
 
     header = (
-        f'<thead><tr>'
+        f"<thead><tr>"
         f'<th class="rank-col">Rank</th>'
-        f'<th>Player</th>'
+        f"<th>Player</th>"
         f'<th class="score-col">Score</th>'
-        f'{th_signals}'
-        f'</tr></thead>'
+        f"{th_signals}"
+        f"</tr></thead>"
     )
 
     rows = ""
@@ -408,27 +405,18 @@ def _render_position_table(
             norm_val = p.signal_normalised.get(sig.signal)
             bar = _bar_html(norm_val, sig.direction)
             raw_str = _fmt(raw_val, 2) if raw_val is not None else "—"
-            td_signals += (
-                f'<td class="bar-cell">'
-                f'{bar}'
-                f'<div class="bar-raw">{html.escape(raw_str)}</div>'
-                f'</td>'
-            )
+            td_signals += f'<td class="bar-cell">{bar}<div class="bar-raw">{html.escape(raw_str)}</div></td>'
 
         rows += (
-            f'<tr>'
+            f"<tr>"
             f'<td class="rank-cell">{p.rank}</td>'
             f'<td class="name-cell">{html.escape(p.player_name)}</td>'
             f'<td class="score-cell">{score_display}</td>'
-            f'{td_signals}'
-            f'</tr>'
+            f"{td_signals}"
+            f"</tr>"
         )
 
-    table_html = (
-        f'<div class="table-wrap">'
-        f'<table>{header}<tbody>{rows}</tbody></table>'
-        f'</div>'
-    )
+    table_html = f'<div class="table-wrap"><table>{header}<tbody>{rows}</tbody></table></div>'
 
     # Caveated signals section
     caveated_html = ""
@@ -437,15 +425,12 @@ def _render_position_table(
         for sig in caveated_for_pos:
             items += (
                 f'<li class="caveated-item">'
-                f'<strong>{html.escape(sig.signal)}</strong> '
+                f"<strong>{html.escape(sig.signal)}</strong> "
                 f'<span class="reason">— {html.escape(sig.reason)}</span>'
-                f'</li>'
+                f"</li>"
             )
         caveated_html = (
-            f'<div class="caveated-section">'
-            f'<h3>Excluded signals</h3>'
-            f'<ul class="caveated-list">{items}</ul>'
-            f'</div>'
+            f'<div class="caveated-section"><h3>Excluded signals</h3><ul class="caveated-list">{items}</ul></div>'
         )
 
     return table_html + caveated_html
@@ -480,8 +465,7 @@ def render(output: ScorerOutput) -> str:
         is_active = i == 0
         active_cls = " active" if is_active else ""
         tab_buttons += (
-            f'<button class="tab-btn{active_cls}" data-pos="{pos}" '
-            f'onclick="showTab(\'{pos}\')">{pos}</button>'
+            f'<button class="tab-btn{active_cls}" data-pos="{pos}" onclick="showTab(\'{pos}\')">{pos}</button>'
         )
         content = _render_position_table(
             position=pos,

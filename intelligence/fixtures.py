@@ -59,9 +59,7 @@ def _build_team_attack_strength(
     Uses the window [target_gw - horizon, target_gw) to avoid look-ahead.
     """
     lookback_start = max(1, target_gw - horizon)
-    window_df = features[
-        (features["gw"] >= lookback_start) & (features["gw"] < target_gw)
-    ].copy()
+    window_df = features[(features["gw"] >= lookback_start) & (features["gw"] < target_gw)].copy()
 
     if window_df.empty:
         return pd.Series(dtype=float)
@@ -120,9 +118,7 @@ def rank_fixture_opportunities(
     # Reference row: player state at target_gw for eligibility and rolling signals.
     ref_df = features[features["gw"] == target_gw].copy()
     if ref_df.empty:
-        raise IntelligenceInputError(
-            f"rank_fixture_opportunities: no data for gw={target_gw}"
-        )
+        raise IntelligenceInputError(f"rank_fixture_opportunities: no data for gw={target_gw}")
 
     eligible = ref_df[ref_df["minutes_roll5"].fillna(0) >= _MIN_MINUTES_ROLL5].copy()
     if eligible.empty:
@@ -131,9 +127,7 @@ def rank_fixture_opportunities(
     # Fixture window: compute per-player DGW presence from STATE fixture_context
     # and mean FDR (informational only, not scored).
     window_gws = list(range(target_gw, target_gw + horizon))
-    window_df = features[features["gw"].isin(window_gws)][
-        ["player_id", "gw", "fdr_avg", "fixture_context"]
-    ]
+    window_df = features[features["gw"].isin(window_gws)][["player_id", "gw", "fdr_avg", "fixture_context"]]
 
     if window_df.empty:
         # No forward GW data available — return neutral scores.
@@ -144,12 +138,8 @@ def rank_fixture_opportunities(
             fdr_window_avg=("fdr_avg", "mean"),
             dgw_in_window=("fixture_context", lambda s: int((s == "DGW").any())),
         )
-        fdr_summary["fdr_window_avg"] = fdr_summary["fdr_window_avg"].fillna(
-            _FDR_NEUTRAL
-        )
-        eligible = eligible.merge(
-            fdr_summary, on="player_id", how="left"
-        )
+        fdr_summary["fdr_window_avg"] = fdr_summary["fdr_window_avg"].fillna(_FDR_NEUTRAL)
+        eligible = eligible.merge(fdr_summary, on="player_id", how="left")
         eligible["fdr_window_avg"] = eligible["fdr_window_avg"].fillna(_FDR_NEUTRAL)
         eligible["dgw_in_window"] = eligible["dgw_in_window"].fillna(0).astype(int)
 
@@ -157,26 +147,15 @@ def rank_fixture_opportunities(
     team_attack = _build_team_attack_strength(features, target_gw, horizon)
     eligible["team_goals_roll5"] = eligible["team_id"].map(team_attack).fillna(0.5)
 
-    eligible["team_attack_score"] = normalize_within_position(
-        eligible, "team_goals_roll5"
-    )
+    eligible["team_attack_score"] = normalize_within_position(eligible, "team_goals_roll5")
     # DGW bonus: binary flag normalized to [0, 1] within position.
-    eligible["dgw_bonus_score"] = normalize_within_position(
-        eligible, "dgw_in_window"
-    )
+    eligible["dgw_bonus_score"] = normalize_within_position(eligible, "dgw_in_window")
 
-    eligible["fixture_opportunity_score"] = weighted_composite(
-        eligible, list(_WEIGHTS.keys()), _WEIGHTS
-    )
+    eligible["fixture_opportunity_score"] = weighted_composite(eligible, list(_WEIGHTS.keys()), _WEIGHTS)
     eligible["fixture_opportunity_rank"] = (
-        eligible.groupby("position_label")["fixture_opportunity_score"]
-        .rank(ascending=False, method="min")
-        .astype(int)
+        eligible.groupby("position_label")["fixture_opportunity_score"].rank(ascending=False, method="min").astype(int)
     )
 
     return (
-        eligible[_OUTPUT_COLS]
-        .sort_values("fixture_opportunity_score", ascending=False)
-        .head(n)
-        .reset_index(drop=True)
+        eligible[_OUTPUT_COLS].sort_values("fixture_opportunity_score", ascending=False).head(n).reset_index(drop=True)
     )

@@ -33,9 +33,7 @@ def test_dgw_home_away_count_sums_to_two(db_path):
     dgw_rows = spine[spine["is_dgw"].astype(bool)]
     assert not dgw_rows.empty, "No DGW rows found"
     bad = dgw_rows[(dgw_rows["home_count"] + dgw_rows["away_count"]) != 2]
-    assert bad.empty, (
-        f"DGW home+away sum violation: {len(bad)} rows have home_count + away_count != 2"
-    )
+    assert bad.empty, f"DGW home+away sum violation: {len(bad)} rows have home_count + away_count != 2"
 
 
 def test_dgw_fdr_avg_not_null(db_path):
@@ -53,9 +51,7 @@ def test_dgw_clean_sheet_count_in_bounds(db_path):
     dgw_rows = spine[spine["is_dgw"].astype(bool)]
     assert not dgw_rows.empty, "No DGW rows found"
     bad = dgw_rows[~dgw_rows["clean_sheets"].isin([0, 1, 2])]
-    assert bad.empty, (
-        f"DGW clean sheet out of bounds: {len(bad)} rows with clean_sheets not in {{0, 1, 2}}"
-    )
+    assert bad.empty, f"DGW clean sheet out of bounds: {len(bad)} rows with clean_sheets not in {{0, 1, 2}}"
 
 
 def test_dgw_correctness_via_validator(db_path):

@@ -107,13 +107,15 @@ def evaluate_transfer_heuristic(
         r_future = _cumulative_future_returns(r_ids, features, gw, lookahead)
         f_future = _cumulative_future_returns(f_ids, features, gw, lookahead)
 
-        rows.append({
-            "gw": gw,
-            "heuristic_mean_return": float(h_future.mean()) if not h_future.empty else None,
-            "baseline_recent_mean_return": float(r_future.mean()) if not r_future.empty else None,
-            "baseline_fixture_mean_return": float(f_future.mean()) if not f_future.empty else None,
-            "heuristic_n": len(h_ids),
-        })
+        rows.append(
+            {
+                "gw": gw,
+                "heuristic_mean_return": float(h_future.mean()) if not h_future.empty else None,
+                "baseline_recent_mean_return": float(r_future.mean()) if not r_future.empty else None,
+                "baseline_fixture_mean_return": float(f_future.mean()) if not f_future.empty else None,
+                "heuristic_n": len(h_ids),
+            }
+        )
 
     if not rows:
         return {"gw_count": 0}

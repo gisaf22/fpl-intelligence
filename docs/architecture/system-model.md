@@ -1,7 +1,7 @@
 # System Model
 
 **Authoritative for:** conceptual classification of system components — what each part of the system is responsible for and why it exists.  
-**Read this before:** [layer-boundaries.md](layer-boundaries.md), [registry-governance.md](../registry-governance.md), [decision-lifecycle.md](decision-lifecycle.md)
+**Read this before:** [layer-boundaries.md](layer-boundaries.md), [registry-governance.md](../registry-governance.md), [runtime-execution.md](runtime-execution.md)
 
 ---
 
@@ -53,11 +53,11 @@ The system has three orthogonal planes. Each plane has a distinct purpose and a 
 
 | Artifact / Component | Role |
 |---|---|
-| `signals/registry/SIGNAL_REGISTRY.md` | Lifecycle status for every named signal — the governance ledger |
+| `signals/characterisation/SIGNAL_REGISTRY.md` | Lifecycle status for every named signal — the governance ledger |
 | `outputs/registry/gw{N}/registry.csv` | Governed signal manifest: rho weights, promotion class, layer roles |
 | `outputs/registry/gw{N}/build_metadata.json` | Registry build provenance: timestamp, source, schema version |
-| `signals/registry/runner.py` + `builder.py` | Assembles the governed artifact from confirmed signal evidence |
-| `signals/lifecycle/` | Lifecycle gate rules — what must be true before a signal enters the manifest |
+| `signals/characterisation/registry_build_runner.py` + `registry_assembler.py` | Assembles the governed artifact from confirmed signal evidence |
+| `signals/governance/` | Lifecycle gate rules — what must be true before a signal enters the manifest |
 | Static weights in `intelligence/` modules | Explicit scoring configuration (captain, transfer, value weights) |
 
 **What it is not:** The Control Plane is not a runtime participant. The registry is read once per scoring run and does not change during execution. It is configuration, not a processing stage.
@@ -77,10 +77,10 @@ The system has three orthogonal planes. Each plane has a distinct purpose and a 
 | Component | Role |
 |---|---|
 | `dal/` | Transforms raw source data into the validated `(player_id, gw)` spine with state features |
-| `signals/lifecycle/lifecycle.py` | Runtime lifecycle gate — enforces that only governed registry paths reach the scorer |
+| `signals/governance/lifecycle.py` | Runtime lifecycle gate — enforces that only governed registry paths reach the scorer |
 | `intelligence/scoring/` | Applies registry-defined signal weights to DAL features; produces scored player tables |
 | `intelligence/reporting/` | Produces weekly signal intelligence reports from scored outputs |
-| `intelligence/_base.py` | Input validation — enforces that execution receives DAL-produced features, not research proxies |
+| `intelligence/intelligence_contracts.py` | Input validation — enforces that execution receives DAL-produced features, not research proxies |
 
 **Data flow through Execution:**
 
@@ -118,7 +118,7 @@ Measurement requires ground truth: actual FPL returns for the gameweeks the syst
 
 **What partial measurement exists today:**
 
-The evaluation framework (`signals/evaluation/EVAL_DESIGN.md`) defines success criteria and failure conditions for the 2025-26 methodology. This is a forward-looking measurement contract — it defines what "good" looks like so results can be compared after the season. It is the design specification for the Measurement Plane, not the Measurement Plane itself.
+The evaluation framework (`signals/governance/EVAL_DESIGN.md`) defines success criteria and failure conditions for the 2025-26 methodology. This is a forward-looking measurement contract — it defines what "good" looks like so results can be compared after the season. It is the design specification for the Measurement Plane, not the Measurement Plane itself.
 
 **What full measurement requires:**
 1. Capturing system outputs at the time of each GW decision
@@ -136,19 +136,19 @@ None of steps 2-5 are implemented yet.
 | Component | Plane | Notes |
 |---|---|---|
 | `dal/` | Execution | Transforms raw state into validated features |
-| `dal/staging/`, `dal/intermediate/`, `dal/curated/`, `dal/state/` | Execution | Sub-pipeline within DAL |
-| `signals/lifecycle/` | Execution | Runtime gate enforcement |
+| `dal/staging/`, `dal/intermediate/`, `dal/fct/`, `dal/feat/` | Execution | Sub-pipeline within DAL |
+| `signals/governance/` | Execution | Runtime gate enforcement |
 | `intelligence/scoring/` | Execution | Applies Control Plane weights to produce ranked output |
 | `intelligence/reporting/` | Execution | Weekly report from scored output |
 | `outputs/registry/gw{N}/registry.csv` | Control | Governed signal manifest — configures scorer behavior |
-| `signals/registry/runner.py` + `builder.py` | Control | Writes the governed manifest |
-| `signals/registry/SIGNAL_REGISTRY.md` | Control | Lifecycle ledger |
+| `signals/characterisation/registry_build_runner.py` + `registry_assembler.py` | Control | Writes the governed manifest |
+| `signals/characterisation/SIGNAL_REGISTRY.md` | Control | Lifecycle ledger |
 | Static weights in `intelligence/` modules | Control | Explicit scoring configuration |
 | `studies/eda/` | Research methodology | Evidence base for Control Plane; one-time and non-repeatable |
 | `studies/lenses/` | Research methodology | Per-signal characterisation; produces evidence for registry promotion |
 | `studies/kernels/` | Research methodology | Statistical utilities consumed by lens studies |
 | `studies/experiments/` | Emerging Measurement | Backtesting simulations — closest current approximation of Measurement Plane |
-| `signals/evaluation/EVAL_DESIGN.md` | Measurement (design only) | Defines success criteria; the contract the Measurement Plane must satisfy |
+| `signals/governance/EVAL_DESIGN.md` | Measurement (design only) | Defines success criteria; the contract the Measurement Plane must satisfy |
 | Tests (`tests/`) | Structural validation | Verifies execution correctness — NOT Measurement Plane |
 | Explainability outputs | Execution trace | Enables auditing of scores — NOT Measurement Plane |
 
@@ -176,6 +176,7 @@ The 4-layer import hierarchy (DAL → studies → signals → intelligence) and 
 |---|---|
 | Which module can import from which? | Layer model ([layer-boundaries.md](layer-boundaries.md)) |
 | What is each part of the system for? | Plane model (this document) |
-| How does a decision get made? | [decision-lifecycle.md](decision-lifecycle.md) |
+| How does a decision get made (runtime)? | [runtime-execution.md](runtime-execution.md) |
+| How is the model researched and chosen? | [adlc.md](adlc.md) |
 
 The layer model enforces structural integrity. The plane model provides cognitive clarity. Neither supersedes the other.

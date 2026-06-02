@@ -137,7 +137,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 ---
 
-## Signal Registry (`signals/registry/`)
+## Signal Registry (`signals/characterisation/`)
 
 ### REG-T-01 — `CLEAN_SHEET_MIN_MINUTES` (formerly `MINUTES_THRESHOLD`)
 | Field | Value |
@@ -157,7 +157,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | `HAUL_THRESHOLD_PTS` |
 | **Value** | `12` |
 | **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `signals/registry/geometry.py:62` |
+| **File** | `signals/characterisation/geometry.py:62` |
 | **Stated rationale** | Identifies top-bin concentration in scoring (haul-sensitivity analysis) |
 | **Governance assessment** | 12 points is a commonly used FPL "haul" threshold (goal + assist + clean sheet + bonuses ≈ 12-15 pts). The threshold is semantically reasonable but was not derived from a distributional analysis of the total_points distribution. |
 | **Evidence required to promote** | Analyse the total_points distribution to identify the natural break point separating the top performance cluster. May use kernel density estimation or percentile analysis. |
@@ -169,7 +169,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | `HAUL_DROP_MATERIAL` |
 | **Value** | `0.20` |
 | **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `signals/registry/geometry.py:63` |
+| **File** | `signals/characterisation/geometry.py:63` |
 | **Stated rationale** | A ≥ 20% rho drop indicates haul sensitivity |
 | **Governance assessment** | No sensitivity study defines what magnitude of rho drop constitutes "material" haul concentration effect. 20% is a round editorial choice. |
 | **Evidence required to promote** | Bootstrap sensitivity analysis: simulate haul removal and evaluate rho stability distribution. Select threshold where rho drop reliably indicates a haul-structure-dependent signal. |
@@ -194,7 +194,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 ---
 
-## State Layer (`dal/state/player_gameweek_state.py`)
+## State Layer (`dal/feat/feat_player_gameweek.py`)
 
 ### STATE-T-01 — `_compute_minutes_trend` divergence threshold
 | Field | Value |
@@ -202,7 +202,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | Inline literal `30` in `_compute_minutes_trend` |
 | **Value** | `30` (minutes) |
 | **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `dal/state/player_gameweek_state.py` — `_compute_minutes_trend` |
+| **File** | `dal/feat/feat_player_gameweek.py` — `_compute_minutes_trend` |
 | **Stated rationale** | "30-minute divergence between last-3 and prior-3 GW mean classifies trend as rising or falling" |
 | **Governance assessment** | Semantically plausible — a 30-minute swing in average minutes is a meaningful participation shift. However, no predictive study has evaluated whether this threshold maximises recall of actual availability changes. Could equally be 15 or 45 minutes without a principled justification. |
 | **Domain restriction** | `minutes_trend` is restricted to the availability domain only (see `_AVAILABILITY_DOMAIN_ONLY`). It must not be consumed by form, captain, or value scoring modules. |

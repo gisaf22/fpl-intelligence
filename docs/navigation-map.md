@@ -22,7 +22,8 @@ intelligence/ → player scoring and weekly reporting
 |----------|---------|
 | [docs/system-purpose.md](system-purpose.md) | What is this system for? What does it not do? |
 | [docs/architecture/system-model.md](architecture/system-model.md) | What is each part of the system responsible for? (3-plane model) |
-| [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) | How does a decision get made, end to end? |
+| [docs/architecture/adlc.md](architecture/adlc.md) | How is the model researched and chosen? (analysis lifecycle) |
+| [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) | How does a decision get made at runtime, end to end? |
 | [dal/README.md](../dal/README.md) | What are the DAL layers and entry points? |
 
 ---
@@ -33,8 +34,8 @@ intelligence/ → player scoring and weekly reporting
 
 1. [docs/system-purpose.md](system-purpose.md) — mission, architectural intent, non-goals
 2. [docs/architecture/system-model.md](architecture/system-model.md) — 3-plane model: what each component is for
-3. [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) — full decision flow with failure modes
-4. [docs/architecture/operational-flow.md](architecture/operational-flow.md) — 3-command execution sequence, entry points
+3. [docs/architecture/adlc.md](architecture/adlc.md) — the analysis lifecycle: explore → validate → model → serve → monitor
+4. [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) — runtime flow with failure modes + the run sequence
 5. [docs/research-lifecycle.md](research-lifecycle.md) — signal lifecycle: how a signal travels from EDA to scorer
 6. [docs/registry-governance.md](registry-governance.md) — exploratory vs operational registries, lifecycle gate enforcement
 7. [CONTEXT.md](../CONTEXT.md) — current project state, rules, and session orientation
@@ -60,14 +61,13 @@ intelligence/ → player scoring and weekly reporting
 
 1. [docs/architecture/intelligence-layer.md](architecture/intelligence-layer.md) — scorer pipeline, component weights, eligibility thresholds, non-goals
 2. [docs/registry-governance.md](registry-governance.md) — what the scorer is allowed to consume and why
-3. [docs/architecture/operational-flow.md](architecture/operational-flow.md) — lifecycle gate enforcement at runtime
+3. [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) — lifecycle gate enforcement at runtime
 4. [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) — allowed imports from `signals.governance.*`
 
 ### Operational runner (running the system weekly)
 
-1. [docs/architecture/operational-flow.md](architecture/operational-flow.md) — 3-command sequence: `make prepare`, `make build-registry`, `make weekly`
-2. [Makefile](../Makefile) — all available `make` targets
-3. [docs/registry-governance.md](registry-governance.md) — when a registry path is safe for operational use
+1. [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) — the run sequence (`python -m …`), entry points, failure modes
+2. [docs/registry-governance.md](registry-governance.md) — when a registry path is safe for operational use
 
 ---
 
@@ -102,11 +102,11 @@ Bounded, immutable records of why key decisions were made. Read before changing 
 |----------|---------|
 | [docs/system-purpose.md](system-purpose.md) | Orienting new contributors; scoping new research |
 | [docs/architecture/system-model.md](architecture/system-model.md) | 3-plane conceptual model: Control · Execution · Measurement |
-| [docs/architecture/decision-lifecycle.md](architecture/decision-lifecycle.md) | Full decision flow: DAL → registry → intelligence → output |
-| [docs/architecture/operational-flow.md](architecture/operational-flow.md) | Running the system end to end |
+| [docs/architecture/adlc.md](architecture/adlc.md) | The analysis lifecycle: explore → validate → model → serve → monitor; mode tags; test contracts |
+| [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) | Runtime flow + the run sequence: DAL → registry → intelligence → output |
 | [docs/architecture/intelligence-layer.md](architecture/intelligence-layer.md) | Scorer pipeline, registry consumption, rho weighting, explainability |
 | [docs/architecture/explainability-model.md](architecture/explainability-model.md) | Scoring formula, signal selection rationale, independent verification steps |
-| [docs/architecture/testing-strategy.md](architecture/testing-strategy.md) | Test categories, integration marker, make test vs make test-unit |
+| [docs/architecture/testing-strategy.md](architecture/testing-strategy.md) | Test categories, integration marker, unit vs full suite |
 | [docs/architecture/layer-boundaries.md](architecture/layer-boundaries.md) | Component ownership boundaries, dependency direction, non-overlap rules |
 | [docs/architecture/runtime-artifacts.md](architecture/runtime-artifacts.md) | What artifacts are produced, where they live, gitignore policy |
 | [docs/architecture/db-schema.md](architecture/db-schema.md) | Source database table and column reference |
@@ -133,7 +133,7 @@ Complete working documents superseded by durable artifacts. See [docs/archive/RE
 | File | Superseded by |
 |------|---------------|
 | [docs/archive/operational-convergence-plan.md](archive/operational-convergence-plan.md) | All 9 phases complete; `threshold-registry.md` carries live governance |
-| [docs/archive/state-representation-inventory.md](archive/state-representation-inventory.md) | `_GOVERNED_ROLLING_COLS` / `_COLUMN_META` in `dal/state/player_gameweek_state.py` |
+| [docs/archive/state-representation-inventory.md](archive/state-representation-inventory.md) | `_GOVERNED_ROLLING_COLS` / `_COLUMN_META` in `dal/feat/feat_player_gameweek.py` |
 | [docs/archive/minutes-stability-xgi-study.md](archive/minutes-stability-xgi-study.md) | `docs/studies/results/minstab-01-results.md` |
 | [docs/archive/synth01-design.md](archive/synth01-design.md) | `signals/governance/synth01_decisions.yaml` |
 | [docs/archive/synth01-candidate-set.md](archive/synth01-candidate-set.md) | `signals/characterisation/synth01_candidates.yaml` |

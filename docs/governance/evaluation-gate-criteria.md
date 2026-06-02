@@ -5,8 +5,8 @@
 **Produced:** 2026-05-26
 **Revised:** 2026-05-27 — MIN_RHO resolved (G-OPS-02); Phase 8 Registry Rebuild
 **Scope:** Defines what "passes evaluation" means for all lens studies in the fpl-intelligence methodology
-**Companion data:** `signals/evaluation/evaluation_metadata.yaml` — per-signal-position structured findings
-**Evaluation framework:** `signals/evaluation/EVAL_DESIGN.md`
+**Companion data:** `signals/governance/evaluation_metadata.yaml` — per-signal-position structured findings
+**Evaluation framework:** `signals/governance/EVAL_DESIGN.md`
 
 ---
 
@@ -14,7 +14,7 @@
 
 This document makes evaluation gate criteria machine-interpretable. EVAL_DESIGN.md defines the evaluation philosophy; this document operationalises it into the specific gates a signal must clear to advance in the lifecycle.
 
-No signal may advance to SYNTH-01 without a confirmed `decision_class` and `lifecycle_state` entry in `signals/evaluation/evaluation_metadata.yaml`.
+No signal may advance to SYNTH-01 without a confirmed `decision_class` and `lifecycle_state` entry in `signals/governance/evaluation_metadata.yaml`.
 
 ---
 
@@ -124,8 +124,8 @@ The following hardcoded constants in operational files are **editorial judgment 
 
 | Document | Role |
 |---|---|
-| `signals/evaluation/EVAL_DESIGN.md` | Evaluation philosophy; success/failure criteria; what the system claims |
-| `signals/registry/SIGNAL_REGISTRY.md` | Per-signal lifecycle governance; lens status; synthesis status; known caveats |
-| `signals/evaluation/evaluation_metadata.yaml` | Machine-readable per-signal-position findings: rho_pooled, CI, block_stability_count, decision_class, lifecycle_state |
+| `signals/governance/EVAL_DESIGN.md` | Evaluation philosophy; success/failure criteria; what the system claims |
+| `signals/characterisation/SIGNAL_REGISTRY.md` | Per-signal lifecycle governance; lens status; synthesis status; known caveats |
+| `signals/governance/evaluation_metadata.yaml` | Machine-readable per-signal-position findings: rho_pooled, CI, block_stability_count, decision_class, lifecycle_state |
 | `docs/foundations/representation-rules.md` | Representation governance — allowed and forbidden transforms per signal family |
 | `docs/archive/architecture-execution-plan.md` | Phase-by-phase execution plan (archived — system complete) |

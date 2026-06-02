@@ -39,7 +39,7 @@ from studies.kernels.*
 | `import sqlite3` / `pd.read_sql(...)` outside DAL | Direct DB queries bypass all DAL contracts. Column names, types, and GW semantics are not guaranteed. |
 | `from pipeline.config import ...` | `pipeline.*` is a retired namespace. Use `dal.config` instead. |
 | `from core.*` | `core/` has been deleted. Use `signals.lifecycle.*` for governance; `studies.kernels.*` for statistical utilities. |
-| `from registry.*` | `registry/` has been deleted. Registry build pipeline now lives in `signals/registry/`. |
+| `from registry.*` | `registry/` has been deleted. Registry build pipeline now lives in `signals/characterisation/`. |
 | Reimplementing rolling windows outside STATE | The lag-1 convention, BGW handling, and warmup semantics are encoded in `build_player_gameweek_state`. Duplicating these creates semantic drift. |
 | Reconstructing `(player_id, gw)` grain from joins | The curated spine already performs fixture → GW aggregation with validated DGW/BGW semantics. |
 

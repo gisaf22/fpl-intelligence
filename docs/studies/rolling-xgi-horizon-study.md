@@ -114,7 +114,7 @@ but are insufficient for the captain ranking use case at the forward position.
 
 ## Temporal Integrity
 
-All rolling features are produced by `dal/state/player_gameweek_state.py` with the lag-1 shift
+All rolling features are produced by `dal/feat/feat_player_gameweek.py` with the lag-1 shift
 applied. The `evaluation.windows.assert_no_future_leakage()` guard is called before any metric
 computation.
 
@@ -136,7 +136,7 @@ noted in the interpretation.
    modeled here.
 4. **DGW rows.** DGW rows inflate raw xGI values (two fixtures in one GW). The flagged DGW
    analysis is supplementary; SGW results are the primary interpretation.
-5. **Roll8 availability.** `xgi_roll8` was added to the DAL state layer (`dal/state/player_gameweek_state.py`)
+5. **Roll8 availability.** `xgi_roll8` was added to the DAL state layer (`dal/feat/feat_player_gameweek.py`)
    as part of this study's execution. All four signals are now available.
 6. **Synthetic execution.** The initial lens execution used a synthetic representative dataset
    (seed=42, 49 FWDs, GW 6–33, 28 evaluation GWs) because the 2024-25 governed spine requires
@@ -307,7 +307,4 @@ season artefact or a structural property of the signal.
 
 - [system-purpose.md](../system-purpose.md) — program-level scope and research boundaries
 - [research-lifecycle.md](../research-lifecycle.md) — lifecycle gate definitions
-- [architecture/operational-flow.md](../architecture/operational-flow.md) — metrics, baselines, temporal integrity
 - [architecture/intelligence-layer.md](../architecture/intelligence-layer.md) — captain.py and transfers.py configuration
-- [adr/004-analytical-foundations.md](../adr/004-analytical-foundations.md) — population and method decisions
-- [adr/005-signal-exclusions.md](../adr/005-signal-exclusions.md) — structural xGI exclusions by position

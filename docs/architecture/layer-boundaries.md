@@ -44,7 +44,7 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 
 **Contract:** `dal/fct/fct_contracts.py`, `dal/feat/feat_schema.py`, `dal/validation/` — code-enforced.
 
-**Consumers:** All downstream layers. Canonical entry point: `dal.get_analytics_dataset(db_path) -> MartResult`. Direct imports from `dal.staging`, `dal.intermediate`, `dal.fct`, or `dal.feat` are forbidden outside the DAL. See [DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](DOWNSTREAM_DEPENDENCY_GOVERNANCE.md).
+**Consumers:** All downstream layers. Canonical entry point: `dal.pipeline.load(db_path) -> MartResult`. Direct imports from `dal.staging`, `dal.intermediate`, `dal.fct`, or `dal.feat` are forbidden outside the DAL. See [DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](DOWNSTREAM_DEPENDENCY_GOVERNANCE.md).
 
 ---
 
@@ -130,7 +130,7 @@ No two components share ownership of any row in this table. If a proposed change
 
 **SQL only in `dal/`.** No SQL outside `dal/`. Research and intelligence layers read DAL output DataFrames — they do not query the source database.
 
-**Single canonical base table.** The mart layer output (`dal.get_analytics_dataset`) is the only permitted source for all downstream analytics. Using intermediate-layer, fixture-grain, or raw fct/feat data to compute GW-level targets is a contract violation.
+**Single canonical base table.** The mart layer output (`dal.pipeline.load`) is the only permitted source for all downstream analytics. Using intermediate-layer, fixture-grain, or raw fct/feat data to compute GW-level targets is a contract violation.
 
 **Studies do not define signals.** Classification, lifecycle assignment, and signal IDs are determined by the study that produces the evidence and stored in the registry. Studies write artifacts; `signals/characterisation/` ingests them.
 

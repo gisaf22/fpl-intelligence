@@ -5,7 +5,7 @@
 **Produced:** 2026-05-27  
 **Updated:** 2026-05-31 — independent review corrections: GAP-TRACE-02/-03/-06/-07 resolved, consumer module maps aligned to HEAD, eda_candidate vocabulary added, xgi_roll3×MID SYNTH-01 violation documented  
 **Authority:** Operational Convergence Plan Phase 5  
-**Machine-readable form:** [signals/registry/signal_traceability.yaml](../../signals/registry/signal_traceability.yaml)
+**Machine-readable form:** [signals/characterisation/signal_traceability.yaml](../../signals/characterisation/signal_traceability.yaml)
 
 ---
 
@@ -14,10 +14,10 @@
 This document is the unified cross-layer governance view of every (signal, position) pair in the system. It records what each signal means, what the lens evidence found, what its limitations are, what operational role it plays, and which intelligence modules consume it.
 
 Coverage includes:
-- All 15 signals evaluated across 4 lenses in `signals/evaluation/evaluation_metadata.yaml`
+- All 15 signals evaluated across 4 lenses in `signals/governance/evaluation_metadata.yaml`
 - All 8 STATE-governed columns not tracked in evaluation_metadata.yaml (xgc_roll3/5, goals_conceded_roll3/5, clean_sheets_roll3/5, minutes_trend, fixture_context)
 
-**Source of truth for rho values:** `signals/evaluation/evaluation_metadata.yaml`  
+**Source of truth for rho values:** `signals/governance/evaluation_metadata.yaml`  
 **Source of truth for STATE column set:** `docs/governance/state-representation-inventory.md`  
 **Source of truth for threshold classifications:** `docs/governance/threshold-registry.md`
 

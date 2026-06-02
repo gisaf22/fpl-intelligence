@@ -21,7 +21,7 @@ outputs/
 
 ## `outputs/registry/gw{N}/`
 
-**What it is:** The governed signal registry artifact produced by `signals/registry/runner.py`. This is the only artifact the scorer and reporting runner are permitted to consume.
+**What it is:** The governed signal registry artifact produced by `signals/characterisation/registry_build_runner.py`. This is the only artifact the scorer and reporting runner are permitted to consume.
 
 **What it contains:**
 
@@ -33,20 +33,17 @@ outputs/
 **How it is produced:**
 
 ```bash
-python -m signals.registry.runner \
+python -m signals.characterisation.registry_build_runner \
   --gw 36 \
   --source-registry-path studies/eda/findings/eda_03_joint_registry.csv \
   --output-dir outputs/registry/gw36
-
-# or via Makefile:
-make build-registry GW=36
 ```
 
 **Gitignore policy:** `outputs/*` is ignored, but `outputs/registry/` is explicitly kept via `.gitignore` exception (`!outputs/registry/`). All `gw{N}/` subdirectories under it are committed.
 
-**Why committed:** `signals/lifecycle/lifecycle.py:assert_operational_safe()` verifies that the scorer and reporting runner consume a registry from `outputs/registry/`, not from `studies/eda/`. In a fresh checkout without a live database, this path must already exist for the lifecycle gate to pass. The committed `gw36/` artifact is the bootstrap that satisfies this requirement.
+**Why committed:** `signals/governance/lifecycle.py:assert_operational_safe()` verifies that the scorer and reporting runner consume a registry from `outputs/registry/`, not from `studies/eda/`. In a fresh checkout without a live database, this path must already exist for the lifecycle gate to pass. The committed `gw36/` artifact is the bootstrap that satisfies this requirement.
 
-**Adding a new gameweek:** Run `make build-registry GW={N}` with a live DB. This produces `outputs/registry/gw{N}/` alongside the existing `gw36/` artifact. Commit the new directory. Do not delete prior gameweek artifacts — they are provenance records.
+**Adding a new gameweek:** Run `python -m signals.characterisation.registry_build_runner --gw {N}` with a live DB. This produces `outputs/registry/gw{N}/` alongside the existing `gw36/` artifact. Commit the new directory. Do not delete prior gameweek artifacts — they are provenance records.
 
 ---
 
@@ -57,12 +54,9 @@ make build-registry GW=36
 **How it is produced:**
 
 ```bash
-python -m intelligence.scoring.runner \
+python -m intelligence.scoring.scoring_runner \
   --gw 36 \
   --registry-path outputs/registry/gw36/registry.csv
-
-# or via Makefile:
-make score GW=36
 ```
 
 **Gitignore policy:** Gitignored. The HTML is ephemeral — regenerated on each score run with the same inputs producing identical output (deterministic).
@@ -84,12 +78,12 @@ make score GW=36
 A fresh clone of this repository can run the scorer and reporting runner without a live database:
 
 1. `outputs/registry/gw36/` is committed — the lifecycle gate passes.
-2. `make score GW=36` reads the bootstrap registry and produces `outputs/scorer/gw36_player_scores.html`.
-3. `make weekly GW=36` runs the reporting runner against the bootstrap registry.
+2. `python -m intelligence.scoring.scoring_runner --gw 36` reads the bootstrap registry and produces `outputs/scorer/gw36_player_scores.html`.
+3. `python -m intelligence.reporting.weekly_report_runner --gw 36` runs the reporting runner against the bootstrap registry.
 
 Steps requiring a live database (`FPL_DB_PATH`):
-- `make prepare GW={N}` — builds the analytical dataset from the source DB.
-- `make build-registry GW={N}` — builds a new registry artifact from a fresh prepared dataset.
+- `python -m dal.pipeline run` — builds the analytical dataset (mart) from the source DB.
+- `python -m signals.characterisation.registry_build_runner --gw {N}` — builds a new registry artifact from a fresh dataset.
 
 ---
 
@@ -97,6 +91,6 @@ Steps requiring a live database (`FPL_DB_PATH`):
 
 The scorer and reporting runner call `assert_operational_safe(registry_path)` before loading any registry. This function raises `LifecycleViolationError` if the path is not under `outputs/registry/`.
 
-**Consequence:** `studies/eda/findings/eda_03_joint_registry.csv` cannot be passed directly to the scorer. It must first be promoted through `signals/registry/runner.py`, which validates the registry contract and writes to `outputs/registry/gw{N}/registry.csv`. The act of promotion is what makes a registry operationally safe — not its content.
+**Consequence:** `studies/eda/findings/eda_03_joint_registry.csv` cannot be passed directly to the scorer. It must first be promoted through `signals/characterisation/registry_build_runner.py`, which validates the registry contract and writes to `outputs/registry/gw{N}/registry.csv`. The act of promotion is what makes a registry operationally safe — not its content.
 
 See [docs/registry-governance.md](../registry-governance.md) for the full exploratory-vs-operational distinction.

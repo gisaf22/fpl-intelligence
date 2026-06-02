@@ -293,14 +293,16 @@ deliberately omits and which should be **kept or migrated, not deleted**. The ho
 
 | Existing doc | Relationship to ADLC | Action |
 |---|---|---|
-| `decision-lifecycle.md` | overlaps the stage flow, but its **per-stage failure-mode tables** are unique and valuable | **merge** into `runtime-execution.md` (with `operational-flow.md`); keep the failure tables, drop the "lifecycle" name + 4-stage framing |
+| `decision-lifecycle.md` | overlaps the stage flow, but its **per-stage failure-mode tables** are unique and valuable | ✅ **DONE** — merged into `runtime-execution.md` (with `operational-flow.md`); failure tables kept, "lifecycle" name + 4-stage framing dropped |
 | `layer-boundaries.md` | overlaps §2 flow rules, but its **ownership non-overlap matrix** is unique | keep the matrix; the import-direction story becomes §2 |
-| `operational-flow.md` | the 3-command run sequence | **merge** into `runtime-execution.md` (with `decision-lifecycle.md`); keep the run sequence |
+| `operational-flow.md` | the 3-command run sequence | ✅ **DONE** — merged into `runtime-execution.md` (run sequence kept, fixed to real `python -m` commands) |
 | `system-model.md` | the 3-plane model (Control/Execution/Measurement) — a **competing vocabulary** | reconcile: pick one model (see note below) |
-| `testing-strategy.md` | overlaps §5, but lists the **real test inventory** | keep the inventory; the strategy framing becomes §5 |
+| `testing-strategy.md` | overlaps §5, but lists the **real test inventory** | ✅ stale paths/counts fixed in the cleanup; the strategy framing still belongs in §5 |
 | `test-coverage.md` | the **54-invariant status map with real test names** — unique and valuable | keep as-is; it *is* the §5 contract made concrete |
 
-This PR is prescribe-only — no deprecation headers added, no files edited. The table is the plan.
+> **Status.** This §8 was authored prescribe-only in the `adlc.md` design PR. The rows marked ✅ were
+> then *executed* in the stacked drift-cleanup PR (which also deleted the broken `Makefile`). The
+> unmarked rows (`layer-boundaries`, `system-model`, `test-coverage`) are intentionally left in place.
 
 **Vocabulary decision (DECIDED).** The repo runs three parallel mental models that "coexist": the
 4-layer import hierarchy, the 3-plane model (`system-model.md`), and the 4-stage decision lifecycle.
@@ -314,8 +316,8 @@ word **"lifecycle."** The runtime path is *not* a lifecycle; it is execution. Co
   "lifecycle" and the 4-stage framing, and is cross-linked from ADLC's `serve`/`monitor` stages (the
   seam where the two meet). No file in the repo carries "lifecycle" in its name except `adlc.md`.
 
-This is a rename **+ merge** (3 docs → 2), so it breaks inbound links and must scrub stale paths along
-the way — it belongs in the drift-cleanup PR, sequenced in `doc-drift.md` §5, not this branch.
+This was a rename **+ merge** (3 docs → 2). Executed in the drift-cleanup PR, which also re-pointed the
+inbound links (`navigation-map.md`, `system-model.md`) and scrubbed the stale paths along the way.
 
 **Drift warning (read `doc-drift.md` first).** Several of the docs above are **factually stale** —
 they cite module paths, directories, and test counts that no longer exist in the code

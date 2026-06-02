@@ -87,17 +87,23 @@ sole owner of the word "lifecycle"; `decision-lifecycle.md` + `operational-flow.
 
 ---
 
-## 5. Suggested fix order
+## 5. Fix order — EXECUTED in the drift-cleanup PR
 
-1. **Fix dangling references first** (§2) — a citation to a nonexistent `docs/adr/` is the most
-   misleading. Either create the ADRs or remove the citations.
-2. **Run the substitution table** (§1) doc-by-doc, verifying role-moves in context.
-3. **Refresh counts** (§3) — or, better, stop hard-coding test counts in prose; cite the CI job.
-4. **Execute the lifecycle merge** (§4 decision): create `runtime-execution.md` from
-   `decision-lifecycle.md` + `operational-flow.md` (failure tables + run sequence, paths already
-   fixed by steps 1–2), delete the two source docs, and cross-link it from `adlc.md`'s `serve`/`monitor`
-   stages. Do this *after* the path fixes so you merge clean content, not stale content.
-5. Re-point `navigation-map.md` last, once the targets and the new filename exist.
+1. ✅ **Dangling references fixed** (§2) — the `docs/adr/*` citations pointed at a directory that
+   doesn't exist; removed them (no ADRs were created), citing the real source (`.importlinter`, code).
+2. ✅ **Substitution table run** (§1) doc-by-doc. The two migration **changelogs**
+   (`platform-evaluation-2026.md`, `eng-issues-2026.md`) were **deliberately left untouched** — they
+   document the renames, so the old paths are correct historical content there (same rule as `archive/`).
+3. ✅ **Counts de-hard-coded** (§3) — `testing-strategy.md` now cites the CI job, not a frozen number.
+4. ✅ **Lifecycle merge executed** (§4): `runtime-execution.md` created from `decision-lifecycle.md` +
+   `operational-flow.md`; both source docs deleted; cross-linked from `adlc.md`. The broken `Makefile`
+   was deleted (CI never used it; its only non-trivial targets pointed at nonexistent modules) and its
+   commands moved into `runtime-execution.md` as the single runbook.
+5. ✅ **`navigation-map.md` re-pointed** to `adlc.md` + `runtime-execution.md`.
 
-Worst offenders by reference count: `research-lifecycle.md` (stale throughout — `signals/eda`,
-`core/`, `scorer/`, `report/`), `system-model.md`, and `decision-lifecycle.md`.
+**Still open (not done here):** the config-layer sweep flagged in the scope note above
+(`signals/**/*.yaml`, module docstrings) — e.g. `weight_registry.yaml` → `signals/evaluation/...`.
+That is a code-adjacent change and was left for a follow-up.
+
+Worst offenders (now fixed): `research-lifecycle.md` (was stale throughout — `signals/eda`, `core/`,
+`scorer/`, `report/`), `system-model.md`, and the now-merged `decision-lifecycle.md`.

@@ -14,7 +14,7 @@ The registry lives in two forms:
 
 | Form | Path | Role |
 |---|---|---|
-| Research (EDA output) | `signals/eda/findings/eda_03_joint_registry.csv` | Authoritative analytical output of system EDA. Exploratory state. |
+| Research (EDA output) | `studies/eda/findings/eda_03_joint_registry.csv` | Authoritative analytical output of system EDA. Exploratory state. |
 | Operational (promoted) | `outputs/registry/gw{N}/registry.csv` | Built via the registry builder after lifecycle promotion. Safe for operational consumers. |
 
 ---
@@ -35,11 +35,11 @@ The full lifecycle is: `exploratory → investigational → candidate → valida
 
 ## Exploratory vs Operational Registries
 
-**Exploratory registries** live under `signals/eda/`. They are the direct output of system EDA and contain unvalidated signals in exploratory state. Their `promotion_class` values reflect statistical characterisation, not lifecycle approval.
+**Exploratory registries** live under `studies/eda/`. They are the direct output of system EDA and contain unvalidated signals in exploratory state. Their `promotion_class` values reflect statistical characterisation, not lifecycle approval.
 
 **Operational registries** live under `outputs/registry/`. They are built by `registry/runner.py` from validated or operationalized signals and have passed `validate_registry_contract()` before writing.
 
-The distinction is enforced at the path level. Any path under `signals/eda/` is treated as exploratory regardless of its content.
+The distinction is enforced at the path level. Any path under `studies/eda/` is treated as exploratory regardless of its content.
 
 ---
 
@@ -48,14 +48,14 @@ The distinction is enforced at the path level. Any path under `signals/eda/` is 
 Two operational consumers enforce the lifecycle gate automatically:
 
 **`scorer/signals.py::load_manifest_from_path(registry_path)`**
-Calls `assert_operational_safe(registry_path)` before loading. Raises `LifecycleViolationError` if the path is under `signals/eda/`.
+Calls `assert_operational_safe(registry_path)` before loading. Raises `LifecycleViolationError` if the path is under `studies/eda/`.
 
 **`report/runner.py::run_week(gw, registry_path, ...)`**
-Calls `assert_operational_safe(registry_path)` after gw validation. Raises `LifecycleViolationError` if the path is under `signals/eda/`.
+Calls `assert_operational_safe(registry_path)` after gw validation. Raises `LifecycleViolationError` if the path is under `studies/eda/`.
 
-**Research consumers** (`core/governance/loader.py::load_registry`, registry builder) carry no lifecycle restriction. They may load any registry by path.
+**Research consumers** (`signals/governance/registry_loader.py::load_registry`, registry builder) carry no lifecycle restriction. They may load any registry by path.
 
-The gate is path-based, not content-based. A registry CSV copied out of `signals/eda/` and into `outputs/registry/` (via the registry builder) is safe for operational use.
+The gate is path-based, not content-based. A registry CSV copied out of `studies/eda/` and into `outputs/registry/` (via the registry builder) is safe for operational use.
 
 ---
 
@@ -78,7 +78,7 @@ A signal is `validated` when it has:
 
 - Passed the system EDA (`promotion_class` is `core_signal` or `review_signal`)
 - Completed a lens study with confirmed methodology
-- Met the success criteria in `signals/evaluation/EVAL_DESIGN.md`
+- Met the success criteria in `signals/governance/EVAL_DESIGN.md`
 - A registry entry with `downstream_status` in `{eligible, caveated}` (not `blocked`)
 
 `validated` signals may enter synthesis. `operationalized` signals are active in the scorer.
@@ -93,7 +93,7 @@ The scorer (`scorer/signals.py`) filters the operational registry to signals whe
 - `layer_role` is not `points_component` (leakage) or `contribution_index` (outcome-component)
 - `abs(rho_pooled) >= 0.15`
 
-The registry must come from `outputs/registry/`, not `signals/eda/`. Passing an exploratory registry path to the scorer raises `LifecycleViolationError` at load time.
+The registry must come from `outputs/registry/`, not `studies/eda/`. Passing an exploratory registry path to the scorer raises `LifecycleViolationError` at load time.
 
 ---
 

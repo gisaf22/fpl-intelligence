@@ -6,26 +6,30 @@
 
 ## Summary
 
-| Metric | Value |
+| Metric | How to get the current value |
 |--------|-------|
-| Total tests | 739 (738 passing, 1 skipped) |
-| DB-free (unit) | 655 — run with `make test-unit` |
-| Integration (live DB) | 84 — run with `make test` |
-| Import-linter contracts | 6 active |
+| Total tests | `pytest --collect-only -q \| tail -1` (do not hard-code — the CI job is the source of truth) |
+| DB-free (unit) | `pytest -m "not integration"` |
+| Integration (live DB) | `pytest` (requires live/fixture DB) |
+| Import-linter contracts | 6 active (defined in `.importlinter`) |
+
+> Test counts are intentionally **not hard-coded** here — they drift the moment a test is added.
+> The CI job is authoritative. (A prior version of this table claimed "739 tests"; the suite has
+> since grown well past that.)
 
 ---
 
 ## Running tests
 
 ```bash
-make test          # full suite (655 unit + 84 integration; requires live DB)
-make test-unit     # DB-free tests only (pytest -m "not integration")
-make check         # import boundary enforcement (lint-imports + check-study-imports)
+pytest -m "not integration"   # DB-free unit + contract tests; fast
+pytest                        # full suite (requires live/fixture DB)
+lint-imports                  # import boundary enforcement (the 6 contracts in .importlinter)
 ```
 
-`make test-unit` is the right choice for fast feedback during development. It runs in seconds and covers all logic that does not require a live database connection. `make test` is the gate for any PR or structural change.
+`pytest -m "not integration"` is the right choice for fast feedback during development. It runs in seconds and covers all logic that does not require a live database connection. `pytest` (the full suite) is the gate for any PR or structural change.
 
-`make check` is separate from the test suite — it validates import boundaries, not behaviour. It should pass on every commit. If `lint-imports` fails, an import contract has been violated; fix the import before fixing tests.
+`lint-imports` is separate from the test suite — it validates import boundaries, not behaviour. It should pass on every commit. If it fails, an import contract has been violated; fix the import before fixing tests.
 
 ---
 
@@ -108,7 +112,7 @@ All scorer and intelligence tests are DB-free (unit). They use fixture DataFrame
 
 ### Evaluation helpers — `tests/test_evaluation_*.py`
 
-Tests for the evaluation modules now in `tests/helpers/` (moved from `signals/evaluation/` during S11). These helpers provide baselines, metrics, and temporal integrity checks used across evaluation studies.
+Tests for the evaluation modules now in `tests/helpers/` (moved from `signals/governance/` during S11). These helpers provide baselines, metrics, and temporal integrity checks used across evaluation studies.
 
 | File | Covers |
 |------|--------|
@@ -149,7 +153,7 @@ Tests for the weekly reporting pipeline: snapshots, signal intelligence summarie
 
 ## The integration marker
 
-Tests marked `@pytest.mark.integration` require a live database (`FPL_DB_PATH` or the golden test DB at `tests/fixtures/`). They are excluded from `make test-unit`.
+Tests marked `@pytest.mark.integration` require a live database (`FPL_DB_PATH` or the golden test DB at `tests/fixtures/`). They are excluded from the unit lane (`pytest -m "not integration"`).
 
 **What requires the integration marker:**
 - Any test that calls `build_player_gameweek_spine()`, `build_player_gameweek_state()`, or any DAL builder
@@ -162,19 +166,21 @@ Tests marked `@pytest.mark.integration` require a live database (`FPL_DB_PATH` o
 - Tests that call pure computation functions with in-memory inputs
 - Tests that load the registry CSV from `outputs/registry/gw36/` (the committed bootstrap)
 
-**CI implication:** `make test-unit` (655 tests, DB-free) should run in CI on every push. `make test` (full suite, 84 integration tests) requires a database artifact and runs on demand or in a dedicated integration stage.
+**CI implication:** the DB-free lane (`pytest -m "not integration"`) runs in CI on every push. The full suite (`pytest`) requires a database artifact and runs on demand or in a dedicated integration stage.
 
 ---
 
 ## Import boundary enforcement
 
-Beyond `pytest`, the Makefile provides two additional enforcement tools:
+Beyond `pytest`, two additional enforcement tools run directly:
 
 ```bash
-make lint-imports       # import-linter — verifies layer contracts in .importlinter
-make check-study-imports  # grep check — no from studies.* imports outside studies/ and tests/
+lint-imports       # import-linter — verifies the layer contracts in .importlinter
 ```
 
-`lint-imports` enforces the six import contracts defined in `.importlinter` (one per layer boundary from `docs/adr/010-enforcement-contract.md` Section 2). A violation fails the build.
+A supplementary grep check (no `from studies.*` imports outside `studies/` and `tests/`) catches
+direct cross-layer Python imports that bypass the file-based interface.
 
-`check-study-imports` catches a specific high-value violation that `lint-imports` may miss: direct Python imports from `studies.lenses.*`, `studies.eda.*`, `studies.experiments.*`, or `studies.synthesis.*` outside of `studies/` and `tests/`. These would bypass the file-based cross-layer interface defined in `docs/adr/006-layer-architecture.md`.
+`lint-imports` enforces the six import contracts defined in `.importlinter` (one per layer boundary). The `.importlinter` file is the source of truth for the contracts. A violation fails the build.
+
+`check-study-imports` catches a specific high-value violation that `lint-imports` may miss: direct Python imports from `studies.lenses.*`, `studies.eda.*`, `studies.experiments.*`, or `studies.synthesis.*` outside of `studies/` and `tests/`. These would bypass the file-based cross-layer interface enforced by the import contracts.

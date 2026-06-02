@@ -3,7 +3,7 @@
 **Study ID:** STUDY-MINSTAB-01
 **Status:** COMPLETE
 **Executed:** 2026-05-19
-**Design doc:** [minutes-stability-xgi-study.md](../archive/minutes-stability-xgi-study.md)
+**Design doc:** [minutes-stability-xgi-study.md](../../archive/minutes-stability-xgi-study.md)
 **Prior study:** [rolling-xgi-horizon-study-results.md](rolling-xgi-horizon-study-results.md)
 **Interpretation:** `stability_does_not_condition_signal`
 
@@ -235,13 +235,13 @@ Per study design Section 15 ("Registry Update — conditional"):
 |----------|------|--------|
 | Results document | `docs/studies/results/minstab-01-results.md` | This file |
 | Per-row detail CSV | `outputs/minstab_01_detail.csv` | Written (2,604 rows) |
-| SIGNAL_REGISTRY update | `signals/registry/SIGNAL_REGISTRY.md` | Not updated (criterion not met) |
+| SIGNAL_REGISTRY update | `signals/characterisation/SIGNAL_REGISTRY.md` | Not updated (criterion not met) |
 
 ---
 
 ## 13. Related Documents
 
-- [minutes-stability-xgi-study.md](../archive/minutes-stability-xgi-study.md) — design document
+- [minutes-stability-xgi-study.md](../../archive/minutes-stability-xgi-study.md) — design document
 - [rolling-xgi-horizon-study-results.md](rolling-xgi-horizon-study-results.md) — prior study (motivating context)
 - [rolling-xgi-real-validation.md](rolling-xgi-real-validation.md) — real-data validation referenced in design
 - `evaluation/minutes_stability_study.py` — study execution module

@@ -112,7 +112,7 @@ CONDITIONAL representations proceed. Rejected representations are documented wit
 at which they failed and the reason.
 
 **STATE MATERIALIZATION**
-Approved representations are materialized as columns in `dal/state/player_gameweek_state.py`.
+Approved representations are materialized as columns in `dal/feat/feat_player_gameweek.py`.
 Each column carries structured metadata: scope, causality, behavioral_reason, and the gate
 decisions that produced it. Rules in Section 7 govern what may appear in STATE.
 

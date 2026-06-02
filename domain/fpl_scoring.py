@@ -42,7 +42,7 @@ CLEAN_SHEET_POINTS_FWD: int = 0   # VERIFIED 2025/26
 # Goals
 # ---------------------------------------------------------------------------
 
-GOAL_POINTS_GK: int = 10  # VERIFIED 2025/26 — corrected from 6; API game_config.scoring returns goals_scored: 10 for GKP
+GOAL_POINTS_GK: int = 10  # VERIFIED 2025/26 — corrected from 6 (API game_config: 10 for GKP)
 GOAL_POINTS_DEF: int = 6  # VERIFIED 2025/26
 GOAL_POINTS_MID: int = 5  # VERIFIED 2025/26
 GOAL_POINTS_FWD: int = 4  # VERIFIED 2025/26

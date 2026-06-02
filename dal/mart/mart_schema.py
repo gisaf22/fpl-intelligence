@@ -60,7 +60,8 @@ _NON_SIGNAL_COLUMNS: dict[str, pa.Column] = {
     # identity / grain
     "player_id":      pa.Column(int, nullable=False),
     "gw":             pa.Column(int, nullable=False),
-    "position":       pa.Column(nullable=False, checks=pa.Check.isin(POSITIONS)),  # mart-derived — guard against silent NaN
+    # `position` is mart-derived (mapped from position_code) — guard against silent NaN
+    "position":       pa.Column(nullable=False, checks=pa.Check.isin(POSITIONS)),
     "position_code":  pa.Column(int, nullable=False, checks=pa.Check.isin([1, 2, 3, 4])),
     "team_id":        pa.Column(int, nullable=False),
     "player_name":    pa.Column(nullable=False),

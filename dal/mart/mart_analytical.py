@@ -29,6 +29,7 @@ from __future__ import annotations
 import pandas as pd
 
 from dal.feat.feat_schema import FEATURE_REGISTRY
+from dal.mart.mart_schema import validate_mart
 
 POSITION_CODE_MAP: dict[int, str] = {1: "GK", 2: "DEF", 3: "MID", 4: "FWD"}
 
@@ -40,6 +41,8 @@ GOVERNED_SIGNAL_COLUMNS: tuple[str, ...] = tuple(FEATURE_REGISTRY.keys())
 def build_prepared_dataset(
     features: pd.DataFrame,
     data_cutoff_gw: int,
+    *,
+    validate: bool = True,
 ) -> pd.DataFrame:
     """Build the governed analytical dataset from the pre-built features frame.
 
@@ -49,10 +52,20 @@ def build_prepared_dataset(
 
     Grain: (player_id, gw) — unchanged from features input.
     All GOVERNED_SIGNAL_COLUMNS are present on exit (may be NaN in warmup GWs).
+
+    Args:
+        validate: when True (default) the output is checked against MART_SCHEMA and the
+            (player_id, gw) grain — the serving boundary is fail-closed (raises
+            DALContractViolation). Pass validate=False only for isolation/unit tests that
+            exercise the transform mechanics on a deliberately partial frame.
     """
     if data_cutoff_gw <= 0:
         raise ValueError(f"data_cutoff_gw must be positive, got {data_cutoff_gw}")
 
     filtered = features[features["gw"] <= data_cutoff_gw].copy()
     filtered["position"] = filtered["position_code"].map(POSITION_CODE_MAP)
-    return filtered.reset_index(drop=True)
+    filtered = filtered.reset_index(drop=True)
+
+    if validate:
+        validate_mart(filtered)
+    return filtered

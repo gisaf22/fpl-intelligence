@@ -60,13 +60,13 @@ def test_evaluation_findings_is_non_empty_list():
 
 
 def test_each_entry_has_signal_and_lens():
-    """Every entry has signal_id, signal, lens, target, and per_position fields."""
+    """Every entry has key, signal, lens, target, and per_position fields."""
     data = _load()
-    required_entry_keys = {"signal_id", "signal", "lens", "target", "per_position"}
+    required_entry_keys = {"key", "signal", "lens", "target", "per_position"}
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         missing = required_entry_keys - set(entry.keys())
-        assert not missing, f"{signal_id}: missing entry keys {sorted(missing)}"
+        assert not missing, f"{key}: missing entry keys {sorted(missing)}"
 
 
 # ---------------------------------------------------------------------------
@@ -79,11 +79,11 @@ def test_all_positions_have_required_keys():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             missing = _REQUIRED_POSITION_KEYS - set(pos_data.keys())
             if missing:
-                violations.append(f"{signal_id} {pos}: missing {sorted(missing)}")
+                violations.append(f"{key} {pos}: missing {sorted(missing)}")
     assert not violations, "Missing position-level keys:\n" + "\n".join(violations)
 
 
@@ -97,11 +97,11 @@ def test_decision_class_values_are_valid():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             dc = pos_data.get("decision_class")
             if dc not in _VALID_DECISION_CLASS:
-                violations.append(f"{signal_id} {pos}: invalid decision_class '{dc}'")
+                violations.append(f"{key} {pos}: invalid decision_class '{dc}'")
     assert not violations, "\n".join(violations)
 
 
@@ -110,11 +110,11 @@ def test_lifecycle_state_values_are_valid():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             ls = pos_data.get("lifecycle_state")
             if ls not in _VALID_LIFECYCLE_STATE:
-                violations.append(f"{signal_id} {pos}: invalid lifecycle_state '{ls}'")
+                violations.append(f"{key} {pos}: invalid lifecycle_state '{ls}'")
     assert not violations, "\n".join(violations)
 
 
@@ -128,13 +128,13 @@ def test_informative_entries_have_ci():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             if pos_data.get("decision_class") == "informative":
                 if pos_data.get("rho_ci_lower") is None:
-                    violations.append(f"{signal_id} {pos}: informative but rho_ci_lower is null")
+                    violations.append(f"{key} {pos}: informative but rho_ci_lower is null")
                 if pos_data.get("rho_ci_upper") is None:
-                    violations.append(f"{signal_id} {pos}: informative but rho_ci_upper is null")
+                    violations.append(f"{key} {pos}: informative but rho_ci_upper is null")
     assert not violations, "\n".join(violations)
 
 
@@ -143,11 +143,11 @@ def test_informative_entries_have_block_stability():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             if pos_data.get("decision_class") == "informative":
                 if pos_data.get("block_stability_count") is None:
-                    violations.append(f"{signal_id} {pos}: informative but block_stability_count is null")
+                    violations.append(f"{key} {pos}: informative but block_stability_count is null")
     assert not violations, "\n".join(violations)
 
 
@@ -156,12 +156,12 @@ def test_candidate_entries_are_informative_or_conditional():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             if pos_data.get("lifecycle_state") == "candidate":
                 dc = pos_data.get("decision_class")
                 if dc not in {"informative", "conditional"}:
-                    violations.append(f"{signal_id} {pos}: lifecycle_state=candidate but decision_class='{dc}'")
+                    violations.append(f"{key} {pos}: lifecycle_state=candidate but decision_class='{dc}'")
     assert not violations, "\n".join(violations)
 
 
@@ -170,11 +170,11 @@ def test_excluded_design_entries_not_candidate():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             if pos_data.get("decision_class") == "excluded":
                 if pos_data.get("lifecycle_state") == "candidate":
-                    violations.append(f"{signal_id} {pos}: decision_class=excluded but lifecycle_state=candidate")
+                    violations.append(f"{key} {pos}: decision_class=excluded but lifecycle_state=candidate")
     assert not violations, "\n".join(violations)
 
 
@@ -183,13 +183,13 @@ def test_ci_lower_less_than_ci_upper():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             lo = pos_data.get("rho_ci_lower")
             hi = pos_data.get("rho_ci_upper")
             if lo is not None and hi is not None:
                 if lo >= hi:
-                    violations.append(f"{signal_id} {pos}: rho_ci_lower={lo} >= rho_ci_upper={hi}")
+                    violations.append(f"{key} {pos}: rho_ci_lower={lo} >= rho_ci_upper={hi}")
     assert not violations, "\n".join(violations)
 
 
@@ -199,12 +199,12 @@ def test_block_stability_count_in_range():
     total = data.get("block_stability_total", 3)
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             count = pos_data.get("block_stability_count")
             if count is not None:
                 if not (0 <= count <= total):
-                    violations.append(f"{signal_id} {pos}: block_stability_count={count} out of [0, {total}]")
+                    violations.append(f"{key} {pos}: block_stability_count={count} out of [0, {total}]")
     assert not violations, "\n".join(violations)
 
 
@@ -226,11 +226,11 @@ def test_all_positions_have_behavioral_reason():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             br = pos_data.get("behavioral_reason")
             if not br or not str(br).strip():
-                violations.append(f"{signal_id} {pos}: behavioral_reason is null or empty")
+                violations.append(f"{key} {pos}: behavioral_reason is null or empty")
     assert not violations, "\n".join(violations)
 
 
@@ -239,11 +239,11 @@ def test_all_positions_have_source_gate_decisions():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             decisions = pos_data.get("source_gate_decisions")
             if not decisions or not isinstance(decisions, list) or len(decisions) == 0:
-                violations.append(f"{signal_id} {pos}: source_gate_decisions is null, empty, or not a list")
+                violations.append(f"{key} {pos}: source_gate_decisions is null, empty, or not a list")
     assert not violations, "\n".join(violations)
 
 
@@ -253,11 +253,11 @@ def test_all_positions_have_leakage_risk():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             lr = pos_data.get("leakage_risk")
             if not lr or lr not in _VALID_LEAKAGE_RISK:
-                violations.append(f"{signal_id} {pos}: leakage_risk={lr!r} — null or not in vocabulary")
+                violations.append(f"{key} {pos}: leakage_risk={lr!r} — null or not in vocabulary")
     assert not violations, "\n".join(violations)
 
 
@@ -266,11 +266,11 @@ def test_candidate_entries_have_rho_pooled_not_null():
     data = _load()
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             if pos_data.get("lifecycle_state") == "candidate":
                 if pos_data.get("rho_pooled") is None:
-                    violations.append(f"{signal_id} {pos}: lifecycle_state=candidate but rho_pooled is null")
+                    violations.append(f"{key} {pos}: lifecycle_state=candidate but rho_pooled is null")
     assert not violations, "\n".join(violations)
 
 
@@ -282,14 +282,14 @@ def test_candidate_entries_have_matching_synth01_entry():
 
     violations = []
     for entry in data["evaluation_findings"]:
-        signal_id = entry.get("signal_id", "?")
+        key = entry.get("key", "?")
         signal = entry.get("signal", "?")
         for pos, pos_data in entry.get("per_position", {}).items():
             if pos_data.get("lifecycle_state") == "candidate":
                 key = (signal, pos)
                 if key not in synth_set:
                     violations.append(
-                        f"{signal_id}: ({signal}, {pos}) is lifecycle_state=candidate "
+                        f"{key}: ({signal}, {pos}) is lifecycle_state=candidate "
                         f"but has no matching entry in synth01_candidates.yaml"
                     )
     assert not violations, "\n".join(violations)

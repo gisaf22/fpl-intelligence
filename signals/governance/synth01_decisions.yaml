@@ -104,7 +104,7 @@ group_summary:
   equal_weight_preferred: true
   baseline_note: MID composite rho=0.1725 vs naive baseline rho=0.158 — CLEARS baseline
 decisions:
-- decision_id: G-SYNTH1-01
+- key: xgi_roll3@form:total_points#DEF
   signal: xgi_roll3
   position: DEF
   lens: FORM
@@ -121,7 +121,7 @@ decisions:
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
-- decision_id: G-SYNTH1-02
+- key: xgi_roll5@form:total_points#DEF
   signal: xgi_roll5
   position: DEF
   lens: FORM
@@ -138,7 +138,7 @@ decisions:
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
-- decision_id: G-SYNTH1-03
+- key: minutes_roll8@avail:played_next_gw#DEF
   signal: minutes_roll8
   position: DEF
   lens: AVAIL
@@ -152,7 +152,7 @@ decisions:
   evidence: partial_rho=0.2188; CI=[0.1740, 0.2614]; controlling for none (singleton);
     n=1936
   notes: '|partial_rho|=0.2188 >= 0.02 threshold. Weight=1.0000'
-- decision_id: G-SYNTH1-04
+- key: transfers_in@market:total_points#DEF
   signal: transfers_in
   position: DEF
   lens: MARKET
@@ -169,7 +169,7 @@ decisions:
     composite did not improve by >=0.02 rho units). Weight CI=[0.5114, 0.6000].'
   weight_ci_lower: 0.5114
   weight_ci_upper: 0.6
-- decision_id: G-SYNTH1-05
+- key: ownership_count@market:total_points#DEF
   signal: ownership_count
   position: DEF
   lens: MARKET
@@ -184,7 +184,7 @@ decisions:
     'purchase_price']; n=2568
   notes: '|partial_rho|=0.0090 < 0.02 threshold. Absorbed by: [''transfers_in'', ''purchase_price''].
     Confirms HIGH REDUNDANCY SUBSTITUTE resolution from synth01_candidates.yaml.'
-- decision_id: G-SYNTH1-06
+- key: purchase_price@market:total_points#DEF
   signal: purchase_price
   position: DEF
   lens: MARKET
@@ -201,7 +201,7 @@ decisions:
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.4886].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.4886
-- decision_id: G-SYNTH1-07
+- key: xgi_roll3@form:total_points#MID
   signal: xgi_roll3
   position: MID
   lens: FORM
@@ -215,7 +215,7 @@ decisions:
   evidence: partial_rho=0.0089; CI=[-0.0304, 0.0520]; controlling for ['xgi_roll5'];
     n=2360
   notes: '|partial_rho|=0.0089 < 0.02 threshold. Absorbed by: [''xgi_roll5''].'
-- decision_id: G-SYNTH1-08
+- key: xgi_roll5@form:total_points#MID
   signal: xgi_roll5
   position: MID
   lens: FORM
@@ -229,7 +229,7 @@ decisions:
   evidence: partial_rho=0.0643; CI=[0.0241, 0.1052]; controlling for ['xgi_roll3'];
     n=2360
   notes: '|partial_rho|=0.0643 >= 0.02 threshold. Weight=1.0000'
-- decision_id: G-SYNTH1-09
+- key: minutes_roll3@avail:played_next_gw#MID
   signal: minutes_roll3
   position: MID
   lens: AVAIL
@@ -246,7 +246,7 @@ decisions:
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
-- decision_id: G-SYNTH1-10
+- key: minutes_roll5@avail:played_next_gw#MID
   signal: minutes_roll5
   position: MID
   lens: AVAIL
@@ -261,7 +261,7 @@ decisions:
     'minutes_roll8']; n=2095
   notes: '|partial_rho|=0.0118 < 0.02 threshold. Absorbed by: [''minutes_roll3'',
     ''minutes_roll8''].'
-- decision_id: G-SYNTH1-11
+- key: minutes_roll8@avail:played_next_gw#MID
   signal: minutes_roll8
   position: MID
   lens: AVAIL
@@ -278,7 +278,7 @@ decisions:
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
-- decision_id: G-SYNTH1-12
+- key: transfers_in@market:total_points#MID
   signal: transfers_in
   position: MID
   lens: MARKET
@@ -295,7 +295,7 @@ decisions:
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
-- decision_id: G-SYNTH1-13
+- key: ownership_count@market:total_points#MID
   signal: ownership_count
   position: MID
   lens: MARKET
@@ -312,7 +312,7 @@ decisions:
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
-- decision_id: G-SYNTH1-14
+- key: purchase_price@market:total_points#FWD
   signal: purchase_price
   position: FWD
   lens: MARKET

@@ -134,19 +134,19 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
             raise LeakageViolationError(
                 f"GOVERNANCE VIOLATION: {sig.signal}@{sig.position} has direct leakage "
                 f"risk but appears as confirmed in scoring manifest. "
-                f"Remove from registry. Source: {gov.signal_id}"
+                f"Remove from registry. Source: {gov.key}"
             )
         if gov.lifecycle_state == "excluded":
             raise LifecycleViolationError(
                 f"GOVERNANCE VIOLATION: {sig.signal}@{sig.position} is excluded from "
                 f"lifecycle evaluation but appears as confirmed in scoring manifest. "
-                f"Lifecycle enforcement failed. Source: {gov.signal_id}"
+                f"Lifecycle enforcement failed. Source: {gov.key}"
             )
         if gov.downstream_status == "blocked":
             raise LifecycleViolationError(
                 f"GOVERNANCE VIOLATION: {sig.signal}@{sig.position} has downstream "
                 f"status 'blocked' but appears as confirmed in scoring manifest. "
-                f"Source: {gov.signal_id}"
+                f"Source: {gov.key}"
             )
 
 

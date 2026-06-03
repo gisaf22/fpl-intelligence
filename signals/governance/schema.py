@@ -234,7 +234,7 @@ class GovernanceMetadata:
 
     signal: str
     position: str
-    signal_id: str  # e.g. "FORM-001"
+    key: str  # composite finding key, e.g. "xgi_roll3@form:total_points" (ADR-003)
     lens: str  # e.g. "FORM"
     lifecycle_state: str  # candidate | excluded | not_applicable
     downstream_status: str  # eligible | caveated | blocked

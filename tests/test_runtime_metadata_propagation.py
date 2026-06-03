@@ -32,7 +32,7 @@ class TestGovernanceMetadataSchema:
         gov = GovernanceMetadata(
             signal="xgi_roll3",
             position="DEF",
-            signal_id="FORM-001",
+            key="xgi_roll3@form:total_points",
             lens="FORM",
             lifecycle_state="candidate",
             downstream_status="eligible",
@@ -50,7 +50,7 @@ class TestGovernanceMetadataSchema:
         gov = GovernanceMetadata(
             signal="xgi_roll3",
             position="DEF",
-            signal_id="FORM-001",
+            key="xgi_roll3@form:total_points",
             lens="FORM",
             lifecycle_state="candidate",
             downstream_status="eligible",
@@ -91,7 +91,7 @@ class TestGetSignalGovernance:
         gov = get_signal_governance("xgi_roll3", "DEF")
         assert gov.signal == "xgi_roll3"
         assert gov.position == "DEF"
-        assert gov.signal_id == "FORM-001"
+        assert gov.key == "xgi_roll3@form:total_points"
         assert gov.lifecycle_state == "approved"
         assert gov.downstream_status == "approved"
         assert gov.leakage_risk == "none"
@@ -179,7 +179,7 @@ class TestMultiLensDisambiguation:
         gov = get_signal_governance("minutes_roll3", "MID")
         assert gov.lifecycle_state == "approved"
         assert gov.lens == "AVAIL"
-        assert gov.signal_id == "AVAIL-001"
+        assert gov.key == "minutes_roll3@avail:played_next_gw"
 
     def test_minutes_roll3_def_returns_excluded(self) -> None:
         """Both FORM-006 DEF and AVAIL-001 DEF are excluded — should return excluded."""
@@ -299,24 +299,24 @@ class TestYAMLCompleteness:
     def test_all_positions_have_behavioral_reason(self) -> None:
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
-                assert "behavioral_reason" in pos_data, f"{entry['signal_id']} {pos} missing behavioral_reason"
-                assert pos_data["behavioral_reason"], f"{entry['signal_id']} {pos} behavioral_reason is empty"
+                assert "behavioral_reason" in pos_data, f"{entry['key']} {pos} missing behavioral_reason"
+                assert pos_data["behavioral_reason"], f"{entry['key']} {pos} behavioral_reason is empty"
 
     def test_all_positions_have_source_gate_decisions(self) -> None:
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
-                assert "source_gate_decisions" in pos_data, f"{entry['signal_id']} {pos} missing source_gate_decisions"
+                assert "source_gate_decisions" in pos_data, f"{entry['key']} {pos} missing source_gate_decisions"
                 decisions = pos_data["source_gate_decisions"]
                 assert isinstance(decisions, list) and len(decisions) >= 1, (
-                    f"{entry['signal_id']} {pos} source_gate_decisions must be non-empty list"
+                    f"{entry['key']} {pos} source_gate_decisions must be non-empty list"
                 )
 
     def test_all_positions_have_leakage_risk(self) -> None:
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
-                assert "leakage_risk" in pos_data, f"{entry['signal_id']} {pos} missing leakage_risk"
+                assert "leakage_risk" in pos_data, f"{entry['key']} {pos} missing leakage_risk"
                 assert pos_data["leakage_risk"] in LEAKAGE_RISK_VALUES, (
-                    f"{entry['signal_id']} {pos} leakage_risk={pos_data['leakage_risk']!r} not in {LEAKAGE_RISK_VALUES}"
+                    f"{entry['key']} {pos} leakage_risk={pos_data['leakage_risk']!r} not in {LEAKAGE_RISK_VALUES}"
                 )
 
     def test_all_positions_have_downstream_status(self) -> None:
@@ -324,18 +324,18 @@ class TestYAMLCompleteness:
 
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
-                assert "downstream_status" in pos_data, f"{entry['signal_id']} {pos} missing downstream_status"
+                assert "downstream_status" in pos_data, f"{entry['key']} {pos} missing downstream_status"
                 assert pos_data["downstream_status"] in DOWNSTREAM_STATUS_VALUES, (
-                    f"{entry['signal_id']} {pos} downstream_status={pos_data['downstream_status']!r} "
+                    f"{entry['key']} {pos} downstream_status={pos_data['downstream_status']!r} "
                     f"not in {DOWNSTREAM_STATUS_VALUES}"
                 )
 
     def test_all_positions_have_lifecycle_state(self) -> None:
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
-                assert "lifecycle_state" in pos_data, f"{entry['signal_id']} {pos} missing lifecycle_state"
+                assert "lifecycle_state" in pos_data, f"{entry['key']} {pos} missing lifecycle_state"
                 assert pos_data["lifecycle_state"] in LIFECYCLE_STATE_VALUES, (
-                    f"{entry['signal_id']} {pos} lifecycle_state={pos_data['lifecycle_state']!r} "
+                    f"{entry['key']} {pos} lifecycle_state={pos_data['lifecycle_state']!r} "
                     f"not in {LIFECYCLE_STATE_VALUES}"
                 )
 
@@ -345,7 +345,7 @@ class TestYAMLCompleteness:
             for pos, pos_data in entry["per_position"].items():
                 if pos_data["leakage_risk"] == "evaluation_circularity":
                     assert pos_data["lifecycle_state"] == "excluded", (
-                        f"{entry['signal_id']} {pos}: evaluation_circularity but "
+                        f"{entry['key']} {pos}: evaluation_circularity but "
                         f"lifecycle_state={pos_data['lifecycle_state']!r}"
                     )
 
@@ -355,7 +355,7 @@ class TestYAMLCompleteness:
             for pos, pos_data in entry["per_position"].items():
                 if pos_data["downstream_status"] == "blocked":
                     assert pos_data["lifecycle_state"] in {"excluded", "not_applicable"}, (
-                        f"{entry['signal_id']} {pos}: downstream_status=blocked but "
+                        f"{entry['key']} {pos}: downstream_status=blocked but "
                         f"lifecycle_state={pos_data['lifecycle_state']!r}"
                     )
 
@@ -365,7 +365,7 @@ class TestYAMLCompleteness:
             for pos, pos_data in entry["per_position"].items():
                 if pos_data["lifecycle_state"] == "candidate":
                     assert pos_data["downstream_status"] in {"eligible", "caveated"}, (
-                        f"{entry['signal_id']} {pos}: lifecycle_state=candidate but "
+                        f"{entry['key']} {pos}: lifecycle_state=candidate but "
                         f"downstream_status={pos_data['downstream_status']!r}"
                     )
 
@@ -401,10 +401,10 @@ class TestGetSignalGovernanceCompleteness:
                 try:
                     gov = get_signal_governance(signal, pos)
                     assert isinstance(gov, GovernanceMetadata), (
-                        f"{entry['signal_id']} ({signal}, {pos}): returned non-GovernanceMetadata"
+                        f"{entry['key']} ({signal}, {pos}): returned non-GovernanceMetadata"
                     )
                 except Exception as exc:
-                    failures.append(f"{entry['signal_id']} ({signal}, {pos}): {type(exc).__name__}: {exc}")
+                    failures.append(f"{entry['key']} ({signal}, {pos}): {type(exc).__name__}: {exc}")
         assert not failures, "get_signal_governance() failed for entries:\n" + "\n".join(failures)
 
     def test_returned_metadata_has_all_required_fields(self) -> None:
@@ -519,7 +519,7 @@ class TestViolationErrorTypes:
         synthetic_gov = GovernanceMetadata(
             signal="bonus_roll3",
             position="DEF",
-            signal_id="TEST-DIRECT-LEAKAGE",
+            key="TEST-DIRECT-LEAKAGE",
             lens="TEST",
             lifecycle_state="excluded",
             downstream_status="blocked",

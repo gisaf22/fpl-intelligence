@@ -43,7 +43,7 @@ modules:
       form_score:
         value: 0.35
         signal: xgi_roll5
-        signal_id: FORM-002
+        signal_id: xgi_roll5@form:total_points
         note: >
           PROVISIONAL-EDITORIAL. xgi_roll5 is a governed candidate at DEF/MID
           (LENS-FORM FORM-002). FWD scope guard enforced in code: xgi_roll5
@@ -51,7 +51,7 @@ modules:
       involvement_score:
         value: 0.30
         signal: xgi_roll3
-        signal_id: FORM-001
+        signal_id: xgi_roll3@form:total_points
         note: >
           PROVISIONAL-EDITORIAL. xgi_roll3 governed at DEF/MID (FORM-001).
           FWD scope guard enforced in code: xgi_roll3 excluded at FWD by lens
@@ -68,7 +68,7 @@ modules:
       minutes_score:
         value: 0.15
         signal: minutes_roll3
-        signal_id: AVAIL-001
+        signal_id: minutes_roll3@avail:played_next_gw
         note: >
           PROVISIONAL-EDITORIAL. minutes_roll3 is an AVAIL candidate at MID only;
           excluded at DEF/FWD/GK (AVAIL-001). Use as eligibility proxy at all
@@ -83,7 +83,7 @@ modules:
       efficiency_score:
         value: 0.50
         signal: xgi_roll5_per_purchase_price
-        signal_id: FORM-002
+        signal_id: xgi_roll5@form:total_points
         note: >
           PROVISIONAL-EDITORIAL. xgi_roll5/purchase_price composite; xgi_roll5
           governed at DEF/MID (FORM-002). FWD scope guard enforced: both xgi_roll5
@@ -92,7 +92,7 @@ modules:
       form_score:
         value: 0.30
         signal: xgi_roll3
-        signal_id: FORM-001
+        signal_id: xgi_roll3@form:total_points
         note: >
           PROVISIONAL-EDITORIAL. FWD scope guard enforced: xgi_roll3 excluded at
           FWD by lens evaluation (non-monotonic quintile ordering, G2-FAIL).
@@ -141,7 +141,7 @@ modules:
       recent_form_score:
         value: 0.30
         signal: xgi_roll3
-        signal_id: FORM-001
+        signal_id: xgi_roll3@form:total_points
         note: >
           PROVISIONAL-EDITORIAL. FWD scope guard enforced: xgi_roll3 excluded at
           FWD by lens evaluation (non-monotonic quintile ordering, G2-FAIL).
@@ -164,14 +164,14 @@ modules:
       involvement_score:
         value: 0.15
         signal: xgi_roll3
-        signal_id: FORM-001
+        signal_id: xgi_roll3@form:total_points
         note: >
           PROVISIONAL-EDITORIAL. FWD scope guard enforced: xgi_roll3 excluded at
           FWD by lens evaluation (non-monotonic quintile ordering, G2-FAIL).
       minutes_stability_score:
         value: 0.10
         signal: minutes_roll5
-        signal_id: AVAIL-002
+        signal_id: minutes_roll5@avail:played_next_gw
         note: >
           PROVISIONAL-EDITORIAL. minutes_roll5 excluded at DEF/FWD from AVAIL lens
           (AVAIL-002 G2-FAIL/G3-FAIL). Eligibility proxy use is provisional.

@@ -26,7 +26,7 @@ leakage_risk_vocab:
   evaluation_circularity: Signal is a lagged/rolling version of the evaluation target
   direct: Signal is a computational component of the scoring target (bonus, bps)
 evaluation_findings:
-- signal_id: FORM-001
+- key: xgi_roll3@form:total_points
   signal: xgi_roll3
   lens: FORM
   target: total_points
@@ -50,7 +50,7 @@ evaluation_findings:
       synth01_decision: APPROVED-PRIMARY
       composition_weight: 0.5
       composition_role: primary
-      synth01_decision_id: G-SYNTH1-01
+      synth01_decision_id: xgi_roll3@form:total_points#DEF
     MID:
       rho_pooled: 0.144
       rho_ci_lower: 0.107
@@ -72,7 +72,7 @@ evaluation_findings:
       synth01_decision: EXCLUDED-REDUNDANT
       composition_weight: null
       composition_role: redundant
-      synth01_decision_id: G-SYNTH1-07
+      synth01_decision_id: xgi_roll3@form:total_points#MID
     FWD:
       rho_pooled: 0.091
       rho_ci_lower: null
@@ -109,7 +109,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: FORM-002
+- key: xgi_roll5@form:total_points
   signal: xgi_roll5
   lens: FORM
   target: total_points
@@ -134,7 +134,7 @@ evaluation_findings:
       synth01_decision: APPROVED-SECONDARY
       composition_weight: 0.5
       composition_role: secondary
-      synth01_decision_id: G-SYNTH1-02
+      synth01_decision_id: xgi_roll5@form:total_points#DEF
     MID:
       rho_pooled: 0.157
       rho_ci_lower: 0.118
@@ -156,7 +156,7 @@ evaluation_findings:
       synth01_decision: APPROVED-PRIMARY
       composition_weight: 1.0
       composition_role: primary
-      synth01_decision_id: G-SYNTH1-08
+      synth01_decision_id: xgi_roll5@form:total_points#MID
     FWD:
       rho_pooled: 0.097
       rho_ci_lower: null
@@ -194,7 +194,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: FORM-003
+- key: goals_scored_roll3@form:total_points
   signal: goals_scored_roll3
   lens: FORM
   target: total_points
@@ -270,7 +270,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: FORM-004
+- key: points_roll3@form:total_points
   signal: points_roll3
   lens: FORM
   target: total_points
@@ -355,7 +355,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: FORM-005
+- key: points_roll5@form:total_points
   signal: points_roll5
   lens: FORM
   target: total_points
@@ -437,7 +437,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: FORM-006
+- key: minutes_roll3@form:total_points
   signal: minutes_roll3
   lens: FORM
   target: total_points
@@ -517,7 +517,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: AVAIL-001
+- key: minutes_roll3@avail:played_next_gw
   signal: minutes_roll3
   lens: AVAIL
   target: played_next_gw
@@ -578,7 +578,7 @@ evaluation_findings:
       synth01_decision: APPROVED-PRIMARY
       composition_weight: 0.5
       composition_role: primary
-      synth01_decision_id: G-SYNTH1-09
+      synth01_decision_id: minutes_roll3@avail:played_next_gw#MID
     FWD:
       rho_pooled: 0.186
       rho_ci_lower: null
@@ -597,7 +597,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: AVAIL-002
+- key: minutes_roll5@avail:played_next_gw
   signal: minutes_roll5
   lens: AVAIL
   target: played_next_gw
@@ -656,7 +656,7 @@ evaluation_findings:
       synth01_decision: EXCLUDED-REDUNDANT
       composition_weight: null
       composition_role: redundant
-      synth01_decision_id: G-SYNTH1-10
+      synth01_decision_id: minutes_roll5@avail:played_next_gw#MID
     FWD:
       rho_pooled: null
       rho_ci_lower: null
@@ -675,7 +675,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: AVAIL-003
+- key: minutes_roll8@avail:played_next_gw
   signal: minutes_roll8
   lens: AVAIL
   target: played_next_gw
@@ -719,7 +719,7 @@ evaluation_findings:
       synth01_decision: APPROVED-PRIMARY
       composition_weight: 1.0
       composition_role: primary
-      synth01_decision_id: G-SYNTH1-03
+      synth01_decision_id: minutes_roll8@avail:played_next_gw#DEF
     MID:
       rho_pooled: 0.222
       rho_ci_lower: 0.18
@@ -739,7 +739,7 @@ evaluation_findings:
       synth01_decision: APPROVED-SECONDARY
       composition_weight: 0.5
       composition_role: secondary
-      synth01_decision_id: G-SYNTH1-11
+      synth01_decision_id: minutes_roll8@avail:played_next_gw#MID
     FWD:
       rho_pooled: 0.206
       rho_ci_lower: null
@@ -759,7 +759,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: MARKET-001
+- key: transfers_in@market:total_points
   signal: transfers_in
   lens: MARKET
   target: total_points
@@ -800,7 +800,7 @@ evaluation_findings:
       synth01_decision: APPROVED-PRIMARY
       composition_weight: 0.5
       composition_role: primary
-      synth01_decision_id: G-SYNTH1-04
+      synth01_decision_id: transfers_in@market:total_points#DEF
     MID:
       rho_pooled: 0.19
       rho_ci_lower: 0.153
@@ -819,7 +819,7 @@ evaluation_findings:
       synth01_decision: APPROVED-PRIMARY
       composition_weight: 0.5
       composition_role: primary
-      synth01_decision_id: G-SYNTH1-12
+      synth01_decision_id: transfers_in@market:total_points#MID
     FWD:
       rho_pooled: 0.127
       rho_ci_lower: null
@@ -840,7 +840,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: MARKET-002
+- key: transfers_balance@market:total_points
   signal: transfers_balance
   lens: MARKET
   target: total_points
@@ -916,7 +916,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: MARKET-003
+- key: ownership_count@market:total_points
   signal: ownership_count
   lens: MARKET
   target: total_points
@@ -960,7 +960,7 @@ evaluation_findings:
       synth01_decision: EXCLUDED-REDUNDANT
       composition_weight: null
       composition_role: redundant
-      synth01_decision_id: G-SYNTH1-05
+      synth01_decision_id: ownership_count@market:total_points#DEF
     MID:
       rho_pooled: 0.168
       rho_ci_lower: 0.13
@@ -981,7 +981,7 @@ evaluation_findings:
       synth01_decision: APPROVED-SECONDARY
       composition_weight: 0.5
       composition_role: secondary
-      synth01_decision_id: G-SYNTH1-13
+      synth01_decision_id: ownership_count@market:total_points#MID
     FWD:
       rho_pooled: null
       rho_ci_lower: null
@@ -1000,7 +1000,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: MARKET-004
+- key: purchase_price@market:total_points
   signal: purchase_price
   lens: MARKET
   target: total_points
@@ -1044,7 +1044,7 @@ evaluation_findings:
       synth01_decision: APPROVED-SECONDARY
       composition_weight: 0.5
       composition_role: secondary
-      synth01_decision_id: G-SYNTH1-06
+      synth01_decision_id: purchase_price@market:total_points#DEF
     MID:
       rho_pooled: 0.121
       rho_ci_lower: null
@@ -1087,8 +1087,8 @@ evaluation_findings:
       synth01_decision: FWD-SINGLE-SIGNAL
       composition_weight: 0.0
       composition_role: null
-      synth01_decision_id: G-SYNTH1-14
-- signal_id: FIXTURE-001
+      synth01_decision_id: purchase_price@market:total_points#FWD
+- key: fdr_avg@fixture_gw:total_points
   signal: fdr_avg
   lens: FIXTURE-GW
   target: total_points
@@ -1173,7 +1173,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: FIXTURE-002
+- key: was_home@fixture_gw:total_points
   signal: was_home
   lens: FIXTURE-GW
   target: total_points
@@ -1249,7 +1249,7 @@ evaluation_findings:
       synth01_decision: null
       composition_weight: null
       composition_role: null
-- signal_id: FIXTURE-003
+- key: fixture_count@fixture_gw:total_points
   signal: fixture_count
   lens: FIXTURE-GW
   target: total_points

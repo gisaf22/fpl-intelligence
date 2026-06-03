@@ -310,7 +310,16 @@ def run(db_path: Path = DB_PATH) -> Path:
         (state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)
     ].copy()
 
-    decision_counter = 0
+    # Composite finding-key grammar (ADR-003): signal@lens:target#POSITION.
+    # The synth target column (total_points_next_gw) maps to the finding-key target token
+    # (total_points) so a decision key equals its parent finding key + #POSITION.
+    _TARGET_TOKEN = {"total_points_next_gw": "total_points", "played_next_gw": "played_next_gw"}
+
+    def _composite_key(signal: str, lens: str, target: str, position: str) -> str:
+        lens_tok = lens.lower().replace("-", "_")
+        target_tok = _TARGET_TOKEN.get(target, target)
+        return f"{signal}@{lens_tok}:{target_tok}#{position}"
+
     all_decisions: list[dict] = []
     retained_for_moderation: list[tuple[str, str, str]] = []
     group_summaries: list[dict] = []
@@ -390,10 +399,9 @@ def run(db_path: Path = DB_PATH) -> Path:
         # --- Rank retained for primary/secondary ---
         retained_ranked = sorted(retained_sigs, key=lambda s: -abs(partial_results[s][0]))
 
-        # --- Issue G-SYNTH1-* decisions ---
+        # --- Issue composite-key decisions (ADR-003) ---
         for sig in signals:
-            decision_counter += 1
-            d_id = f"G-SYNTH1-{decision_counter:02d}"
+            d_id = _composite_key(sig, lens, target, position)
             rho, ci_lo, ci_hi = partial_results[sig]
 
             if sig in excluded_sigs:
@@ -433,7 +441,7 @@ def run(db_path: Path = DB_PATH) -> Path:
             )
 
             entry: dict = {
-                "decision_id": d_id,
+                "key": d_id,
                 "signal": sig,
                 "position": position,
                 "lens": lens,
@@ -466,9 +474,8 @@ def run(db_path: Path = DB_PATH) -> Path:
         })
 
     # --- FWD single-signal decision ---
-    decision_counter += 1
     all_decisions.append({
-        "decision_id": f"G-SYNTH1-{decision_counter:02d}",
+        "key": _composite_key("purchase_price", "MARKET", "total_points_next_gw", "FWD"),
         "signal": "purchase_price",
         "position": "FWD",
         "lens": "MARKET",

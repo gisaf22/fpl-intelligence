@@ -27,8 +27,7 @@ Any contributor can push a breaking change and not know. The test suite is the p
 - Badge in README reflects current test status
 
 **Files**  
-`.github/workflows/` (does not exist — must be created)  
-`Makefile` — existing `make test` target defines the test command
+`.github/workflows/` (does not exist — must be created)
 
 ---
 
@@ -68,6 +67,33 @@ CONTEXT.md is the first document a new contributor reads to orient themselves. B
 
 **Files**  
 `CONTEXT.md:97,98,116,122`
+
+---
+
+### ENG-13 — weight_registry.yaml cites a deleted source path
+
+**Problem**  
+`signals/governance/weight_registry.yaml` references `signals/evaluation/synth01_decisions.yaml`.
+The `signals/evaluation/` directory was deleted in the signals package restructure (Change 7).
+The real path is `signals/governance/synth01_decisions.yaml`. `intelligence/weight_registry.py`
+reads these YAMLs and hard-fails on bad keys.
+
+**Why it is a problem**  
+Unlike a stale doc path, a stale path in a YAML that code loads at runtime is a hard failure.
+If `weight_registry.py` resolves or loads this path, the scoring pipeline dies at import/load
+time with a `FileNotFoundError` or a key-validation error. This was flagged in the doc-drift
+audit as the highest-urgency item that was *not* fixed in the doc-only cleanup PR.
+
+**Acceptance criteria**  
+- `signals/evaluation/synth01_decisions.yaml` reference in `weight_registry.yaml` corrected to
+  `signals/governance/synth01_decisions.yaml`
+- `grep "signals/evaluation" signals/governance/weight_registry.yaml` returns zero results
+- `python -m intelligence.scoring.scoring_runner` runs without `FileNotFoundError` against a
+  valid registry path
+
+**Files**  
+`signals/governance/weight_registry.yaml` — the stale path reference  
+`intelligence/weight_registry.py` — reads the YAML, hard-fails on bad keys
 
 ---
 
@@ -275,6 +301,7 @@ When a pipeline fails in production (or in a CI run), the first question is "whi
 | ENG-01 | 1 — High | No CI/CD pipeline | `.github/workflows/` (missing) |
 | ENG-02 | 1 — High | FWD × purchase_price reversal live in scorer | `intelligence/transfers.py:39` |
 | ENG-03 | 1 — High | CONTEXT.md stale module paths | `CONTEXT.md:97,98,116,122` |
+| ENG-13 | 1 — High | weight_registry.yaml cites deleted source path | `signals/governance/weight_registry.yaml` |
 | ENG-04 | 2 — Medium | Six unvalidated operational thresholds | `intelligence/availability.py:29–33` |
 | ENG-05 | 2 — Medium | No FPL API schema guard | `dal/pipeline.py` |
 | ENG-06 | 2 — Medium | GK position entirely unevaluated | `signals/governance/weight_registry.yaml` |

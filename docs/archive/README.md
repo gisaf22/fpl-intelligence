@@ -19,6 +19,7 @@ supersession column to find the current authority for that concern.
 | [minutes-stability-xgi-study.md](minutes-stability-xgi-study.md) | 2026-05-27 | `docs/studies/results/minstab-01-results.md` |
 | [operational-convergence-plan.md](operational-convergence-plan.md) | 2026-05-31 | All 9 phases complete; threshold-registry.md carries live governance |
 | [state-representation-inventory.md](state-representation-inventory.md) | 2026-05-31 | STATE column set governed by `_GOVERNED_ROLLING_COLS` / `_COLUMN_META` in code |
+| [doc-drift.md](doc-drift.md) | 2026-06-02 | All active-doc drift resolved in the drift-cleanup PR; one open config item tracked as ENG-13 |
 
 ---
 

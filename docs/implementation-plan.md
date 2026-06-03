@@ -119,6 +119,12 @@ coherent, then do the **risky code migration** with a safety net under it, and c
 
 **Scope fence:** Does **not** add property-based testing — ADLC §5 guardrail: not until a *recurring* invariant bug actually slips past example-based tests. Does not rewrite existing tests beyond what the meta-test and mypy fixes require.
 
+**Ready-state (verified 2026-06-02 — Phases 1–4 merged to main):**
+- **CI exists and is green** — `.github/workflows/ci.yml` runs ruff check + `ruff format --check` + mypy (`continue-on-error: true`, line 36) + build fixture DB (`tests/fixtures/create_test_db.py`) + `pytest -m unit`. Integration job is `if: false` (needs live DB). **ENG-01 is effectively satisfied**; Phase 5's mypy task is unblocked.
+- **mypy count has drifted: it is now 10, not 8.** The gate command is `uv run mypy` (no path args), scoped by `[tool.mypy]` to production only (`files = ["dal","signals","intelligence","domain","population"]`; `studies/` excluded). `mypy .` shows ~871 tests/ warnings that are **outside** the gate scope — ignore them; do not widen `files`. Several of the 10 look like latent bugs, not cosmetics (e.g. `signals/characterisation/association.py:31` `<` between float and None; `dal/staging/stg_schema.py:34` None→`list[str]`) — fix properly.
+- **Fixture builder** `tests/fixtures/create_test_db.py` (~1049 lines) already constructs labeled `SC-*` scenarios incl. BGW, DGW, mid-season transfer, multi-position, and has a `red_cards` column. zero-minute and warm-up-sub coverage need verifying. The meta-test is mostly *assert what's present*, adding only the gaps.
+- **Add a deliverable:** update `docs/architecture/test-coverage.md` (the 54-invariant map) with the new meta-test row and flip the mypy status to "blocking gate" once `continue-on-error` is removed.
+
 ---
 
 ## Phase 6 — ID-diet code migration (composite keys)

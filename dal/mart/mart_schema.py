@@ -26,10 +26,15 @@ Scope (enforcement, not bureaucracy)
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pandera.pandas as pa
 from pandera.errors import SchemaError, SchemaErrors
 
 from dal.exceptions import DALContractViolation, ErrorCode
+
+if TYPE_CHECKING:
+    import pandas as pd
 from dal.feat.feat_schema import FEATURE_REGISTRY
 from dal.validation.grain import validate_grain_uniqueness
 
@@ -82,7 +87,7 @@ MART_SCHEMA = pa.DataFrameSchema(
 )
 
 
-def _classify(failure_cases) -> ErrorCode | None:
+def _classify(failure_cases: pd.DataFrame | None) -> ErrorCode | None:
     """Best-effort map a Pandera failure report to a DAL ErrorCode (None if ambiguous)."""
     cols = getattr(failure_cases, "columns", [])
     if failure_cases is None or "check" not in list(cols):
@@ -97,7 +102,7 @@ def _classify(failure_cases) -> ErrorCode | None:
     return None
 
 
-def validate_mart(df) -> None:
+def validate_mart(df: pd.DataFrame) -> None:
     """Fail-closed validation of the analytical mart at the serving boundary.
 
     Runs grain uniqueness ``(player_id, gw)`` then the prescriptive Pandera schema. Any

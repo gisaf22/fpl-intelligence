@@ -22,7 +22,9 @@ def _load_registry_meta(registry_path: Path) -> dict:
     meta_path = registry_path.parent / "build_metadata.json"
     if meta_path.exists():
         try:
-            return json.loads(meta_path.read_text(encoding="utf-8"))
+            parsed = json.loads(meta_path.read_text(encoding="utf-8"))
+            if isinstance(parsed, dict):
+                return parsed
         except Exception:
             pass
     return {}

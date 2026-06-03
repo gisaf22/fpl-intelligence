@@ -25,7 +25,10 @@ def _load_raw() -> dict:
     if not path.exists():
         raise FileNotFoundError(f"Weight registry not found at {path}. Run from the project root directory.")
     with path.open() as fh:
-        return yaml.safe_load(fh)
+        data = yaml.safe_load(fh)
+    if not isinstance(data, dict):
+        raise ValueError(f"Weight registry at {path} must be a YAML mapping, got {type(data).__name__}")
+    return data
 
 
 def get_module_weights(module: str) -> dict[str, float]:

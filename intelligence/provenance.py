@@ -60,7 +60,10 @@ def _load_traceability() -> list[dict]:
         raise FileNotFoundError(f"Signal traceability not found at {path}. Run from the project root directory.")
     with path.open() as fh:
         data = yaml.safe_load(fh)
-    return data.get("entries", [])
+    if not isinstance(data, dict):
+        raise ValueError(f"Signal traceability at {path} must be a YAML mapping, got {type(data).__name__}")
+    entries: list[dict] = data.get("entries", [])
+    return entries
 
 
 def _get_caveats_for(signal: str, position: str) -> list[str]:

@@ -160,6 +160,33 @@ Structured mapping between DAL invariants, the validators that enforce them, and
 
 ---
 
+## Fixture-coverage invariants
+
+The curated fixture DB (`tests/fixtures/test.db`, built by `create_test_db.py`) is a first-class
+test artifact (ADLC §5). These meta-tests assert each hard case is *present* in the built DB, so
+edge-case coverage is itself tested — a botched fixture refactor fails loudly instead of silently
+dropping a scenario. All assert against the built DB via the `db_path` fixture (never live `~/.fpl/fpl.db`).
+
+| Invariant | Validator | Layer | Status | Test | Notes |
+|---|---|---|---|---|---|
+| BGW scenario present (played-round gap) | meta-test | fixture | **Verified** | `test_fixture_has_bgw` (test_fixture_coverage.py) | P1/P4 have no GW3 row (T1 blank) |
+| DGW scenario present (>1 row per round) | meta-test | fixture | **Verified** | `test_fixture_has_dgw` (test_fixture_coverage.py) | P2/P3 two rows in GW4 (SC-3) |
+| Mid-season transfer present | meta-test | fixture | **Verified** | `test_fixture_has_midseason_transfer` (test_fixture_coverage.py) | P3 T1→T2 derived-team change (SC-2) |
+| Zero-minute appearance present | meta-test | fixture | **Verified** | `test_fixture_has_zero_minute` (test_fixture_coverage.py) | P4 GW1 — real 0, not BGW NULL (SC-5) |
+| Warm-up sub present | meta-test | fixture | **Verified** | `test_fixture_has_warmup_sub` (test_fixture_coverage.py) | P4 GW2 — starts=0, minutes>0 (SC-6) |
+| Red card present | meta-test | fixture | **Verified** | `test_fixture_has_red_card` (test_fixture_coverage.py) | P4 GW4 — red_cards>0 (SC-7) |
+| Multi-position present (≥3 element_type) | meta-test | fixture | **Verified** | `test_fixture_has_multiple_positions` (test_fixture_coverage.py) | GK + MID + DEF |
+
+---
+
+## Static typing invariants
+
+| Invariant | Validator | Layer | Status | Test | Notes |
+|---|---|---|---|---|---|
+| Production type surface clean | `uv run mypy` | dal / signals / intelligence / domain / population | **Verified** | **blocking CI gate** (`.github/workflows/ci.yml`) | Was `continue-on-error` (documentation); flipped to blocking in Phase 5 after fixing the 10 surfaced errors. Scope set by `[tool.mypy] files=`; `studies/` excluded by design. |
+
+---
+
 ## Coverage summary
 
 | Category | Total | Verified | Partial | Unverified | Missing |
@@ -177,7 +204,9 @@ Structured mapping between DAL invariants, the validators that enforce them, and
 | Intermediate layer | 3 | 3 | 0 | 0 | 0 |
 | State layer | 3 | 1 | 2 | 0 | 0 |
 | Env / observability | 3 | 3 | 0 | 0 | 0 |
-| **Total** | **54** | **44** | **3** | **3** | **4** |
+| Fixture coverage | 7 | 7 | 0 | 0 | 0 |
+| Static typing | 1 | 1 | 0 | 0 | 0 |
+| **Total** | **62** | **52** | **3** | **3** | **4** |
 
 ---
 

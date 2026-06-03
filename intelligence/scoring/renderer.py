@@ -446,8 +446,8 @@ def render(output: ScorerOutput) -> str:
         confirmed_by_pos[sig.position].append(sig)
 
     caveated_by_pos: dict[str, list] = defaultdict(list)
-    for sig in manifest.caveated:
-        caveated_by_pos[sig.position].append(sig)
+    for caveated_sig in manifest.caveated:
+        caveated_by_pos[caveated_sig.position].append(caveated_sig)
 
     # Index players by position
     players_by_pos: dict[str, list[PlayerScore]] = defaultdict(list)

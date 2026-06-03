@@ -39,7 +39,10 @@ def _load_raw() -> list[dict[str, Any]]:
         raise FileNotFoundError(f"Evaluation metadata not found at {path}. Run from the project root directory.")
     with path.open() as fh:
         data = yaml.safe_load(fh)
-    return data["evaluation_findings"]
+    if not isinstance(data, dict):
+        raise ValueError(f"Evaluation metadata at {path} must be a YAML mapping, got {type(data).__name__}")
+    findings: list[dict[str, Any]] = data["evaluation_findings"]
+    return findings
 
 
 def _build_metadata(signal_entry: dict[str, Any], position: str, pos_data: dict[str, Any]) -> GovernanceMetadata:

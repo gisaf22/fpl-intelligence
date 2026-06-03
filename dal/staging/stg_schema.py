@@ -31,7 +31,7 @@ class Schema:
 
     source_table: str
     columns: list[ColumnMapping]
-    pk_columns: list[str] = None  # source column names for ORDER BY
+    pk_columns: list[str] | None = None  # source column names for ORDER BY
 
 
 def load_schema(entity: str) -> Schema:

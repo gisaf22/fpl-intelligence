@@ -201,7 +201,8 @@ pyramid wins: a schema contract or a leakage assertion catches whole *classes* o
 that a thousand unit tests miss. Data correctness ≠ line coverage.
 
 > The concrete realisation of this contract is [`test-coverage.md`](test-coverage.md) — the
-> 54-invariant status map with real test names. This section is the *principle*; that doc is
+> 62-invariant status map with real test names (incl. the fixture-coverage meta-tests and the
+> mypy gate). This section is the *principle*; that doc is
 > the *current state* made concrete. Keep them cross-linked; do not duplicate the invariant
 > list here.
 
@@ -242,8 +243,11 @@ test to the live `~/.fpl/fpl.db` (non-deterministic, local-only — that was the
 **CI lanes** (markers): `unit` + `contract` on every push; `integration` on PR; `e2e` / `live`
 nightly or self-hosted only.
 
-**Open hole to close:** `mypy` is `continue-on-error` with 8 known errors. Make it **blocking**
-once those 8 are fixed. Until then it's documentation, not a gate.
+**Closed (Phase 5):** `mypy` is a **blocking gate**. `uv run mypy` runs in CI with no
+`continue-on-error`, scoped to production modules (`[tool.mypy] files = ["dal", "signals",
+"intelligence", "domain", "population"]`). The pre-existing errors it surfaced (the count had
+drifted from 8 to 10) were *fixed*, not silenced — including a real optional-type bug in
+`stg_schema.py` and a guarded `None` comparison made type-visible in `association.py`.
 
 **Right-size guardrail:** prioritize contract + determinism + leakage + a handful of golden tests.
 **No property-based testing** until a *recurring* invariant bug actually appears.
@@ -329,7 +333,7 @@ deliberately omits and which should be **kept or migrated, not deleted**. The ho
 | `operational-flow.md` | the 3-command run sequence | ✅ **DONE** — merged into `runtime-execution.md` (run sequence kept, fixed to real `python -m` commands) |
 | `system-model.md` | the 3-plane model (Control/Execution/Measurement) — a **competing vocabulary** | reconcile: pick one model (see note below) |
 | `testing-strategy.md` | overlaps §5, but lists the **real test inventory** | ✅ stale paths/counts fixed in the cleanup; the strategy framing still belongs in §5 |
-| `test-coverage.md` | the **54-invariant status map with real test names** — unique and valuable | keep as-is; it *is* the §5 contract made concrete |
+| `test-coverage.md` | the **62-invariant status map with real test names** — unique and valuable | keep as-is; it *is* the §5 contract made concrete |
 
 > **Status.** This §8 was authored prescribe-only in the `adlc.md` design PR. The rows marked ✅ were
 > then *executed* in the stacked drift-cleanup PR (which also deleted the broken `Makefile`). The
@@ -375,8 +379,8 @@ stage; `EVAL_DESIGN.md` specifies it.
   project ascends Gartner to `prescriptive` while staying on Pearl rung 1; higher rungs are
   gated-not-foreclosed.
 - **Tests are the contract**, leverage-ordered: schema → invariant → determinism → leakage →
-  unit → integration → e2e → golden → study-logic. Fixture DB is curated and meta-tested. Make
-  `mypy` blocking once 8 errors clear.
+  unit → integration → e2e → golden → study-logic. Fixture DB is curated and meta-tested.
+  `mypy` is a blocking CI gate (production scope).
 - **Two ID namespaces** survive: signal = column name; decision = slug in `docs/decisions/`.
   Everything else (`G-*`, `SYNTH-*`, `Phase N`, run-dir timestamps) is retired.
 - **Build heavier infra only on its named trigger.** Default is no.

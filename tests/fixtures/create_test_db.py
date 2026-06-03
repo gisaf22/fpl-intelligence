@@ -7,7 +7,8 @@ The DB is fully deterministic — running twice produces the same file.
 
 Scenario design:
     Teams:   T1=1, T2=2, T3=3, T4=4
-    Players: P1=101 (GK, always T1), P2=102 (GK, always T2), P3=103 (MID, T1→T2)
+    Players: P1=101 (GK, always T1), P2=102 (GK, always T2), P3=103 (MID, T1→T2),
+             P4=104 (DEF, always T1 — edge-case carrier, see SC-5/6/7)
     GWs:     1-5
 
     GW1: F1  T1 home vs T2 away
@@ -35,6 +36,18 @@ DGW fixture difficulties:
 SC-1 (minutes_trend look-ahead):
     P1 plays 90 min in GW1-2, BGW GW3, then 90 min GW4-5.
     Separate unit test uses synthetic data; golden DB used for golden-value assertions.
+
+SC-5 (zero-minute appearance):
+    P4 (DEF at T1) is an unused sub in GW1/F1 → history row with minutes=0, starts=0.
+    A real 0 (the fixture exists), NOT a NULL — distinguishes "benched" from "BGW" (no row).
+
+SC-6 (warm-up sub — bench → on):
+    P4 comes off the bench in GW2/F2 → starts=0 AND minutes=27 (>0).
+    The signature of a sub-on, distinct from SC-5's unused sub and from a 90-min starter.
+
+SC-7 (red card):
+    P4 is sent off in GW4/F5 → red_cards=1 (every other history row has red_cards=0).
+    Exercises the red_cards column past its DEFAULT 0 so disciplinary data is present.
 """
 
 import sqlite3
@@ -256,6 +269,8 @@ def _insert_players(conn: sqlite3.Connection) -> None:
     # P1=101: GK at T1 (always T1)
     # P2=102: GK at T2 (always T2, DGW player)
     # P3=103: MID currently at T2 (was at T1 in GW1-2, transferred to T2 by GW4)
+    # P4=104: DEF at T1 (always T1) — edge-case carrier for SC-5/6/7; also gives the
+    #         fixture a 3rd position (GK + MID + DEF) for the multi-position meta-test.
     conn.executemany(
         """INSERT INTO players (id, first_name, second_name, web_name, code,
            team, element_type, now_cost, status, team_join_date)
@@ -264,6 +279,7 @@ def _insert_players(conn: sqlite3.Connection) -> None:
             (101, "Alpha", "Keeper", "A.Keeper", 1001, 1, 1, 55, "a", "2025-07-01"),
             (102, "Beta", "Stopper", "B.Stopper", 1002, 2, 1, 65, "a", "2025-07-01"),
             (103, "Gamma", "Runner", "G.Runner", 1003, 2, 3, 75, "a", None),
+            (104, "Delta", "Wall", "D.Wall", 1004, 1, 2, 50, "a", "2025-07-01"),
         ],
     )
 
@@ -1034,6 +1050,171 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             330,
             165,
             165,
+        ),
+        # --- P4 (DEF, always at T1 — same home fixtures as P1; BGW in GW3) ---
+        # SC-5 (zero-minute): GW1/F1 T1 home vs T2 (2-0). Unused sub → minutes=0, starts=0.
+        #   A real 0 with a fixture present, NOT a NULL (BGW). clean_sheets=0 (did not play).
+        (
+            104,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0,
+            0,
+            2,
+            1,
+            "2025-08-16T12:30:00Z",
+            2,
+            0,
+            50,
+            8000,
+            100,
+            50,
+            50,
+        ),
+        # SC-6 (warm-up sub): GW2/F2 T1 home vs T3 (1-1). Off the bench → starts=0, minutes=27.
+        #   T1 conceded 1 → goals_conceded=1, clean_sheets=0.
+        (
+            104,
+            2,
+            2,
+            27,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4,
+            1,
+            3.0,
+            1.0,
+            2.0,
+            0.6,
+            0.0,
+            0.0,
+            0.0,
+            0.9,
+            0,
+            0,
+            3,
+            1,
+            "2025-08-23T12:30:00Z",
+            1,
+            1,
+            50,
+            8100,
+            120,
+            60,
+            60,
+        ),
+        # GW3: T1 has NO fixture → BGW for P4. No history row.
+        # SC-7 (red card): GW4/F5 T1 home vs T2 (1-0). Sent off → red_cards=1, starts=1, minutes=63.
+        #   T1 kept a clean sheet (T2 scored 0) → clean_sheets=1, goals_conceded=0.
+        (
+            104,
+            4,
+            5,
+            63,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            12,
+            3,
+            8.0,
+            2.0,
+            3.0,
+            1.3,
+            0.0,
+            0.0,
+            0.0,
+            0.3,
+            1,
+            0,
+            2,
+            1,
+            "2025-09-13T12:30:00Z",
+            1,
+            0,
+            50,
+            8200,
+            130,
+            65,
+            65,
+        ),
+        # GW5/F7 T1 home vs T3 (2-0). Normal 90-min start, clean sheet.
+        (
+            104,
+            5,
+            7,
+            90,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            22,
+            7,
+            12.0,
+            3.0,
+            4.0,
+            1.9,
+            0.0,
+            0.1,
+            0.1,
+            0.4,
+            1,
+            0,
+            3,
+            1,
+            "2025-09-20T12:30:00Z",
+            2,
+            0,
+            50,
+            8300,
+            140,
+            70,
+            70,
         ),
     ]
 

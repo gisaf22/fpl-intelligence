@@ -88,6 +88,10 @@ def test_bgw_team_id_post_transfer_is_correct():
 
 
 def test_spine_has_correct_row_count():
-    """Golden DB: 3 players x 5 GWs = 15 rows exactly."""
+    """Golden DB: the spine is dense — exactly n_players x n_gws rows (BGW rows present, not absent)."""
     spine = _load_spine()
-    assert len(spine) == 15, f"Expected 15 rows (3 players x 5 GWs), got {len(spine)}"
+    n_players = spine["player_id"].nunique()
+    n_gws = spine["gw"].nunique()
+    assert len(spine) == n_players * n_gws, (
+        f"Expected {n_players} players x {n_gws} GWs = {n_players * n_gws} dense rows, got {len(spine)}"
+    )

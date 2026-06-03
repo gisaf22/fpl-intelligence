@@ -28,7 +28,7 @@ def assign_association_class(row: dict[str, Any]) -> str:
         return "temporally_unstable"
 
     rho_drop = row.get("rho_drop")
-    if pd.notna(rho_drop) and rho_drop > HAUL_DROP_MATERIAL:
+    if rho_drop is not None and pd.notna(rho_drop) and rho_drop > HAUL_DROP_MATERIAL:
         return "tail_dependent"
 
     if geom in UPPER_TAIL_GEOMETRIES:

@@ -124,7 +124,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 ---
 
-## Scoring Gate (`intelligence/scoring/signals.py`)
+## Scoring Gate (`intelligence/scoring/signal_selector.py`)
 
 ### SCORE-T-01 — `MIN_RHO`
 | Field | Value |
@@ -132,7 +132,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | `MIN_RHO` |
 | **Value** | `0.15` (removed) |
 | **Classification** | `RESOLVED` |
-| **File** | `intelligence/scoring/signals.py` — removed in Phase 8 (G-OPS-02) |
+| **File** | `intelligence/scoring/signal_selector.py` — removed in Phase 8 (G-OPS-02) |
 | **Resolution** | Removed in Phase 8 (G-OPS-02). All three affected signals (xgi_roll3 DEF, xgi_roll5 DEF, purchase_price DEF) received `APPROVED-*` decisions in SYNTH-01. CI gate is now the sole authority for scoring manifest confirmation. |
 
 ---

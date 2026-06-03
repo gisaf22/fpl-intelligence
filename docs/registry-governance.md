@@ -37,7 +37,7 @@ The full lifecycle is: `exploratory → investigational → candidate → valida
 
 **Exploratory registries** live under `studies/eda/`. They are the direct output of system EDA and contain unvalidated signals in exploratory state. Their `promotion_class` values reflect statistical characterisation, not lifecycle approval.
 
-**Operational registries** live under `outputs/registry/`. They are built by `registry/runner.py` from validated or operationalized signals and have passed `validate_registry_contract()` before writing.
+**Operational registries** live under `outputs/registry/`. They are built by `signals/characterisation/registry_build_runner.py` from validated or operationalized signals and have passed `validate_registry_contract()` before writing.
 
 The distinction is enforced at the path level. Any path under `studies/eda/` is treated as exploratory regardless of its content.
 
@@ -47,10 +47,10 @@ The distinction is enforced at the path level. Any path under `studies/eda/` is 
 
 Two operational consumers enforce the lifecycle gate automatically:
 
-**`scorer/signals.py::load_manifest_from_path(registry_path)`**
+**`intelligence/scoring/signal_selector.py::load_manifest_from_path(registry_path)`**
 Calls `assert_operational_safe(registry_path)` before loading. Raises `LifecycleViolationError` if the path is under `studies/eda/`.
 
-**`report/runner.py::run_week(gw, registry_path, ...)`**
+**`intelligence/reporting/weekly_report_runner.py::run_week(gw, registry_path, ...)`**
 Calls `assert_operational_safe(registry_path)` after gw validation. Raises `LifecycleViolationError` if the path is under `studies/eda/`.
 
 **Research consumers** (`signals/governance/registry_loader.py::load_registry`, registry builder) carry no lifecycle restriction. They may load any registry by path.
@@ -64,7 +64,7 @@ The gate is path-based, not content-based. A registry CSV copied out of `studies
 To move a registry from exploratory to operational:
 
 1. Signals must reach `validated` or `operationalized` status via lens study and formal confirmation (see [signal-promotion-states.md](signal-promotion-states.md)).
-2. Run the registry builder: `python -m registry.runner --gw N --mode packaged --source-registry-path <validated-source>`.
+2. Run the registry builder: `python -m signals.characterisation.registry_build_runner --gw N --mode packaged --source-registry-path <validated-source>`.
 3. The builder validates the contract and writes to `outputs/registry/gw{N}/registry.csv`.
 4. Pass that path to the scorer and report runner via `--registry-path`.
 
@@ -87,11 +87,11 @@ A signal is `validated` when it has:
 
 ## What the Scorer Is Allowed to Consume
 
-The scorer (`scorer/signals.py`) filters the operational registry to signals where:
+The scorer (`intelligence/scoring/signal_selector.py`) filters the operational registry to signals where:
 
 - `promotion_class` is `core_signal` or `review_signal`
 - `layer_role` is not `points_component` (leakage) or `contribution_index` (outcome-component)
-- `abs(rho_pooled) >= 0.15`
+- `rho_pooled` is non-null (the signal cleared the lens CI gate; the former `MIN_RHO = 0.15` magnitude filter was removed)
 
 The registry must come from `outputs/registry/`, not `studies/eda/`. Passing an exploratory registry path to the scorer raises `LifecycleViolationError` at load time.
 

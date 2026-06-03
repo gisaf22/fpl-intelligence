@@ -86,7 +86,7 @@ A value of 2/3 is conservative: it requires a signal to hold in the majority of 
 
 ## MIN_RHO — resolved (Phase 8, 2026-05-27)
 
-`MIN_RHO = 0.15` has been **removed** from `intelligence/scoring/signals.py` as of Phase 8 (G-OPS-02 resolution).
+`MIN_RHO = 0.15` has been **removed** from `intelligence/scoring/signal_selector.py` as of Phase 8 (G-OPS-02 resolution).
 
 **SYNTH-01 finding (Phase 7):** All three signals that were incorrectly caveated by the magnitude filter received `APPROVED-*` decisions via partial Spearman rho:
 
@@ -108,7 +108,7 @@ As of 2026-05-27 (Phase 8 complete):
 
 | File | Constant | Value | Status |
 |---|---|---|---|
-| `intelligence/scoring/signals.py` | `MIN_RHO` | — | **REMOVED** (Phase 8, G-OPS-02) |
+| `intelligence/scoring/signal_selector.py` | `MIN_RHO` | — | **REMOVED** (Phase 8, G-OPS-02) |
 
 The following hardcoded constants in operational files are **editorial judgment weights**, not analytical thresholds. They are not governed by this evaluation gate criteria document:
 

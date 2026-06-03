@@ -1,7 +1,10 @@
 # Downstream Dependency Governance
 
 **Updated:** 2026-05-21 — `core.*` and `registry.*` import paths retired following architecture
-migration (Decision 007/008). Replaced with `signals.lifecycle.*` and `studies.kernels.*`.
+migration (Decision 007/008). Replaced with `signals.governance.*` and `studies.kernels.*`.
+The `signals.lifecycle.*` / `signals.evaluation.*` / `signals.registry.*` packages were later
+merged into `signals.governance.*` (lifecycle, promotion, schema, validation) and
+`signals.characterisation.*` (registry build) in the signals package restructure.
 
 ## Canonical data sources
 
@@ -24,7 +27,7 @@ from dal.mart.mart_access import MartResult  # type annotation
 from dal.config import DB_PATH
 
 # Signal governance — lifecycle enforcement, promotion, schema validation
-from signals.lifecycle import lifecycle, loader, promotion, schema, semantics, validation
+from signals.governance import lifecycle, registry_loader, promotion, schema, validation, governance
 
 # Statistical kernels — domain-agnostic utilities
 from studies.kernels.*
@@ -38,7 +41,7 @@ from studies.kernels.*
 | `from dal.intermediate import ...` | Intermediate is a DAL-internal layer. Downstream access rebuilds joins that the spine has already resolved. |
 | `import sqlite3` / `pd.read_sql(...)` outside DAL | Direct DB queries bypass all DAL contracts. Column names, types, and GW semantics are not guaranteed. |
 | `from pipeline.config import ...` | `pipeline.*` is a retired namespace. Use `dal.config` instead. |
-| `from core.*` | `core/` has been deleted. Use `signals.lifecycle.*` for governance; `studies.kernels.*` for statistical utilities. |
+| `from core.*` | `core/` has been deleted. Use `signals.governance.*` for governance; `studies.kernels.*` for statistical utilities. |
 | `from registry.*` | `registry/` has been deleted. Registry build pipeline now lives in `signals/characterisation/`. |
 | Reimplementing rolling windows outside STATE | The lag-1 convention, BGW handling, and warmup semantics are encoded in `build_player_gameweek_state`. Duplicating these creates semantic drift. |
 | Reconstructing `(player_id, gw)` grain from joins | The curated spine already performs fixture → GW aggregation with validated DGW/BGW semantics. |

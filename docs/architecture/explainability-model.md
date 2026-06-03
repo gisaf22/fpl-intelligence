@@ -19,7 +19,7 @@ DAL mart (dal.pipeline.load().mart)
     ↓
 Governed registry artifact (outputs/registry/gw{N}/registry.csv)
     ↓
-Signal selection (intelligence/scoring/signals.py)
+Signal selection (intelligence/scoring/signal_selector.py)
     ↓
 Within-position normalisation
     ↓
@@ -32,13 +32,13 @@ ScorerOutput → HTML with explainability columns
 
 ## Signal selection
 
-`intelligence/scoring/signals.py` applies three sequential filters to the governed registry:
+`intelligence/scoring/signal_selector.py` applies three sequential filters to the governed registry:
 
 | Filter | Condition | Rationale |
 |--------|-----------|-----------|
 | Promotion class | `promotion_class in {core_signal, review_signal}` | Only EDA-confirmed signals. Exploratory signals have no confirmed association; including them contaminates the composite with noise. |
 | Role exclusion | `layer_role not in {points_component, contribution_index}` | Signals that mechanistically encode or derive the scoring target (FPL points) are excluded — using them would be leakage, not prediction. |
-| Minimum rho | `abs(rho_pooled) >= 0.15` | Signals below this threshold carry insufficient directional information to improve the composite. They add variance without adding signal. |
+| Non-null rho | `rho_pooled` is not null | A non-null `rho_pooled` means the signal cleared the lens CI gate, which is the sole magnitude authority. The former `abs(rho_pooled) >= 0.15` filter was removed after the synthesis study approved signals with rho < 0.15 via partial rho. |
 
 Signals that pass all three filters become **confirmed** signals. Signals that fail any filter become **caveated** — they appear in the HTML output with their specific exclusion reason, so the consumer understands exactly what was filtered and why.
 
@@ -116,7 +116,7 @@ ML experiments (`studies/experiments/`) are planned as a downstream layer that c
 
 Given the HTML output and `outputs/registry/gw{N}/registry.csv`:
 
-1. Read the registry CSV. Filter to `promotion_class in {core_signal, review_signal}`, `layer_role not in {points_component, contribution_index}`, `abs(rho_pooled) >= 0.15` for the player's position.
+1. Read the registry CSV. Filter to `promotion_class in {core_signal, review_signal}`, `layer_role not in {points_component, contribution_index}`, and `rho_pooled` is not null for the player's position.
 2. For each retained signal, take the player's raw value and all players in the same position.
 3. Compute `normalised = (raw * direction - min) / (max - min)` across the position group.
 4. Compute `composite = Σ(normalised_i × |rho_i|) / Σ(|rho_i|)`.

@@ -100,7 +100,8 @@ once at the start of each scoring run.
 
 `intelligence/scoring/` applies the registry's signal filters and rho weights to the DAL features.
 Three sequential filters narrow the set: promotion class ∈ {core, review}; role exclusion (no
-leakage signals); minimum |rho|. Each confirmed signal is normalised within position to `[0, 1]`,
+leakage signals); non-null rho (the lens CI gate — the former `MIN_RHO` magnitude filter was
+removed). Each confirmed signal is normalised within position to `[0, 1]`,
 then combined:
 
 ```

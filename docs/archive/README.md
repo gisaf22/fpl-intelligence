@@ -13,8 +13,8 @@ supersession column to find the current authority for that concern.
 | File | Archived | Superseded by |
 |------|----------|---------------|
 | [architecture-execution-plan.md](architecture-execution-plan.md) | 2026-05-27 | System is operational; plan complete |
-| [synth01-design.md](synth01-design.md) | 2026-05-27 | `signals/evaluation/synth01_decisions.yaml` |
-| [synth01-candidate-set.md](synth01-candidate-set.md) | 2026-05-27 | `signals/registry/synth01_candidates.yaml` |
+| [synth01-design.md](synth01-design.md) | 2026-05-27 | `signals/governance/synth01_decisions.yaml` |
+| [synth01-candidate-set.md](synth01-candidate-set.md) | 2026-05-27 | `signals/characterisation/synth01_candidates.yaml` |
 | [lens-form-readiness.md](lens-form-readiness.md) | 2026-05-27 | Study complete; results in `studies/lenses/` |
 | [minutes-stability-xgi-study.md](minutes-stability-xgi-study.md) | 2026-05-27 | `docs/studies/results/minstab-01-results.md` |
 | [operational-convergence-plan.md](operational-convergence-plan.md) | 2026-05-31 | All 9 phases complete; threshold-registry.md carries live governance |

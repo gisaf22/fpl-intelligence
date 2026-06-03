@@ -1,4 +1,4 @@
-"""Block-distribution stability utilities for EDA-5.
+"""Block-distribution stability utilities.
 
 Classifies whether a signal's distribution is stable across GW blocks,
 and assigns a pooling decision based on that classification.

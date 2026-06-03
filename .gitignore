@@ -15,3 +15,8 @@ __pycache__/
 .claude/settings.local.json
 outputs/*
 !outputs/registry/
+
+# Timestamped study run-dirs are throwaway execution churn — durable findings live in
+# the stage artifacts (evaluation_metadata.yaml, studies/eda/findings/, the slug log).
+studies/runs/
+signals/runs/

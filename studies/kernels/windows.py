@@ -5,9 +5,9 @@ applies a lag-1 shift to all rolling window computations. Features at GW N
 encode information only from GWs 1..N-1 — there is no future leakage by
 construction. This module documents and enforces that contract.
 
-Validated observations (spine) != validated operational features (state).
-The spine proves raw observations are correct. This module helps confirm that
-no evaluation logic accidentally bypasses the lag-1 guarantee.
+Raw observations are not the same as lag-respecting evaluation features. This
+module helps confirm that no evaluation logic accidentally bypasses the lag-1
+guarantee.
 """
 
 from __future__ import annotations

@@ -89,7 +89,7 @@ def test_every_finding_key_resolves_by_key():
                 assert isinstance(gov, GovernanceMetadata)
                 assert gov.key == entry["key"]
                 assert gov.position == pos
-            except Exception as exc:  # noqa: BLE001 - report which key failed
+            except Exception as exc:  # report which key failed
                 failures.append(f"{key}: {type(exc).__name__}: {exc}")
     assert not failures, "Composite keys that failed to resolve:\n" + "\n".join(failures)
 
@@ -104,7 +104,7 @@ def test_every_synth_decision_key_resolves_to_a_finding():
             gov = get_signal_governance_by_key(key)
             assert gov.signal == d["signal"]
             assert gov.position == d["position"]
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # report which key failed
             failures.append(f"{key}: {type(exc).__name__}: {exc}")
     assert not failures, "Synth decision keys that failed to resolve:\n" + "\n".join(failures)
 
@@ -175,7 +175,7 @@ def test_missing_position_in_key_raises():
 @pytest.mark.parametrize("malformed", ["not_a_key", "signal@lens", "a@b:", "@form:total_points", "x@:total_points"])
 def test_malformed_key_raises(malformed: str):
     """A malformed composite key raises GovernanceMetadataError, not a parse error or default."""
-    with pytest.raises(GovernanceMetadataError, match="Malformed|No evaluation"):
+    with pytest.raises(GovernanceMetadataError, match=r"Malformed|No evaluation"):
         get_signal_governance_by_key(malformed)
 
 

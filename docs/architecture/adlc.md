@@ -201,8 +201,8 @@ pyramid wins: a schema contract or a leakage assertion catches whole *classes* o
 that a thousand unit tests miss. Data correctness ≠ line coverage.
 
 > The concrete realisation of this contract is [`test-coverage.md`](test-coverage.md) — the
-> 62-invariant status map with real test names (incl. the fixture-coverage meta-tests and the
-> mypy gate). This section is the *principle*; that doc is
+> 70-invariant status map with real test names (incl. the fixture-coverage meta-tests, the
+> mypy gate, and the ADR-003 key-grammar migration tests). This section is the *principle*; that doc is
 > the *current state* made concrete. Keep them cross-linked; do not duplicate the invariant
 > list here.
 
@@ -333,7 +333,7 @@ deliberately omits and which should be **kept or migrated, not deleted**. The ho
 | `operational-flow.md` | the 3-command run sequence | ✅ **DONE** — merged into `runtime-execution.md` (run sequence kept, fixed to real `python -m` commands) |
 | `system-model.md` | the 3-plane model (Control/Execution/Measurement) — a **competing vocabulary** | reconcile: pick one model (see note below) |
 | `testing-strategy.md` | overlaps §5, but lists the **real test inventory** | ✅ stale paths/counts fixed in the cleanup; the strategy framing still belongs in §5 |
-| `test-coverage.md` | the **62-invariant status map with real test names** — unique and valuable | keep as-is; it *is* the §5 contract made concrete |
+| `test-coverage.md` | the **70-invariant status map with real test names** — unique and valuable | keep as-is; it *is* the §5 contract made concrete |
 
 > **Status.** This §8 was authored prescribe-only in the `adlc.md` design PR. The rows marked ✅ were
 > then *executed* in the stacked drift-cleanup PR (which also deleted the broken `Makefile`). The

@@ -187,6 +187,26 @@ dropping a scenario. All assert against the built DB via the `db_path` fixture (
 
 ---
 
+## Governance key-grammar invariants
+
+The composite signal-finding key scheme (ADR-003) replaced the opaque `FORM-*`/`AVAIL-*`/
+`G-SYNTH1-*` codes with self-describing `signal@lens:target[#POSITION]` keys. These migration
+tests are the contract that a botched migration must fail — they hold the loader's lookup
+semantics and the YAML↔YAML cross-reference honest. All in `test_composite_key_migration.py`.
+
+| Invariant | Validator | Layer | Status | Test | Notes |
+|---|---|---|---|---|---|
+| Findings carry composite `key`, not retired `signal_id` | meta-test | governance | **Verified** | `test_every_finding_has_composite_key_not_old_code` | killed namespace gone as a key field |
+| Finding key == derive(signal, lens, target) — no drift | meta-test | governance | **Verified** | `test_finding_key_equals_derived_form` | key is a pure function of its own fields |
+| Every finding key resolves via composite lookup | loader | governance | **Verified** | `test_every_finding_key_resolves_by_key` | resolves-all (findings) |
+| Every synth decision key resolves to its parent finding | loader | governance | **Verified** | `test_every_synth_decision_key_resolves_to_a_finding`, `test_synth_decision_key_is_parent_finding_plus_position` | resolves-all (decisions); `{key}#POS` nests under parent |
+| Eval↔synth cross-ref self-validates (`{key}#{pos}`) | meta-test | governance | **Verified** | `test_eval_cross_reference_matches_finding_key_plus_position`, `test_cross_reference_targets_exist_in_synth_decisions` | no dangling / drifted cross-references |
+| Composite lookup hard-fails on missing / malformed / unknown position | loader | governance | **Verified** | `test_missing_key_raises`, `test_missing_position_in_key_raises`, `test_malformed_key_raises` | raises `GovernanceMetadataError`, never a silent default |
+| minutes_roll3 collision resolves to opposite verdicts by key | loader | governance | **Verified** | `test_minutes_roll3_collision_resolves_to_opposite_verdicts_by_key` | form-rejected vs avail-approved — the bare column hides this |
+| Retired namespaces absent from key fields (both YAMLs) | meta-test | governance | **Verified** | `test_no_retired_codes_in_key_fields` | `FORM-*`/`AVAIL-*`/`MARKET-*`/`FIXTURE-*`/`G-SYNTH1-*` no longer load-bearing keys |
+
+---
+
 ## Coverage summary
 
 | Category | Total | Verified | Partial | Unverified | Missing |
@@ -206,7 +226,8 @@ dropping a scenario. All assert against the built DB via the `db_path` fixture (
 | Env / observability | 3 | 3 | 0 | 0 | 0 |
 | Fixture coverage | 7 | 7 | 0 | 0 | 0 |
 | Static typing | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **62** | **52** | **3** | **3** | **4** |
+| Governance key grammar | 8 | 8 | 0 | 0 | 0 |
+| **Total** | **70** | **60** | **3** | **3** | **4** |
 
 ---
 

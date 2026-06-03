@@ -229,7 +229,7 @@ under-populated DataFrame from a non-DAL source.
 
 For the relationship between research signals and the governed registry, see
 [docs/registry-governance.md](../registry-governance.md) and
-[docs/research-lifecycle.md](../research-lifecycle.md).
+[docs/signal-promotion-states.md](../signal-promotion-states.md).
 
 ## Current Limitations
 

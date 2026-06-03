@@ -92,16 +92,37 @@ optional cosmetics that can follow later (§7).
 
 Every analysis carries exactly one **mode tag** in its header. This is the single highest-value,
 lowest-cost change: it makes claim-type legible and stops descriptive work from being read as
-causal.
+causal. Modes fall into **two families** (see ADR-008 for the rationale): **analysis modes**
+(what kind of *question* — Gartner's intent ladder, with `causal` kept as a gated Pearl rung)
+and **process modes** (a lifecycle *activity*, not a question — for the model/monitor stages).
 
-| Mode | Pearl/Gartner | The question | The honest statistic |
+**Analysis modes** — the question type (Gartner intent axis; Pearl rung in brackets):
+
+| Mode | Pearl rung | The question | The honest statistic |
 |---|---|---|---|
 | `descriptive` | assoc. (rung 1) | "What does the data look like?" | distribution, median/quantiles, hit-rate |
 | `diagnostic` | assoc. (rung 1) | "Why did this happen / what co-moves?" | conditional distributions, decomposition |
 | `predictive` | assoc. (rung 1) | "Does X forecast Y (lag-respecting)?" | out-of-sample rho, lift, calibration |
-| `causal` | intervention (rung 2+) | "What happens if I *change* X?" | requires a design (RCT/IV/DiD) — **not in scope** |
-| `prescriptive` | — | "What should I *do*?" | decision rule + expected value |
-| `operational` | — | "Is it still working?" | drift, backtest error |
+| `causal` | intervention (rung 2+) | "What happens if I *change* X?" | requires a design (RCT/IV/DiD) — **gated, not foreclosed** (see stance below) |
+| `prescriptive` | — (decision) | "What should I *do*?" | decision rule + expected value |
+
+**Process modes** — a lifecycle activity, not a claim about the data (model/monitor stages):
+
+| Mode | Stage | The activity |
+|---|---|---|
+| `assemble` | model | combine validated signals into a candidate spec (weights, composition) |
+| `govern` | model | record signals + decisions in the governed ledger (lifecycle, traceability) |
+| `operational` | monitor | "Is it still working?" — drift, backtest error |
+
+**The stance (current, with reopening trigger).** This project ascends the Gartner ladder all
+the way to `prescriptive` (the serve stage) while operating on **Pearl rung 1 (association)**.
+Higher rungs are **gated, not foreclosed** (framed like the §7 "build it only when…" triggers):
+
+- **Decision-counterfactuals** ("what if I had captained X?") are *admissible now* — in FPL the
+  alternative's outcome is observed (all players' points are public), so it is arithmetic
+  regret/opportunity-cost, not rung-3 inference.
+- **Causal/physical counterfactuals** ("what if this player had played 90 minutes?") stay
+  *gated pending a redesign* that justifies a structural causal model. Reopening is allowed.
 
 **Two methodological tripwires this tag exists to catch:**
 
@@ -133,7 +154,7 @@ its mode, its stage, its verdict, and the test contract that guards it.
 | # | Analysis (real path) | Mode | Stage | Status | Test contract |
 |---|---|---|---|---|---|
 | A | 60-min **population validity** — `eda_04_population_validity.ipynb` | descriptive/structural | explore | **answered** — filter doesn't distort | framework helpers unit-tested; finding reviewed |
-| B | **minutes as a returns signal** — `lenses/form/study.py` (FORM) | predictive | validate | **REJECTED** — uninformative | study-logic: determinism, leakage, no post-hoc |
+| B | **rolling xGI as a form signal** — `lenses/form/study.py` (FORM) | predictive | validate | **PARTIAL** — xgi_roll3 (DEF), xgi_roll5 (DEF, MID) approved | study-logic: determinism, leakage, no post-hoc |
 | C | **availability prediction** — `lenses/avail/study.py` (minutes_roll8 → played_next_gw) | predictive | validate | **accepted** — roll8 for DEF/MID | study-logic + lag-1 leakage assertion |
 | D | **minutes-stability conditioning of xGI** — `experiments/minutes_stability_study.py` | predictive/conditioning | validate | **REJECTED** — FRINGE > STABLE | study-logic: 31 tests (the template) |
 | E | **signal integration** — `synthesis/synth01_study.py` | assemble | model | **partially set** — see note | registry contract (weights sum, lifecycle) |
@@ -145,10 +166,12 @@ its mode, its stage, its verdict, and the test contract that guards it.
 
 **The arc reads cleanly with no back-references:**
 
-> A defines the population → B fails (minutes alone is noise) → C reframes the same raw signal as
-> an *availability* question and succeeds → D tries to rescue xGI by conditioning on stability and
-> fails → E integrates the survivors into weights → F records them in the governed ledger →
-> G describes the boundary that started it all. Then monitor loops back to explore.
+> A defines the population → B finds rolling xGI *partially* informative as a form signal
+> (xgi_roll3/roll5 for DEF/MID), while minutes alone proves uninformative as a returns signal →
+> C reframes that raw minutes signal as an *availability* question and succeeds → D tries to
+> rescue xGI by conditioning on stability and fails → E integrates the survivors into weights →
+> F records them in the governed ledger → G describes the boundary that started it all. Then
+> monitor loops back to explore.
 
 If a future analysis can't be placed on this table with one mode and one stage, that's the signal
 it's conflating axes again.
@@ -176,6 +199,11 @@ gap**, not a validated choice. A `monitor`-stage calibration study is the trigge
 Tests here are the **specification**, not afterthought coverage. For analytics, an inverted
 pyramid wins: a schema contract or a leakage assertion catches whole *classes* of silent error
 that a thousand unit tests miss. Data correctness ≠ line coverage.
+
+> The concrete realisation of this contract is [`test-coverage.md`](test-coverage.md) — the
+> 54-invariant status map with real test names. This section is the *principle*; that doc is
+> the *current state* made concrete. Keep them cross-linked; do not duplicate the invariant
+> list here.
 
 **Test stack, ordered by leverage:**
 
@@ -258,7 +286,10 @@ once those 8 are fixed. Until then it's documentation, not a gate.
 1. Add the mode/stage header to each existing study + notebook (mechanical, no logic change).
 2. Create `docs/decisions/` with one slug entry per verdict in the §4 audit table.
 3. Extract any durable conclusion still trapped in `studies/runs/*` and `signals/runs/*` into its
-   stage artifact, then the run dirs become safe to delete (they're already gitignored churn).
+   stage artifact, then the run dirs become safe to delete. *(They were **git-tracked**, not
+   gitignored, as of Phase 4 — the inventory confirmed nothing durable was lost vs.
+   `evaluation_metadata.yaml` / `studies/eda/findings/`; the dirs were then gitignored and
+   removed. Executed Phase 4.)*
 4. Rename `phase9_backtest.py → backtest.py` when monitor is next touched. No rush.
 
 Code-namespace strings inside the domain-agnostic `kernels/` (a few docstrings still say "EDA-5",
@@ -319,12 +350,12 @@ word **"lifecycle."** The runtime path is *not* a lifecycle; it is execution. Co
 This was a rename **+ merge** (3 docs → 2). Executed in the drift-cleanup PR, which also re-pointed the
 inbound links (`navigation-map.md`, `system-model.md`) and scrubbed the stale paths along the way.
 
-**Drift warning (read `doc-drift.md` first).** Several of the docs above are **factually stale** —
-they cite module paths, directories, and test counts that no longer exist in the code
-(`signals/registry/`, `dal/state/`, `intelligence/_base.py`, `docs/adr/*`, "739 tests"). A doc
-that authoritatively points at a path that's gone is worse than no doc. The full inventory is in
-[`doc-drift.md`](doc-drift.md). **Fix the drift before acting on any supersede/migrate decision
-above** — otherwise you'd be migrating content that already describes the wrong system.
+**Drift note (resolved 2026-06-02).** The docs above carried factually stale paths
+(`signals/registry/`, `dal/state/`, `intelligence/_base.py`, `docs/adr/*`, "739 tests") before
+the drift-cleanup PR. All active-doc drift is resolved. Audit record:
+[`doc-drift.md`](../archive/doc-drift.md) (archived). One open item remains in the config layer:
+`weight_registry.yaml` cites a deleted source path — tracked as ENG-13 in
+`docs/governance/eng-issues-2026.md`.
 
 `EVAL_DESIGN.md` (the Measurement-Plane spec) stays — it's the detailed design for the `monitor`
 stage, which is still design-only (Stage 5 / "Measurement" is not yet built). ADLC names the
@@ -338,8 +369,11 @@ stage; `EVAL_DESIGN.md` specifies it.
   `explore → validate → model → serve → monitor`. Knowledge flows one way; only `monitor → explore`
   loops back. `kernels/` is a shared pure-stats library the analysis stages import — a footnote,
   not a pillar.
-- **Each analysis = one mode tag + one stage.** `descriptive`/`diagnostic`/`predictive`/`causal`/
-  `prescriptive`/`operational`. `causal` is gated and out of scope by choice.
+- **Each analysis = one mode tag + one stage.** Two mode families (ADR-008): *analysis modes*
+  `descriptive`/`diagnostic`/`predictive`/`causal`/`prescriptive` (Gartner intent + gated Pearl
+  rung) and *process modes* `assemble`/`govern`/`operational` (model/monitor activity). The
+  project ascends Gartner to `prescriptive` while staying on Pearl rung 1; higher rungs are
+  gated-not-foreclosed.
 - **Tests are the contract**, leverage-ordered: schema → invariant → determinism → leakage →
   unit → integration → e2e → golden → study-logic. Fixture DB is curated and meta-tested. Make
   `mypy` blocking once 8 errors clear.

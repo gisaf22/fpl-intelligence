@@ -93,7 +93,7 @@ coherent, then do the **risky code migration** with a safety net under it, and c
 
 1. Inventory `studies/runs/*` and `signals/runs/*` for any conclusion not already captured in a stage artifact.
 2. Move each durable finding into its mode-tagged study artifact or its slug-log entry.
-3. Once a run-dir holds nothing not captured elsewhere, retire it (they are already gitignored churn).
+3. Once a run-dir holds nothing not captured elsewhere, retire it. *(Correction: the run-dirs were **git-tracked** — 28 files — not "already gitignored churn" as ADLC §6 originally stated. Phase 4 inventory verified every lens verdict was already in `evaluation_metadata.yaml` (rho values matched), EDA8 in `studies/eda/findings/`, SYNTH-01 dir empty, and the one stray `FORM-001_20260520_*.csv` (old `assists` ID scheme) superseded by the xGI family. The dirs were then added to `.gitignore` and `git rm`'d.)*
 4. Drop ID-namespace strings from `kernels/` docstrings ("EDA-5", "spine") — the domain-agnostic substrate must not carry lifecycle codes.
 
 **Done criteria:** No durable conclusion lives only in a timestamped run-dir. `kernels/` docstrings carry no lifecycle ID codes.

@@ -1,6 +1,6 @@
 # Registry Governance
 
-See also: [research-lifecycle.md](research-lifecycle.md) · [architecture/layer-boundaries.md](architecture/layer-boundaries.md)
+See also: [signal-promotion-states.md](signal-promotion-states.md) · [architecture/layer-boundaries.md](architecture/layer-boundaries.md)
 
 ---
 
@@ -63,7 +63,7 @@ The gate is path-based, not content-based. A registry CSV copied out of `studies
 
 To move a registry from exploratory to operational:
 
-1. Signals must reach `validated` or `operationalized` status via lens study and formal confirmation (see [research-lifecycle.md](research-lifecycle.md)).
+1. Signals must reach `validated` or `operationalized` status via lens study and formal confirmation (see [signal-promotion-states.md](signal-promotion-states.md)).
 2. Run the registry builder: `python -m registry.runner --gw N --mode packaged --source-registry-path <validated-source>`.
 3. The builder validates the contract and writes to `outputs/registry/gw{N}/registry.csv`.
 4. Pass that path to the scorer and report runner via `--registry-path`.

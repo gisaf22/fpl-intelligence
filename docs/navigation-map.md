@@ -36,7 +36,7 @@ intelligence/ → player scoring and weekly reporting
 2. [docs/architecture/system-model.md](architecture/system-model.md) — 3-plane model: what each component is for
 3. [docs/architecture/adlc.md](architecture/adlc.md) — the analysis lifecycle: explore → validate → model → serve → monitor
 4. [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) — runtime flow with failure modes + the run sequence
-5. [docs/research-lifecycle.md](research-lifecycle.md) — signal lifecycle: how a signal travels from EDA to scorer
+5. [docs/signal-promotion-states.md](signal-promotion-states.md) — signal governance states: how a signal travels from EDA to scorer
 6. [docs/registry-governance.md](registry-governance.md) — exploratory vs operational registries, lifecycle gate enforcement
 7. [CONTEXT.md](../CONTEXT.md) — current project state, rules, and session orientation
 
@@ -51,7 +51,7 @@ intelligence/ → player scoring and weekly reporting
 ### Research contributor (lens studies, EDA, experiments)
 
 1. [docs/system-purpose.md](system-purpose.md) — system question and research boundaries
-2. [docs/research-lifecycle.md](research-lifecycle.md) — lifecycle states and promotion criteria
+2. [docs/signal-promotion-states.md](signal-promotion-states.md) — signal governance states and promotion criteria
 3. [signals/characterisation/SIGNAL_REGISTRY.md](../signals/characterisation/SIGNAL_REGISTRY.md) — governance registry: signal schema, lifecycle rules, update protocol
 4. [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) — **locked** success criteria and failure conditions (cannot be revised retrospectively)
 5. [docs/decisions/](decisions/) — architectural decisions: why Spearman, why additive weighting
@@ -80,7 +80,7 @@ intelligence/ → player scoring and weekly reporting
 | `dal/fct/fct_contracts.py`, `dal/validation/` | All DAL behavior: grain, column contracts, null semantics, dtype contracts, BGW/DGW invariants (code-enforced) |
 | [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) | Success criteria and failure conditions for 2025-26 methodology |
 | [signals/characterisation/SIGNAL_REGISTRY.md](../signals/characterisation/SIGNAL_REGISTRY.md) | Lifecycle status for every named signal |
-| [docs/research-lifecycle.md](research-lifecycle.md) | Signal lifecycle state definitions and promotion rules |
+| [docs/signal-promotion-states.md](signal-promotion-states.md) | Signal governance state definitions and promotion rules |
 | [docs/registry-governance.md](registry-governance.md) | Exploratory vs operational registry semantics; lifecycle gate enforcement |
 | [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) | Allowed and forbidden import patterns for downstream modules |
 | [docs/governance/threshold-registry.md](governance/threshold-registry.md) | All operational thresholds: values, classifications, 2026/27 disposition |

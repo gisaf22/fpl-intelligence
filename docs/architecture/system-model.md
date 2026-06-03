@@ -1,6 +1,11 @@
 # System Model
 
-**Authoritative for:** conceptual classification of system components — what each part of the system is responsible for and why it exists.  
+**Authoritative for:** conceptual classification of system components — what each part of
+the system is responsible for and why it exists (the **runtime / operational anatomy**).
+**Not the analysis lifecycle.** How a question becomes a recommendation — the
+explore → validate → model → serve → monitor stages — is owned by [adlc.md](adlc.md).
+This doc and ADLC are **orthogonal views of one system**: ADLC describes *how analysis is
+done*; this doc describes *what the running system is made of*. Neither supersedes the other.  
 **Read this before:** [layer-boundaries.md](layer-boundaries.md), [registry-governance.md](../registry-governance.md), [runtime-execution.md](runtime-execution.md)
 
 ---
@@ -64,7 +69,7 @@ The system has three orthogonal planes. Each plane has a distinct purpose and a 
 
 **Why the registry belongs here and not in Execution:** The registry does not transform data. It defines the rules under which data will be transformed. A football analogy: the registry is the tactical formation sheet, not the match. Changing the registry changes decisions without changing any pipeline code.
 
-**How the Control Plane is populated:** Signal evidence flows upward from research (studies) through the lifecycle gate into the governed manifest. Studies are not part of the Control Plane — they are the evidence-generation process that justifies what the Control Plane declares. See [research-lifecycle.md](../research-lifecycle.md).
+**How the Control Plane is populated:** Signal evidence flows upward from research (studies) through the governance gate into the governed manifest. These studies are not a runtime plane — they are **ADLC's explore / validate / model stages** viewed from the runtime angle: the evidence-generation process that justifies what the Control Plane declares. See [adlc.md](adlc.md) for the analysis lifecycle and [signal-promotion-states.md](../signal-promotion-states.md) for the signal's governance states.
 
 ---
 
@@ -99,6 +104,11 @@ The execution plane is self-contained: given a database and a governed registry 
 **Purpose:** Measures whether the execution plane is producing decisions that lead to good FPL outcomes. This closes the loop: evidence → registry → execution → measurement → new evidence.
 
 **This plane is not fully implemented.**
+
+> This is the runtime-anatomy view of the same gap ADLC names as its **`monitor`** stage.
+> The forward-looking spec lives in `signals/governance/EVAL_DESIGN.md`; ADLC `monitor` is
+> the lifecycle counterpart. This section describes *what the plane is* — it does not re-derive
+> the build-out plan. See those two for that.
 
 | Capability | Status |
 |---|---|

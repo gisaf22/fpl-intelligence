@@ -53,7 +53,7 @@ actionable. Intelligence work lives in `intelligence/`. It consumes only signals
 that have reached `operationalized` status in the registry.
 
 Research findings do not automatically become intelligence inputs. Promotion through the
-signal lifecycle is the gate. See [docs/research-lifecycle.md](research-lifecycle.md).
+signal governance states are the gate. See [docs/signal-promotion-states.md](signal-promotion-states.md).
 
 ## Research scope
 

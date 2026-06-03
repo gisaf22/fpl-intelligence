@@ -1,10 +1,21 @@
-# Research Lifecycle
+# Signal Promotion States
 
 ## Overview
 
-Every signal in fpl-intelligence passes through a defined lifecycle from first consideration
-to operational use. The signal registry (`signals/characterisation/SIGNAL_REGISTRY.md`) is the
-single source of truth for signal status at any point in time.
+**Scope — what this doc owns vs. what it does not.** This document defines the **governance
+status states** an individual *signal* moves through in the registry, and the gate that guards
+each transition: who may consume a signal at each status, and what must be true to promote it.
+It is the registry's state-machine contract.
+
+It is **not** the analysis lifecycle. The stages of analytical *work*
+(explore → validate → model → serve → monitor) are owned by
+[architecture/adlc.md](architecture/adlc.md). The two axes rhyme but are distinct: ADLC stages
+describe *the work being done*; the states below describe *a signal's standing in the registry*.
+A signal earns a status here by passing through ADLC's explore/validate/model stages — the
+stages are the activity, these states are the resulting governance record.
+
+The signal registry (`signals/characterisation/SIGNAL_REGISTRY.md`) is the single source of
+truth for signal status at any point in time.
 
 Gate order is strict:
 

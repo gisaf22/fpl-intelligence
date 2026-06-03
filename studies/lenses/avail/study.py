@@ -1,3 +1,12 @@
+"""Does recent minutes predict whether a player features next GW?
+
+Mode: predictive · Stage: validate · Status: ACCEPTED — minutes_roll8 (DEF), minutes_roll3/roll8 (MID)
+Population: target played_next_gw (binary); lag-1 respected; GW 3-33
+
+ADLC §4 audit row C — reframes the raw minutes signal as an availability question
+(after row B found minutes uninformative as a returns signal).
+"""
+
 from __future__ import annotations
 
 import json

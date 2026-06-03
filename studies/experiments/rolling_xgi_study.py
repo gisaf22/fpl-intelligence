@@ -1,5 +1,9 @@
 """Rolling xGI horizon study — study-specific evaluation module.
 
+Mode: predictive · Stage: validate · Status: window selection (xGI horizon choice)
+Population: FWD only; GW 6-33; minutes_roll3>=60; lag-1 respected
+ADLC §4 audit (unlettered rolling-xGI window-choice row).
+
 Executes the evaluation defined in docs/studies/rolling-xgi-horizon-study.md.
 
 Research question: Does rolling xGI outperform raw (lag-1) xGI for forwards

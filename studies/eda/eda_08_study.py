@@ -1,5 +1,9 @@
 """EDA-8 — Gap Study.
 
+Mode: descriptive/diagnostic · Stage: explore · Status: answered — gate decisions produced
+Population: gap study across saves (GK), xgc, penalties_saved, assists rolling windows.
+Not a §4 audit row — explore-stage gate study feeding the lenses.
+
 Four independent sub-studies (EDA-8A through EDA-8D) as specified in
 studies/eda/EDA_08_DESIGN.md. All may run in parallel but are executed
 sequentially here for a single output directory.

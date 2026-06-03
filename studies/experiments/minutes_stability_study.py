@@ -1,5 +1,9 @@
 """Minutes stability × rolling xGI conditional robustness study — STUDY-MINSTAB-01.
 
+Mode: predictive/conditioning · Stage: validate · Status: REJECTED — FRINGE > STABLE
+Population: FWD only; GW 6-33; lag-1 respected
+ADLC §4 audit row D (the 31-test template).
+
 Research question: Does minutes stability condition the usefulness of rolling xGI
 signals for forwards?
 

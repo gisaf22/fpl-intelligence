@@ -1,6 +1,10 @@
 """
 SYNTH-01 Execution — Phase 7, Operational Convergence Plan.
 
+Mode: assemble · Stage: model · Status: PARTIALLY SET — DEF/MID composition weights evidence-based; module weights still editorial; FDR conditioning deferred (MATERIAL)
+Population: minutes>=60; DGW excluded; GW 6-33; holdout GW 34-38
+ADLC §4 audit row E.
+
 Computes partial Spearman rho for each candidate controlling for all other
 same-position × same-lens candidates. Resolves redundancy pairs and
 within-window families via marginal gain test. Derives composition weights

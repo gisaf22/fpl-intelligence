@@ -99,6 +99,8 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 
 | Document | Location | Purpose | Gates |
 |---|---|---|---|
+| adlc.md | `docs/architecture/adlc.md` | Authoritative analysis lifecycle (explore → validate → model → serve → monitor), mode tags, per-stage test contracts, ID-diet | Sole owner of the word "lifecycle"; how a question becomes a recommendation |
+| implementation-plan.md | `docs/implementation-plan.md` | Phased, dependency-ordered plan for the ADLC-named open work + ENG backlog; final section lists pending ADRs | Sequencing of all pre-season engineering and study work |
 | EVAL_DESIGN.md | `signals/governance/EVAL_DESIGN.md` | Locked success criteria and failure conditions for 2025-26 methodology | All study findings must connect to a question defined here |
 | SIGNAL_REGISTRY.md | `signals/characterisation/SIGNAL_REGISTRY.md` | Governance and truth layer for all signals — lifecycle status, lens outcomes, synthesis eligibility | No signal enters synthesis without a confirmed entry |
 | EDA_08_DESIGN.md | `studies/eda/EDA_08_DESIGN.md` | Defines the seven system EDA layers and their gate decisions | All lens studies — no lens runs before EDA is complete |
@@ -139,15 +141,30 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 
 **2026/27 season preparation**
 
-The 9-phase Operational Convergence Plan and platform evaluation Changes 1–8 are complete. The active engineering issue backlog is `docs/governance/eng-issues-2026.md`.
+The 9-phase Operational Convergence Plan and platform evaluation Changes 1–8 are complete. The
+analysis lifecycle is now authored: `docs/architecture/adlc.md` defines the five-stage lifecycle
+(explore → validate → model → serve → monitor), the mode-tag system, and the per-stage test
+contracts. Its §8 doc-reconciliation rows marked ✅ have been executed (the drift-cleanup PR merged
+`decision-lifecycle.md` + `operational-flow.md` → `runtime-execution.md`, deleted the broken
+Makefile, and re-pointed inbound links). `adlc.md` is now the sole owner of the word "lifecycle."
 
-Priority items:
-- **ENG-01 (High):** Add CI/CD — no automated test runner exists
-- **ENG-02 (High):** Restrict FWD purchase_price to GW ≤ 30 (end-of-season signal reversal)
-- **ENG-04 (Medium):** Six unvalidated thresholds in intelligence/ — EVALUATION-DEFERRED
-- **ENG-06 (Medium):** LENS-GK — no governed GK signals
-- **ENG-07 (Medium):** FDR stratification in composite scorer (Phase 9 MATERIAL finding)
-- **POPTHRESH-01:** Execute `studies/experiments/population_threshold_study.py` to validate 60-min boundary
+**The ADLC-adoption work** — turning the design doc into the repo's actual workflow — is sequenced
+by dependency and risk in `docs/implementation-plan.md` (7 phases + a pending-ADR list). That plan's
+spine is ADLC's own coherence logic: make claims legible → make docs coherent → migrate the
+load-bearing ID codes with a test net under it → close the model-stage governance gap. It is *not*
+the engineering backlog; the bug/CI/study backlog stays in `docs/governance/eng-issues-2026.md` and
+feeds the plan only as supporting prerequisites (CI + a runnable pipeline for the migration; lens
+studies for the governance closure).
+
+**Next concrete action: Phase 1 of `docs/implementation-plan.md` — mode tags.**
+Add the ADLC §3 header block (question · mode · stage · status · population) to every study in
+`studies/` and every notebook in `studies/eda/`, sourcing each file's mode/stage/status from the
+ADLC §4 audit table. It is mechanical, zero-logic, and the highest-value/lowest-cost change — and
+it unblocks the decision-slug log (Phase 2) and everything after it.
+
+**Parallel hard blockers (engineering backlog, prerequisites for plan Phase 6):** ENG-13 (stale
+`synth01_decisions.yaml` path — hard runtime failure) and ENG-02 (FWD purchase_price reversal live
+in the scorer). These don't block Phase 1 but must clear before the ID-diet code migration.
 
 See `outputs/operational-baseline.md` for Phase 9 validation results and full recommendation list.
 
@@ -243,7 +260,9 @@ The governed registry must have real promotion_class values before any lens stud
 ## 10. How to start a new session
 
 1. Read CONTEXT.md (this document)
-2. Read `dal/pipeline.py` docstring for DAL entry points; read `dal/fct/fct_contracts.py` and `dal/feat/feat_contracts.py` for contract enforcement if any DAL work is planned
-3. Read `docs/governance/eng-issues-2026.md` for active engineering issues
-4. Read the relevant design document for the current task
-5. Do not write code until the design is agreed in Claude UI
+2. Read `docs/architecture/adlc.md` — the authoritative analysis lifecycle and test contracts
+3. Read `docs/implementation-plan.md` — the phased, dependency-ordered plan; start at Phase 0
+4. Read `dal/pipeline.py` docstring for DAL entry points; read `dal/fct/fct_contracts.py` and `dal/feat/feat_contracts.py` for contract enforcement if any DAL work is planned
+5. Read `docs/governance/eng-issues-2026.md` for active engineering issues
+6. Read the relevant design document for the current task
+7. Do not write code until the design is agreed in Claude UI

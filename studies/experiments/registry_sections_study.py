@@ -1,4 +1,9 @@
-"""Compute registry relationship sections from prepared analytical data."""
+"""Compute registry relationship sections from prepared analytical data.
+
+Mode: diagnostic · Stage: explore · Status: framework helper (no standalone verdict)
+Population: registry relationship sections over prepared analytical data.
+Not a §4 audit row — supports the explore-stage registry build.
+"""
 
 from __future__ import annotations
 

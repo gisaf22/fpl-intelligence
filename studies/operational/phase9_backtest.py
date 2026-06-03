@@ -1,5 +1,9 @@
 """
 Phase 9 Operational Validation — Retrospective Backtest
+
+Mode: operational · Stage: monitor · Status: DESIGN/PARTIAL — the backtest is the test artifact
+Population: minutes>=60; full season GW 1-38; holdout GW 34-38 (unseen by SYNTH-01)
+ADLC §4 audit (unlettered season-backtest row). Loops back to explore.
 Operational Convergence Plan Phase 9
 
 Tests SYNTH-01 approved signal compositions against actual 25/26 season outcomes

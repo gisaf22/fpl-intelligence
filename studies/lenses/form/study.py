@@ -1,3 +1,14 @@
+"""Does rolling attacking output (xGI) predict next-GW returns?
+
+Mode: predictive · Stage: validate · Status: PARTIAL — xgi_roll3 (DEF), xgi_roll5 (DEF, MID) approved
+Population: minutes>=60; lag-1 respected; GW 3-33
+
+ADLC §4 audit row B. Note: the §4 table frames this row as "minutes as a returns
+signal — REJECTED"; the FORM lens as implemented evaluates rolling xGI form signals
+and approved xgi_roll3/roll5 for DEF/MID. The minutes-as-returns rejection is carried
+by the AVAIL reframing (row C), not here.
+"""
+
 from __future__ import annotations
 
 import json

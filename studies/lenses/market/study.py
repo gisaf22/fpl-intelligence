@@ -1,3 +1,12 @@
+"""Do market signals (transfers, ownership, price) predict returns?
+
+Mode: predictive · Stage: validate · Status: PARTIAL — transfers_in (DEF, MID), purchase_price (DEF, FWD†), ownership_count (MID) approved
+Population: minutes>=60; lag-1 respected; GW 3-33
+
+ADLC §4 audit (unlettered fixture/market lens row).
+† FWD purchase_price reverses on holdout GW 34-38 — see ENG-02.
+"""
+
 from __future__ import annotations
 
 import json

@@ -1,3 +1,11 @@
+"""Does single-GW fixture difficulty predict returns?
+
+Mode: predictive · Stage: validate · Status: REJECTED — fdr_avg excluded (non-monotonic); reserved as binary moderator
+Population: same-GW target total_points; GW 3-33
+
+ADLC §4 audit (unlettered fixture/market lens row).
+"""
+
 from __future__ import annotations
 
 import json

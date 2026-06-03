@@ -5,9 +5,9 @@ team-level attacking output and DGW presence as observable inputs — no predict
 modeling. Opponent defensive weakness is proxied through recent team-level
 concession rates derived from the curated spine.
 
-Weights are loaded from the governance registry (signals/characterisation/weight_registry.yaml).
+Weights are loaded from the governance registry (signals/governance/weight_registry.yaml).
 
-fdr_avg excluded from scoring at all positions (FIXTURE-001 G2-FAIL); retained as
+fdr_avg excluded from scoring at all positions (fdr_avg@fixture_gw:total_points G2-FAIL); retained as
 informational output only. DGW detection uses STATE fixture_context column.
 """
 
@@ -109,7 +109,7 @@ def rank_fixture_opportunities(
     - dgw_bonus_score    (42% effective): DGW presence in window from STATE fixture_context
 
     fdr_window_avg is computed and retained as an informational output only —
-    it does not contribute to fixture_opportunity_score (FIXTURE-001 excluded at all positions).
+    it does not contribute to fixture_opportunity_score (fdr_avg@fixture_gw:total_points excluded at all positions).
 
     Only players with minutes_roll5 >= 30 at target_gw are included.
     """

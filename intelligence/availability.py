@@ -9,7 +9,7 @@ All thresholds are editorial, not evaluation-derived — see threshold-registry.
 - _HIGH_RISK_MINUTES_ROLL3 = 30: less than half a match on average over 3 GWs
 - _DIVERGENCE_THRESHOLD = 20: observable drop in recent vs medium-term minutes
 
-minutes_roll8 governs long_horizon_flag at DEF/MID only (AVAIL-003; G2-FAIL at FWD,
+minutes_roll8 governs long_horizon_flag at DEF/MID only (minutes_roll8@avail:played_next_gw; G2-FAIL at FWD,
 non-monotonic at GK). minutes_roll3 and minutes_roll5 are AVAIL-excluded at DEF,
 making minutes_roll8 the only governed DEF availability signal.
 """
@@ -32,7 +32,7 @@ _MEDIUM_RISK_MINUTES_ROLL3 = 60.0  # threshold not evaluation-derived — see th
 # Divergence threshold: roll3 significantly below roll5 signals a recent drop.
 _DIVERGENCE_THRESHOLD = 20.0  # threshold not evaluation-derived — see threshold-registry.md §AVAIL-T-03
 
-# minutes_roll8: DEF/MID only (AVAIL-003; DEF rho=0.219, MID rho=0.222; G2-FAIL at FWD)
+# minutes_roll8: DEF/MID only (minutes_roll8@avail:played_next_gw; DEF rho=0.219, MID rho=0.222; G2-FAIL at FWD)
 _MINUTES_ROLL8_POSITIONS = frozenset({"DEF", "MID"})
 
 _OUTPUT_COLS = [
@@ -79,7 +79,7 @@ def flag_availability_risk(
     MEDIUM: minutes_roll3 < 60 OR minutes_trend == 'falling'
             OR minutes_divergence > 20 (recent drop relative to 5-GW baseline)
             OR long_horizon_flag == 1 (DEF/MID only: minutes_roll8 < 60;
-               AVAIL-003 governed signal)
+               minutes_roll8@avail:played_next_gw governed signal)
     LOW:    none of the above
 
     All players at target_gw are included, not just risky ones, so consumers
@@ -102,7 +102,7 @@ def flag_availability_risk(
     gw_df["falling_trend_flag"] = (trend == "falling").astype(int)
     gw_df["divergence_flag"] = (gw_df["minutes_divergence"] > _DIVERGENCE_THRESHOLD).astype(int)
 
-    # Long-horizon availability signal for DEF/MID (minutes_roll8; AVAIL-003): flagged when
+    # Long-horizon availability signal for DEF/MID (minutes_roll8; minutes_roll8@avail:played_next_gw): flagged when
     # 8-GW baseline also shows low participation. minutes_roll3/roll5 are AVAIL-excluded at
     # DEF, making minutes_roll8 the only governed DEF availability signal.
     gw_df["long_horizon_flag"] = (

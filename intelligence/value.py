@@ -3,11 +3,11 @@
 Surfaces players delivering high point returns relative to their FPL cost.
 Deterministic and price-static — does not forecast price changes.
 
-Weights are loaded from the governance registry (signals/characterisation/weight_registry.yaml).
+Weights are loaded from the governance registry (signals/governance/weight_registry.yaml).
 
 Scope constraints:
-- xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
-- xgi_roll3 excluded at MID (SYNTH-01 G-SYNTH1-07: EXCLUDED-REDUNDANT vs xgi_roll5).
+- xgi_roll3 and xgi_roll5 excluded at FWD (xgi_roll3@form:total_points / xgi_roll5@form:total_points G2-FAIL).
+- xgi_roll3 excluded at MID (xgi_roll3@form:total_points#MID EXCLUDED-REDUNDANT vs xgi_roll5 (set-synth-weights)).
 FWD and MID players receive neutral 0.5 on form_score and consistency_score.
 FWD players also receive neutral 0.5 on efficiency_score (xgi_roll5 zeroed at FWD only).
 xgi_per_cost output column retains original values for informational display.
@@ -106,8 +106,8 @@ def rank_value_players(
     # xgi_per_cost for display: uses original xgi values (informational output).
     eligible["xgi_per_cost"] = eligible["xgi_roll5"].fillna(0) / eligible["purchase_price"]
 
-    # xgi_roll5 excluded at FWD: FORM-002 G2-FAIL.
-    # xgi_roll3 excluded at FWD (FORM-001 G2-FAIL) and MID (SYNTH-01 G-SYNTH1-07:
+    # xgi_roll5 excluded at FWD: xgi_roll5@form:total_points G2-FAIL.
+    # xgi_roll3 excluded at FWD (xgi_roll3@form:total_points G2-FAIL) and MID (xgi_roll3@form:total_points#MID:
     # EXCLUDED-REDUNDANT vs xgi_roll5). Zeroed groups return 0.5 from
     # normalize_within_position (neutral, not removed).
     fwd_mask = eligible["position_label"] == "FWD"

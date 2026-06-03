@@ -4,11 +4,11 @@ Identifies strong incoming transfer candidates based on rising form, fixture
 context, involvement, and minutes stability. Does not model price movements,
 ownership shifts, or market dynamics.
 
-Weights are loaded from the governance registry (signals/characterisation/weight_registry.yaml).
+Weights are loaded from the governance registry (signals/governance/weight_registry.yaml).
 
 Scope constraints:
-- xgi_roll3 and xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL).
-- xgi_roll3 excluded at MID (SYNTH-01 G-SYNTH1-07: EXCLUDED-REDUNDANT vs xgi_roll5).
+- xgi_roll3 and xgi_roll5 excluded at FWD (xgi_roll3@form:total_points / xgi_roll5@form:total_points G2-FAIL).
+- xgi_roll3 excluded at MID (xgi_roll3@form:total_points#MID EXCLUDED-REDUNDANT vs xgi_roll5 (set-synth-weights)).
 FWD players receive neutral 0.5 on recent_form_score, form_momentum_score, and
 involvement_score. MID players receive neutral 0.5 on those same scores — xgi_roll3
 zeroed before normalization, momentum also neutralised at MID.
@@ -103,8 +103,8 @@ def rank_transfer_targets(
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # xgi_roll5 excluded at FWD: FORM-002 G2-FAIL.
-    # xgi_roll3 excluded at FWD (FORM-001 G2-FAIL) and MID (SYNTH-01 G-SYNTH1-07:
+    # xgi_roll5 excluded at FWD: xgi_roll5@form:total_points G2-FAIL.
+    # xgi_roll3 excluded at FWD (xgi_roll3@form:total_points G2-FAIL) and MID (xgi_roll3@form:total_points#MID:
     # EXCLUDED-REDUNDANT vs xgi_roll5). Zeroed groups return 0.5 from normalization.
     fwd_mask = eligible["position_label"] == "FWD"
     mid_mask = eligible["position_label"] == "MID"

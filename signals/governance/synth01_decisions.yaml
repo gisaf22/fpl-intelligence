@@ -324,7 +324,7 @@ decisions:
   contribution_class: null
   marginal_gain: 0.155
   evidence: Sole FWD candidate. No composite synthesis — single-signal qualified score.
-    bivariate rho=0.155 from LENS-MARKET evaluation_metadata.yaml.
+    bivariate rho=0.155 from the market lens finding purchase_price@market:total_points.
   notes: 'G3-WEAK: 2/3 temporal blocks. REMOVED FROM SCORING: Phase 9 holdout GW
     34-38 rho=-0.095 (p=0.374, reversed). ENG-02: pending SYNTH-02 phase-conditional
     evaluation. lifecycle_state set to excluded in evaluation_metadata.yaml.'

@@ -3,12 +3,14 @@
 Produces a ranked list of captain options for a target gameweek based on
 recent form, attacking involvement, fixture context, and minutes stability.
 
-Weights are loaded from the governance registry (signals/characterisation/weight_registry.yaml).
+Weights are loaded from the governance registry (signals/governance/weight_registry.yaml).
 
-Scope constraints:
-- xgi_roll5 excluded at FWD (FORM-002 G2-FAIL). FWD → neutral 0.5 on form_score.
-- xgi_roll3 excluded at FWD (FORM-001 G2-FAIL) and MID (SYNTH-01 G-SYNTH1-07:
-  EXCLUDED-REDUNDANT vs xgi_roll5). FWD and MID → neutral 0.5 on involvement_score.
+Scope constraints (validate-stage lens findings + the model-stage synthesis verdict
+set-synth-weights; see docs/decisions/):
+- xgi_roll5 excluded at FWD (xgi_roll5@form:total_points, G2-FAIL). FWD → neutral 0.5 on form_score.
+- xgi_roll3 excluded at FWD (xgi_roll3@form:total_points, G2-FAIL) and MID
+  (xgi_roll3@form:total_points#MID: EXCLUDED-REDUNDANT vs xgi_roll5). FWD and MID →
+  neutral 0.5 on involvement_score.
 
 fixture_score uses binary DGW indicator from STATE fixture_context column.
 """
@@ -74,9 +76,9 @@ def rank_captain_candidates(
     for full explainability.
 
     Scoring components (registry weights):
-    - form_score        35%: xgi_roll5; excluded at FWD (FORM-002 G2-FAIL) → neutral 0.5
-    - involvement_score 30%: xgi_roll3; excluded at FWD (FORM-001 G2-FAIL) and MID
-                             (SYNTH-01 G-SYNTH1-07 EXCLUDED-REDUNDANT) → neutral 0.5
+    - form_score        35%: xgi_roll5; excluded at FWD (xgi_roll5@form:total_points G2-FAIL) → neutral 0.5
+    - involvement_score 30%: xgi_roll3; excluded at FWD (xgi_roll3@form:total_points G2-FAIL) and MID
+                             (xgi_roll3@form:total_points#MID EXCLUDED-REDUNDANT) → neutral 0.5
     - fixture_score     20%: binary DGW flag from STATE fixture_context
     - minutes_score     15%: minutes_roll3, normalized within position
 
@@ -93,9 +95,9 @@ def rank_captain_candidates(
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # xgi_roll5 excluded at FWD: FORM-002 G2-FAIL.
-    # xgi_roll3 excluded at FWD (FORM-001 G2-FAIL) and MID (SYNTH-01 G-SYNTH1-07:
-    # EXCLUDED-REDUNDANT vs xgi_roll5 at MID). Zeroed groups return 0.5 from
+    # xgi_roll5 excluded at FWD: xgi_roll5@form:total_points G2-FAIL.
+    # xgi_roll3 excluded at FWD (xgi_roll3@form:total_points G2-FAIL) and MID
+    # (xgi_roll3@form:total_points#MID: EXCLUDED-REDUNDANT vs xgi_roll5 at MID). Zeroed groups return 0.5 from
     # normalize_within_position (neutral, no xgi contribution at excluded positions).
     fwd_mask = eligible["position_label"] == "FWD"
     mid_mask = eligible["position_label"] == "MID"

@@ -42,7 +42,7 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
     no leakage or outcome-component exclusion, rho_pooled is non-null.
 
     Gate is CI-based (rho_pooled non-null = signal cleared the CI gate during
-    lens evaluation). MIN_RHO was removed after SYNTH-01 approved three signals with
+    lens evaluation). MIN_RHO was removed after the synthesis study (set-synth-weights) approved three signals with
     rho < 0.15 via partial rho, confirming the magnitude threshold was not evidence-derived.
 
     All other core/review signals go to caveated with the exclusion reason.

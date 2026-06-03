@@ -9,9 +9,10 @@ Formal, durable design choices. Full Context / Decision / Alternatives / Consequ
 
 - [ADR-001 — Spearman as the evaluation metric](001-spearman-as-evaluation-metric.md)
 - [ADR-002 — Additive weighted scoring](002-additive-weighted-scoring.md)
+- [ADR-003 — Composite signal-finding key scheme](003-composite-signal-finding-key.md)
 - [ADR-004 — The decision-slug log as the narrative verdict namespace](004-decision-slug-log.md)
 
-*(ADR-003, 005, 006, 007 are reserved for later phases — see `docs/implementation-plan.md`
+*(ADR-005, 006, 007 are reserved for later phases — see `docs/implementation-plan.md`
 "Pending ADRs".)*
 
 ## Decision slugs — analytical verdicts (named, not numbered)

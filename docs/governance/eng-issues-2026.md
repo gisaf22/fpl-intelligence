@@ -70,7 +70,14 @@ CONTEXT.md is the first document a new contributor reads to orient themselves. B
 
 ---
 
-### ENG-13 — weight_registry.yaml cites a deleted source path
+### ENG-13 — weight_registry.yaml cites a deleted source path — ✅ RESOLVED (2026-06-02, Phase 6 step 0)
+
+**Resolution.** `synth01_composition_weights:` and its explanatory comment in
+`signals/governance/weight_registry.yaml` re-pointed `signals/evaluation/…` →
+`signals/governance/synth01_decisions.yaml`. Verified: `grep "signals/evaluation"
+signals/governance/weight_registry.yaml` returns zero; `scoring_runner` against the fixture
+DB raises **no** `FileNotFoundError` (it now stops only on the pre-existing `purchase_price@GK`
+gw36 registry↔governance mismatch — a separate, out-of-scope defect).
 
 **Problem**  
 `signals/governance/weight_registry.yaml` references `signals/evaluation/synth01_decisions.yaml`.
@@ -301,7 +308,7 @@ When a pipeline fails in production (or in a CI run), the first question is "whi
 | ENG-01 | 1 — High | No CI/CD pipeline | `.github/workflows/` (missing) |
 | ENG-02 | 1 — High | FWD × purchase_price reversal live in scorer | `intelligence/transfers.py:39` |
 | ENG-03 | 1 — High | CONTEXT.md stale module paths | `CONTEXT.md:97,98,116,122` |
-| ENG-13 | 1 — High | weight_registry.yaml cites deleted source path | `signals/governance/weight_registry.yaml` |
+| ENG-13 | 1 — High | weight_registry.yaml cites deleted source path | ✅ RESOLVED — `signals/governance/weight_registry.yaml` |
 | ENG-04 | 2 — Medium | Six unvalidated operational thresholds | `intelligence/availability.py:29–33` |
 | ENG-05 | 2 — Medium | No FPL API schema guard | `dal/pipeline.py` |
 | ENG-06 | 2 — Medium | GK position entirely unevaluated | `signals/governance/weight_registry.yaml` |

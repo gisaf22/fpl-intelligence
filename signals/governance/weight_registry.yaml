@@ -6,7 +6,7 @@
 # IMPORTANT: Intelligence module weights (captain, value, transfers, fixtures) remain
 # PROVISIONAL-EDITORIAL. They are editorial judgments set before the lens-study methodology
 # was established. SYNTH-01 produced composition weights for DEF/MID signal groups, stored in
-# signals/evaluation/synth01_decisions.yaml. Those weights govern signal composition, not
+# signals/governance/synth01_decisions.yaml. Those weights govern signal composition, not
 # module-level blending. Module weight calibration requires a dedicated calibration study.
 #
 # FDR MODERATION — MATERIAL:
@@ -27,7 +27,7 @@
 
 schema_version: "2.0"
 produced: "2026-05-27"
-synth01_composition_weights: "signals/evaluation/synth01_decisions.yaml"
+synth01_composition_weights: "signals/governance/synth01_decisions.yaml"
 fdr_moderation_status: "MATERIAL — FDR quartile conditioning changes rank ordering in >15% of cases; implementation deferred"
 
 modules:

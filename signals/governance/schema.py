@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from domain.signal_layers import SIGNAL_LAYER_VALUES
+
 # Promotion class vocabulary is defined here to avoid circular imports
 # (promotion.py imports pandas; schema.py must remain import-light).
 PROMOTION_CLASS_VALUES: frozenset[str] = frozenset(
@@ -130,17 +132,6 @@ POSITION_VALUES: frozenset[str] = frozenset({"GK", "DEF", "MID", "FWD"})
 POPULATION_SCOPE_VALUES: frozenset[str] = frozenset({"primary", "secondary"})
 POPULATION_ROBUSTNESS_VALUES: frozenset[str] = frozenset({"stable", "scope_sensitive", "untested"})
 VARIABLE_LEVEL_VALUES: frozenset[str] = frozenset({"player_level", "match_level"})
-SIGNAL_LAYER_VALUES: frozenset[str] = frozenset(
-    {
-        "exposure",
-        "performance",
-        "context",
-        "market_behavior",
-        "valuation",
-        "discipline",
-        "defensive_context",
-    }
-)
 DOWNSTREAM_STATUS_VALUES: frozenset[str] = frozenset({"eligible", "caveated", "blocked", "approved"})
 GEOMETRY_VALUES: frozenset[str] = frozenset(
     {

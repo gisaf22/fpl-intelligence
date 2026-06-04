@@ -19,4 +19,5 @@ outputs/*
 # Timestamped study run-dirs are throwaway execution churn — durable findings live in
 # the stage artifacts (evaluation_metadata.yaml, studies/eda/findings/, the slug log).
 studies/runs/
+research/runs/
 signals/runs/

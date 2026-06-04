@@ -27,6 +27,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DAL_ROOT = REPO_ROOT / "dal"
 INTELLIGENCE_ROOT = REPO_ROOT / "intelligence"
 
+# Research-layer namespaces the runtime must never import. The layer is mid-migration
+# from `studies/` to `research/` (see docs/audit/research_migration_phase5_*.md); both
+# names are forbidden during the transition window. PR 4c flips this to ("research",).
+RESEARCH_NAMESPACES = ("studies", "research")
+
 
 def _python_files(root: Path) -> list[Path]:
     return sorted(path for path in root.rglob("*.py") if "__pycache__" not in str(path))
@@ -102,17 +107,20 @@ def test_validation_does_not_import_fct() -> None:
 
 
 def test_intelligence_does_not_import_studies() -> None:
-    """Intelligence layer must not import from studies.
+    """Intelligence layer must not import from the research layer.
 
     Runtime scoring consumes registry-approved signals only. Research modules
-    (studies/) are analytical artifacts — importing them into intelligence/
-    couples runtime behavior to experimental code paths.
+    (studies/ → research/) are analytical artifacts — importing them into
+    intelligence/ couples runtime behavior to experimental code paths. Both
+    namespaces are checked during the studies→research migration window.
     """
     violations: list[str] = []
     for path in _python_files(INTELLIGENCE_ROOT):
-        violations.extend(_imports_from(path, "studies"))
+        for namespace in RESEARCH_NAMESPACES:
+            violations.extend(_imports_from(path, namespace))
     assert not violations, (
-        "Intelligence layer imports from studies — runtime/research boundary violation:\n" + "\n".join(violations)
+        "Intelligence layer imports from research layer — runtime/research boundary violation:\n"
+        + "\n".join(violations)
     )
 
 

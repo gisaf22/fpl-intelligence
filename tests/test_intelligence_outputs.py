@@ -535,13 +535,17 @@ class TestIntelligenceGovernance:
         import intelligence.transfers as trans_mod
         import intelligence.value as val_mod
 
+        # studies/ → research/ migration window: both research-layer path roots are
+        # forbidden in operational modules (PR 4c narrows this to research/ only).
+        forbidden_research_paths = ("studies/eda", "research/foundation", "research/families")
         for mod in [cap_mod, trans_mod, val_mod, avail_mod, fix_mod]:
             src = mod.__file__
             with open(src) as f:
                 content = f.read()
-            assert "studies/eda" not in content, (
-                f"{mod.__name__} imports from studies/eda — research artifacts must not enter operational outputs"
-            )
+            for forbidden in forbidden_research_paths:
+                assert forbidden not in content, (
+                    f"{mod.__name__} references {forbidden} — research artifacts must not enter operational outputs"
+                )
             assert "RESEARCH_REGISTRY_PATH" not in content, f"{mod.__name__} references RESEARCH_REGISTRY_PATH"
 
     def test_captain_explainability_columns_present(self, two_player_features):

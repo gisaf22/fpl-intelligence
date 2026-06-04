@@ -1,7 +1,7 @@
 # reject-fdr-as-signal
 
 **Stage:** validate · **Mode:** predictive · **Verdict:** rejected · **Date:** 2026-05-22
-**Evidence:** [studies/lenses/fixture_gw/study.py](../../studies/lenses/fixture_gw/study.py)
+**Evidence:** [research/families/fixture/validate/study.py](../../research/families/fixture/validate/study.py)
 
 The FIXTURE-GW lens tests whether single-GW fixture difficulty (fdr_avg) predicts
 returns. Rejected as a standalone signal: the relationship is non-monotonic, so fdr_avg

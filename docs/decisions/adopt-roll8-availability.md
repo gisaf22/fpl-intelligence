@@ -1,7 +1,7 @@
 # adopt-roll8-availability
 
 **Stage:** validate · **Mode:** predictive · **Verdict:** accepted · **Date:** 2026-05-22
-**Evidence:** [studies/lenses/avail/study.py](../../studies/lenses/avail/study.py)
+**Evidence:** [research/families/availability/validate/study.py](../../research/families/availability/validate/study.py)
 
 After minutes proved uninformative as a *returns* signal, the AVAIL lens reframes the
 same raw minutes signal as an *availability* question — does recent minutes predict

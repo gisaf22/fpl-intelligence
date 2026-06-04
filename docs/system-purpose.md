@@ -45,7 +45,7 @@ These guarantees are contractual. Any DAL code change must preserve them. Code c
 ## Research versus intelligence
 
 **Research** asks: *Does this signal hold up?* It is observational, comparative, and governed
-by methodology. Research work lives in `studies/`. It produces characterised signals with
+by methodology. Research work lives in `research/`. It produces characterised signals with
 lifecycle status — not decisions.
 
 **Intelligence** asks: *What should I do this gameweek?* It is operational, scored, and

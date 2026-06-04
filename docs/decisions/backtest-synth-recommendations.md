@@ -1,7 +1,7 @@
 # backtest-synth-recommendations
 
 **Stage:** monitor · **Mode:** operational · **Verdict:** deferred (design/partial) · **Date:** 2026-05-27
-**Evidence:** [studies/operational/phase9_backtest.py](../../studies/operational/phase9_backtest.py)
+**Evidence:** [archive/monitor/phase9_backtest.py](../../archive/monitor/phase9_backtest.py)
 
 Retrospective season backtest: tests the SYNTH-01 approved compositions against actual
 25/26 outcomes over the full season (GW 1–38), with GW 34–38 held out (unseen by

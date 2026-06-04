@@ -1,6 +1,6 @@
 """Downstream dependency governance enforcement.
 
-Checks that downstream modules (signals/, studies/, intelligence/) do not:
+Checks that downstream modules (signals/, research/, model/, intelligence/) do not:
   - import from pipeline.* (retired module namespace)
   - query staging tables directly via sqlite3 or pd.read_sql outside the DAL
   - import dal.staging or dal.intermediate directly
@@ -22,7 +22,8 @@ _PROJECT_ROOT = Path(__file__).parent.parent
 # Directories that are NOT the DAL — downstream consumers must not bypass the DAL.
 _DOWNSTREAM_DIRS = [
     _PROJECT_ROOT / "signals",
-    _PROJECT_ROOT / "studies",
+    _PROJECT_ROOT / "research",
+    _PROJECT_ROOT / "model",
     _PROJECT_ROOT / "intelligence",
 ]
 

@@ -5,7 +5,7 @@
 **Supersedes:** No prior design (first LENS-FORM design under locked methodology)  
 **Governed by:** `signals/evaluation/EVAL_DESIGN.md` v1.5  
 **Registry:** `signals/registry/SIGNAL_REGISTRY.md` v1.1 (FORM-001 through FORM-006)  
-**EDA basis:** `studies/eda/findings/EDA_FINDINGS.md` (gate IDs referenced throughout)
+**EDA basis:** `research/findings/FINDINGS.md` (gate IDs referenced throughout)
 
 ---
 
@@ -190,7 +190,7 @@ Known Caveats. The naive baseline gate is not a disqualifying gate; it is a cont
 approximately monotonic bin ordering (no reversal of more than one step that is sustained
 across blocks). This threshold is set a priori and cannot be revised after results are known.
 
-**Output:** `studies/runs/LENS-FORM-{timestamp}/quintile_results.csv` with columns:
+**Output:** `research/runs/LENS-FORM-{timestamp}/quintile_results.csv` with columns:
 `signal`, `position`, `block`, `q1_mean`, `q2_mean`, `q3_mean`, `q4_mean`, `q5_mean`,
 `q5_q1_gap`, `is_monotonic`, `decision_relevant`.
 
@@ -198,7 +198,7 @@ across blocks). This threshold is set a priori and cannot be revised after resul
 
 ## 10. Run artefacts
 
-All run outputs are written to `studies/runs/LENS-FORM-{timestamp}/`:
+All run outputs are written to `research/runs/LENS-FORM-{timestamp}/`:
 
 | File | Content |
 |---|---|

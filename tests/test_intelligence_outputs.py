@@ -535,9 +535,10 @@ class TestIntelligenceGovernance:
         import intelligence.transfers as trans_mod
         import intelligence.value as val_mod
 
-        # studies/ → research/ migration window: both research-layer path roots are
-        # forbidden in operational modules (PR 4c narrows this to research/ only).
-        forbidden_research_paths = ("studies/eda", "research/foundation", "research/families")
+        # Research-layer artifact roots are forbidden in operational modules. The
+        # studies/ tree is gone; the exploratory seed registry now lives under
+        # research/findings/ (the lifecycle gate's exploratory prefix).
+        forbidden_research_paths = ("research/foundation", "research/families", "research/findings")
         for mod in [cap_mod, trans_mod, val_mod, avail_mod, fix_mod]:
             src = mod.__file__
             with open(src) as f:

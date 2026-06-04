@@ -5,18 +5,17 @@ asked, the classes of analysis that answer them, the kill criteria that retire a
 the firewall that separates exploration from confirmation, and the test discipline that makes a
 verdict trustworthy.
 
-**Scope.** This layer (`studies/`, becoming `research/`) does one thing: turn DAL mart data into
+**Scope.** This layer (`research/`) does one thing: turn DAL mart data into
 **trusted verdicts about signals** — does this signal predict returns, is it stable, is it
 non-redundant? It does *not* assign weights (that is `model/assemble`) and it does *not* build
 features (that is `dal/feat`). Research stops at "this signal is trustworthy and additive."
 
 **Status:** doctrine. Prescribe-first — the funnel and classes below are the contract; the folder
-rename that makes the tree match them is a separate migration (see [adlc.md §7](../docs/architecture/adlc.md)).
+rename that makes the tree match them has landed (`studies → research`, see [adlc.md §7](../docs/architecture/adlc.md)).
 
-> **Note on naming.** This file currently lives at `studies/STRATEGY.md`. Under the planned
-> rename (`studies → research`, `synthesis → model/assemble`, `signals → model/governance`,
-> `intelligence → serve`) it becomes `research/STRATEGY.md`. The doctrine does not depend on the
-> rename landing.
+> **Note on naming.** This file lives at `research/STRATEGY.md`. The topology rename has landed
+> (`studies → research`, `synthesis → model/assemble`, `registry_sections + semantics → model/governance`).
+> The doctrine never depended on the rename; it now matches the tree.
 
 ---
 

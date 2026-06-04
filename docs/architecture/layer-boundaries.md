@@ -3,7 +3,7 @@
 **Authoritative for:** component ownership, dependency direction, cross-cutting concerns.  
 **Supersedes:** `docs/architecture-boundaries.md`, `docs/architecture/SYSTEM_CONTEXT.md`.
 
-> **Note on planes vs. layers.** This document describes the 4-layer import hierarchy (DAL → studies → signals → intelligence), which governs dependency direction and import rules. The import hierarchy is not the same as the conceptual role of each component. For the question "what is each part of the system *for*?", see [system-model.md](system-model.md). The registry, for instance, is part of the Control Plane in the conceptual model — not a pipeline step. Tests are structural validation — not the Measurement Plane.
+> **Note on planes vs. layers.** This document describes the layered import hierarchy (DAL → research → signals → intelligence, with `model/` between research and serve), which governs dependency direction and import rules. The import hierarchy is not the same as the conceptual role of each component. For the question "what is each part of the system *for*?", see [system-model.md](system-model.md). The registry, for instance, is part of the Control Plane in the conceptual model — not a pipeline step. Tests are structural validation — not the Measurement Plane.
 
 ---
 
@@ -14,7 +14,7 @@ Source database (fpl.db — populated by fpl-ingest)
     ↓
 dal/          — deterministic (player_id, gw) spine
     ↓
-studies/      — analytical methodology (EDA, lenses, kernels, experiments)
+research/     — analytical methodology (foundation EDA, family lenses, kernels, findings)
     ↓
 signals/      — lifecycle governance and registry build pipeline
     ↓
@@ -85,7 +85,7 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 | `signals/governance/` | Lifecycle enforcement: `assert_operational_safe()`, promotion rules, schema validation, evaluation metadata, `EVAL_DESIGN.md` |
 | `signals/characterisation/` | Registry build pipeline — assembles the governed artifact from confirmed signals |
 
-**Does not own:** Statistical computation on raw data (owned by `studies/`), DAL transformations, operational scoring.
+**Does not own:** Statistical computation on raw data (owned by `research/`), DAL transformations, operational scoring.
 
 **Contract:** `signals/governance/lifecycle.py:assert_operational_safe()` is the runtime lifecycle gate — it raises `LifecycleViolationError` if an operational runner attempts to consume a registry from an exploratory path. No signal may be scored without passing this gate.
 
@@ -142,6 +142,6 @@ No two components share ownership of any row in this table. If a proposed change
 
 **Research does not define signals.** Classification, lifecycle assignment, and signal IDs are determined by the study that produces the evidence and stored in the registry. Research writes artifacts; `signals/characterisation/` ingests them.
 
-**Lifecycle gate is path-based.** A registry CSV in `outputs/registry/` is operationally safe. The same content in `studies/eda/findings/` is not — path determines safety, not content. `assert_operational_safe()` enforces this at runtime.
+**Lifecycle gate is path-based.** A registry CSV in `outputs/registry/` is operationally safe. The same content in `research/findings/` is not — path determines safety, not content. `assert_operational_safe()` enforces this at runtime.
 
 **Design before code.** No lens study executes without a locked `LENS_DESIGN.md`. No signals enter the registry without a confirmed lens status. No signals enter synthesis without a validated registry entry.

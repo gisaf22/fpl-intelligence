@@ -183,7 +183,7 @@ dropping a scenario. All assert against the built DB via the `db_path` fixture (
 
 | Invariant | Validator | Layer | Status | Test | Notes |
 |---|---|---|---|---|---|
-| Production type surface clean | `uv run mypy` | dal / signals / intelligence / domain / population | **Verified** | **blocking CI gate** (`.github/workflows/ci.yml`) | Was `continue-on-error` (documentation); flipped to blocking in Phase 5 after fixing the 10 surfaced errors. Scope set by `[tool.mypy] files=`; `studies/` excluded by design. |
+| Production type surface clean | `uv run mypy` | dal / signals / intelligence / domain / population | **Verified** | **blocking CI gate** (`.github/workflows/ci.yml`) | Was `continue-on-error` (documentation); flipped to blocking in Phase 5 after fixing the 10 surfaced errors. Scope set by `[tool.mypy] files=`; `research/`, `model/`, `archive/` excluded by design. |
 
 ---
 

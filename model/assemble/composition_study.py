@@ -28,7 +28,7 @@ from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 
 OUT_PATH = Path("signals/governance/synth01_decisions.yaml")
-RUNS_DIR = Path("studies/runs")
+RUNS_DIR = Path("research/runs")
 
 N_BOOTSTRAP = 2000
 BOOTSTRAP_SEED = 42

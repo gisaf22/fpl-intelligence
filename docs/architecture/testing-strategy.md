@@ -178,9 +178,9 @@ Beyond `pytest`, two additional enforcement tools run directly:
 lint-imports       # import-linter — verifies the layer contracts in .importlinter
 ```
 
-A supplementary grep check (no `from studies.*` imports outside `studies/` and `tests/`) catches
+A supplementary grep check (no `from research.*` imports outside `research/` and `tests/`) catches
 direct cross-layer Python imports that bypass the file-based interface.
 
 `lint-imports` enforces the six import contracts defined in `.importlinter` (one per layer boundary). The `.importlinter` file is the source of truth for the contracts. A violation fails the build.
 
-`check-study-imports` catches a specific high-value violation that `lint-imports` may miss: direct Python imports from `studies.lenses.*`, `studies.eda.*`, `studies.experiments.*`, or `studies.synthesis.*` outside of `studies/` and `tests/`. These would bypass the file-based cross-layer interface enforced by the import contracts.
+`check-study-imports` catches a specific high-value violation that `lint-imports` may miss: direct Python imports from `research.families.*`, `research.foundation.*`, or `research.kernels.*` outside of `research/` and `tests/`. These would bypass the file-based cross-layer interface enforced by the import contracts.

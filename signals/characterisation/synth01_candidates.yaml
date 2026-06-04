@@ -256,7 +256,7 @@ high_redundancy_pairs:
     signal_b: transfers_in
     position: DEF
     pairwise_rho: 0.794
-    source: "studies/eda/findings/eda_06_pairwise_rho.csv"
+    source: "research/findings/records/eda_06_pairwise_rho.csv"
     classification: HIGH_REDUNDANCY
     resolution_method: "SYNTH-01 marginal gain test. Tiebreak: retain transfers_in (rho 0.187 > 0.156)."
 
@@ -264,6 +264,6 @@ high_redundancy_pairs:
     signal_b: transfers_in
     position: MID
     pairwise_rho: 0.831
-    source: "studies/eda/findings/eda_06_pairwise_rho.csv"
+    source: "research/findings/records/eda_06_pairwise_rho.csv"
     classification: HIGH_REDUNDANCY
     resolution_method: "SYNTH-01 marginal gain test. Tiebreak: retain transfers_in (rho 0.190 > 0.168)."

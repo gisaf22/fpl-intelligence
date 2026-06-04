@@ -15,8 +15,8 @@ EDA-8 closes the four open-study gaps identified after EDA-0 through EDA-7 were 
 against the updated three-layer pipeline framework. It does not reopen settled questions.
 
 Gap sources:
-- `studies/eda/findings/EDA_COVERAGE_MAP.md` — partial signals with Layer 1 or Layer 3 gaps
-- `studies/eda/findings/EDA_FINDINGS.md` G-EDA6-06 — saves GK deferred pending Layer 1
+- `research/findings/COVERAGE_MATRIX.md` — partial signals with Layer 1 or Layer 3 gaps
+- `research/findings/FINDINGS.md` G-EDA6-06 — saves GK deferred pending Layer 1
 
 Every gate decision produced here uses G-EDA8-NN format and is recorded in EDA_FINDINGS.md
 before any downstream work depends on it.

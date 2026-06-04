@@ -1265,7 +1265,7 @@ entries:
   # STATE-governed columns not in evaluation_metadata.yaml
   # Source: docs/archive/state-representation-inventory.md
   # Evaluated in LENS-FORM team context studies; individual lens records in
-  # studies/runs/ CSVs rather than evaluation_metadata.yaml
+  # research/runs/ CSVs rather than evaluation_metadata.yaml
   # ===========================================================================
 
   - signal: xgc_roll3

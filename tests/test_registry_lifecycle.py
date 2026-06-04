@@ -24,7 +24,7 @@ from signals.governance.registry_loader import load_registry
 pytestmark = pytest.mark.unit
 
 # The authoritative EDA output — exploratory state by definition
-RESEARCH_REGISTRY = Path("studies/eda/findings/eda_03_joint_registry.csv")
+RESEARCH_REGISTRY = Path("research/findings/records/eda_03_joint_registry.csv")
 
 # ---------------------------------------------------------------------------
 # Exploratory path detection
@@ -35,11 +35,11 @@ class TestExploratoryPathDetection:
     def test_eda_findings_path_is_exploratory(self):
         assert is_exploratory_path(RESEARCH_REGISTRY)
 
-    def test_eda_subdirectory_is_exploratory(self):
-        assert is_exploratory_path(Path("studies/eda/notebooks/some_notebook.ipynb"))
+    def test_findings_subdirectory_is_exploratory(self):
+        assert is_exploratory_path(Path("research/findings/records/some_registry.csv"))
 
-    def test_eda_root_is_exploratory(self):
-        assert is_exploratory_path(Path("studies/eda"))
+    def test_findings_root_is_exploratory(self):
+        assert is_exploratory_path(Path("research/findings"))
 
     def test_outputs_registry_path_is_not_exploratory(self):
         assert not is_exploratory_path(Path("outputs/registry/gw36/registry.csv"))
@@ -68,9 +68,9 @@ class TestAssertOperationalSafe:
         with pytest.raises(LifecycleViolationError):
             assert_operational_safe(RESEARCH_REGISTRY)
 
-    def test_rejects_any_eda_subdirectory(self):
+    def test_rejects_any_findings_subdirectory(self):
         with pytest.raises(LifecycleViolationError):
-            assert_operational_safe(Path("studies/eda/notebooks/test.csv"))
+            assert_operational_safe(Path("research/findings/records/test.csv"))
 
     def test_accepts_outputs_registry_path(self):
         # Must not raise — path is not exploratory
@@ -80,7 +80,7 @@ class TestAssertOperationalSafe:
         assert_operational_safe(tmp_path / "registry.csv")
 
     def test_error_message_identifies_the_path(self):
-        with pytest.raises(LifecycleViolationError, match="studies/eda"):
+        with pytest.raises(LifecycleViolationError, match="research/findings"):
             assert_operational_safe(RESEARCH_REGISTRY)
 
     def test_error_message_mentions_exploratory(self):

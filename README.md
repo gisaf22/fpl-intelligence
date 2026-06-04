@@ -5,7 +5,7 @@
 | Stage | Directory | What it does |
 |---|---|---|
 | `dal` | `dal/` | Data access layer — canonical `(player_id, gw)` spine and features |
-| `studies` | `studies/` | Analytical methodology — EDA, lenses, statistical kernels, experiments |
+| `research` | `research/` | Analytical methodology — foundation EDA, family lenses, statistical kernels, findings |
 | `signals` | `signals/` | Signal lifecycle governance, registry build pipeline, evaluation framework |
 | `intelligence` | `intelligence/` | Player scoring and weekly signal intelligence reporting |
 

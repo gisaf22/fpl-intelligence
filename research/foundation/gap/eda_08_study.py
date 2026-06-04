@@ -5,7 +5,7 @@ Population: gap study across saves (GK), xgc, penalties_saved, assists rolling w
 Not a §4 audit row — explore-stage gate study feeding the lenses.
 
 Four independent sub-studies (EDA-8A through EDA-8D) as specified in
-studies/eda/EDA_08_DESIGN.md. All may run in parallel but are executed
+research/foundation/gap/EDA_08_DESIGN.md. All may run in parallel but are executed
 sequentially here for a single output directory.
 
 Sub-studies:
@@ -30,7 +30,7 @@ from scipy.stats import spearmanr
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 
-RUNS_DIR = Path("studies/runs")
+RUNS_DIR = Path("research/runs")
 
 # EDA_08_DESIGN.md §3 — inherited from EVAL_DESIGN.md v2.2
 MINUTES_THRESHOLD = 60
@@ -700,7 +700,7 @@ def run(db_path: Path = DB_PATH) -> Path:
     meta = {
         "timestamp": ts,
         "db_path": str(db_path),
-        "design_doc": "studies/eda/EDA_08_DESIGN.md",
+        "design_doc": "research/foundation/gap/EDA_08_DESIGN.md",
         "framework": "EVAL_DESIGN.md v2.2",
         "gw_min": GW_MIN,
         "gw_max": GW_MAX,

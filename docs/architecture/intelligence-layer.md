@@ -22,7 +22,7 @@ reproducible artifacts — not through infrastructure alone.
 
 ## Registry consumption and lifecycle gate
 
-The intelligence layer never reads directly from `studies/eda/findings/`. It consumes only
+The intelligence layer never reads directly from `research/findings/`. It consumes only
 governed registry artifacts from `outputs/registry/gw{N}/`.
 
 The gate is enforced at runtime by `signals/governance/lifecycle.py`:
@@ -30,7 +30,7 @@ The gate is enforced at runtime by `signals/governance/lifecycle.py`:
 ```python
 # Both operational runners call this before loading any registry:
 assert_operational_safe(registry_path)
-# Raises LifecycleViolationError if registry_path is under studies/eda/
+# Raises LifecycleViolationError if registry_path is under research/findings/
 ```
 
 This means the registry can only reach the scorer after:
@@ -218,7 +218,7 @@ See [docs/architecture/runtime-artifacts.md](runtime-artifacts.md) for the full 
 The intelligence layer consumes **DAL state features only** — the curated
 spine plus rolling window columns derived from it. It does not consume:
 
-- EDA registries from `studies/eda/findings/`
+- EDA registries from `research/findings/`
 - Research-stage promoted signal lists
 - Exploratory registry artifacts
 

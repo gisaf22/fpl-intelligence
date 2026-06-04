@@ -264,7 +264,7 @@ class TestLifecycleEnforcement:
         from signals.governance.lifecycle import LifecycleViolationError, assert_operational_safe
 
         with pytest.raises(LifecycleViolationError):
-            assert_operational_safe("studies/eda/some_registry.csv")
+            assert_operational_safe("research/findings/some_registry.csv")
 
     def test_operational_path_passes(self) -> None:
         from signals.governance.lifecycle import assert_operational_safe

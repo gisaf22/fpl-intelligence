@@ -3,7 +3,7 @@
 **Type:** Synthesis document — required by EVAL_DESIGN.md §4.1 before any lens study may run  
 **Status:** COMPLETE  
 **Produced:** 2026-05-22  
-**Source data:** `studies/eda/findings/eda_02_*.csv` through `eda_07_*.csv`  
+**Source data:** `research/findings/records/eda_02_*.csv` through `eda_07_*.csv`  
 **Authoritative for:** All design decisions in `LENS_DESIGN.md` that reference an EDA finding
 
 ---

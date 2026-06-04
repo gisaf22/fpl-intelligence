@@ -1,7 +1,7 @@
 # reject-minutes-stability-conditioning
 
 **Stage:** validate · **Mode:** predictive/conditioning · **Verdict:** rejected · **Date:** 2026-05-22
-**Evidence:** [studies/experiments/minutes_stability_study.py](../../studies/experiments/minutes_stability_study.py)
+**Evidence:** [research/families/form/explore/minutes_stability_study.py](../../research/families/form/explore/minutes_stability_study.py)
 
 Tests whether minutes stability conditions the usefulness of rolling xGI for forwards —
 i.e. whether xGI predicts returns more strongly for minutes-stable players. Rejected:

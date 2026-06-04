@@ -154,7 +154,7 @@ def load_manifest_from_path(registry_path: str | Path) -> SignalManifest:
     """Load the registry CSV and return a SignalManifest.
 
     Enforces lifecycle governance: raises LifecycleViolationError if the
-    registry path is an exploratory-state artifact (studies/eda/).
+    registry path is an exploratory-state artifact (research/findings/).
     Also asserts evaluation governance compliance for all confirmed signals.
     """
     from signals.governance.registry_loader import load_registry

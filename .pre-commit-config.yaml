@@ -5,9 +5,9 @@ repos:
       - id: ruff
         args: [--fix]
         # Exclude research and legacy code — these are not held to production lint standards.
-        exclude: ^(studies|archive)/
+        exclude: ^archive/
       - id: ruff-format
-        exclude: ^(studies|archive)/
+        exclude: ^archive/
 
   - repo: local
     hooks:

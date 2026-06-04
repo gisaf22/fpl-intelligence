@@ -35,13 +35,13 @@ outputs/
 ```bash
 python -m signals.characterisation.registry_build_runner \
   --gw 36 \
-  --source-registry-path studies/eda/findings/eda_03_joint_registry.csv \
+  --source-registry-path research/findings/records/eda_03_joint_registry.csv \
   --output-dir outputs/registry/gw36
 ```
 
 **Gitignore policy:** `outputs/*` is ignored, but `outputs/registry/` is explicitly kept via `.gitignore` exception (`!outputs/registry/`). All `gw{N}/` subdirectories under it are committed.
 
-**Why committed:** `signals/governance/lifecycle.py:assert_operational_safe()` verifies that the scorer and reporting runner consume a registry from `outputs/registry/`, not from `studies/eda/`. In a fresh checkout without a live database, this path must already exist for the lifecycle gate to pass. The committed `gw36/` artifact is the bootstrap that satisfies this requirement.
+**Why committed:** `signals/governance/lifecycle.py:assert_operational_safe()` verifies that the scorer and reporting runner consume a registry from `outputs/registry/`, not from `research/findings/`. In a fresh checkout without a live database, this path must already exist for the lifecycle gate to pass. The committed `gw36/` artifact is the bootstrap that satisfies this requirement.
 
 **Adding a new gameweek:** Run `python -m signals.characterisation.registry_build_runner --gw {N}` with a live DB. This produces `outputs/registry/gw{N}/` alongside the existing `gw36/` artifact. Commit the new directory. Do not delete prior gameweek artifacts — they are provenance records.
 
@@ -91,6 +91,6 @@ Steps requiring a live database (`FPL_DB_PATH`):
 
 The scorer and reporting runner call `assert_operational_safe(registry_path)` before loading any registry. This function raises `LifecycleViolationError` if the path is not under `outputs/registry/`.
 
-**Consequence:** `studies/eda/findings/eda_03_joint_registry.csv` cannot be passed directly to the scorer. It must first be promoted through `signals/characterisation/registry_build_runner.py`, which validates the registry contract and writes to `outputs/registry/gw{N}/registry.csv`. The act of promotion is what makes a registry operationally safe — not its content.
+**Consequence:** `research/findings/records/eda_03_joint_registry.csv` cannot be passed directly to the scorer. It must first be promoted through `signals/characterisation/registry_build_runner.py`, which validates the registry contract and writes to `outputs/registry/gw{N}/registry.csv`. The act of promotion is what makes a registry operationally safe — not its content.
 
 See [docs/registry-governance.md](../registry-governance.md) for the full exploratory-vs-operational distinction.

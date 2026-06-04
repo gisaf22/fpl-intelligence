@@ -9,7 +9,7 @@ from signals.governance.lifecycle import LifecycleViolationError
 
 pytestmark = pytest.mark.unit
 
-RESEARCH_REGISTRY = Path("studies/eda/findings/eda_03_joint_registry.csv")
+RESEARCH_REGISTRY = Path("research/findings/records/eda_03_joint_registry.csv")
 
 
 def test_run_week_writes_registry_snapshot(tmp_path):
@@ -44,7 +44,7 @@ def test_run_week_writes_registry_snapshot(tmp_path):
 
 
 def test_run_week_rejects_exploratory_registry(tmp_path):
-    """run_week must reject registries from studies/eda/ (exploratory state)."""
+    """run_week must reject registries from research/findings/ (exploratory state)."""
     with pytest.raises(LifecycleViolationError, match="exploratory"):
         run_week(gw=36, registry_path=RESEARCH_REGISTRY, output_dir=tmp_path / "gw36")
 

@@ -10,7 +10,7 @@ from signals.governance import load_registry, validate_registry_contract
 
 pytestmark = pytest.mark.unit
 
-SOURCE_REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
+SOURCE_REGISTRY_PATH = Path("research/findings/records/eda_03_joint_registry.csv")
 
 
 def _prepared_relationship_data() -> pd.DataFrame:

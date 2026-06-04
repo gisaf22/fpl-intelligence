@@ -77,7 +77,7 @@ from signals.governance.lifecycle import assert_operational_safe
 assert_operational_safe(registry_path)   # raises if path is not under outputs/registry/
 ```
 
-A registry under `studies/eda/findings/` is *exploratory* — its signals have not passed lens
+A registry under `research/findings/` is *exploratory* — its signals have not passed lens
 validation. Path determines operational safety, not content.
 
 **Depends on:** `outputs/registry/gw{N}/registry.csv` + `build_metadata.json`.
@@ -85,7 +85,7 @@ validation. Path determines operational safety, not content.
 
 | Failure | Symptom | Source |
 |---|---|---|
-| Exploratory registry path | `LifecycleViolationError` | passing a `studies/eda/findings/` path operationally |
+| Exploratory registry path | `LifecycleViolationError` | passing a `research/findings/` path operationally |
 | Missing registry file | `FileNotFoundError` | `outputs/registry/gw{N}/` not bootstrapped |
 | Schema contract violation | registry-contract validation raises | registry CSV missing required columns |
 | Zero confirmed signals | empty scorer output | all signals below threshold / wrong class / excluded |

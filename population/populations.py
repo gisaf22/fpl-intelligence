@@ -12,7 +12,7 @@ Performance population (filter_performance):
     differs across observations, making signal-target rho estimates incoherent
     unless restricted to one regime. The 60-minute threshold is currently
     EVALUATION-DEFERRED (threshold-registry.md §REG-T-01 / AVAIL-T-02); see
-    studies/experiments/population_threshold_study.py (Change 3) for validation.
+    research/foundation/scope/population_threshold_study.py (Change 3) for validation.
 
 Participation population (filter_participation):
     minutes >= 1. Used by availability signals and rotation risk studies where

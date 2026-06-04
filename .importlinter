@@ -1,49 +1,48 @@
 [importlinter]
 root_packages =
     dal
-    studies
+    research
+    model
     signals
     intelligence
 
-[importlinter:contract:no_studies_to_signals]
-name = Studies must not import from signals
+[importlinter:contract:no_research_to_downstream]
+name = Research must not import from downstream layers
 type = forbidden
 source_modules =
-    studies
+    research
 forbidden_modules =
     signals
-
-[importlinter:contract:no_studies_to_intelligence]
-name = Studies must not import from intelligence
-type = forbidden
-source_modules =
-    studies
-forbidden_modules =
+    model
     intelligence
 
-[importlinter:contract:no_signals_to_studies]
-name = Signals must not import from studies
+[importlinter:contract:no_signals_to_research_or_intelligence]
+name = Signals must not import from research or intelligence
 type = forbidden
 source_modules =
     signals
 forbidden_modules =
-    studies
-
-[importlinter:contract:no_signals_to_intelligence]
-name = Signals must not import from intelligence
-type = forbidden
-source_modules =
-    signals
-forbidden_modules =
+    research
     intelligence
 
-[importlinter:contract:no_intelligence_to_studies]
-name = Intelligence must not import from studies
+[importlinter:contract:no_intelligence_to_research_or_model]
+name = Intelligence must not import from research or model
 type = forbidden
 source_modules =
     intelligence
 forbidden_modules =
-    studies
+    research
+    model
+
+[importlinter:contract:no_model_to_research_analysis]
+name = Model must not import research analysis or findings (kernels exempt)
+type = forbidden
+source_modules =
+    model
+forbidden_modules =
+    research.foundation
+    research.families
+    research.findings
 
 [importlinter:contract:no_dal_to_system_layers]
 name = DAL must not import from system layers
@@ -51,6 +50,7 @@ type = forbidden
 source_modules =
     dal
 forbidden_modules =
-    studies
+    research
+    model
     signals
     intelligence

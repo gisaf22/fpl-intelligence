@@ -1,7 +1,7 @@
 # adopt-market-signals
 
 **Stage:** validate · **Mode:** predictive · **Verdict:** partial · **Date:** 2026-05-22
-**Evidence:** [studies/lenses/market/study.py](../../studies/lenses/market/study.py)
+**Evidence:** [research/families/market/validate/study.py](../../research/families/market/validate/study.py)
 
 The MARKET lens evaluates transfer, ownership, and price signals against returns.
 Partial-accept: **transfers_in approved for DEF and MID; purchase_price for DEF and FWD†;

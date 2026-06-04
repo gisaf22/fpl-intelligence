@@ -35,7 +35,7 @@ DB_PATH = Path.home() / ".fpl" / "fpl.db"
 
 # Seed registry: produced by the computed build against GW6-33 prepared data.
 # This is the reproducibility reference — not the old exploratory EDA-3 CSV.
-SEED_REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
+SEED_REGISTRY_PATH = Path("research/findings/records/eda_03_joint_registry.csv")
 
 EXPECTED_REGISTRY_ROWS: int = 104
 

@@ -57,7 +57,7 @@ def run_week(gw: int, registry_path: str | Path, output_dir: str | Path | None =
     weekly outputs.
 
     Enforces lifecycle governance: raises LifecycleViolationError if
-    registry_path is an exploratory-state artifact from studies/eda/.
+    registry_path is an exploratory-state artifact from research/findings/.
     """
     if gw <= 0:
         raise ValueError(f"gw must be positive, got {gw}")
@@ -132,7 +132,7 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help=(
             "Registry CSV path. Must be a lifecycle-promoted registry from "
-            "outputs/registry/, not an exploratory artifact from studies/eda/."
+            "outputs/registry/, not an exploratory artifact from research/findings/."
         ),
     )
     parser.add_argument(

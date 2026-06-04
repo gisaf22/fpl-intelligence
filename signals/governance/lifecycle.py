@@ -15,7 +15,7 @@ from pathlib import Path
 
 # All path prefixes that contain exploratory-state research outputs.
 # Registries under these paths are not eligible for operational consumption.
-_EXPLORATORY_PREFIXES: tuple[Path, ...] = (Path("studies/eda"),)
+_EXPLORATORY_PREFIXES: tuple[Path, ...] = (Path("research/findings"),)
 
 
 class LifecycleViolationError(ValueError):
@@ -23,7 +23,7 @@ class LifecycleViolationError(ValueError):
     or when a signal with lifecycle_state=excluded or downstream_status=blocked
     is loaded by a scoring consumer.
 
-    Exploratory registries live under studies/eda/ and represent unvalidated
+    Exploratory registries live under research/findings/ and represent unvalidated
     research outputs. Operational consumers (scorer, report runner) must consume
     only registries that have been promoted through the research lifecycle and
     written to outputs/registry/.
@@ -54,7 +54,7 @@ def assert_operational_safe(path: str | Path) -> None:
     if is_exploratory_path(path):
         raise LifecycleViolationError(
             f"Operational consumer cannot load exploratory registry at {str(path)!r}. "
-            "Registries under studies/eda/ are exploratory-state artifacts and have not "
+            "Registries under research/findings/ are exploratory-state artifacts and have not "
             "passed lifecycle promotion. Use a registry from outputs/registry/ built via "
             "the registry builder after signals are promoted through the research lifecycle. "
             "See docs/registry-governance.md for the promotion process."

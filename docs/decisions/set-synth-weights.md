@@ -1,7 +1,7 @@
 # set-synth-weights
 
 **Stage:** model · **Mode:** assemble · **Verdict:** partial · **Date:** 2026-05-26
-**Evidence:** [studies/synthesis/synth01_study.py](../../studies/synthesis/synth01_study.py)
+**Evidence:** [model/assemble/composition_study.py](../../model/assemble/composition_study.py)
 
 SYNTH-01 integrates the surviving lens signals into composition weights. Verdict is
 partial: **DEF/MID composition weights are evidence-based** (partial Spearman rho with

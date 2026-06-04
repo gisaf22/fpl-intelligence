@@ -20,7 +20,7 @@ from scipy.stats import spearmanr
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 
-RUNS_DIR = Path("studies/runs")
+RUNS_DIR = Path("research/runs")
 
 SIGNALS: dict[str, dict] = {
     "transfers_in":      {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},

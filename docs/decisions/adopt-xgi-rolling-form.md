@@ -1,7 +1,7 @@
 # adopt-xgi-rolling-form
 
 **Stage:** validate · **Mode:** predictive · **Verdict:** partial · **Date:** 2026-05-22
-**Evidence:** [studies/lenses/form/study.py](../../studies/lenses/form/study.py)
+**Evidence:** [research/families/form/validate/study.py](../../research/families/form/validate/study.py)
 
 The FORM lens evaluates rolling attacking output (xGI) as a predictor of next-GW
 returns. Verdict is partial-accept: **xgi_roll3 approved for DEF; xgi_roll5 approved

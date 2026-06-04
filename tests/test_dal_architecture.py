@@ -10,7 +10,7 @@ Layer ordering (low → high):
 Layer-access rules enforced here:
   - feat must not import from fct, intermediate, or staging (receives spine as parameter)
   - validation must not import from fct (it is a cross-cutting concern — V-3 contract)
-  - intelligence must not import from studies (runtime must not depend on research artifacts)
+  - intelligence must not import from research (runtime must not depend on research artifacts)
   - Note: fct imports from intermediate and staging are legitimate (it is the aggregation layer)
 """
 
@@ -29,9 +29,7 @@ INTELLIGENCE_ROOT = REPO_ROOT / "intelligence"
 
 # Research-layer namespaces the runtime must never import. The studies→research module
 # migration is complete (see docs/audit/research_migration_phase5_*.md); no production
-# code imports `studies.*` any longer, so the guard is narrowed to the live namespace.
-# (The deferred seed CSV at studies/eda/findings/ is a path string, not an import, and is
-# handled separately in PR 4d.)
+# code imports `studies.*` any longer, so the guard tracks only the live namespace.
 RESEARCH_NAMESPACES = ("research",)
 
 

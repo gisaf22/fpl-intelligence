@@ -2,8 +2,8 @@
 # Version: 1.1
 # Produced: 2026-05-24
 # Updated: 2026-05-24 — EDA-8 complete; all stubs resolved; assists updated to REJECTED-BEHAVIORAL
-# Source gate decisions: studies/eda/findings/EDA_FINDINGS.md (EDA-0 through EDA-8)
-# Source lens findings: studies/runs/LENS-*/classification_summary.csv, studies/runs/EDA8-*/
+# Source gate decisions: research/findings/FINDINGS.md (EDA-0 through EDA-8)
+# Source lens findings: research/runs/LENS-*/classification_summary.csv, research/runs/EDA8-*/
 #
 # Status values:
 #   complete        — full profile; all gate decisions and lens study findings incorporated

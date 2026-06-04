@@ -134,7 +134,7 @@ def test_excluded_signals_absent_from_composite(state):
     from intelligence.scoring.signal_selector import load_manifest
     from signals.governance.registry_loader import load_registry
 
-    registry = load_registry(Path("studies/eda/findings/eda_03_joint_registry.csv"))
+    registry = load_registry(Path("research/findings/records/eda_03_joint_registry.csv"))
     manifest = load_manifest(registry)
 
     output = score(state, manifest, gw=1)

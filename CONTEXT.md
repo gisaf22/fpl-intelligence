@@ -39,7 +39,7 @@ System question
 ```
 
 System EDA runs once against the full dataset. The governed registry
-(`studies/eda/findings/eda_03_joint_registry.csv`) is its authoritative output. No lens study
+(`research/findings/records/eda_03_joint_registry.csv`) is its authoritative output. No lens study
 begins until the registry has real promotion_class values — this gate is now met.
 
 Lenses characterise individual signal groups against the system question using Spearman rank
@@ -81,14 +81,15 @@ fpl-intelligence/
 ├── signals/         — signal governance layer
 │   ├── characterisation/ — registry build pipeline, signal traceability, SIGNAL_REGISTRY.md
 │   └── governance/       — EVAL_DESIGN.md, lifecycle, evaluation metadata, weight_registry.yaml
-├── studies/         — analytical methodology layer
-│   ├── eda/         — system EDA (complete, closed)
-│   ├── experiments/ — experiment scaffolds
+├── research/        — analytical methodology layer
+│   ├── foundation/  — cross-signal system EDA by stage (complete, closed)
+│   ├── families/    — per-family explore + validate lens studies (form, market, fixture, availability)
 │   ├── kernels/     — reusable statistical kernels
-│   ├── lenses/      — lens studies (FORM, MARKET, FIXTURE-GW, AVAIL — all complete)
-│   ├── operational/ — phase9_backtest.py
-│   └── synthesis/   — synth01_study.py
-└── tests/           — test suite (928 tests)
+│   ├── findings/    — durable verdict-of-record (sole governance handoff)
+│   └── runs/        — git-ignored run outputs
+├── model/           — governance/ (registry build, semantics vocab) + assemble/ (composition weights)
+├── archive/         — parked: monitor/phase9_backtest.py
+└── tests/           — test suite
 ```
 
 Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `FPL_DB_PATH` env var).
@@ -103,13 +104,13 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 | implementation-plan.md | `docs/implementation-plan.md` | Phased, dependency-ordered plan for the ADLC-named open work + ENG backlog; final section lists pending ADRs | Sequencing of all pre-season engineering and study work |
 | EVAL_DESIGN.md | `signals/governance/EVAL_DESIGN.md` | Locked success criteria and failure conditions for 2025-26 methodology | All study findings must connect to a question defined here |
 | SIGNAL_REGISTRY.md | `signals/characterisation/SIGNAL_REGISTRY.md` | Governance and truth layer for all signals — lifecycle status, lens outcomes, synthesis eligibility | No signal enters synthesis without a confirmed entry |
-| EDA_08_DESIGN.md | `studies/eda/EDA_08_DESIGN.md` | Defines the seven system EDA layers and their gate decisions | All lens studies — no lens runs before EDA is complete |
+| EDA_08_DESIGN.md | `research/foundation/gap/EDA_08_DESIGN.md` | Defines the seven system EDA layers and their gate decisions | All lens studies — no lens runs before EDA is complete |
 | CONTEXT.md | `CONTEXT.md` | Current project state, structure, and rules for new sessions | New session orientation |
 | downstream-dependency-governance.md | `docs/architecture/downstream-dependency-governance.md` | Allowed and forbidden downstream import patterns; enforced by tests/test_downstream_governance.py | Any new module that accesses signals or DAL data |
-| LENS_DESIGN.md (LENS-FORM) | `studies/lenses/form/LENS_DESIGN.md` | Study design for rolling output and attacking threat signals | LENS-FORM execution |
-| LENS_DESIGN.md (LENS-MARKET) | `studies/lenses/market/LENS_DESIGN.md` | Study design for transfer and ownership signals | LENS-MARKET execution |
-| LENS_DESIGN.md (LENS-FIXTURE-GW) | `studies/lenses/fixture_gw/LENS_DESIGN.md` | Study design for single-gameweek fixture difficulty signals | LENS-FIXTURE-GW execution |
-| LENS_DESIGN.md (LENS-AVAIL) | `studies/lenses/avail/LENS_DESIGN.md` | Study design for minutes consistency and trend signals | LENS-AVAIL execution |
+| LENS_DESIGN.md (LENS-FORM) | `research/families/form/LENS_DESIGN.md` | Study design for rolling output and attacking threat signals | LENS-FORM execution |
+| LENS_DESIGN.md (LENS-MARKET) | `research/families/market/LENS_DESIGN.md` | Study design for transfer and ownership signals | LENS-MARKET execution |
+| LENS_DESIGN.md (LENS-FIXTURE-GW) | `research/families/fixture/LENS_DESIGN.md` | Study design for single-gameweek fixture difficulty signals | LENS-FIXTURE-GW execution |
+| LENS_DESIGN.md (LENS-AVAIL) | `research/families/availability/LENS_DESIGN.md` | Study design for minutes consistency and trend signals | LENS-AVAIL execution |
 
 ---
 
@@ -120,7 +121,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 | DAL layer | COMPLETE | fct/feat/mart restructure complete; Pandera FEAT_SCHEMA; pipeline run/load separation; 928 tests |
 | domain/ | COMPLETE | FPL scoring rules as typed constants with VERIFIED/UNVERIFIED annotations |
 | population/ | COMPLETE | Named population filters: filter_performance (≥60 min), filter_participation (≥1 min) |
-| System EDA | COMPLETE | Governed registry is the authoritative output. Gate decisions in `studies/eda/findings/EDA_FINDINGS.md` |
+| System EDA | COMPLETE | Governed registry is the authoritative output. Gate decisions in `research/findings/FINDINGS.md` |
 | LENS-FORM | COMPLETE | Approved: xgi_roll3 (DEF), xgi_roll5 (DEF, MID). Records in `signals/governance/evaluation_metadata.yaml` |
 | LENS-MARKET | COMPLETE | Approved: transfers_in (DEF, MID), purchase_price (DEF, FWD†), ownership_count (MID). Records in `evaluation_metadata.yaml` |
 | LENS-FIXTURE-GW | COMPLETE | fdr_avg excluded (non-monotonic); reserved as binary moderator. Records in `evaluation_metadata.yaml` |
@@ -158,7 +159,7 @@ studies for the governance closure).
 
 **Next concrete action: Phase 1 of `docs/implementation-plan.md` — mode tags.**
 Add the ADLC §3 header block (question · mode · stage · status · population) to every study in
-`studies/` and every notebook in `studies/eda/`, sourcing each file's mode/stage/status from the
+`research/` and every notebook in `research/foundation/`, sourcing each file's mode/stage/status from the
 ADLC §4 audit table. It is mechanical, zero-logic, and the highest-value/lowest-cost change — and
 it unblocks the decision-slug log (Phase 2) and everything after it.
 

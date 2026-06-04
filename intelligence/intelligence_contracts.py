@@ -3,7 +3,7 @@
 All intelligence outputs consume only:
 - DAL mart (via dal.pipeline.load().mart)
 
-Research artifacts (studies/eda/, exploratory registries) must not enter here.
+Research artifacts (research/findings/, exploratory registries) must not enter here.
 """
 
 from __future__ import annotations

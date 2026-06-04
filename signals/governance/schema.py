@@ -20,7 +20,7 @@ PROMOTION_CLASS_VALUES: frozenset[str] = frozenset(
 
 # Research-only: the authoritative system EDA output. Not for operational consumers.
 # Operational consumers (scorer, report runner) must use registries from OPERATIONAL_REGISTRY_DIR.
-RESEARCH_REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
+RESEARCH_REGISTRY_PATH = Path("research/findings/records/eda_03_joint_registry.csv")
 
 # Operational: canonical destination for lifecycle-promoted registry artifacts.
 OPERATIONAL_REGISTRY_DIR = Path("outputs/registry")

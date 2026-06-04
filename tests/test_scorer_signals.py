@@ -13,7 +13,7 @@ from signals.governance.schema import GovernanceMetadataError
 
 pytestmark = pytest.mark.unit
 
-REGISTRY_PATH = Path("studies/eda/findings/eda_03_joint_registry.csv")
+REGISTRY_PATH = Path("research/findings/records/eda_03_joint_registry.csv")
 
 _SCORING_CLASSES = frozenset({"core_signal", "review_signal"})
 _LEAKAGE_SIGNALS = {"bonus"}  # points_component layer_role

@@ -43,7 +43,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-exclude = ["studies/", "archive/", "examples/", "*.ipynb"]
+exclude = ["archive/", "examples/", "*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "RUF"]

@@ -40,7 +40,7 @@ def load_registry(
     """Load a registry CSV and normalize dtypes for downstream use.
 
     When operational=True, asserts the path is a promoted operational artifact
-    (not an exploratory studies/eda/ output) before reading.
+    (not an exploratory research/findings/ output) before reading.
     """
     registry_path = Path(path)
     if operational:

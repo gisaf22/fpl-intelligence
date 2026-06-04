@@ -4,7 +4,7 @@
 **Locked:** 2026-05-22  
 **Governed by:** `signals/evaluation/EVAL_DESIGN.md` v1.5  
 **Registry:** `signals/registry/SIGNAL_REGISTRY.md` v1.3 (AVAIL-001 through AVAIL-003)  
-**EDA basis:** `studies/eda/findings/EDA_FINDINGS.md`
+**EDA basis:** `research/findings/FINDINGS.md`
 
 ---
 

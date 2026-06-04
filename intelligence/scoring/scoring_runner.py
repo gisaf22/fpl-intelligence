@@ -86,7 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help=(
             "Registry CSV path. Must be a lifecycle-promoted registry from "
-            "outputs/registry/, not an exploratory artifact from studies/eda/."
+            "outputs/registry/, not an exploratory artifact from research/findings/."
         ),
     )
     return parser

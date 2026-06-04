@@ -22,7 +22,7 @@ from scipy.stats import spearmanr
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 
-RUNS_DIR = Path("studies/runs")
+RUNS_DIR = Path("research/runs")
 
 # LENS_DESIGN.md §2 — registered signals, valid positions, GW lower bounds
 # Position label from DAL is 'GKP', not 'GK'

@@ -300,7 +300,7 @@ class TestAlgebraicDecompositions:
             assert isinstance(comp_b, str)
 
     def test_referenced_signals_exist_in_governed_set(self):
-        from signals.characterisation.population import REGISTRY_BUILD_INPUT_COLUMNS
+        from domain.registry_signals import REGISTRY_BUILD_INPUT_COLUMNS
 
         governed = set(REGISTRY_BUILD_INPUT_COLUMNS)
         for derived, comp_a, comp_b in ALGEBRAIC_DECOMPOSITIONS:

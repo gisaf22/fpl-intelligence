@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from signals.governance.schema import RESEARCH_REGISTRY_PATH
+from domain.registry.schema import RESEARCH_REGISTRY_PATH
 
 DEFAULT_REGISTRY_BUILD_OUTPUT_ROOT = Path(__file__).parent.parent.parent / "outputs/registry"
 

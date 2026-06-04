@@ -8,7 +8,7 @@ from typing import Any
 
 import pandas as pd
 
-from signals.characterisation.config import REGISTRY_VERSION, SCHEMA_VERSION
+from research.registry.config import REGISTRY_VERSION, SCHEMA_VERSION
 
 
 def build_registry_metadata(

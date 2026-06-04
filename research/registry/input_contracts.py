@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from signals.governance.schema import POPULATION_SCOPE_VALUES, POSITION_VALUES
+from domain.registry.schema import POPULATION_SCOPE_VALUES, POSITION_VALUES
 
 
 @dataclass(frozen=True)

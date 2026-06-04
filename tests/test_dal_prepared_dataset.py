@@ -7,8 +7,8 @@ import pytest
 
 from dal.mart import POSITION_CODE_MAP
 from domain.fpl_scoring import CLEAN_SHEET_MIN_MINUTES
-from signals.characterisation.population import REGISTRY_BUILD_INPUT_COLUMNS
-from signals.characterisation.population_builder import _build_registry_population as build_prepared_dataset
+from domain.registry_signals import REGISTRY_BUILD_INPUT_COLUMNS
+from research.registry.population_builder import _build_registry_population as build_prepared_dataset
 
 pytestmark = pytest.mark.unit
 

@@ -6,8 +6,9 @@ import pandas as pd
 
 from dal.mart import POSITION_CODE_MAP
 from domain.fpl_scoring import CLEAN_SHEET_MIN_MINUTES
+from domain.registry.population import OUTPUT_COLUMNS
+from domain.registry_signals import REGISTRY_BUILD_INPUT_COLUMNS
 from population.populations import filter_performance
-from signals.characterisation.population import OUTPUT_COLUMNS, REGISTRY_BUILD_INPUT_COLUMNS
 
 
 def _build_registry_population(

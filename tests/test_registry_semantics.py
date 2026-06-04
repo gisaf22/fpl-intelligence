@@ -1,12 +1,9 @@
 import pandas as pd
 import pytest
 
-from signals.governance import (
-    enrich_signal_layers,
-    load_registry,
-    validate_registry_contract,
-)
-from signals.governance.promotion import enrich_promotion_class
+from research.registry.promotion import enrich_promotion_class
+from research.registry.semantics import enrich_signal_layers
+from signals.governance import load_registry, validate_registry_contract
 
 pytestmark = pytest.mark.unit
 

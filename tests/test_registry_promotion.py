@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from signals.governance.promotion import assign_promotion_class
+from research.registry.promotion import assign_promotion_class
 from signals.governance.schema import PROMOTION_CLASS_VALUES
 from signals.governance.schema import RESEARCH_REGISTRY_PATH as DEFAULT_REGISTRY_PATH
 

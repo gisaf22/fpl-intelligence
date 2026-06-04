@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from intelligence.reporting.weekly_report_runner import run_week
-from signals.characterisation.registry_build_runner import main, run_registry_build
+from research.registry.build import main, run_registry_build
 from signals.governance import load_registry, validate_registry_contract
 
 pytestmark = pytest.mark.unit

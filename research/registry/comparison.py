@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from signals.governance.schema import PRIMARY_KEY_COLUMNS, REQUIRED_COLUMNS
+from domain.registry.schema import PRIMARY_KEY_COLUMNS, REQUIRED_COLUMNS
 
 COMPARISON_COLUMNS: tuple[str, ...] = (
     "change_type",

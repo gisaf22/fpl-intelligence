@@ -1,11 +1,11 @@
 import pandas as pd
 import pytest
 
-from model.governance.registry_sections import SectionBuildConfig, compute_relationship_sections
+from research.kernels.association import assign_association_class, consolidate_flags
 from research.kernels.correlation.panel import decompose_rho
 from research.kernels.correlation.tail import haul_concentration
-from signals.characterisation.association import assign_association_class, consolidate_flags
-from signals.characterisation.registry_assembler import assemble_registry_from_sections
+from research.registry.assembler import assemble_registry_from_sections
+from research.registry.sections import SectionBuildConfig, compute_relationship_sections
 from signals.governance import validate_registry_contract
 
 pytestmark = pytest.mark.unit

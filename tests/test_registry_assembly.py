@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from signals.characterisation.registry_assembler import assemble_registry_from_sections
+from research.registry.assembler import assemble_registry_from_sections
 from signals.governance import load_registry, validate_registry_contract
 
 pytestmark = pytest.mark.unit

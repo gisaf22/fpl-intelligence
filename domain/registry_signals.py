@@ -1,4 +1,10 @@
-"""Registry population constants: position map, signal list, and output schema."""
+"""Registry-build signal set — the controlled list of signals the registry characterizes.
+
+The vocabulary of *which* signals the registry build consumes is ontology, not
+construction, so it lives in ``domain/`` (the shared leaf). ``research`` builds
+the finding from this set; the prepared-dataset output schema that wraps it is
+``domain.registry.population.OUTPUT_COLUMNS``.
+"""
 
 from __future__ import annotations
 
@@ -29,12 +35,4 @@ REGISTRY_BUILD_INPUT_COLUMNS: tuple[str, ...] = (
     "purchase_price",
     "transfers_in",
     "transfers_out",
-)
-
-OUTPUT_COLUMNS: tuple[str, ...] = (
-    "player_id",
-    "gw",
-    "position",
-    *REGISTRY_BUILD_INPUT_COLUMNS,
-    "total_points",
 )

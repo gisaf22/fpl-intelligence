@@ -1,4 +1,10 @@
-"""CLI entry point for creating governed registry build artifacts."""
+"""CLI entry point for building the registry finding.
+
+Research builds the finding and writes it to an exploratory research location
+(under research/findings/). It stops there — it does not validate the contract
+or publish to outputs/registry/. Promotion (validate + lifecycle gate + publish)
+is a governance concern: see ``model.governance.promote``.
+"""
 
 from __future__ import annotations
 
@@ -10,13 +16,12 @@ from pathlib import Path
 import pandas as pd
 
 from domain.registry.loader import load_registry
-from domain.registry.validation import validate_registry_contract
 from research.registry.assembler import assemble_registry_from_sections
 from research.registry.comparison import compare_registries
 from research.registry.config import (
     DEFAULT_SOURCE_REGISTRY_PATH,
     assign_gw_block,
-    default_registry_output_dir,
+    default_finding_output_dir,
 )
 from research.registry.input_contracts import validate_prepared_dataset
 from research.registry.metadata import build_registry_metadata
@@ -27,15 +32,20 @@ BUILD_MODES: tuple[str, ...] = ("packaged", "computed")
 
 @dataclass(frozen=True)
 class RegistryBuildResult:
-    """Output locations and counts from one registry build."""
+    """Finding locations and counts from one registry build.
+
+    ``finding_path`` points at an exploratory research artifact (under
+    research/findings/). It is not operationally consumable until promoted by
+    ``model.governance.promote``.
+    """
 
     gw: int
     data_cutoff_gw: int
     build_mode: str
     source_registry_path: Path
     source_dataset_path: Path
-    output_dir: Path
-    registry_path: Path
+    finding_dir: Path
+    finding_path: Path
     metadata_path: Path
     comparison_path: Path | None
     n_rows: int
@@ -97,7 +107,7 @@ def _build_computed_registry(
 def run_registry_build(
     gw: int,
     source_registry_path: str | Path = DEFAULT_SOURCE_REGISTRY_PATH,
-    output_dir: str | Path | None = None,
+    finding_dir: str | Path | None = None,
     data_cutoff_gw: int | None = None,
     build_mode: str = "packaged",
     prepared_data_path: str | Path | None = None,
@@ -106,7 +116,12 @@ def run_registry_build(
     compare_registry_path: str | Path | None = None,
     n_bootstrap: int = 200,
 ) -> RegistryBuildResult:
-    """Create a validated, gameweek-scoped registry artifact."""
+    """Build the gameweek-scoped registry finding and write it to research/findings/.
+
+    This stops at the finding: it does not validate the registry contract or
+    publish to outputs/registry/. Promotion is a governance concern — call
+    ``model.governance.promote.promote_registry`` on the finding artifact.
+    """
     if gw <= 0:
         raise ValueError(f"gw must be positive, got {gw}")
     if build_mode not in BUILD_MODES:
@@ -119,7 +134,7 @@ def run_registry_build(
         raise ValueError(f"data_cutoff_gw cannot be greater than gw: {cutoff} > {gw}")
 
     source_path = Path(source_registry_path)
-    target_dir = Path(output_dir) if output_dir is not None else default_registry_output_dir(gw)
+    target_dir = Path(finding_dir) if finding_dir is not None else default_finding_output_dir(gw)
 
     source_dataset_path = source_path
     comparison_summary: dict[str, int] | None = None
@@ -139,13 +154,11 @@ def run_registry_build(
             n_bootstrap=n_bootstrap,
         )
 
-    validate_registry_contract(registry)
-
     target_dir.mkdir(parents=True, exist_ok=True)
-    registry_path = target_dir / "registry.csv"
+    finding_path = target_dir / "registry.csv"
     metadata_path = target_dir / "build_metadata.json"
 
-    registry.to_csv(registry_path, index=False)
+    registry.to_csv(finding_path, index=False)
 
     reference_path = (
         Path(compare_registry_path)
@@ -181,8 +194,8 @@ def run_registry_build(
         build_mode=build_mode,
         source_registry_path=source_path,
         source_dataset_path=source_dataset_path,
-        output_dir=target_dir,
-        registry_path=registry_path,
+        finding_dir=target_dir,
+        finding_path=finding_path,
         metadata_path=metadata_path,
         comparison_path=comparison_path,
         n_rows=len(registry),
@@ -191,12 +204,14 @@ def run_registry_build(
 
 def build_parser() -> argparse.ArgumentParser:
     """Build CLI parser for registry build workflow."""
-    parser = argparse.ArgumentParser(description="Create a validated gameweek-scoped registry artifact.")
+    parser = argparse.ArgumentParser(
+        description="Build the gameweek-scoped registry finding (research/findings/). Promote separately."
+    )
     parser.add_argument(
         "--gw",
         type=int,
         required=True,
-        help="Gameweek number for the registry output folder.",
+        help="Gameweek number for the registry finding folder.",
     )
     parser.add_argument(
         "--source-registry-path",
@@ -205,10 +220,10 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Source registry CSV path. Default: {DEFAULT_SOURCE_REGISTRY_PATH}",
     )
     parser.add_argument(
-        "--output-dir",
+        "--finding-dir",
         type=Path,
         default=None,
-        help="Output directory. Default: outputs/registry/gw{gw}",
+        help="Finding output directory. Default: research/findings/registry_builds/gw{gw}",
     )
     parser.add_argument(
         "--data-cutoff-gw",
@@ -261,7 +276,7 @@ def main(argv: list[str] | None = None) -> int:
     result = run_registry_build(
         gw=args.gw,
         source_registry_path=args.source_registry_path,
-        output_dir=args.output_dir,
+        finding_dir=args.finding_dir,
         data_cutoff_gw=args.data_cutoff_gw,
         build_mode=args.mode,
         prepared_data_path=args.prepared_data_path,
@@ -270,15 +285,16 @@ def main(argv: list[str] | None = None) -> int:
         compare_registry_path=args.compare_registry_path,
         n_bootstrap=args.n_bootstrap,
     )
-    print(f"GW{result.gw} registry build complete")
+    print(f"GW{result.gw} registry finding built")
     print(f"  mode:     {result.build_mode}")
     print(f"  source:   {result.source_registry_path}")
     print(f"  dataset:  {result.source_dataset_path}")
     print(f"  rows:     {result.n_rows}")
-    print(f"  registry: {result.registry_path}")
+    print(f"  finding:  {result.finding_path}")
     if result.comparison_path is not None:
         print(f"  compare:  {result.comparison_path}")
     print(f"  metadata: {result.metadata_path}")
+    print("  next:     promote via model.governance.promote to publish to outputs/registry/")
     return 0
 
 

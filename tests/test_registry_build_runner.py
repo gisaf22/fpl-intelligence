@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from intelligence.reporting.weekly_report_runner import run_week
+from model.governance.promote import promote_registry
 from research.registry.build import main, run_registry_build
 from signals.governance import load_registry, validate_registry_contract
 
@@ -32,22 +33,23 @@ def _prepared_relationship_data() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def test_registry_build_writes_valid_registry_and_metadata(tmp_path):
+def test_registry_build_writes_finding_and_metadata(tmp_path):
     result = run_registry_build(
         gw=36,
         source_registry_path=SOURCE_REGISTRY_PATH,
-        output_dir=tmp_path / "gw36",
+        finding_dir=tmp_path / "gw36",
     )
 
     assert result.gw == 36
     assert result.data_cutoff_gw == 36
     assert result.n_rows == 104
-    assert result.registry_path.exists()
-    assert result.registry_path.name == "registry.csv"
+    assert result.finding_path.exists()
+    assert result.finding_path.name == "registry.csv"
     assert result.metadata_path.exists()
 
-    generated = load_registry(result.registry_path)
-    validate_registry_contract(generated)
+    # Build stops at the finding; it does not validate the contract. The finding
+    # is nevertheless well-formed (the seed is valid) — promotion validates it.
+    generated = load_registry(result.finding_path)
     assert len(generated) == 104
 
     metadata = json.loads(result.metadata_path.read_text(encoding="utf-8"))
@@ -64,33 +66,32 @@ def test_registry_build_writes_valid_registry_and_metadata(tmp_path):
     assert metadata["position_count"] == 4
 
 
-def test_registry_build_validates_before_writing_outputs(tmp_path):
+def test_registry_build_does_not_validate_contract(tmp_path):
+    # Build no longer enforces the contract — that is promotion's job. An invalid
+    # source is written to the finding location without raising.
     invalid_registry = tmp_path / "invalid_registry.csv"
-    output_dir = tmp_path / "gw36"
+    pd.read_csv(SOURCE_REGISTRY_PATH).drop(columns=["signal_layer"]).to_csv(invalid_registry, index=False)
 
-    registry = pd.read_csv(SOURCE_REGISTRY_PATH).drop(columns=["signal_layer"])
-    registry.to_csv(invalid_registry, index=False)
+    result = run_registry_build(
+        gw=36,
+        source_registry_path=invalid_registry,
+        finding_dir=tmp_path / "gw36",
+    )
 
-    with pytest.raises(Exception, match="missing required columns"):
-        run_registry_build(
-            gw=36,
-            source_registry_path=invalid_registry,
-            output_dir=output_dir,
-        )
-
-    assert not output_dir.exists()
+    assert result.finding_path.exists()
+    assert "signal_layer" not in pd.read_csv(result.finding_path).columns
 
 
 def test_registry_build_rejects_invalid_gameweek_values(tmp_path):
     with pytest.raises(ValueError, match="gw must be positive"):
-        run_registry_build(gw=0, output_dir=tmp_path)
+        run_registry_build(gw=0, finding_dir=tmp_path)
 
     with pytest.raises(ValueError, match="data_cutoff_gw cannot be greater"):
-        run_registry_build(gw=35, data_cutoff_gw=36, output_dir=tmp_path)
+        run_registry_build(gw=35, data_cutoff_gw=36, finding_dir=tmp_path)
 
 
-def test_registry_build_cli_writes_artifacts(tmp_path, capsys):
-    output_dir = tmp_path / "gw36"
+def test_registry_build_cli_writes_finding_artifacts(tmp_path, capsys):
+    finding_dir = tmp_path / "gw36"
 
     exit_code = main(
         [
@@ -98,33 +99,33 @@ def test_registry_build_cli_writes_artifacts(tmp_path, capsys):
             "36",
             "--source-registry-path",
             str(SOURCE_REGISTRY_PATH),
-            "--output-dir",
-            str(output_dir),
+            "--finding-dir",
+            str(finding_dir),
         ]
     )
 
     captured = capsys.readouterr()
     assert exit_code == 0
-    assert "GW36 registry build complete" in captured.out
-    assert (output_dir / "registry.csv").exists()
-    assert (output_dir / "build_metadata.json").exists()
+    assert "GW36 registry finding built" in captured.out
+    assert (finding_dir / "registry.csv").exists()
+    assert (finding_dir / "build_metadata.json").exists()
 
 
-def test_registry_build_computed_mode_writes_valid_registry_and_comparison(tmp_path):
+def test_registry_build_computed_mode_writes_finding_and_comparison(tmp_path):
     prepared_data_path = tmp_path / "prepared.csv"
     _prepared_relationship_data().to_csv(prepared_data_path, index=False)
 
     result = run_registry_build(
         gw=36,
         source_registry_path=SOURCE_REGISTRY_PATH,
-        output_dir=tmp_path / "gw36",
+        finding_dir=tmp_path / "gw36",
         build_mode="computed",
         prepared_data_path=prepared_data_path,
         signals=["bps"],
         n_bootstrap=0,
     )
 
-    generated = load_registry(result.registry_path)
+    generated = load_registry(result.finding_path)
     validate_registry_contract(generated)
     assert result.build_mode == "computed"
     assert result.source_dataset_path == prepared_data_path
@@ -144,22 +145,30 @@ def test_registry_build_computed_mode_requires_prepared_data_path(tmp_path):
     with pytest.raises(ValueError, match="require prepared_data_path"):
         run_registry_build(
             gw=36,
-            output_dir=tmp_path / "gw36",
+            finding_dir=tmp_path / "gw36",
             build_mode="computed",
             signals=["bps"],
         )
 
 
-def test_weekly_runner_consumes_generated_registry(tmp_path):
+def test_weekly_runner_consumes_promoted_registry(tmp_path):
+    # Full flow: research builds the finding, governance promotes it, then the
+    # operational weekly runner consumes the promoted (operational) registry.
     build_result = run_registry_build(
         gw=36,
         source_registry_path=SOURCE_REGISTRY_PATH,
+        finding_dir=tmp_path / "finding" / "gw36",
+    )
+
+    promotion = promote_registry(
+        finding_path=build_result.finding_path,
+        gw=36,
         output_dir=tmp_path / "registry" / "gw36",
     )
 
     weekly_result = run_week(
         gw=36,
-        registry_path=build_result.registry_path,
+        registry_path=promotion.registry_path,
         output_dir=tmp_path / "weekly" / "gw36",
     )
 

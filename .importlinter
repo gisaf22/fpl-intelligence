@@ -1,6 +1,33 @@
 [importlinter]
 root_packages =
     dal
+    domain
+    population
+    research
+    model
+    signals
+    intelligence
+
+[importlinter:contract:no_domain_to_anything]
+name = Domain is the shared leaf — must import nothing project-internal
+type = forbidden
+source_modules =
+    domain
+forbidden_modules =
+    dal
+    population
+    research
+    model
+    signals
+    intelligence
+
+[importlinter:contract:no_population_to_upper_layers]
+name = Population is shared infra — may import domain only, nothing above
+type = forbidden
+source_modules =
+    population
+forbidden_modules =
+    dal
     research
     model
     signals

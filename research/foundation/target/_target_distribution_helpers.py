@@ -10,7 +10,7 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from studies.kernels.distribution import (
+from research.kernels.distribution import (
     analyze_by_group,
     analyze_data_completeness,
     analyze_dgw_vs_sgw,

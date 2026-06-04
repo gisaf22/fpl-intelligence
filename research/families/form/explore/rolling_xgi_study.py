@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from studies.kernels.metrics import downside_rate, rank_correlation
-from studies.kernels.windows import assert_no_future_leakage, evaluation_gameweeks
+from research.kernels.metrics import downside_rate, rank_correlation
+from research.kernels.windows import assert_no_future_leakage, evaluation_gameweeks
 
 _POSITION_FWD = "FWD"
 _MIN_GW = 6

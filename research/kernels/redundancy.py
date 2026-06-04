@@ -10,11 +10,11 @@ decomposition lists (e.g. known signal identities) as parameters.
 
 from __future__ import annotations
 
+from itertools import combinations
+
 import numpy as np
 import pandas as pd
-from itertools import combinations
 from scipy import stats
-
 
 # Minimum observations required to compute a meaningful correlation.
 MIN_N_FOR_RHO = 30

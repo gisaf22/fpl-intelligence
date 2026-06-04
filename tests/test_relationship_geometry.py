@@ -81,9 +81,9 @@ def test_stability_classify_gap_patterns():
 
 def test_notebook_helper_imports_shared_geometry_functions():
     import research.foundation.joint.association as association
+    import research.kernels.correlation.panel as panel
+    import research.kernels.correlation.tail as tail
     import studies.eda.geometry as geometry
-    import studies.kernels.correlation.panel as panel
-    import studies.kernels.correlation.tail as tail
 
     assert _joint_helpers.select_bucketing_scheme is geometry.select_bucketing_scheme
     assert _joint_helpers.bin_analysis is geometry.bin_analysis

@@ -1,11 +1,11 @@
-"""Tests for studies.kernels.multiplicity (multiple-comparison control)."""
+"""Tests for research.kernels.multiplicity (multiple-comparison control)."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from studies.kernels.multiplicity import benjamini_hochberg, holm_bonferroni
+from research.kernels.multiplicity import benjamini_hochberg, holm_bonferroni
 
 pytestmark = pytest.mark.unit
 

@@ -74,6 +74,8 @@ select = ["E", "F", "I", "UP", "RUF"]
 # intentional `position × lens` labels, `GW a–b` en-dash ranges, and `−` minus signs.
 "research/families/form/explore/minutes_stability_study.py" = ["RUF002", "RUF003"]
 "research/families/form/explore/rolling_xgi_study.py" = ["RUF002"]
+# Kernel: redundancy comment uses an intentional `signal × signal` label.
+"research/kernels/redundancy.py" = ["RUF003"]
 
 [tool.mypy]
 python_version = "3.12"

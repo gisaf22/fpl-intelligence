@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from studies.kernels.stability import (
+from research.kernels.stability import (
     BLOCK_HOMOGENEITY_VALUES,
     EPSILON,
     POOLING_DECISION_VALUES,

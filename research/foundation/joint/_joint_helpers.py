@@ -33,6 +33,8 @@ from typing import Any
 import pandas as pd
 
 from research.foundation.joint.association import assign_association_class, consolidate_flags
+from research.kernels.correlation.panel import decompose_rho
+from research.kernels.correlation.tail import haul_concentration
 from studies.eda.geometry import (
     ASSOCIATION_CLASS_TAXONOMY,
     BLOCK_ORDER,
@@ -74,8 +76,6 @@ from studies.eda.semantics import (
     SIGNAL_LAYER_VALUES,
     enrich_signal_layers,
 )
-from studies.kernels.correlation.panel import decompose_rho
-from studies.kernels.correlation.tail import haul_concentration
 
 
 def validate_registry(registry: pd.DataFrame, expected_n: int) -> list[str]:

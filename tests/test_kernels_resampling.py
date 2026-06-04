@@ -1,11 +1,11 @@
-"""Tests for studies.kernels.resampling (bootstrap CI)."""
+"""Tests for research.kernels.resampling (bootstrap CI)."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from studies.kernels.resampling import MIN_N, bootstrap_spearman_ci
+from research.kernels.resampling import MIN_N, bootstrap_spearman_ci
 
 pytestmark = pytest.mark.unit
 

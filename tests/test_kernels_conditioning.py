@@ -1,4 +1,4 @@
-"""Tests for studies.kernels.conditioning (class-5 heterogeneity kernel)."""
+"""Tests for research.kernels.conditioning (class-5 heterogeneity kernel)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from studies.kernels.conditioning import (
+from research.kernels.conditioning import (
     MIN_N_PER_STRATUM,
     classify_heterogeneity,
     compute_conditional_rho,

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from studies.kernels.redundancy import (
+from research.kernels.redundancy import (
     compute_pairwise_rho,
     compute_partial_rho,
     identify_redundant_pairs,

@@ -26,8 +26,8 @@ from studies.eda.geometry import (
     select_bucketing_scheme,
     stability_classify,
 )
-from studies.kernels.correlation.panel import decompose_rho
-from studies.kernels.correlation.tail import haul_concentration
+from research.kernels.correlation.panel import decompose_rho
+from research.kernels.correlation.tail import haul_concentration
 
 
 def _require_columns(

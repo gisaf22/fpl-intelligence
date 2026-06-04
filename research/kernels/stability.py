@@ -23,10 +23,10 @@ guidance, not statistical claims.
 
 from __future__ import annotations
 
-import numpy as np
-import pandas as pd
 from itertools import combinations
 
+import numpy as np
+import pandas as pd
 
 BLOCK_HOMOGENEITY_VALUES: frozenset[str] = frozenset(
     {"stable", "moderate_shift", "unstable"}

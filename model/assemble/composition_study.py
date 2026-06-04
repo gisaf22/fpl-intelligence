@@ -21,11 +21,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
-from scipy.stats import spearmanr
 from numpy.linalg import lstsq
+from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
+
 OUT_PATH = Path("signals/governance/synth01_decisions.yaml")
 RUNS_DIR = Path("studies/runs")
 
@@ -189,7 +190,7 @@ def _composite_rho(
     data: pd.DataFrame, signals: list[str], weights: dict[str, float], target: str
 ) -> float:
     """Spearman rho of weighted composite against target."""
-    valid = data[signals + [target]].dropna()
+    valid = data[[*signals, target]].dropna()
     if len(valid) < 10:
         return float("nan")
     composite = sum(weights[s] * valid[s] for s in signals)
@@ -332,7 +333,7 @@ def run(db_path: Path = DB_PATH) -> Path:
         gw_min: int = group["gw_min"]
 
         pos_pop = pop[(pop["position_label"] == position) & (pop["gw"] >= gw_min)]
-        valid = pos_pop[signals + [target]].dropna()
+        valid = pos_pop[[*signals, target]].dropna()
         n = len(valid)
 
         print(f"\n{position} × {lens}  (n={n}, gw>={gw_min})")
@@ -363,7 +364,6 @@ def run(db_path: Path = DB_PATH) -> Path:
             weight_cis = _bootstrap_weights(X, y, retained_indices, retained_sigs)
 
         # --- Equal-weight sanity check ---
-        weight_constrained = False
         equal_weight_preferred = False
         if len(retained_sigs) > 1:
             eq_w = {s: 1.0 / len(retained_sigs) for s in retained_sigs}

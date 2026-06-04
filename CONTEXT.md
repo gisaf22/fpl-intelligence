@@ -118,7 +118,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 
 | Layer | Status | Notes |
 |---|---|---|
-| DAL layer | COMPLETE | fct/feat/mart restructure complete; Pandera FEAT_SCHEMA; pipeline run/load separation; 928 tests |
+| DAL layer | COMPLETE | fct/feat/mart restructure complete; Pandera FEAT_SCHEMA; pipeline run/load separation; full unit suite green |
 | domain/ | COMPLETE | FPL scoring rules as typed constants with VERIFIED/UNVERIFIED annotations |
 | population/ | COMPLETE | Named population filters: filter_performance (≥60 min), filter_participation (≥1 min) |
 | System EDA | COMPLETE | Governed registry is the authoritative output. Gate decisions in `research/findings/FINDINGS.md` |
@@ -140,34 +140,27 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 
 ## 6. What is next
 
-**2026/27 season preparation**
+**Research-layer migration: COMPLETE (2026-06-04).** `studies/` was migrated to the object-primary
+topology (`research/` + `model/` + `archive/`, see §3) and deleted. Plan:
+`docs/audit/research_migration_phase5_2026-06-03.md` (fully executed). Composite-key governance
+(ADR-003) and the ADLC lifecycle doc (`docs/architecture/adlc.md`) are in place. Import-linter now
+enforces the research↔model boundary (`model ↛ research.{foundation,families,findings}`, kernels
+exempt). Suite green: ruff, mypy, import-linter, full unit tests.
 
-The 9-phase Operational Convergence Plan and platform evaluation Changes 1–8 are complete. The
-analysis lifecycle is now authored: `docs/architecture/adlc.md` defines the five-stage lifecycle
-(explore → validate → model → serve → monitor), the mode-tag system, and the per-stage test
-contracts. The doc-reconciliation it prescribed has been executed (the drift-cleanup PR merged
-`decision-lifecycle.md` + `operational-flow.md` → `runtime-execution.md`, deleted the broken
-Makefile, and re-pointed inbound links). `adlc.md` is now the sole owner of the word "lifecycle."
+**Immediate:** the migration commits are on local `main` but not yet pushed to `origin`.
 
-**The ADLC-adoption work** — turning the design doc into the repo's actual workflow — is sequenced
-by dependency and risk in `docs/implementation-plan.md` (7 phases + a pending-ADR list). That plan's
-spine is ADLC's own coherence logic: make claims legible → make docs coherent → migrate the
-load-bearing ID codes with a test net under it → close the model-stage governance gap. It is *not*
-the engineering backlog; the bug/CI/study backlog stays in `docs/governance/eng-issues-2026.md` and
-feeds the plan only as supporting prerequisites (CI + a runnable pipeline for the migration; lens
-studies for the governance closure).
+**Deferred next steps (each needs its own scoping before code):**
+- **Full-season study re-open** — targeted re-run of *only* the sample-limited findings (thin
+  FWD/GK sub-populations, end-of-season weeks) now that full 2025-26 data is available; prep for
+  2026/27. Not a wholesale rerun — keep the settled method rules and clean verdicts.
+- **Phase 7 topology consolidation** — fold `signals/` into `model/governance/` and rename
+  `intelligence/ → serve/`. Riskier (governance core, wide consumer surface); needs a dedicated
+  plan doc first.
 
-**Next concrete action: Phase 1 of `docs/implementation-plan.md` — mode tags.**
-Add the ADLC §3 header block (question · mode · stage · status · population) to every study in
-`research/` and every notebook in `research/foundation/`, sourcing each file's mode/stage/status from the
-ADLC §4 audit table. It is mechanical, zero-logic, and the highest-value/lowest-cost change — and
-it unblocks the decision-slug log (Phase 2) and everything after it.
-
-**Parallel hard blockers (engineering backlog, prerequisites for plan Phase 6):** ENG-13 (stale
-`synth01_decisions.yaml` path — hard runtime failure) and ENG-02 (FWD purchase_price reversal live
-in the scorer). These don't block Phase 1 but must clear before the ID-diet code migration.
-
-See `outputs/operational-baseline.md` for Phase 9 validation results and full recommendation list.
+The older engineering / ADLC-adoption backlog (mode tags, ID-diet, model-stage governance gap)
+lives in `docs/implementation-plan.md` and `docs/governance/eng-issues-2026.md`. Known live
+gotcha: the committed `outputs/registry/gw36/registry.csv` is not governance-compliant
+(`purchase_price@GK`), so a full `scoring_runner` CLI run still hard-fails — see ENG-02.
 
 ---
 
@@ -228,7 +221,7 @@ Code-enforced contracts live in `dal/fct/fct_contracts.py` and `dal/feat/feat_co
 | Type | Convention | Examples |
 |---|---|---|
 | Lenses | LENS-[NAME] in uppercase | LENS-FORM, LENS-MARKET, LENS-FIXTURE-GW, LENS-FIXTURE-RUN, LENS-AVAIL, LENS-GK |
-| Signal IDs | [LENS]-[NNN] assigned sequentially | FORM-001, MARKET-001, FIXTURE-001, AVAIL-001 |
+| Signal findings | Composite key `signal@lens:target[#POS]` (ADR-003) — canonical since Phase 6 | `xgi_roll3@form:total_points`, `minutes_roll3@avail:played_next_gw#MID`. Old `[LENS]-[NNN]` codes (FORM-001…) are retired as keys; survive only as narrative |
 | Experiments | EXP-[NAME] in uppercase | EXP-FH-STACK, EXP-FH-PREDICTOR |
 | Engineering issues | ENG-[NN] | ENG-01 (CI), ENG-02 (FWD purchase_price), etc. |
 | DAL layer names | staging, intermediate, fct, feat, mart | dal/staging/, dal/intermediate/, dal/fct/, dal/feat/, dal/mart/ |

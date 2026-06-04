@@ -9,13 +9,10 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from studies.eda.profiling import (
+from research.foundation.signals.profiling import (
     BINARY_SIGNALS,
     POSITION_MAP,
-    compute_block_variance,
-    compute_variance_flags,
 )
-
 
 SIGNAL_FAMILY: dict[str, str] = {
     "minutes":            "exposure",
@@ -110,7 +107,7 @@ def compute_dual_scope_summary(
                     "position":      pos_label,
                     "scope":         scope_name,
                     "signal_family": SIGNAL_FAMILY.get(signal, "unknown"),
-                    "n":             int(len(clean)),
+                    "n":             len(clean),
                     "mean":          round(mean_val, 6),
                     "median":        float(clean.median()),
                     "std":           round(std_val, 6),

@@ -43,7 +43,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-exclude = ["studies/", "archive/", "examples/"]
+exclude = ["studies/", "archive/", "examples/", "*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "RUF"]
@@ -57,6 +57,16 @@ select = ["E", "F", "I", "UP", "RUF"]
 # evidence-rationale strings and `position × lens` group labels that must not be wrapped
 # or transliterated. Matches the studies/ exclusion policy without opening all of model/.
 "model/assemble/composition_study.py" = ["E501", "RUF001", "RUF002", "RUF003"]
+# Foundation EDA helpers (moved from the ruff-excluded studies/ tree). Each carries
+# intentional analytical idioms ruff cannot distinguish from defects:
+#   RUF001/RUF002 — `position × lens` labels + `GW a–b` en-dash ranges in emitted text;
+#   RUF022        — `__all__` deliberately grouped by source module, not globally sorted;
+#   F401          — re-export shim: imports geometry/association/correlation symbols solely to
+#                   re-expose them for notebook + test consumption (see test_relationship_geometry).
+# (pandas `df[df["col"] == True]` boolean-mask filtering is marked inline with `# noqa: E712`.)
+"research/foundation/joint/_joint_helpers.py" = ["RUF001", "F401"]
+"research/foundation/signals/_signal_distribution_helpers.py" = ["RUF001", "RUF022"]
+"research/foundation/scope/population.py" = ["RUF002"]
 
 [tool.mypy]
 python_version = "3.12"

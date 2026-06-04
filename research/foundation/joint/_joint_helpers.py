@@ -32,6 +32,7 @@ from typing import Any
 
 import pandas as pd
 
+from research.foundation.joint.association import assign_association_class, consolidate_flags
 from studies.eda.geometry import (
     ASSOCIATION_CLASS_TAXONOMY,
     BLOCK_ORDER,
@@ -49,9 +50,9 @@ from studies.eda.geometry import (
     MIN_N_PANEL_PLAYERS,
     MIN_N_PER_BIN,
     MIN_N_SHAPE,
-    MONOTONIC_GEOMETRIES,
     MONO_CONF_HIGH,
     MONO_CONF_LOW,
+    MONOTONIC_GEOMETRIES,
     PANEL_CLASS_THRESHOLDS,
     POPULATION_ROBUSTNESS_VALUES,
     POPULATION_SCOPE_VALUES,
@@ -68,14 +69,13 @@ from studies.eda.geometry import (
     select_bucketing_scheme,
     stability_classify,
 )
-from studies.eda.association import assign_association_class, consolidate_flags
-from studies.kernels.correlation.panel import decompose_rho
-from studies.kernels.correlation.tail import haul_concentration
 from studies.eda.semantics import (
     SIGNAL_LAYER_MAPPING,
     SIGNAL_LAYER_VALUES,
     enrich_signal_layers,
 )
+from studies.kernels.correlation.panel import decompose_rho
+from studies.kernels.correlation.tail import haul_concentration
 
 
 def validate_registry(registry: pd.DataFrame, expected_n: int) -> list[str]:
@@ -183,7 +183,7 @@ def validate_registry(registry: pd.DataFrame, expected_n: int) -> list[str]:
         ]
         if not fdr_wrong.empty:
             errors.append(
-                f"C5: FDR signals not using ordinal bucketing: "
+                "C5: FDR signals not using ordinal bucketing: "
                 + fdr_wrong[["signal", "position", "bucketing_scheme"]].to_string(index=False)
             )
 
@@ -287,7 +287,7 @@ def validate_registry(registry: pd.DataFrame, expected_n: int) -> list[str]:
         bad_layers = registry[~registry["signal_layer"].isin(SIGNAL_LAYER_VALUES)]
         if not bad_layers.empty:
             errors.append(
-                f"C13c: unknown signal_layer values: "
+                "C13c: unknown signal_layer values: "
                 + str(sorted(bad_layers["signal_layer"].dropna().unique().tolist()))
             )
 
@@ -487,7 +487,7 @@ def build_findings_template(
         lines.append("")
 
     if "low_confidence" in registry.columns:
-        lc = registry[registry["low_confidence"] == True]
+        lc = registry[registry["low_confidence"] == True]  # noqa: E712
         if not lc.empty:
             lines.append(
                 f"Low monotonicity confidence ({len(lc)} pairs): geometry retained "

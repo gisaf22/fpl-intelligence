@@ -12,7 +12,7 @@ from typing import Any
 
 import pandas as pd
 
-from studies.eda.profiling import (
+from research.foundation.signals.profiling import (
     BINARY_SIGNALS,
     BLOCK_ORDER,
     CATEGORICAL_NEAR_CONSTANT_THRESHOLD,
@@ -34,7 +34,7 @@ from studies.eda.profiling import (
     split_candidate_signals,
     summarize_signals,
 )
-from studies.eda.scoping import (
+from research.foundation.signals.scoping import (
     EXPOSURE_SENSITIVITY_VALUES,
     PREFERRED_POPULATION_VALUES,
     RANK_STABILITY_ROBUST_THRESHOLD,
@@ -152,7 +152,10 @@ def build_eda2_findings_template(
     extreme = zero_mass[zero_mass["annotation"] == "EXTREME_ZERO_MASS"]
     high_zero = zero_mass[zero_mass["annotation"] == "HIGH_ZERO_MASS"]
     for _, row in extreme.iterrows():
-        lines.append(f"  {row['signal']} x {row['position']}: zero_pct={row['zero_pct']:.1f}% -> EXTREME_ZERO_MASS (FLAG)")
+        lines.append(
+            f"  {row['signal']} x {row['position']}: zero_pct={row['zero_pct']:.1f}% "
+            "-> EXTREME_ZERO_MASS (FLAG)"
+        )
     for _, row in high_zero.iterrows():
         lines.append(f"  {row['signal']} x {row['position']}: zero_pct={row['zero_pct']:.1f}% -> HIGH_ZERO_MASS (FLAG)")
     if extreme.empty and high_zero.empty:
@@ -199,7 +202,7 @@ def build_eda2_findings_template(
             )
 
     lines.extend(["", "Q2.6 Redundancy (semantic groups + temporal variants):"])
-    flagged_red = redundancy[redundancy["flag"] == True] if not redundancy.empty else pd.DataFrame()
+    flagged_red = redundancy[redundancy["flag"] == True] if not redundancy.empty else pd.DataFrame()  # noqa: E712
     if flagged_red.empty:
         lines.append("  None above HIGH_REDUNDANCY threshold")
     else:

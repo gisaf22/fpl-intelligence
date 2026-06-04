@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from research.foundation.joint import _joint_helpers
 from studies.eda.geometry import (
     FDR_ORDINAL_BINS,
     FDR_ORDINAL_LABELS,
@@ -10,7 +11,6 @@ from studies.eda.geometry import (
     select_bucketing_scheme,
     stability_classify,
 )
-from studies.eda.notebooks import _joint_helpers
 
 pytestmark = pytest.mark.unit
 
@@ -80,7 +80,7 @@ def test_stability_classify_gap_patterns():
 
 
 def test_notebook_helper_imports_shared_geometry_functions():
-    import studies.eda.association as association
+    import research.foundation.joint.association as association
     import studies.eda.geometry as geometry
     import studies.kernels.correlation.panel as panel
     import studies.kernels.correlation.tail as tail

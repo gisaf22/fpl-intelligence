@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-
 POSITION_MAP = {1: "GK", 2: "DEF", 3: "MID", 4: "FWD"}
 POSITIONS = [1, 2, 3, 4]
 BLOCK_ORDER = ["early", "mid", "late"]
@@ -77,7 +76,7 @@ def summarize_signals(
                 "signal": signal,
                 "position": pos_label,
                 "distribution_type": _classify_distribution_type(signal, pos_label, zero_pct),
-                "n": int(len(clean)),
+                "n": len(clean),
                 "mean": mean_val,
                 "median": float(clean.median()),
                 "p90": float(clean.quantile(0.90)),
@@ -105,7 +104,7 @@ def summarize_signals(
             categorical_rows.append({
                 "signal": signal,
                 "position": POSITION_MAP.get(position, position),
-                "n": int(len(clean)),
+                "n": len(clean),
                 "n_unique": int(clean.nunique()),
                 "mode": mode_value,
                 "top_category_pct": float(value_counts.iloc[0] * 100),
@@ -191,7 +190,7 @@ def compute_block_variance(
                     "block": block_name,
                     "std": float(clean.std()),
                     "mean": float(clean.mean()),
-                    "n": int(len(clean)),
+                    "n": len(clean),
                 })
 
     block_variance = pd.DataFrame(rows)
@@ -318,7 +317,7 @@ def compute_within_group_redundancy(
                 "signal_a": sig_a,
                 "signal_b": sig_b,
                 "position": POSITION_MAP.get(position, position),
-                "n": int(len(pos_df)),
+                "n": len(pos_df),
                 "rho": round(float(rho), 4),
                 "flag": float(rho) >= HIGH_REDUNDANCY_RHO,
             })
@@ -353,7 +352,7 @@ def build_signal_status_table(
         if row["top_category_pct"] >= CATEGORICAL_NEAR_CONSTANT_THRESHOLD:
             add(row["signal"], row["position"], "NEAR_CONSTANT")
 
-    flagged_red = redundancy[redundancy["flag"] == True] if not redundancy.empty else pd.DataFrame()
+    flagged_red = redundancy[redundancy["flag"] == True] if not redundancy.empty else pd.DataFrame()  # noqa: E712
     for _, row in flagged_red.iterrows():
         add(row["signal_a"], row["position"], "HIGH_REDUNDANCY")
         add(row["signal_b"], row["position"], "HIGH_REDUNDANCY")

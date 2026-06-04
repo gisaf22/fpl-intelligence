@@ -7,7 +7,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-
 ROLLING_COLUMNS = [
     "player_id",
     "player_name",
@@ -40,11 +39,11 @@ __all__ = [
     "POSITION_LABELS",
     "ROLLING_COLUMNS",
     "analyze_activity_filter_removal",
+    "build_findings_template",
     "check_activity_filter_gate",
     "check_lag_alignment",
     "check_rolling_windows",
     "select_verification_players",
-    "build_findings_template",
 ]
 
 

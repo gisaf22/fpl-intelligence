@@ -29,6 +29,7 @@ from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
+
 RUNS_DIR = Path("studies/runs")
 
 # EDA_08_DESIGN.md §3 — inherited from EVAL_DESIGN.md v2.2
@@ -224,7 +225,7 @@ def run_8a(state: pd.DataFrame) -> tuple[list[dict], list[dict], dict]:
         b = _correlation_record(block_df, "saves", GKP, block_name, "EDA-8A")
         block_recs.append(b)
 
-    corr_rows = [r for r in ([full_rec] + block_recs) if r]
+    corr_rows = [r for r in [full_rec, *block_recs] if r]
 
     # Gate decisions
     g01: str
@@ -234,7 +235,7 @@ def run_8a(state: pd.DataFrame) -> tuple[list[dict], list[dict], dict]:
         g02 = "ineligible"
     elif full_rec["ci_excludes_zero"]:
         g01 = "informative"
-        stability = _block_stability_count(block_recs)
+        _stability = _block_stability_count(block_recs)
         # Layer 3 eligibility: informative + sparsity acceptable (zero_rate < 0.80)
         if saves_zero_rate < 0.80:
             g02 = "eligible"
@@ -688,12 +689,12 @@ def run(db_path: Path = DB_PATH) -> Path:
     pd.DataFrame(d_haul).to_csv(out_dir / "haul_results.csv", index=False)
 
     # Gate decisions
-    gate_rows = (
-        [c_rec]       # 8C sparsity
-        + [a_gates]   # 8A gates
-        + b_gates     # 8B gates
-        + d_gates     # 8D gates
-    )
+    gate_rows = [
+        c_rec,        # 8C sparsity
+        a_gates,      # 8A gates
+        *b_gates,     # 8B gates
+        *d_gates,     # 8D gates
+    ]
     pd.DataFrame(gate_rows).to_csv(out_dir / "gate_decisions.csv", index=False)
 
     meta = {

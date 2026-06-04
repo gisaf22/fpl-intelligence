@@ -23,7 +23,7 @@ from dal.feat.feat_schema import FEATURE_REGISTRY
 
 pytestmark = pytest.mark.unit
 
-TRACEABILITY_PATH = Path("signals/characterisation/signal_traceability.yaml")
+TRACEABILITY_PATH = Path("model/governance/signal_traceability.yaml")
 EVAL_META_PATH = Path("signals/governance/evaluation_metadata.yaml")
 
 

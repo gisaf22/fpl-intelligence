@@ -1,3 +1,7 @@
+# GENERATED / READ-ONLY — governance lineage projection.
+# A read-only view that projects state owned elsewhere (the decision of record is
+# signals/governance/evaluation_metadata.yaml). Housed in model/governance/ as a
+# lineage projection; do not hand-edit as a source of truth.
 # Signal Traceability Matrix — Machine-Readable
 # Version: 1.1
 # Produced: 2026-06-01

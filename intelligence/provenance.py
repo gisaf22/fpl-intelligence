@@ -20,7 +20,7 @@ import yaml
 
 from intelligence.weight_registry import get_module_weights, get_weight_metadata
 
-_TRACEABILITY_PATH = Path("signals/characterisation/signal_traceability.yaml")
+_TRACEABILITY_PATH = Path("model/governance/signal_traceability.yaml")
 
 # Map from module name → component → list of STATE columns that feed the component.
 # Encodes the computational relationship between weight components and STATE values.

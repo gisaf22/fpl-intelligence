@@ -1,4 +1,10 @@
 # SIGNAL_REGISTRY.md
+
+> **GENERATED / READ-ONLY — governance lineage projection.** A read-only view of
+> signal lifecycle lineage, housed in `model/governance/` as a projection. The
+> decision of record is `signals/governance/evaluation_metadata.yaml`; do not
+> treat this file as the editable source of truth.
+
 # Analytical Methodology — Signal Registry
 
 **Status:** ACTIVE — SYNTH-01 complete; 10 approved, 3 excluded-redundant, 1 FWD single-signal

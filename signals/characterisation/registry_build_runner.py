@@ -67,7 +67,7 @@ def _build_computed_registry(
 ) -> pd.DataFrame:
     import importlib
 
-    _study = importlib.import_module("studies.experiments.registry_sections_study")
+    _study = importlib.import_module("model.governance.registry_sections")
     SectionBuildConfig = _study.SectionBuildConfig
     compute_relationship_sections = _study.compute_relationship_sections
 

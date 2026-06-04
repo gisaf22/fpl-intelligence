@@ -76,6 +76,10 @@ select = ["E", "F", "I", "UP", "RUF"]
 "research/families/form/explore/rolling_xgi_study.py" = ["RUF002"]
 # Kernel: redundancy comment uses an intentional `signal × signal` label.
 "research/kernels/redundancy.py" = ["RUF003"]
+# Canonical signal-layer vocabulary (hoisted verbatim from the ruff-excluded studies/ tree):
+#   RUF001 — `transfers_in − transfers_out` uses an intentional `−` minus sign in a caveat string;
+#   E501   — that caveat string exceeds 120 chars by design and must not be wrapped/transliterated.
+"domain/signal_layers.py" = ["RUF001", "E501"]
 
 [tool.mypy]
 python_version = "3.12"

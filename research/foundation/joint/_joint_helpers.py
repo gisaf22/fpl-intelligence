@@ -32,10 +32,14 @@ from typing import Any
 
 import pandas as pd
 
+from domain.signal_layers import (
+    SIGNAL_LAYER_MAPPING,
+    SIGNAL_LAYER_VALUES,
+)
 from research.foundation.joint.association import assign_association_class, consolidate_flags
 from research.kernels.correlation.panel import decompose_rho
 from research.kernels.correlation.tail import haul_concentration
-from studies.eda.geometry import (
+from research.kernels.geometry import (
     ASSOCIATION_CLASS_TAXONOMY,
     BLOCK_ORDER,
     DISCRETE_BINS,
@@ -70,11 +74,6 @@ from studies.eda.geometry import (
     monotonicity_confidence,
     select_bucketing_scheme,
     stability_classify,
-)
-from studies.eda.semantics import (
-    SIGNAL_LAYER_MAPPING,
-    SIGNAL_LAYER_VALUES,
-    enrich_signal_layers,
 )
 
 

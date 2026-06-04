@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from research.foundation.joint import _joint_helpers
-from studies.eda.geometry import (
+from research.kernels.geometry import (
     FDR_ORDINAL_BINS,
     FDR_ORDINAL_LABELS,
     bin_analysis,
@@ -83,7 +83,7 @@ def test_notebook_helper_imports_shared_geometry_functions():
     import research.foundation.joint.association as association
     import research.kernels.correlation.panel as panel
     import research.kernels.correlation.tail as tail
-    import studies.eda.geometry as geometry
+    import research.kernels.geometry as geometry
 
     assert _joint_helpers.select_bucketing_scheme is geometry.select_bucketing_scheme
     assert _joint_helpers.bin_analysis is geometry.bin_analysis

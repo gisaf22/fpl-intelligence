@@ -7,18 +7,20 @@ Not a §4 audit row — supports the explore-stage registry build.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 import numpy as np
 import pandas as pd
 
-from studies.eda.geometry import (
+from research.kernels.correlation.panel import decompose_rho
+from research.kernels.correlation.tail import haul_concentration
+from research.kernels.geometry import (
     BLOCK_ORDER,
     MATCH_LEVEL_SIGNALS,
-    MONOTONIC_GEOMETRIES,
     MONO_CONF_HIGH,
     MONO_CONF_LOW,
+    MONOTONIC_GEOMETRIES,
     POSITIONS,
     bin_analysis,
     classify_geometry,
@@ -26,8 +28,6 @@ from studies.eda.geometry import (
     select_bucketing_scheme,
     stability_classify,
 )
-from research.kernels.correlation.panel import decompose_rho
-from research.kernels.correlation.tail import haul_concentration
 
 
 def _require_columns(
@@ -124,7 +124,7 @@ def _geometry_row(
     subset = data[data[config.position_column] == position][
         [signal, config.target_column]
     ].dropna()
-    n_records = int(len(subset))
+    n_records = len(subset)
     zero_fraction = (
         round(float((subset[signal].astype(float) == 0).mean()), 3)
         if n_records

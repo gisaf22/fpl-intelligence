@@ -11,7 +11,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-
 # --- inlined from signals.governance.schema ---
 MATCH_LEVEL_SIGNALS: frozenset[str] = frozenset(
     {

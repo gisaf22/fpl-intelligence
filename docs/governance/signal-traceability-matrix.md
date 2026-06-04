@@ -136,7 +136,7 @@ Coverage includes:
 
 ## STATE-Governed Extension
 
-The following columns are in `_GOVERNED_ROLLING_COLS` but were not evaluated via a named lens study. They were approved via LENS-FORM team context studies (EDA findings) or editorial governance decisions. Individual rho values reside in `studies/runs/` CSVs rather than `evaluation_metadata.yaml`.
+The following columns are in `_GOVERNED_ROLLING_COLS` but were not evaluated via a named lens study. They were approved via LENS-FORM team context studies (EDA findings) or editorial governance decisions. Individual rho values reside in `research/runs/` CSVs rather than `evaluation_metadata.yaml`.
 
 ### Defensive Signals (DEF/GK scope only)
 

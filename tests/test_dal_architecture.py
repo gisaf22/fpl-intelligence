@@ -27,10 +27,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DAL_ROOT = REPO_ROOT / "dal"
 INTELLIGENCE_ROOT = REPO_ROOT / "intelligence"
 
-# Research-layer namespaces the runtime must never import. The layer is mid-migration
-# from `studies/` to `research/` (see docs/audit/research_migration_phase5_*.md); both
-# names are forbidden during the transition window. PR 4c flips this to ("research",).
-RESEARCH_NAMESPACES = ("studies", "research")
+# Research-layer namespaces the runtime must never import. The studies→research module
+# migration is complete (see docs/audit/research_migration_phase5_*.md); no production
+# code imports `studies.*` any longer, so the guard is narrowed to the live namespace.
+# (The deferred seed CSV at studies/eda/findings/ is a path string, not an import, and is
+# handled separately in PR 4d.)
+RESEARCH_NAMESPACES = ("research",)
 
 
 def _python_files(root: Path) -> list[Path]:
@@ -110,9 +112,8 @@ def test_intelligence_does_not_import_studies() -> None:
     """Intelligence layer must not import from the research layer.
 
     Runtime scoring consumes registry-approved signals only. Research modules
-    (studies/ → research/) are analytical artifacts — importing them into
-    intelligence/ couples runtime behavior to experimental code paths. Both
-    namespaces are checked during the studies→research migration window.
+    (now under research/) are analytical artifacts — importing them into
+    intelligence/ couples runtime behavior to experimental code paths.
     """
     violations: list[str] = []
     for path in _python_files(INTELLIGENCE_ROOT):

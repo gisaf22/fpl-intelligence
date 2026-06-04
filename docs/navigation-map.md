@@ -7,11 +7,12 @@
 
 ## Quick orientation
 
-fpl-intelligence is a governed analytical system for Fantasy Premier League. It has four layers:
+fpl-intelligence is a governed analytical system for Fantasy Premier League. Its core layers:
 
 ```
 dal/          → validated, deterministic (player_id, gw) spine
-studies/      → analytical methodology: EDA, lenses, statistical kernels
+research/     → analytical methodology: foundation EDA, family lenses, statistical kernels
+model/        → registry build / governance vocab (governance) + composition weights (assemble)
 signals/      → signal lifecycle governance and registry build pipeline
 intelligence/ → player scoring and weekly reporting
 ```

@@ -56,23 +56,23 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 
 ---
 
-### Studies (`studies/`)
+### Research (`research/`)
 
-**Owns:** Analytical measurement of DAL data — one-time EDA, per-group lens studies, statistical kernels, synthesis experiments, backtesting.
+**Owns:** Analytical measurement of DAL data — cross-signal foundation EDA, per-family explore/validate studies, statistical kernels, durable findings.
 
 | Sub-directory | Concern |
 |---|---|
-| `studies/eda/` | One-time characterisation of the full dataset — gates all lens work; closed and non-repeatable |
-| `studies/lenses/` | Per-signal-group characterisation studies (LENS-FORM, LENS-MARKET, LENS-FIXTURE-GW, LENS-AVAIL) |
-| `studies/kernels/` | Domain-agnostic statistical utilities — no FPL constants, no governance imports |
-| `studies/experiments/` | Backtesting simulations (EXP-FH-STACK, EXP-FH-PREDICTOR) |
-| `studies/synthesis/` | Signal combination study (SYNTH-01) |
+| `research/foundation/<stage>/` | One-time cross-signal characterisation of the full dataset — gates all family work; closed and non-repeatable |
+| `research/families/<f>/validate/` | Per-family confirmatory lens studies (form, market, fixture, availability) |
+| `research/families/<f>/explore/` | Per-family hypothesis-generation studies (below the firewall) |
+| `research/kernels/` | Domain-agnostic statistical utilities — no FPL constants, no governance imports |
+| `research/findings/` | Durable verdict-of-record — the sole governance handoff |
 
-**Does not own:** Signal lifecycle status (owned by `signals/`), DAL transformations, operational scoring.
+**Does not own:** Signal lifecycle status (owned by `signals/`), DAL transformations, operational scoring, registry build / governance vocab (owned by `model/governance/`), composition/weighting (owned by `model/assemble/`).
 
-**Contract:** Studies write results to files (`studies/runs/`, `outputs/`). No downstream layer imports from `studies.*` as Python modules — all cross-layer consumption is file-based. Every lens study must have a locked `LENS_DESIGN.md` before any code runs.
+**Contract:** Research writes results to files (`research/runs/`, `outputs/`). No downstream layer imports from `research.*` as Python modules — all cross-layer consumption is file-based via `research/findings/`. Every validate study must have a locked `LENS_DESIGN.md` before any code runs.
 
-**Consumers:** `signals/characterisation/` ingests study artifacts. `intelligence/` does not consume study outputs directly.
+**Consumers:** `signals/characterisation/` ingests research artifacts. `intelligence/` does not consume research outputs directly.
 
 ---
 
@@ -121,9 +121,9 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 | Rolling/lag feature derivation | `dal/feat/` |
 | Governed analytical output (mart) | `dal/mart/` |
 | Validation assertions | `dal/validation/` |
-| Dataset-level signal characterisation | `studies/eda/` |
-| Per-group signal methodology and results | `studies/lenses/` |
-| Domain-agnostic statistical utilities | `studies/kernels/` |
+| Dataset-level signal characterisation | `research/foundation/` |
+| Per-family signal methodology and results | `research/families/<f>/validate/` |
+| Domain-agnostic statistical utilities | `research/kernels/` |
 | Signal lifecycle status | `signals/governance/SIGNAL_REGISTRY.md` |
 | Lifecycle gate enforcement | `signals/governance/lifecycle.py` |
 | Registry artifact assembly | `signals/characterisation/registry_build_runner.py` |
@@ -140,7 +140,7 @@ No two components share ownership of any row in this table. If a proposed change
 
 **Single canonical base table.** The mart layer output (`dal.pipeline.load`) is the only permitted source for all downstream analytics. Using intermediate-layer, fixture-grain, or raw fct/feat data to compute GW-level targets is a contract violation.
 
-**Studies do not define signals.** Classification, lifecycle assignment, and signal IDs are determined by the study that produces the evidence and stored in the registry. Studies write artifacts; `signals/characterisation/` ingests them.
+**Research does not define signals.** Classification, lifecycle assignment, and signal IDs are determined by the study that produces the evidence and stored in the registry. Research writes artifacts; `signals/characterisation/` ingests them.
 
 **Lifecycle gate is path-based.** A registry CSV in `outputs/registry/` is operationally safe. The same content in `studies/eda/findings/` is not — path determines safety, not content. `assert_operational_safe()` enforces this at runtime.
 

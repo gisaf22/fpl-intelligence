@@ -77,11 +77,11 @@ serve's code.
 | Stage | Current folder(s) | One question it answers | Mode(s) | Emits (one artifact type) |
 |---|---|---|---|---|
 | **dal** *(substrate)* | `dal/` | "What is the validated state of every player each GW?" | — | the **mart** |
-| **explore** | `studies/eda/` | "What's in the data — what's worth testing?" | descriptive, diagnostic | **hypotheses** (durable findings; throwaway code) |
-| **validate** | `studies/lenses/`, `studies/experiments/` | "Does this signal actually predict returns?" | predictive, causal | **verdicts** (pre-registered, accept/reject) |
-| **model** | `studies/synthesis/`, `signals/` | "Which signals, at what weights, governed how?" | assemble / govern | **model spec** (the governed ledger) |
+| **explore** | `research/foundation/`, `research/families/<f>/explore/` | "What's in the data — what's worth testing?" | descriptive, diagnostic | **hypotheses** (durable findings; throwaway code) |
+| **validate** | `research/families/<f>/validate/` | "Does this signal actually predict returns?" | predictive, causal | **verdicts** (pre-registered, accept/reject) |
+| **model** | `model/assemble/`, `model/governance/`, `signals/` | "Which signals, at what weights, governed how?" | assemble / govern | **model spec** (the governed ledger) |
 | **serve** | `intelligence/` | "Who do I captain / transfer / hold?" | prescriptive | **recommendations** |
-| **monitor** | `studies/operational/` | "Is the model still right in-season?" | operational | **drift / backtest** (loops to explore) |
+| **monitor** | `archive/monitor/` | "Is the model still right in-season?" | operational | **drift / backtest** (loops to explore) |
 
 The folders do not have to be renamed to adopt this. The **map is the contract**; the rename is
 optional cosmetics that can follow later (§7).
@@ -153,16 +153,16 @@ its mode, its stage, its verdict, and the test contract that guards it.
 
 | # | Analysis (real path) | Mode | Stage | Status | Test contract |
 |---|---|---|---|---|---|
-| A | 60-min **population validity** — `eda_04_population_validity.ipynb` | descriptive/structural | explore | **answered** — filter doesn't distort | framework helpers unit-tested; finding reviewed |
-| B | **rolling xGI as a form signal** — `lenses/form/study.py` (FORM) | predictive | validate | **PARTIAL** — xgi_roll3 (DEF), xgi_roll5 (DEF, MID) approved | study-logic: determinism, leakage, no post-hoc |
-| C | **availability prediction** — `lenses/avail/study.py` (minutes_roll8 → played_next_gw) | predictive | validate | **accepted** — roll8 for DEF/MID | study-logic + lag-1 leakage assertion |
-| D | **minutes-stability conditioning of xGI** — `experiments/minutes_stability_study.py` | predictive/conditioning | validate | **REJECTED** — FRINGE > STABLE | study-logic: 31 tests (the template) |
-| E | **signal integration** — `synthesis/synth01_study.py` | assemble | model | **partially set** — see note | registry contract (weights sum, lifecycle) |
+| A | 60-min **population validity** — `research/foundation/scope/eda_04_population_validity.ipynb` | descriptive/structural | explore | **answered** — filter doesn't distort | framework helpers unit-tested; finding reviewed |
+| B | **rolling xGI as a form signal** — `research/families/form/validate/study.py` (FORM) | predictive | validate | **PARTIAL** — xgi_roll3 (DEF), xgi_roll5 (DEF, MID) approved | study-logic: determinism, leakage, no post-hoc |
+| C | **availability prediction** — `research/families/availability/validate/study.py` (minutes_roll8 → played_next_gw) | predictive | validate | **accepted** — roll8 for DEF/MID | study-logic + lag-1 leakage assertion |
+| D | **minutes-stability conditioning of xGI** — `research/families/form/explore/minutes_stability_study.py` | predictive/conditioning | validate | **REJECTED** — FRINGE > STABLE | study-logic: 31 tests (the template) |
+| E | **signal integration** — `model/assemble/composition_study.py` | assemble | model | **partially set** — see note | registry contract (weights sum, lifecycle) |
 | F | **signal ledger** — `signals/characterisation/` + `signals/governance/weight_registry.yaml` | govern | model | **the ledger** | governance consistency, traceability |
-| G | **60-min boundary** — `eda_pop_boundary_scatter.ipynb` | descriptive | explore | **describes a regime shift** | helpers unit-tested; explicitly NOT causal |
-| — | rolling-xGI window choice — `experiments/rolling_xgi_study.py` | predictive | validate | (window selection) | study-logic + leakage |
-| — | fixture/market lenses — `lenses/fixture_gw/`, `lenses/market/` | predictive | validate | (per verdict) | study-logic |
-| — | season **backtest** — `operational/phase9_backtest.py` | operational | monitor | **design/partial** | the backtest *is* the test artifact |
+| G | **60-min boundary** — `research/foundation/boundary/eda_pop_boundary_scatter.ipynb` | descriptive | explore | **describes a regime shift** | helpers unit-tested; explicitly NOT causal |
+| — | rolling-xGI window choice — `research/families/form/explore/rolling_xgi_study.py` | predictive | validate | (window selection) | study-logic + leakage |
+| — | fixture/market lenses — `research/families/fixture/validate/`, `research/families/market/validate/` | predictive | validate | (per verdict) | study-logic |
+| — | season **backtest** — `archive/monitor/phase9_backtest.py` | operational | monitor | **design/partial** | the backtest *is* the test artifact |
 
 **The arc reads cleanly with no back-references:**
 

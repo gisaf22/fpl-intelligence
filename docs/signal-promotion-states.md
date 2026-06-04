@@ -41,8 +41,8 @@ sense given the data.
 **Expected stability.** None. Findings are provisional and may be revised before any signal
 is named.
 
-**Allowed consumers.** System EDA notebooks only (`studies/eda/`). No lens study, registry
-entry, or code outside EDA may depend on exploratory findings.
+**Allowed consumers.** Foundation EDA notebooks only (`research/foundation/`). No lens study, registry
+entry, or code outside foundation EDA may depend on exploratory findings.
 
 **Promotion criteria.** The system EDA produces a governed signal registry with populated
 `promotion_class` values. This closes the exploratory state. The EDA is non-repeatable; its
@@ -59,8 +59,8 @@ bootstrap confidence intervals across defined analytical scopes.
 **Expected stability.** Low. Methodology is being executed; results are not final. The
 `LENS_DESIGN.md` is locked and cannot be revised once the study has begun producing results.
 
-**Allowed consumers.** The active lens study only (`studies/lenses/[lens-name]/`). No
-synthesis or experiment may consume a signal in investigational status.
+**Allowed consumers.** The active lens study only (`research/families/[family]/validate/`). No
+composition or explore study may consume a signal in investigational status.
 
 **Promotion criteria.** Lens study completes with confirmed methodology and recorded results.
 Signal status in the registry is updated to `candidate` or `excluded` based on the study
@@ -95,7 +95,7 @@ in synthesis (SYNTH-01) and the governed registry builder.
 **Expected stability.** High. The characterisation is fixed. New evidence from future seasons
 may prompt re-evaluation, but validated status within the 2025–26 methodology is stable.
 
-**Allowed consumers.** `studies/synthesis/`, the registry builder
+**Allowed consumers.** `model/assemble/`, the registry builder
 (`signals/characterisation/registry_build_runner.py`), and `signals/characterisation/` for signal
 computation utilities.
 
@@ -124,14 +124,14 @@ intelligence layer. This is the only lifecycle state from which intelligence out
 ### 6. Experimental ML
 
 **Purpose.** A validated or operationalized signal is used as a feature in an ML experiment
-(`studies/experiments/`). This is a parallel track — it does not change the signal's primary
+(`research/families/<f>/explore/`). This is a parallel track — it does not change the signal's primary
 lifecycle status.
 
 **Expected stability.** Experimental. ML experiments are sandboxed. Results inform future
 research directions but do not feed back into the signal registry unless a new lens study
 is initiated.
 
-**Allowed consumers.** `studies/experiments/` only. ML experiment outputs do not become
+**Allowed consumers.** `research/families/<f>/explore/` only. ML experiment outputs do not become
 intelligence inputs without passing through the full lifecycle from `investigational`.
 
 **Promotion criteria.** ML experiments produce findings that may motivate new candidate

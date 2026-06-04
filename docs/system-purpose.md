@@ -108,7 +108,7 @@ A study that fails any gate is rejected, not deferred.
 
 ## Downstream ML position
 
-ML experiments (`studies/experiments/`) sit at the downstream end of the research pipeline.
+ML experiments (`research/families/<f>/explore/`) sit at the downstream end of the research pipeline.
 They consume validated, synthesised signals — they do not define them. This ordering is
 deliberate: ML on unvalidated signals produces results that cannot be diagnosed or improved.
 

@@ -6,7 +6,7 @@
 **Scope:** Per-signal-family rules governing allowed and forbidden representations in STATE
 **Governance framework:** `docs/foundations/representation-governance.md`
 **Behavior profiles:** `docs/foundations/signal-behavior-profiles.yaml`
-**Gate decisions source:** `studies/eda/findings/EDA_FINDINGS.md`
+**Gate decisions source:** `research/findings/FINDINGS.md`
 
 ---
 

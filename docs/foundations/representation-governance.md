@@ -794,7 +794,7 @@ season bias that is invisible without warmup documentation.
 
 - **Ontology YAML** (`docs/foundations/signal-ontology.yaml`) — done; 23 signals classified.
 - **EDA coverage map** with behavioral classifications per signal — in progress; findings
-  accumulated in `studies/eda/findings/` as studies are completed.
+  accumulated in `research/findings/` as studies are completed.
 - **Representation governance document** (this document) — done.
 - **Representation rules per signal family** (`docs/foundations/representation-rules.md`) —
   Phase 3; specifies per-family admissible transform sets and common conditional constraints.

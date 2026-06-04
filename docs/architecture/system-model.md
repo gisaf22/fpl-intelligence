@@ -154,10 +154,10 @@ None of steps 2-5 are implemented yet.
 | `signals/characterisation/registry_build_runner.py` + `registry_assembler.py` | Control | Writes the governed manifest |
 | `signals/characterisation/SIGNAL_REGISTRY.md` | Control | Lifecycle ledger |
 | Static weights in `intelligence/` modules | Control | Explicit scoring configuration |
-| `studies/eda/` | Research methodology | Evidence base for Control Plane; one-time and non-repeatable |
-| `studies/lenses/` | Research methodology | Per-signal characterisation; produces evidence for registry promotion |
-| `studies/kernels/` | Research methodology | Statistical utilities consumed by lens studies |
-| `studies/experiments/` | Emerging Measurement | Backtesting simulations — closest current approximation of Measurement Plane |
+| `research/foundation/` | Research methodology | Evidence base for Control Plane; one-time and non-repeatable |
+| `research/families/<f>/validate/` | Research methodology | Per-family characterisation; produces evidence for registry promotion |
+| `research/kernels/` | Research methodology | Statistical utilities consumed by lens studies |
+| `research/families/<f>/explore/` | Emerging Measurement | Backtesting simulations — closest current approximation of Measurement Plane |
 | `signals/governance/EVAL_DESIGN.md` | Measurement (design only) | Defines success criteria; the contract the Measurement Plane must satisfy |
 | Tests (`tests/`) | Structural validation | Verifies execution correctness — NOT Measurement Plane |
 | Explainability outputs | Execution trace | Enables auditing of scores — NOT Measurement Plane |
@@ -174,7 +174,7 @@ The gap between this system and a fully closed-loop system is the Measurement Pl
 
 These are not bugs. They are the explicit scope boundary for 2025-26, which is the development season. The registry, lifecycle, and evaluation framework are designed so that measurement can be added when real-season outcomes are available.
 
-The existence of `studies/experiments/` (backtesting) represents the first step toward the Measurement Plane — but experiments run against historical data are a proxy, not a substitute.
+The existence of `research/families/<f>/explore/` (backtesting) represents the first step toward the Measurement Plane — but experiments run against historical data are a proxy, not a substitute.
 
 ---
 

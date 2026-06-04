@@ -108,7 +108,7 @@ ML weights are not used for three reasons specific to this system's state:
 
 3. **Weight stability matters for week-to-week decision making.** A player's rank should change because their form changed, not because the model updated its weights. Rho-based weights are stable across the season; ML weights would shift on every retrain.
 
-ML experiments (`studies/experiments/`) are planned as a downstream layer that consumes validated, synthesised signals. ML belongs after the registry is populated — not before.
+ML experiments (`research/families/<f>/explore/`) are planned as a downstream layer that consumes validated, synthesised signals. ML belongs after the registry is populated — not before.
 
 ---
 

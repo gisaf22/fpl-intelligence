@@ -49,7 +49,7 @@ Findings are routed by kind. Use this order; do not choose between artifacts ad 
 1. **Lens verdicts** (`signal@lens:target[#POS]`) → [evaluation_metadata.yaml](../../signals/governance/evaluation_metadata.yaml)
 2. **Composition decisions** (synthesis weights, position-scoped) → [synth01_decisions.yaml](../../signals/governance/synth01_decisions.yaml)
 3. **Narrative verdicts** (one slug per verdict) → [docs/decisions/](../decisions/)
-4. **EDA gate decisions** (admissibility, pre-lens only) → [studies/eda/findings/](../../studies/eda/findings/)
+4. **EDA gate decisions** (admissibility, pre-lens only) → [research/findings/](../../research/findings/)
 
 ---
 

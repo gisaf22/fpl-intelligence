@@ -1,4 +1,10 @@
-"""Typed loader for governed EDA signal registries."""
+"""Governance gate wrapper around the typed registry loader.
+
+The pure typed loader moved to ``domain.registry.loader`` (the shared leaf).
+The operational gate stays here, with governance: when ``operational=True`` the
+path is asserted to be a promoted operational artifact (not an exploratory
+research/findings output) before the typed load is delegated to domain.
+"""
 
 from __future__ import annotations
 
@@ -6,30 +12,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from signals.governance.schema import (
-    BOOLEAN_COLUMNS,
-    INTEGER_COLUMNS,
-    NUMERIC_COLUMNS,
-    RESEARCH_REGISTRY_PATH,
-)
-
-TRUE_VALUES = {"true", "1", "yes", "y"}
-FALSE_VALUES = {"false", "0", "no", "n"}
-
-
-def _coerce_bool(value: object, column: str) -> bool:
-    """Coerce common CSV boolean representations to Python bool."""
-    if isinstance(value, bool):
-        return value
-    if pd.isna(value):
-        raise ValueError(f"{column} contains null boolean value")
-
-    text = str(value).strip().lower()
-    if text in TRUE_VALUES:
-        return True
-    if text in FALSE_VALUES:
-        return False
-    raise ValueError(f"{column} contains invalid boolean value: {value!r}")
+from domain.registry.loader import load_registry as _load_registry_typed
+from domain.registry.schema import RESEARCH_REGISTRY_PATH
 
 
 def load_registry(
@@ -47,21 +31,4 @@ def load_registry(
         from signals.governance.lifecycle import assert_operational_safe
 
         assert_operational_safe(registry_path)
-    registry = pd.read_csv(registry_path, keep_default_na=True)
-
-    for column in BOOLEAN_COLUMNS:
-        if column in registry.columns:
-            registry[column] = [_coerce_bool(value, column) for value in registry[column]]
-
-    for column in INTEGER_COLUMNS:
-        if column in registry.columns:
-            numeric = pd.to_numeric(registry[column], errors="raise")
-            if numeric.isna().any():
-                raise ValueError(f"{column} contains null integer value")
-            registry[column] = numeric.astype("int64")
-
-    for column in NUMERIC_COLUMNS:
-        if column in registry.columns:
-            registry[column] = pd.to_numeric(registry[column], errors="raise")
-
-    return registry
+    return _load_registry_typed(registry_path)

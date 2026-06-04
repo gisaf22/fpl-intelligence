@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from studies.kernels.metrics import rank_correlation, downside_rate, return_variance
+from studies.kernels.metrics import downside_rate, rank_correlation
 from studies.kernels.windows import assert_no_future_leakage, evaluation_gameweeks
 
 _POSITION_FWD = "FWD"

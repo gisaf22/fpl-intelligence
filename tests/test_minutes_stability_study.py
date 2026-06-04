@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from studies.experiments.minutes_stability_study import (
+from research.families.form.explore.minutes_stability_study import (
     _COHORT_FRINGE,
     _COHORT_ROTATION,
     _COHORT_STABLE,

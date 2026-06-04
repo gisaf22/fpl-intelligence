@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from studies.experiments.rolling_xgi_study import (
+from research.families.form.explore.rolling_xgi_study import (
     evaluate_rolling_xgi_horizons,
     interpret_results,
 )

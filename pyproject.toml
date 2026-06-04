@@ -70,6 +70,10 @@ select = ["E", "F", "I", "UP", "RUF"]
 # Lens validate study (moved from studies/lenses/): one-line `Mode · Stage · Status` ADLC
 # header lists every approved signal/position and exceeds 120 chars by design.
 "research/families/market/validate/study.py" = ["E501"]
+# Family explore studies (moved from studies/experiments/): docstrings/comments carry
+# intentional `position × lens` labels, `GW a–b` en-dash ranges, and `−` minus signs.
+"research/families/form/explore/minutes_stability_study.py" = ["RUF002", "RUF003"]
+"research/families/form/explore/rolling_xgi_study.py" = ["RUF002"]
 
 [tool.mypy]
 python_version = "3.12"

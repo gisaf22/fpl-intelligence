@@ -15,7 +15,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from studies.experiments.rolling_xgi_study import (
+from research.families.form.explore.rolling_xgi_study import (
     _add_xgi_lag1,
     _filter_fwd_population,
     evaluate_rolling_xgi_horizons,

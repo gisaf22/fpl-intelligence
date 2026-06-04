@@ -4,7 +4,7 @@ Identifies strong incoming transfer candidates based on rising form, fixture
 context, involvement, and minutes stability. Does not model price movements,
 ownership shifts, or market dynamics.
 
-Weights are loaded from the governance registry (signals/governance/weight_registry.yaml).
+Weights are loaded from the module weight registry (intelligence/weight_registry.yaml).
 
 Scope constraints:
 - xgi_roll3 and xgi_roll5 excluded at FWD (xgi_roll3@form:total_points / xgi_roll5@form:total_points G2-FAIL).

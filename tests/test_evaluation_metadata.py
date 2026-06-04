@@ -212,7 +212,7 @@ def test_block_stability_count_in_range():
 # Phase 4 — Governance Consolidation
 # ---------------------------------------------------------------------------
 
-_SYNTH01_CANDIDATES_PATH = Path("signals/characterisation/synth01_candidates.yaml")
+_SYNTH01_CANDIDATES_PATH = Path("model/assemble/synth01_candidates.yaml")
 
 
 def _load_synth01() -> list[dict]:

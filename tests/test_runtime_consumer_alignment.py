@@ -2,7 +2,7 @@
 
 Verifies that:
 1. No intelligence module contains hardcoded weight values — all weights are
-   loaded from signals/registry/weight_registry.yaml.
+   loaded from intelligence/weight_registry.yaml.
 2. The weight registry loader hard-fails on missing entries.
 3. signals.py lifecycle enforcement raises LifecycleViolationError for excluded signals.
 4. score_provenance() returns a complete audit trail for a synthetic test case.

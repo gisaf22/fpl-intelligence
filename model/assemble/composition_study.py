@@ -10,7 +10,7 @@ same-position × same-lens candidates. Resolves redundancy pairs and
 within-window families via marginal gain test. Derives composition weights
 with bootstrap CIs. Runs FDR moderation sensitivity check.
 
-Output: signals/governance/synth01_decisions.yaml
+Output: model/assemble/synth01_decisions.yaml
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from scipy.stats import spearmanr
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 
-OUT_PATH = Path("signals/governance/synth01_decisions.yaml")
+OUT_PATH = Path("model/assemble/synth01_decisions.yaml")
 RUNS_DIR = Path("research/runs")
 
 N_BOOTSTRAP = 2000
@@ -503,7 +503,7 @@ def run(db_path: Path = DB_PATH) -> Path:
         "version": "synth01",
         "produced": datetime.now().strftime("%Y-%m-%d"),
         "authority": "Operational Convergence Plan Phase 7",
-        "candidate_registry": "signals/characterisation/synth01_candidates.yaml",
+        "candidate_registry": "model/assemble/synth01_candidates.yaml",
         "design_doc": "docs/governance/synth01-design.md",
         "total_decisions": len(all_decisions),
         "approved_count": len(approved),

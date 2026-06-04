@@ -15,7 +15,7 @@ from signals.governance.schema import GovernanceMetadata
 
 pytestmark = pytest.mark.unit
 
-_WEIGHT_REGISTRY_PATH = Path("signals/governance/weight_registry.yaml")
+_WEIGHT_REGISTRY_PATH = Path("intelligence/weight_registry.yaml")
 _TRACEABILITY_PATH = Path("signals/characterisation/signal_traceability.yaml")
 
 

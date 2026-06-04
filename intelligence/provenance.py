@@ -148,7 +148,7 @@ def score_provenance(
             "weight": weight_value,
             "signals": state_cols,
             "state_values": state_values,
-            "registry_source": (f"signals/governance/weight_registry.yaml §modules.{module}.weights.{component}"),
+            "registry_source": (f"intelligence/weight_registry.yaml §modules.{module}.weights.{component}"),
             "signal_id": meta.get("signal_id"),
             "provenance": str(meta.get("note", "")).strip(),
             "caveats": caveats,
@@ -159,6 +159,6 @@ def score_provenance(
         "gw": int(gw),
         "module": module,
         "position": position,
-        "registry_source": (f"signals/governance/weight_registry.yaml §modules.{module}"),
+        "registry_source": (f"intelligence/weight_registry.yaml §modules.{module}"),
         "signals": signals_provenance,
     }

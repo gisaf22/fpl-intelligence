@@ -3,7 +3,7 @@
 Produces a ranked list of captain options for a target gameweek based on
 recent form, attacking involvement, fixture context, and minutes stability.
 
-Weights are loaded from the governance registry (signals/governance/weight_registry.yaml).
+Weights are loaded from the module weight registry (intelligence/weight_registry.yaml).
 
 Scope constraints (validate-stage lens findings + the model-stage synthesis verdict
 set-synth-weights; see docs/decisions/):

@@ -3,7 +3,7 @@
 Surfaces players delivering high point returns relative to their FPL cost.
 Deterministic and price-static — does not forecast price changes.
 
-Weights are loaded from the governance registry (signals/governance/weight_registry.yaml).
+Weights are loaded from the module weight registry (intelligence/weight_registry.yaml).
 
 Scope constraints:
 - xgi_roll3 and xgi_roll5 excluded at FWD (xgi_roll3@form:total_points / xgi_roll5@form:total_points G2-FAIL).

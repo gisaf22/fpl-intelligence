@@ -1,7 +1,7 @@
 version: synth01
 produced: '2026-05-27'
 authority: Operational Convergence Plan Phase 7
-candidate_registry: signals/characterisation/synth01_candidates.yaml
+candidate_registry: model/assemble/synth01_candidates.yaml
 design_doc: docs/governance/synth01-design.md
 total_decisions: 14
 approved_count: 10

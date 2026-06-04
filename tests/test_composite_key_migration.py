@@ -34,7 +34,7 @@ from signals.governance.schema import GovernanceMetadata, GovernanceMetadataErro
 pytestmark = pytest.mark.unit
 
 _EVAL_PATH = Path("signals/governance/evaluation_metadata.yaml")
-_SYNTH_PATH = Path("signals/governance/synth01_decisions.yaml")
+_SYNTH_PATH = Path("model/assemble/synth01_decisions.yaml")
 
 # Lens label -> key token, matching governance._lens_token (lowercase, '-' -> '_').
 # The synth study's target column maps to the finding-key target token.

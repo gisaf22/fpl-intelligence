@@ -13,14 +13,14 @@ lifecycle_state_vocab:
   excluded: Not advancing to synthesis
   not_applicable: Position not studied; excluded by design before lens study ran
   approved: Signal-position pair approved by SYNTH-01 partial rho evaluation. All
-    G-SYNTH1-* decisions recorded in signals/governance/synth01_decisions.yaml.
+    G-SYNTH1-* decisions recorded in model/assemble/synth01_decisions.yaml.
 downstream_status_vocab:
   eligible: Approved for SYNTH-01; no blocking caveats
   caveated: Approved for SYNTH-01 but with a documented constraint (borderline stability,
     naive baseline concern)
   blocked: Not eligible for synthesis or scoring
   approved: SYNTH-01 APPROVED-* decision. Signal may enter operational composition.
-    Weight in synth01_decisions.yaml.
+    Weight in model/assemble/synth01_decisions.yaml.
 leakage_risk_vocab:
   none: No leakage concern
   evaluation_circularity: Signal is a lagged/rolling version of the evaluation target

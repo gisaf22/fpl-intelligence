@@ -12,7 +12,6 @@ by the AVAIL reframing (row C), not here.
 from __future__ import annotations
 
 import json
-
 from datetime import datetime
 from pathlib import Path
 
@@ -22,6 +21,7 @@ from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
+
 RUNS_DIR = Path("studies/runs")
 
 # LENS_DESIGN.md §2 — registered signals, valid positions, GW lower bounds

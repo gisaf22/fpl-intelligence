@@ -1,16 +1,14 @@
-"""Do market signals (transfers, ownership, price) predict returns?
+"""Does single-GW fixture difficulty predict returns?
 
-Mode: predictive · Stage: validate · Status: PARTIAL — transfers_in (DEF, MID), purchase_price (DEF, FWD†), ownership_count (MID) approved
-Population: minutes>=60; lag-1 respected; GW 3-33
+Mode: predictive · Stage: validate · Status: REJECTED — fdr_avg excluded (non-monotonic); reserved as binary moderator
+Population: same-GW target total_points; GW 3-33
 
 ADLC §4 audit (unlettered fixture/market lens row).
-† FWD purchase_price reverses on holdout GW 34-38 — see ENG-02.
 """
 
 from __future__ import annotations
 
 import json
-
 from datetime import datetime
 from pathlib import Path
 
@@ -20,18 +18,20 @@ from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
+
 RUNS_DIR = Path("studies/runs")
 
+# Same-GW signals — no lag shift needed for predictor; target is total_points (same GW)
 SIGNALS: dict[str, dict] = {
-    "transfers_in":      {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
-    "ownership_count":   {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
-    "purchase_price":    {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
+    "fdr_avg":       {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
+    "was_home":      {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
+    "fixture_count": {"positions": ["DEF", "MID"], "gw_min": 3},   # FWD/GKP blocked in EDA
 }
 
 SIGNAL_IDS: dict[str, str] = {
-    "transfers_in":      "MARKET-001",
-    "ownership_count":   "MARKET-003",
-    "purchase_price":    "MARKET-004",
+    "fdr_avg":       "FIXTURE-001",
+    "was_home":      "FIXTURE-002",
+    "fixture_count": "FIXTURE-003",
 }
 
 MINUTES_THRESHOLD = 60
@@ -57,10 +57,10 @@ def _bootstrap_spearman_ci(x, y, n_samples, seed):
 
 
 def _correlation_record(df, signal, signal_id, position, block):
-    valid = df[[signal, "total_points_next_gw"]].dropna()
+    valid = df[[signal, "total_points"]].dropna()
     if len(valid) < 10:
         return None
-    x, y = valid[signal].to_numpy(), valid["total_points_next_gw"].to_numpy()
+    x, y = valid[signal].to_numpy(), valid["total_points"].to_numpy()
     rho, ci_lo, ci_hi = _bootstrap_spearman_ci(x, y, N_BOOTSTRAP, BOOTSTRAP_SEED)
     return {
         "signal_id": signal_id, "signal": signal, "position": position, "block": block,
@@ -70,25 +70,29 @@ def _correlation_record(df, signal, signal_id, position, block):
 
 
 def _quintile_record(df, signal, signal_id, position, block):
-    valid = df[[signal, "total_points_next_gw"]].dropna()
+    valid = df[[signal, "total_points"]].dropna()
     if len(valid) < 25:
         return None
     try:
         ranked = valid.copy()
         ranked["quintile"] = pd.qcut(ranked[signal].rank(method="first"), 5, labels=["Q1","Q2","Q3","Q4","Q5"])
-        means_s = ranked.groupby("quintile", observed=True)["total_points_next_gw"].mean()
+        means_s = ranked.groupby("quintile", observed=True)["total_points"].mean()
         if not all(f"Q{i}" in means_s.index for i in range(1, 6)):
             return None
         means = [float(means_s[f"Q{i}"]) for i in range(1, 6)]
         gap = means[4] - means[0]
-        is_monotonic = all(means[i] <= means[i + 1] for i in range(4))
+        # Handle both positive and negative associations (fdr_avg is negative)
+        is_monotonic_up   = all(means[i] <= means[i + 1] for i in range(4))
+        is_monotonic_down = all(means[i] >= means[i + 1] for i in range(4))
+        is_monotonic = is_monotonic_up or is_monotonic_down
+        abs_gap = abs(gap)
         return {
             "signal_id": signal_id, "signal": signal, "position": position, "block": block,
             "q1_mean": round(means[0], 3), "q2_mean": round(means[1], 3),
             "q3_mean": round(means[2], 3), "q4_mean": round(means[3], 3),
             "q5_mean": round(means[4], 3), "q5_q1_gap": round(gap, 3),
             "is_monotonic": is_monotonic,
-            "decision_relevant": bool(gap >= QUINTILE_GAP_THRESHOLD and is_monotonic),
+            "decision_relevant": bool(abs_gap >= QUINTILE_GAP_THRESHOLD and is_monotonic),
         }
     except Exception:
         return None
@@ -116,16 +120,16 @@ def _classify(full_corr, full_quint, block_corrs, signal, signal_id, position):
 
 def run(db_path: Path = DB_PATH) -> Path:
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_dir = RUNS_DIR / f"LENS-MARKET-{ts}"
+    out_dir = RUNS_DIR / f"LENS-FIXTURE-GW-{ts}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading DAL data from {db_path}...")
     state = load_mart(db_path=db_path).mart
 
-    state = state.sort_values(["player_id", "gw"]).copy()
-    state["total_points_next_gw"] = state.groupby("player_id")["total_points"].shift(-1)
-
-    pop = state[(state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)].copy()
+    # Same-GW: no target shift needed — total_points is the same-GW outcome
+    pop = state[
+        (state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)
+    ].copy()
 
     corr_rows, block_rows, quint_rows, classify_rows = [], [], [], []
 
@@ -169,16 +173,17 @@ def run(db_path: Path = DB_PATH) -> Path:
         "minutes_threshold": MINUTES_THRESHOLD, "gw_max": GW_MAX,
         "gw_blocks": {k: list(v) for k, v in GW_BLOCKS.items()},
         "quintile_gap_threshold": QUINTILE_GAP_THRESHOLD,
+        "target": "total_points (same-GW)",
     }, indent=2))
 
     print(f"\nRun complete: {out_dir}")
-    print(f"\n{'Signal':<20} {'Pos':<5} {'rho':>7}  {'95% CI':^17}  {'CI_excl0':>8}  {'Status'}")
-    print("-" * 78)
+    print(f"\n{'Signal':<16} {'Pos':<5} {'rho':>7}  {'95% CI':^17}  {'CI_excl0':>8}  {'Status'}")
+    print("-" * 75)
     full_corrs = {(r["signal"], r["position"]): r for r in corr_rows if r["block"] == "full"}
     for cls in classify_rows:
         corr = full_corrs.get((cls["signal"], cls["position"]))
         if corr:
-            print(f"{cls['signal']:<20} {cls['position']:<5} {corr['rho']:>7.4f}  "
+            print(f"{cls['signal']:<16} {cls['position']:<5} {corr['rho']:>7.4f}  "
                   f"[{corr['ci_lower']:>6.3f},{corr['ci_upper']:>6.3f}]  "
                   f"{'Yes' if corr['ci_excludes_zero'] else 'No':>8}  {cls['lens_status']}")
     return out_dir

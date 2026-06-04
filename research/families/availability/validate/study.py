@@ -10,7 +10,6 @@ ADLC §4 audit row C — reframes the raw minutes signal as an availability ques
 from __future__ import annotations
 
 import json
-
 from datetime import datetime
 from pathlib import Path
 
@@ -20,6 +19,7 @@ from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
+
 RUNS_DIR = Path("studies/runs")
 
 # LENS_DESIGN.md §2 — primary target is played_next_gw (binary)
@@ -196,7 +196,10 @@ def run(db_path: Path = DB_PATH) -> Path:
                 block_corrs.append(b)
                 if b:
                     block_rows.append(b)
-                q = _quintile_record(block_df, signal, signal_id, pos, block_name, "played_next_gw", QUINTILE_GAP_THRESHOLD)
+                q = _quintile_record(
+                    block_df, signal, signal_id, pos, block_name,
+                    "played_next_gw", QUINTILE_GAP_THRESHOLD,
+                )
                 if q:
                     quint_rows.append(q)
 

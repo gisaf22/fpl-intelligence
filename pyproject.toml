@@ -67,6 +67,9 @@ select = ["E", "F", "I", "UP", "RUF"]
 "research/foundation/joint/_joint_helpers.py" = ["RUF001", "F401"]
 "research/foundation/signals/_signal_distribution_helpers.py" = ["RUF001", "RUF022"]
 "research/foundation/scope/population.py" = ["RUF002"]
+# Lens validate study (moved from studies/lenses/): one-line `Mode · Stage · Status` ADLC
+# header lists every approved signal/position and exceeds 120 chars by design.
+"research/families/market/validate/study.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

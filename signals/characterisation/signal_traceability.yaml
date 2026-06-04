@@ -34,10 +34,10 @@ source_of_truth:
   state_inventory: docs/archive/state-representation-inventory.md
   threshold_registry: docs/governance/threshold-registry.md
 analysis_paths:
-  FORM: studies/lenses/form/study.py
-  AVAIL: studies/lenses/avail/study.py
-  MARKET: studies/lenses/market/study.py
-  FIXTURE-GW: studies/lenses/fixture_gw/study.py
+  FORM: research/families/form/validate/study.py
+  AVAIL: research/families/availability/validate/study.py
+  MARKET: research/families/market/validate/study.py
+  FIXTURE-GW: research/families/fixture/validate/study.py
   STATE-ONLY: null
 
 entries:

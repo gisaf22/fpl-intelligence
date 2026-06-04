@@ -44,11 +44,11 @@ Coverage includes:
 
 | Signal | Pos | ID | Lifecycle | Rho | Status | Gate Failure / Key Note |
 |--------|-----|----|-----------|-----|--------|-------------------------|
-| xgi_roll3 | DEF | FORM-001 | candidate | 0.123 | eligible | MIN_RHO=0.15 conflict (SCORE-T-01) incorrectly caveats — rho clears Gate 1 (CI ≠ 0) |
+| xgi_roll3 | DEF | FORM-001 | candidate | 0.123 | eligible | Clears Gate 1 (CI ≠ 0); former MIN_RHO=0.15 caveat (SCORE-T-01) RESOLVED — MIN_RHO removed (G-OPS-02) |
 | xgi_roll3 | MID | FORM-001 | candidate | 0.144 | caveated | Below naive baseline (points_roll5 MID rho=0.158); SYNTH-01 required |
 | xgi_roll3 | FWD | FORM-001 | excluded | 0.091 | blocked | G2-FAIL: non-monotonic quintile ordering; haul-concentration destroys rolling mean |
 | xgi_roll3 | GK | FORM-001 | not_applicable | — | blocked | G-EDA3-01: ontological exclusion from attacking signals |
-| xgi_roll5 | DEF | FORM-002 | candidate | 0.113 | eligible | MIN_RHO=0.15 conflict (SCORE-T-01) incorrectly caveats — rho clears Gate 1 |
+| xgi_roll5 | DEF | FORM-002 | candidate | 0.113 | eligible | Clears Gate 1 (CI ≠ 0); former MIN_RHO=0.15 caveat (SCORE-T-01) RESOLVED — MIN_RHO removed (G-OPS-02) |
 | xgi_roll5 | MID | FORM-002 | candidate | 0.157 | caveated | Borderline below naive baseline (rho=0.157 vs 0.158); SYNTH-01 required |
 | xgi_roll5 | FWD | FORM-002 | excluded | 0.097 | blocked | G2-FAIL: non-monotonic; same haul-concentration caveat as xgi_roll3 FWD |
 | xgi_roll5 | GK | FORM-002 | not_applicable | — | blocked | G-EDA3-01: ontological exclusion |
@@ -107,7 +107,7 @@ Coverage includes:
 | ownership_count | MID | MARKET-003 | **candidate** | 0.168 | eligible | HIGH REDUNDANCY with transfers_in MID (partial rho=0.831); SYNTH-01 to resolve |
 | ownership_count | FWD | MARKET-003 | excluded | — | blocked | MARKET G3-FAIL: CI excludes zero but only 1/3 blocks stable |
 | purchase_price | GK | MARKET-004 | excluded | — | blocked | MARKET G2-FAIL: non-monotonic bin ordering at GK |
-| purchase_price | DEF | MARKET-004 | **candidate** | 0.121 | caveated | Borderline temporal stability (2/3 blocks); MIN_RHO conflict (SCORE-T-01) |
+| purchase_price | DEF | MARKET-004 | **candidate** | 0.121 | caveated | Borderline temporal stability (2/3 blocks); former MIN_RHO caveat (SCORE-T-01) RESOLVED |
 | purchase_price | MID | MARKET-004 | excluded | 0.121 | blocked | MARKET G2-FAIL: non-monotonic at MID despite large Q5-Q1 gap |
 | purchase_price | FWD | MARKET-004 | **candidate** | 0.155 | caveated | 2/3 block temporal stability; may proxy role seniority |
 
@@ -307,7 +307,7 @@ This section documents, for each intelligence module, which signals it currently
 | GAP-TRACE-04 | transfers_in and ownership_count governed candidates not consumed | (none yet) | Phase 6 (post-SYNTH-01) |
 | GAP-TRACE-05 | 12 defensive signals (xgc_roll3/5, goals_conceded_roll3/5, clean_sheets_roll3/5) at DEF/GK not wired | (none yet) | Phase 6 (post-SYNTH-01) |
 | GAP-TRACE-06 | fixture_context governed candidate not consumed; modules read is_dgw from spine directly | fixtures.py, captain.py, transfers.py | **RESOLVED 2026-05-31** — fixture_context consumed in all three modules |
-| GAP-TRACE-07 | SCORE-T-01 (MIN_RHO=0.15) CONTRADICTS-GATE — incorrectly caveats 3 valid candidates | scoring/signals.py | Phase 6 (post-SYNTH-01) |
+| GAP-TRACE-07 | SCORE-T-01 (MIN_RHO=0.15) CONTRADICTS-GATE — incorrectly caveats 3 valid candidates | scoring/signal_selector.py | **RESOLVED** (Phase 8, G-OPS-02) — MIN_RHO removed; xgi_roll3 DEF, xgi_roll5 DEF, purchase_price DEF all passed SYNTH-01 with APPROVED-* decisions |
 | GAP-TRACE-08 | minutes_roll3/roll5 eligibility use at DEF/FWD is provisional (signals excluded at those positions) | captain.py, value.py, fixtures.py, transfers.py | Phase 8 calibration |
 | GAP-TRACE-09 | xgi_roll3 consumed at MID in captain.py, value.py, transfers.py despite SYNTH-01 G-SYNTH1-07 EXCLUDED-REDUNDANT | captain.py, value.py, transfers.py | **RESOLVED 2026-06-01** — MID zeroing guard implemented in all three modules; consistency/momentum neutralised at MID |
 

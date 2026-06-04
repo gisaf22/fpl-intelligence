@@ -44,13 +44,13 @@ See [docs/registry-governance.md](../registry-governance.md) for the full explor
 
 ## Signal filtering in the scorer
 
-`intelligence/scoring/signals.py` applies three filters when loading a registry:
+`intelligence/scoring/signal_selector.py` applies three filters when loading a registry:
 
 | Filter | Condition | Rationale |
 |--------|-----------|-----------|
 | Promotion class | `promotion_class in {core_signal, review_signal}` | Only EDA-confirmed signals |
 | Role exclusion | `layer_role not in {points_component, contribution_index}` | Leakage and outcome-component signals excluded |
-| Minimum rho | `abs(rho_pooled) >= 0.15` | Signals below this threshold add noise, not signal |
+| Non-null rho | `rho_pooled` not null (lens CI gate) | `MIN_RHO = 0.15` was removed; the CI gate is the sole magnitude authority |
 
 After filtering, each retained signal contributes to composite scores weighted by its `rho_pooled`
 value. Stronger correlations carry more weight; the weighting is transparent and declared in the
@@ -252,6 +252,22 @@ For the relationship between research signals and the governed registry, see
 - **BGW handling.** Blank gameweek rows have null performance columns by
   contract. FDR may also be null for BGW rows; the functions substitute
   a neutral FDR of 3.0 in this case.
+
+- **Module weights are editorial, not calibrated.** The component weights in the
+  tables above (e.g. captain's 35/30/20/15) are static editorial constants carried
+  in `signals/governance/weight_registry.yaml` with `PROVISIONAL-EDITORIAL`
+  provenance — set before the lens-study methodology existed and not yet validated
+  by a calibration study. The *within-signal* rho weighting is evidence-based (from
+  the registry); the *cross-component* module weights are not. Closing this is a
+  `monitor`-stage calibration study, deferred to 2026/27.
+
+- **No declared output contract.** Upstream layers publish enforced schemas
+  (`MART_SCHEMA`, `FEAT_SCHEMA`); the recommendation outputs have no equivalent —
+  they are golden-tested, not contract-validated. The output column set is a
+  convention, not a guarantee.
+
+*Together these two seams are why the [analytical-architecture.md](analytical-architecture.md)
+maturity snapshot rates the Decision layer **Emerging**.*
 
 ## Non-Goals
 

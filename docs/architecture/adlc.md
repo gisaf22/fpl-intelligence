@@ -254,50 +254,23 @@ drifted from 8 to 10) were *fixed*, not silenced — including a real optional-t
 
 ---
 
-## 6. ID-diet — six namespaces down to two
+## 6. ID-diet — two namespaces, not six
 
-**Keep two:**
+The repo keeps **two** ID namespaces and retires the other four:
 
-1. **Signal *findings* keyed by a composite, not a bare column name.** The naive version of this
-   rule ("just use the column name") is **wrong**, and the governance data proves it: `minutes_roll3`
-   is evaluated as **both** `FORM-006` (lens FORM, target `total_points` → REJECTED) **and**
-   `AVAIL-001` (lens AVAIL, target `played_next_gw` → approved at MID). Same column, opposite verdicts.
-   The column names the *input*; a finding is `(signal × lens/target × position)`. So the durable key
-   is the **composite** — e.g. `minutes_roll3@form:total_points` vs `minutes_roll3@avail:played_next_gw` —
-   not an opaque `AVAIL-001`, but not the bare column either. The win over the status quo is that the
-   key is *self-describing* (you can read what was tested), where `FORM-006`/`AVAIL-001` are not.
-2. **Decision SLUGs in one decision log.** Human-readable, e.g. `reject-minutes-as-form`,
-   `adopt-roll8-availability`, `set-synth-weights`. One append-only `docs/decisions/` log keyed by
-   slug, each entry naming its stage, mode, verdict, and date.
+1. **Signal findings** keyed by a self-describing composite — `signal@lens:target[#POS]`, not a bare
+   column name and not an opaque code. The grammar, the worked `minutes_roll3` collision (FORM-rejected
+   vs AVAIL-approved), and the hard-failing loader contract are owned by
+   [ADR-003](../decisions/003-composite-signal-finding-key.md).
+2. **Decision verdicts** as human-readable slugs in one append-only log — owned by
+   [ADR-004](../decisions/004-decision-slug-log.md); the log itself is [docs/decisions/](../decisions/).
 
-> **Feasibility caveat.** The codes being retired (`FORM-006`, `AVAIL-001`, `G-SYNTH1-*`) are
-> **load-bearing keys** in `signals/governance/evaluation_metadata.yaml` and `synth01_decisions.yaml`,
-> which `intelligence/weight_registry.py` reads and *hard-fails* on. The ID-diet is therefore **not a
-> docs-only rename** — it requires migrating those YAML keys to the composite scheme and updating the
-> loader. Treat it as a code change with tests, not a cosmetic sweep. This is why §6 stays *prescribe-only*.
+Retired: `G-EDA*` gate codes, `SYNTH-01`/`ENG-*`/`LENS-*` study codes, `Phase N` sequencing labels, and
+timestamped run dirs. The composite-key migration was a load-bearing **code** change (the killed codes
+were keys the governance loader hard-fails on), now executed — ADR-003 is the record, not this section.
 
-**Kill four:**
-
-| Killed | Was | Replaced by |
-|---|---|---|
-| `G-EDA{N}-{NN}` gate codes | EDA→lens gate references | a finding's plain title in the explore artifact |
-| `SYNTH-01`, `ENG-02`, `LENS-*` | study/run codes | the study's folder name + a decision slug |
-| `Phase N` (e.g. `phase9_backtest`) | sequencing labels | the stage name (`monitor`) |
-| timestamped run dirs (`SYNTH-01-20260527_113400`) | one dir per execution | durable findings live in the stage artifact; runs are throwaway |
-
-**Migration plan (prescribe-only — not executed here):**
-
-1. Add the mode/stage header to each existing study + notebook (mechanical, no logic change).
-2. Create `docs/decisions/` with one slug entry per verdict in the §4 audit table.
-3. Extract any durable conclusion still trapped in `studies/runs/*` and `signals/runs/*` into its
-   stage artifact, then the run dirs become safe to delete. *(They were **git-tracked**, not
-   gitignored, as of Phase 4 — the inventory confirmed nothing durable was lost vs.
-   `evaluation_metadata.yaml` / `studies/eda/findings/`; the dirs were then gitignored and
-   removed. Executed Phase 4.)*
-4. Rename `phase9_backtest.py → backtest.py` when monitor is next touched. No rush.
-
-Code-namespace strings inside the domain-agnostic `kernels/` (a few docstrings still say "EDA-5",
-"spine") should drop the IDs too — substrate must not carry lifecycle codes.
+Loose end: a few `kernels/` docstrings still carry old IDs (`EDA-5`, `spine`); the substrate must not
+carry lifecycle codes, so drop them when kernels is next touched.
 
 ---
 
@@ -320,50 +293,19 @@ cost optimization, product/UX. All N/A or trivial for a solo, single-season, loc
 
 ---
 
-## 8. Doc reconciliation — overlap, migrate, and a drift warning
+## 8. Doc reconciliation
 
-`adlc.md` is the authority for the **analysis lifecycle and its test contracts**. It does *not*
-claim to replace the existing architecture docs wholesale — some of them carry detail this doc
-deliberately omits and which should be **kept or migrated, not deleted**. The honest split:
+`adlc.md` is the authority for the **analysis lifecycle and its test contracts**, and the sole owner of
+the word **"lifecycle"** in the repo. It does not replace the other architecture docs — each owns a
+different axis, mapped in [analytical-architecture.md](analytical-architecture.md). The reconciliations:
 
-| Existing doc | Relationship to ADLC | Action |
-|---|---|---|
-| `decision-lifecycle.md` | overlaps the stage flow, but its **per-stage failure-mode tables** are unique and valuable | ✅ **DONE** — merged into `runtime-execution.md` (with `operational-flow.md`); failure tables kept, "lifecycle" name + 4-stage framing dropped |
-| `layer-boundaries.md` | overlaps §2 flow rules, but its **ownership non-overlap matrix** is unique | keep the matrix; the import-direction story becomes §2 |
-| `operational-flow.md` | the 3-command run sequence | ✅ **DONE** — merged into `runtime-execution.md` (run sequence kept, fixed to real `python -m` commands) |
-| `system-model.md` | the 3-plane model (Control/Execution/Measurement) — a **competing vocabulary** | reconcile: pick one model (see note below) |
-| `testing-strategy.md` | overlaps §5, but lists the **real test inventory** | ✅ stale paths/counts fixed in the cleanup; the strategy framing still belongs in §5 |
-| `test-coverage.md` | the **70-invariant status map with real test names** — unique and valuable | keep as-is; it *is* the §5 contract made concrete |
-
-> **Status.** This §8 was authored prescribe-only in the `adlc.md` design PR. The rows marked ✅ were
-> then *executed* in the stacked drift-cleanup PR (which also deleted the broken `Makefile`). The
-> unmarked rows (`layer-boundaries`, `system-model`, `test-coverage`) are intentionally left in place.
-
-**Vocabulary decision (DECIDED).** The repo runs three parallel mental models that "coexist": the
-4-layer import hierarchy, the 3-plane model (`system-model.md`), and the 4-stage decision lifecycle.
-ADLC's 5-stage + mode-tag framing would be a *fourth* — adding a vocabulary without retiring one *is*
-the axis-conflation this redesign set out to fix. **Resolution:** `adlc.md` is the sole owner of the
-word **"lifecycle."** The runtime path is *not* a lifecycle; it is execution. Concretely:
-
-- **`adlc.md`** = the analysis lifecycle (`explore → validate → model → serve → monitor`).
-- **`decision-lifecycle.md` + `operational-flow.md` → merge into `runtime-execution.md`** — a single
-  runtime doc that keeps the **failure-mode tables** + the **3-command run sequence**, drops the word
-  "lifecycle" and the 4-stage framing, and is cross-linked from ADLC's `serve`/`monitor` stages (the
-  seam where the two meet). No file in the repo carries "lifecycle" in its name except `adlc.md`.
-
-This was a rename **+ merge** (3 docs → 2). Executed in the drift-cleanup PR, which also re-pointed the
-inbound links (`navigation-map.md`, `system-model.md`) and scrubbed the stale paths along the way.
-
-**Drift note (resolved 2026-06-02).** The docs above carried factually stale paths
-(`signals/registry/`, `dal/state/`, `intelligence/_base.py`, `docs/adr/*`, "739 tests") before
-the drift-cleanup PR. All active-doc drift is resolved. Audit record:
-[`doc-drift.md`](../archive/doc-drift.md) (archived). One open item remains in the config layer:
-`weight_registry.yaml` cites a deleted source path — tracked as ENG-13 in
-`docs/governance/eng-issues-2026.md`.
-
-`EVAL_DESIGN.md` (the Measurement-Plane spec) stays — it's the detailed design for the `monitor`
-stage, which is still design-only (Stage 5 / "Measurement" is not yet built). ADLC names the
-stage; `EVAL_DESIGN.md` specifies it.
+- The **3-plane runtime model** (`system-model.md`) is an orthogonal peer, not a competing vocabulary —
+  the split is settled in [ADR-005](../decisions/005-system-model-vocabulary-reconciliation.md).
+- `decision-lifecycle.md` + `operational-flow.md` were merged into
+  [runtime-execution.md](runtime-execution.md) — failure-mode tables and the run sequence kept, the
+  "lifecycle" framing dropped.
+- [`EVAL_DESIGN.md`](../../signals/governance/EVAL_DESIGN.md) remains the detailed spec for the
+  `monitor` stage, which is still design-only; ADLC names the stage, EVAL_DESIGN specifies it.
 
 ---
 
@@ -381,6 +323,7 @@ stage; `EVAL_DESIGN.md` specifies it.
 - **Tests are the contract**, leverage-ordered: schema → invariant → determinism → leakage →
   unit → integration → e2e → golden → study-logic. Fixture DB is curated and meta-tested.
   `mypy` is a blocking CI gate (production scope).
-- **Two ID namespaces** survive: signal = column name; decision = slug in `docs/decisions/`.
-  Everything else (`G-*`, `SYNTH-*`, `Phase N`, run-dir timestamps) is retired.
+- **Two ID namespaces** survive: signal finding = composite key (`signal@lens:target[#POS]`);
+  decision = slug in `docs/decisions/`. Everything else (`G-*`, `SYNTH-*`, `Phase N`, run-dir
+  timestamps) is retired.
 - **Build heavier infra only on its named trigger.** Default is no.

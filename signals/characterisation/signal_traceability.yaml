@@ -33,6 +33,12 @@ source_of_truth:
   evaluation_metadata: signals/governance/evaluation_metadata.yaml
   state_inventory: docs/archive/state-representation-inventory.md
   threshold_registry: docs/governance/threshold-registry.md
+analysis_paths:
+  FORM: studies/lenses/form/study.py
+  AVAIL: studies/lenses/avail/study.py
+  MARKET: studies/lenses/market/study.py
+  FIXTURE-GW: studies/lenses/fixture_gw/study.py
+  STATE-ONLY: null
 
 entries:
 

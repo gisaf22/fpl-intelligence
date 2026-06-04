@@ -24,7 +24,7 @@ intelligence/ — player scoring and weekly reporting
 Dependency direction is strictly one-way. No layer imports from a layer above it. `intelligence/` also reads `dal/` directly for current-gameweek data — this is permitted; the prohibition is on `dal/` depending on upper layers, not the reverse.
 
 > **Scope of this section.** This is the **import / dependency** view — a code-enforced rule
-> (see [DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](DOWNSTREAM_DEPENDENCY_GOVERNANCE.md)), and it is
+> (see [downstream-dependency-governance.md](downstream-dependency-governance.md)), and it is
 > what this document is authoritative for. It is *not* the conceptual flow story: how a question
 > moves through the analysis *stages* (explore → validate → model → serve → monitor) is owned by
 > [adlc.md §2](adlc.md), and what each component is *for* (the Control/Execution/Measurement
@@ -52,7 +52,7 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 
 **Contract:** `dal/fct/fct_contracts.py`, `dal/feat/feat_schema.py`, `dal/validation/` — code-enforced.
 
-**Consumers:** All downstream layers. Canonical entry point: `dal.pipeline.load(db_path) -> MartResult`. Direct imports from `dal.staging`, `dal.intermediate`, `dal.fct`, or `dal.feat` are forbidden outside the DAL. See [DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](DOWNSTREAM_DEPENDENCY_GOVERNANCE.md).
+**Consumers:** All downstream layers. Canonical entry point: `dal.pipeline.load(db_path) -> MartResult`. Direct imports from `dal.staging`, `dal.intermediate`, `dal.fct`, or `dal.feat` are forbidden outside the DAL. See [downstream-dependency-governance.md](downstream-dependency-governance.md).
 
 ---
 

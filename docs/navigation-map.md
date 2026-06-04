@@ -16,13 +16,27 @@ signals/      → signal lifecycle governance and registry build pipeline
 intelligence/ → player scoring and weekly reporting
 ```
 
-**Four documents give you 80% of the picture:**
+## Spine traversal
+
+To trace a feature to a decision:
+
+1. Start with `dal/feat/feat_schema.py::FEATURE_REGISTRY` for feature status and approved positions.
+2. Resolve the feature and position in `signals/characterisation/signal_traceability.yaml`.
+3. Use `analysis_paths` for the study/lens implementation.
+4. Derive the finding key as `signal@lens:target[#POS]` and resolve the verdict in `signals/governance/evaluation_metadata.yaml`.
+5. Search that key in `signals/governance/synth01_decisions.yaml` for composition decisions.
+6. Search that key or listed `derived_from` values in `signals/governance/weight_registry.yaml` for intelligence usage.
+
+If a feature has no evaluated traceability route, treat it as conditional/pre-lens and do not assume it is operationally governed.
+
+**These documents give you 80% of the picture:**
 
 | Document | Answers |
 |----------|---------|
 | [docs/system-purpose.md](system-purpose.md) | What is this system for? What does it not do? |
 | [docs/architecture/system-model.md](architecture/system-model.md) | What is each part of the system responsible for? (3-plane model) |
 | [docs/architecture/adlc.md](architecture/adlc.md) | How is the model researched and chosen? (analysis lifecycle) |
+| [docs/architecture/analytical-architecture.md](architecture/analytical-architecture.md) | What are the analytical objects and where is each governed? (object spine) |
 | [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) | How does a decision get made at runtime, end to end? |
 | [dal/README.md](../dal/README.md) | What are the DAL layers and entry points? |
 
@@ -45,7 +59,7 @@ intelligence/ → player scoring and weekly reporting
 1. `dal/fct/fct_contracts.py` — spine column definitions, dtypes, null rules, aggregation semantics (code-enforced)
 2. `dal/feat/feat_contracts.py` + `dal/feat/feat_schema.py` — feature columns and Pandera schema
 3. `dal/exceptions.py` — `ErrorCode` vocabulary, `DALContractViolation`
-4. [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) — what downstream modules may and may not import
+4. [docs/architecture/downstream-dependency-governance.md](architecture/downstream-dependency-governance.md) — what downstream modules may and may not import
 5. [dal/README.md](../dal/README.md) — layer overview and entry points
 
 ### Research contributor (lens studies, EDA, experiments)
@@ -62,7 +76,7 @@ intelligence/ → player scoring and weekly reporting
 1. [docs/architecture/intelligence-layer.md](architecture/intelligence-layer.md) — scorer pipeline, component weights, eligibility thresholds, non-goals
 2. [docs/registry-governance.md](registry-governance.md) — what the scorer is allowed to consume and why
 3. [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) — lifecycle gate enforcement at runtime
-4. [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) — allowed imports from `signals.governance.*`
+4. [docs/architecture/downstream-dependency-governance.md](architecture/downstream-dependency-governance.md) — allowed imports from `signals.governance.*`
 
 ### Operational runner (running the system weekly)
 
@@ -82,7 +96,7 @@ intelligence/ → player scoring and weekly reporting
 | [signals/characterisation/SIGNAL_REGISTRY.md](../signals/characterisation/SIGNAL_REGISTRY.md) | Lifecycle status for every named signal |
 | [docs/signal-promotion-states.md](signal-promotion-states.md) | Signal governance state definitions and promotion rules |
 | [docs/registry-governance.md](registry-governance.md) | Exploratory vs operational registry semantics; lifecycle gate enforcement |
-| [docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md](architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md) | Allowed and forbidden import patterns for downstream modules |
+| [docs/architecture/downstream-dependency-governance.md](architecture/downstream-dependency-governance.md) | Allowed and forbidden import patterns for downstream modules |
 | [docs/governance/threshold-registry.md](governance/threshold-registry.md) | All operational thresholds: values, classifications, 2026/27 disposition |
 | [docs/governance/evaluation-gate-criteria.md](governance/evaluation-gate-criteria.md) | Lens study gate definitions: what constitutes pass/fail at each gate |
 | [docs/governance/eng-issues-2026.md](governance/eng-issues-2026.md) | Engineering issue backlog — 12 issues in 3 phases; sorted by blast radius |
@@ -103,10 +117,13 @@ Bounded, immutable records of why key decisions were made. Read before changing 
 | [docs/system-purpose.md](system-purpose.md) | Orienting new contributors; scoping new research |
 | [docs/architecture/system-model.md](architecture/system-model.md) | 3-plane conceptual model: Control · Execution · Measurement |
 | [docs/architecture/adlc.md](architecture/adlc.md) | The analysis lifecycle: explore → validate → model → serve → monitor; mode tags; test contracts |
+| [docs/architecture/analytical-architecture.md](architecture/analytical-architecture.md) | The analytical object spine: Entity → Signal → Feature → Analysis → Finding → Decision, and where each is governed |
 | [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) | Runtime flow + the run sequence: DAL → registry → intelligence → output |
 | [docs/architecture/intelligence-layer.md](architecture/intelligence-layer.md) | Scorer pipeline, registry consumption, rho weighting, explainability |
 | [docs/architecture/explainability-model.md](architecture/explainability-model.md) | Scoring formula, signal selection rationale, independent verification steps |
 | [docs/architecture/testing-strategy.md](architecture/testing-strategy.md) | Test categories, integration marker, unit vs full suite |
+| [docs/architecture/test-coverage.md](architecture/test-coverage.md) | Invariant → validator → test status map (Verified / Partial / Unverified / Missing) |
+| [docs/architecture/platform-capabilities.md](architecture/platform-capabilities.md) | The eight platform capabilities every design must address; the design-doc capabilities table |
 | [docs/architecture/layer-boundaries.md](architecture/layer-boundaries.md) | Component ownership boundaries, dependency direction, non-overlap rules |
 | [docs/architecture/runtime-artifacts.md](architecture/runtime-artifacts.md) | What artifacts are produced, where they live, gitignore policy |
 | [docs/architecture/db-schema.md](architecture/db-schema.md) | Source database table and column reference |

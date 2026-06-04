@@ -21,15 +21,12 @@ The registry lives in two forms:
 
 ## Lifecycle States
 
-The full lifecycle is: `exploratory → investigational → candidate → validated → operationalized`
+The full lifecycle is: `exploratory → investigational → candidate → validated → operationalized`.
 
-**What each state means for registry consumption:**
-
-- `exploratory` — System EDA output only. No signal may be used operationally. Consumers: EDA notebooks, registry builder.
-- `investigational` — Active lens study in progress. No synthesis or operational use.
-- `candidate` — Lens study complete, pending formal confirmation. No operational use.
-- `validated` — Confirmed against evaluation criteria. May enter synthesis and the registry builder.
-- `operationalized` — Active in the synthesis pipeline. Eligible for scorer and report runner.
+[signal-promotion-states.md](signal-promotion-states.md) is the authoritative owner of these
+state definitions, their allowed consumers, and the promotion criteria for each transition — this
+document does not restate them. The registry-relevant rule is: only `validated` signals may enter
+the registry builder, and only `operationalized` signals may reach the scorer and report runner.
 
 ---
 
@@ -87,13 +84,15 @@ A signal is `validated` when it has:
 
 ## What the Scorer Is Allowed to Consume
 
-The scorer (`intelligence/scoring/signal_selector.py`) filters the operational registry to signals where:
+The scorer (`intelligence/scoring/signal_selector.py`) consumes only the signals in an operational
+registry that pass the selection filters (promotion class, role/leakage exclusion, non-null rho).
+Those filters and their rationale are owned by
+[architecture/explainability-model.md](architecture/explainability-model.md) — this document does
+not restate them.
 
-- `promotion_class` is `core_signal` or `review_signal`
-- `layer_role` is not `points_component` (leakage) or `contribution_index` (outcome-component)
-- `rho_pooled` is non-null (the signal cleared the lens CI gate; the former `MIN_RHO = 0.15` magnitude filter was removed)
-
-The registry must come from `outputs/registry/`, not `studies/eda/`. Passing an exploratory registry path to the scorer raises `LifecycleViolationError` at load time.
+The registry-governance rule is the **path gate**: the registry must come from `outputs/registry/`,
+not `studies/eda/`. Passing an exploratory registry path to the scorer raises
+`LifecycleViolationError` at load time.
 
 ---
 

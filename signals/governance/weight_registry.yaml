@@ -60,6 +60,10 @@ modules:
         value: 0.20
         signal: fixture_context
         signal_id: null
+        derived_from:
+          features:
+            - fixture_context
+          findings: []
         note: >
           Replaced fdr_avg: fdr_avg excluded at all positions in the fixture_gw lens
           (non-monotonic quintile ordering). Now uses binary DGW indicator from STATE
@@ -100,6 +104,13 @@ modules:
         value: 0.20
         signal: xgi_roll3_vs_xgi_roll5_divergence
         signal_id: null
+        derived_from:
+          features:
+            - xgi_roll3
+            - xgi_roll5
+          findings:
+            - xgi_roll3@form:total_points
+            - xgi_roll5@form:total_points
         note: >
           PROVISIONAL-EDITORIAL. Inverted absolute divergence |xgi_roll3 - xgi_roll5|;
           low divergence = consistent contributor. FWD scope guard applied to both
@@ -118,6 +129,10 @@ modules:
         value: 0.35
         signal: goals_scored
         signal_id: null
+        derived_from:
+          features:
+            - goals_scored
+          findings: []
         note: >
           PROVISIONAL-EDITORIAL. Team-level attacking strength proxy from rolling
           goals_scored aggregate. No lens evaluation exists for this composite.
@@ -125,6 +140,10 @@ modules:
         value: 0.25
         signal: fixture_context
         signal_id: null
+        derived_from:
+          features:
+            - fixture_context
+          findings: []
         note: >
           Binary DGW indicator from STATE fixture_context column. Reads governed STATE
           column rather than spine is_dgw flag for consistent column access semantics.
@@ -149,6 +168,13 @@ modules:
         value: 0.25
         signal: xgi_roll3_minus_xgi_roll5
         signal_id: null
+        derived_from:
+          features:
+            - xgi_roll3
+            - xgi_roll5
+          findings:
+            - xgi_roll3@form:total_points
+            - xgi_roll5@form:total_points
         note: >
           PROVISIONAL-EDITORIAL. Momentum = xgi_roll3 - xgi_roll5 (positive when
           recent xgi > medium-term). FWD scope guard: both operands zeroed at FWD
@@ -157,6 +183,10 @@ modules:
         value: 0.20
         signal: fixture_context
         signal_id: null
+        derived_from:
+          features:
+            - fixture_context
+          findings: []
         note: >
           Replaced fdr_avg: fdr_avg excluded at all positions in the fixture_gw lens
           (non-monotonic quintile ordering). Binary DGW indicator from STATE

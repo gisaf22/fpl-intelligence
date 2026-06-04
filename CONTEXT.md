@@ -105,7 +105,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 | SIGNAL_REGISTRY.md | `signals/characterisation/SIGNAL_REGISTRY.md` | Governance and truth layer for all signals — lifecycle status, lens outcomes, synthesis eligibility | No signal enters synthesis without a confirmed entry |
 | EDA_08_DESIGN.md | `studies/eda/EDA_08_DESIGN.md` | Defines the seven system EDA layers and their gate decisions | All lens studies — no lens runs before EDA is complete |
 | CONTEXT.md | `CONTEXT.md` | Current project state, structure, and rules for new sessions | New session orientation |
-| DOWNSTREAM_DEPENDENCY_GOVERNANCE.md | `docs/architecture/DOWNSTREAM_DEPENDENCY_GOVERNANCE.md` | Allowed and forbidden downstream import patterns; enforced by tests/test_downstream_governance.py | Any new module that accesses signals or DAL data |
+| downstream-dependency-governance.md | `docs/architecture/downstream-dependency-governance.md` | Allowed and forbidden downstream import patterns; enforced by tests/test_downstream_governance.py | Any new module that accesses signals or DAL data |
 | LENS_DESIGN.md (LENS-FORM) | `studies/lenses/form/LENS_DESIGN.md` | Study design for rolling output and attacking threat signals | LENS-FORM execution |
 | LENS_DESIGN.md (LENS-MARKET) | `studies/lenses/market/LENS_DESIGN.md` | Study design for transfer and ownership signals | LENS-MARKET execution |
 | LENS_DESIGN.md (LENS-FIXTURE-GW) | `studies/lenses/fixture_gw/LENS_DESIGN.md` | Study design for single-gameweek fixture difficulty signals | LENS-FIXTURE-GW execution |
@@ -144,7 +144,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 The 9-phase Operational Convergence Plan and platform evaluation Changes 1–8 are complete. The
 analysis lifecycle is now authored: `docs/architecture/adlc.md` defines the five-stage lifecycle
 (explore → validate → model → serve → monitor), the mode-tag system, and the per-stage test
-contracts. Its §8 doc-reconciliation rows marked ✅ have been executed (the drift-cleanup PR merged
+contracts. The doc-reconciliation it prescribed has been executed (the drift-cleanup PR merged
 `decision-lifecycle.md` + `operational-flow.md` → `runtime-execution.md`, deleted the broken
 Makefile, and re-pointed inbound links). `adlc.md` is now the sole owner of the word "lifecycle."
 

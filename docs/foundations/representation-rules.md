@@ -23,7 +23,10 @@ Outcome codes follow the decision matrix in `representation-governance.md §5`:
 - **REJECTED-SEMANTIC** — transform violates temporal type or family classification; hard stop regardless of EDA
 - **REJECTED-BEHAVIORAL** — admissible but EDA evidence does not support the transform
 
-All STATE columns must carry `_COLUMN_META` with `scope`, `temporal_type`, `causality`, `behavioral_reason`, `source_gate_decisions`, and `leakage_risk` (where applicable) per governance §7.
+All STATE columns must be registered in `dal/feat/feat_schema.py::FEATURE_REGISTRY` with
+scope, causality, approval status, and the gate reference that justifies the materialised
+column. Traversal from feature columns to analyses and findings lives in
+`signals/characterisation/signal_traceability.yaml`.
 
 ---
 

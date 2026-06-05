@@ -202,7 +202,7 @@ class TestMultiLensDisambiguation:
 # ---------------------------------------------------------------------------
 
 
-def _make_confirmed(signal: str, position: str) -> object:
+def _make_confirmed(signal: str, position: str, downstream_status: str = "eligible") -> object:
     """Return a minimal ConfirmedSignal-like object."""
     from serve.scoring.contracts import ConfirmedSignal
 
@@ -212,6 +212,7 @@ def _make_confirmed(signal: str, position: str) -> object:
         rho_pooled=0.20,
         direction=1,
         promotion_class="core_signal",
+        downstream_status=downstream_status,
     )
 
 
@@ -250,20 +251,20 @@ class TestAssertGovernanceCompliance:
         with pytest.raises(ValueError, match="GOVERNANCE VIOLATION"):
             _assert_governance_compliance(manifest)
 
-    def test_missing_governance_metadata_raises_if_not_allowlisted(self) -> None:
-        """Signals absent from both evaluation_metadata.yaml and _PRE_LENS_SIGNAL_ALLOWLIST must raise."""
-        from domain.registry.governance_types import GovernanceMetadataError
+    def test_no_lens_record_with_excluding_foundation_status_raises(self) -> None:
+        """A signal with no lens record whose foundation status derives to excluded must raise (ADR-009 §1)."""
+        from domain.registry.lifecycle import LifecycleViolationError
         from serve.scoring.signal_selector import _assert_governance_compliance
 
-        manifest = _make_manifest([_make_confirmed("unknown_signal_xyz", "DEF")])
-        with pytest.raises(GovernanceMetadataError):
+        manifest = _make_manifest([_make_confirmed("unknown_signal_xyz", "DEF", downstream_status="blocked")])
+        with pytest.raises(LifecycleViolationError):
             _assert_governance_compliance(manifest)
 
-    def test_allowlisted_pre_lens_signal_passes(self) -> None:
-        """Pre-lens signals on _PRE_LENS_SIGNAL_ALLOWLIST pass compliance without an evaluation record."""
+    def test_pre_lens_signal_passes_via_derived_foundation_verdict(self) -> None:
+        """Pre-lens signals (no evaluation record) pass when their foundation status derives to candidate."""
         from serve.scoring.signal_selector import _assert_governance_compliance
 
-        manifest = _make_manifest([_make_confirmed("goals_scored", "DEF")])
+        manifest = _make_manifest([_make_confirmed("goals_scored", "DEF", downstream_status="eligible")])
         _assert_governance_compliance(manifest)  # should not raise
 
     def test_approved_signal_passes(self) -> None:

@@ -30,6 +30,7 @@ class ConfirmedSignal:
     rho_pooled: float
     direction: int  # +1 if higher raw value = better, -1 if lower = better
     promotion_class: str  # 'core_signal' or 'review_signal'
+    downstream_status: str = "eligible"  # foundation verdict; governs signals with no lens record (ADR-009)
 
 
 @dataclass(frozen=True)

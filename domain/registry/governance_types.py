@@ -41,26 +41,3 @@ class GovernanceMetadata:
 
 class GovernanceMetadataError(ValueError):
     """Raised when evaluation governance metadata is missing or unresolvable."""
-
-
-# Signals that predate the lens-study methodology and have no evaluation_metadata.yaml record.
-# Any confirmed signal absent from both this set and evaluation_metadata.yaml is ungoverned
-# and must not enter the scoring manifest.
-PRE_LENS_SIGNAL_ALLOWLIST: frozenset[str] = frozenset(
-    {
-        "assists",
-        "clean_sheets",
-        "creativity",
-        "goals_conceded",
-        "goals_scored",
-        "ict_index",
-        "influence",
-        "saves",
-        "threat",
-        "xa",
-        "xg",
-        "xgc",
-        "xgi",
-        "yellow_cards",
-    }
-)

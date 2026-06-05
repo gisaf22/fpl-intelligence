@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from domain.registry.governance_types import PRE_LENS_SIGNAL_ALLOWLIST as _PRE_LENS_SIGNAL_ALLOWLIST
 from serve.scoring.contracts import CaveatedSignal, ConfirmedSignal, SignalManifest
 
 # Promotion classes eligible for scoring
@@ -129,6 +128,7 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
                 rho_pooled=float(rho),
                 direction=1 if rho > 0 else -1,
                 promotion_class=promotion_class,
+                downstream_status=str(row.get("downstream_status") or "eligible"),
             )
         )
 
@@ -152,12 +152,12 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
       2. lifecycle_state == "excluded"  — signal was rejected in lens evaluation
       3. downstream_status == "blocked" — evaluation blocked advancement
 
-    Signals on _PRE_LENS_SIGNAL_ALLOWLIST are exempt — they predate the lens
-    methodology and have no evaluation_metadata.yaml record by design.
-    Any signal absent from both the allowlist and evaluation_metadata.yaml raises
-    GovernanceMetadataError: it is ungoverned and must not enter the scoring manifest.
+    Signals with no evaluation_metadata.yaml record are governed by their foundation
+    verdict instead: lifecycle_state is derived from the registry downstream_status
+    (ADR-009 §1, eligible/caveated → candidate, blocked/unknown → excluded). A signal
+    whose derived lifecycle is excluded must not enter the scoring manifest.
     """
-    from domain.registry.governance_lookup import get_signal_governance
+    from domain.registry.governance_lookup import derive_lifecycle_state, get_signal_governance
     from domain.registry.governance_types import GovernanceMetadataError
     from domain.registry.lifecycle import LeakageViolationError, LifecycleViolationError
 
@@ -165,8 +165,13 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
         try:
             gov = get_signal_governance(sig.signal, sig.position)
         except GovernanceMetadataError:
-            if sig.signal not in _PRE_LENS_SIGNAL_ALLOWLIST:
-                raise
+            # No lens record: govern by the derived foundation verdict.
+            if derive_lifecycle_state(sig.downstream_status) == "excluded":
+                raise LifecycleViolationError(
+                    f"GOVERNANCE VIOLATION: {sig.signal}@{sig.position} has no lens record and "
+                    f"its foundation status {sig.downstream_status!r} derives to excluded "
+                    f"(ADR-009); it must not appear as confirmed in the scoring manifest."
+                ) from None
             continue
 
         if gov.leakage_risk == "direct":

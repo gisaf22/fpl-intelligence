@@ -8,8 +8,9 @@ import pandas as pd
 import pytest
 
 from domain.registry.governance_types import GovernanceMetadataError
+from domain.registry.lifecycle import LifecycleViolationError
 from domain.registry.operational import load_registry
-from serve.scoring.signal_selector import _PRE_LENS_SIGNAL_ALLOWLIST, load_manifest
+from serve.scoring.signal_selector import load_manifest
 
 pytestmark = pytest.mark.unit
 
@@ -142,12 +143,9 @@ def test_no_confirmed_signal_has_null_rho(registry, manifest):
             assert pd.notna(row["rho_pooled"]), f"Confirmed signal {key} has null rho_pooled in registry"
 
 
-def test_ungoverned_signal_raises_governance_error(registry):
-    """Signal absent from both evaluation_metadata.yaml and the allowlist must raise GovernanceMetadataError.
-
-    Injects a synthetic confirmed signal with a made-up name to verify the allowlist
-    check fires rather than silently continuing.
-    """
+def test_no_lens_record_with_excluding_foundation_status_raises(registry):
+    """A confirmed signal with no lens record whose foundation status derives to excluded
+    must hard-fail (ADR-009 §1 replaces the former allowlist with a derived verdict)."""
     from serve.scoring.contracts import ConfirmedSignal, SignalManifest
     from serve.scoring.signal_selector import _assert_governance_compliance
 
@@ -157,29 +155,31 @@ def test_ungoverned_signal_raises_governance_error(registry):
         rho_pooled=0.15,
         direction=1,
         promotion_class="core_signal",
+        downstream_status="blocked",  # derives to excluded
     )
     fake_manifest = SignalManifest(
         confirmed=[fake_signal],
         caveated=[],
         positions_covered={"DEF": ["ungoverned_synthetic_signal"]},
     )
-    with pytest.raises(GovernanceMetadataError):
+    with pytest.raises(LifecycleViolationError):
         _assert_governance_compliance(fake_manifest)
 
 
-def test_allowlist_signals_pass_governance_without_evaluation_record(registry):
-    """Pre-lens signals on _PRE_LENS_SIGNAL_ALLOWLIST pass governance compliance without an evaluation record."""
+def test_pre_lens_signals_pass_via_derived_foundation_verdict(registry):
+    """Pre-lens signals (no evaluation_metadata.yaml record) pass compliance when their
+    foundation status derives to candidate (ADR-009 §1, eligible/caveated → candidate)."""
     from serve.scoring.contracts import ConfirmedSignal, SignalManifest
     from serve.scoring.signal_selector import _assert_governance_compliance
 
-    # pick one allowlist signal per position to exercise the bypass
-    for signal_name in list(_PRE_LENS_SIGNAL_ALLOWLIST)[:3]:
+    for signal_name in ("goals_scored", "xgi", "clean_sheets"):
         test_signal = ConfirmedSignal(
             signal=signal_name,
             position="DEF",
             rho_pooled=0.10,
             direction=1,
             promotion_class="core_signal",
+            downstream_status="caveated",  # derives to candidate
         )
         manifest = SignalManifest(
             confirmed=[test_signal],

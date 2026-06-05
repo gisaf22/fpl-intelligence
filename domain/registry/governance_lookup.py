@@ -34,6 +34,7 @@ from typing import Any
 
 import yaml
 
+from domain.registry.finding_key import FindingKeyError, lens_token, parse_key
 from domain.registry.governance_types import GovernanceMetadata, GovernanceMetadataError
 
 _EVAL_METADATA_PATH = Path("model/governance/evaluation_metadata.yaml")
@@ -44,11 +45,6 @@ _LIFECYCLE_PRIORITY: dict[str, int] = {
     "excluded": 2,
     "not_applicable": 3,
 }
-
-
-def _lens_token(lens: str) -> str:
-    """Normalise a lens label to its key token (ADR-003): lowercase, '-' -> '_'."""
-    return lens.lower().replace("-", "_")
 
 
 @functools.lru_cache(maxsize=1)
@@ -68,8 +64,30 @@ def _load_findings() -> list[dict[str, Any]]:
         raise ValueError(f"Evaluation metadata at {path} must be a YAML mapping, got {type(data).__name__}")
     findings: list[dict[str, Any]] = data["evaluation_findings"]
     for entry in findings:
-        entry["lens_token"] = _lens_token(entry["lens"])
+        entry["lens_token"] = lens_token(entry["lens"])
     return findings
+
+
+# Cautious-grade derivation (ADR-009 §1): a signal that has only a foundation
+# downstream_status (no lens study) gets a *provisional* lifecycle. Nothing is
+# auto-approved without a study; clearly-unusable foundation verdicts are excluded.
+# Unknown/missing status is fail-closed to excluded.
+_FOUNDATION_LIFECYCLE: dict[str, str] = {
+    "eligible": "candidate",
+    "caveated": "candidate",
+    "approved": "candidate",
+    "blocked": "excluded",
+}
+
+
+def derive_lifecycle_state(downstream_status: str) -> str:
+    """Derive a provisional lifecycle_state from a foundation downstream_status (ADR-009 §1).
+
+    Used for signals with no lens record in evaluation_metadata.yaml: their governance
+    comes from the foundation registry verdict, mapped cautiously (eligible/caveated →
+    candidate, blocked/unknown → excluded). Replaces the former PRE_LENS_SIGNAL_ALLOWLIST.
+    """
+    return _FOUNDATION_LIFECYCLE.get(downstream_status, "excluded")
 
 
 def clear_cache() -> None:
@@ -79,24 +97,6 @@ def clear_cache() -> None:
     (e.g. a long-running process or a test that rewrites the decision-of-record).
     """
     _load_findings.cache_clear()
-
-
-def _derive_key(signal_entry: dict[str, Any]) -> str:
-    """Composite finding key signal@lens:target for an entry (ADR-003).
-
-    Derived from the entry's own fields so the key cannot drift from the row it
-    labels. Consumed by the composite-key meta-test, which asserts the stored
-    ``key`` equals this derivation; it recomputes the token from ``lens`` so it
-    also works on raw YAML entries that have not been through ``_load_findings``.
-    """
-    return f"{signal_entry['signal']}@{_lens_token(signal_entry['lens'])}:{signal_entry['target']}"
-
-
-def _malformed_key_error(key: str) -> GovernanceMetadataError:
-    """Single source of the malformed-composite-key error message (ADR-003)."""
-    return GovernanceMetadataError(
-        f"Malformed composite key {key!r}. Expected 'signal@lens:target[#POSITION]' (ADR-003)."
-    )
 
 
 def _build_metadata(signal_entry: dict[str, Any], position: str, pos_data: dict[str, Any]) -> GovernanceMetadata:
@@ -164,24 +164,21 @@ def get_signal_governance_by_key(key: str) -> GovernanceMetadata:
 
     Raises GovernanceMetadataError if the key is malformed or names no finding.
     """
-    finding_part, had_hash, position = key.partition("#")
     try:
-        signal, lens_target = finding_part.split("@", 1)
-        lens_token, target = lens_target.split(":", 1)
-    except ValueError as exc:
-        raise _malformed_key_error(key) from exc
-    if not signal or not lens_token or not target or (had_hash and not position):
-        raise _malformed_key_error(key)
+        parsed = parse_key(key)
+    except FindingKeyError as exc:
+        raise GovernanceMetadataError(str(exc)) from exc
+    signal, token, target, position = parsed.signal, parsed.lens_token, parsed.target, parsed.position
 
     for entry in _load_findings():
-        if entry["signal"] != signal or entry["lens_token"] != lens_token or entry["target"] != target:
+        if entry["signal"] != signal or entry["lens_token"] != token or entry["target"] != target:
             continue
         per_position = entry.get("per_position", {})
         if position:
             if position not in per_position:
                 raise GovernanceMetadataError(
                     f"Composite key {key!r} names position {position!r} with no record in "
-                    f"finding {finding_part!r}. Add it to model/governance/evaluation_metadata.yaml."
+                    f"finding {signal}@{token}:{target}. Add it to model/governance/evaluation_metadata.yaml."
                 )
             return _build_metadata(entry, position, per_position[position])
         # No position suffix: the finding exists; return its first studied position.

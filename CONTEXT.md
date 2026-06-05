@@ -10,7 +10,7 @@ season: no live decisions were made using system outputs. The goal was to charac
 which signals associate reliably with FPL returns, test whether those signals combine
 usefully, and validate the methodology before a predictive layer is added in 2026-27.
 
-The system question, copied exactly from `signals/governance/EVAL_DESIGN.md` Section 2:
+The system question, copied exactly from `model/governance/EVAL_DESIGN.md` Section 2:
 
 > What information, available before a gameweek, reliably associates with FPL returns
 > in decision-relevant contexts — and how should that information be characterised to
@@ -35,7 +35,7 @@ System question
         └── Experiments
             ├── EXP-FH-STACK
             └── EXP-FH-PREDICTOR
-└── Evaluation — signals/governance/EVAL_DESIGN.md
+└── Evaluation — model/governance/EVAL_DESIGN.md
 ```
 
 System EDA runs once against the full dataset. The governed registry
@@ -56,7 +56,7 @@ see `docs/decisions/002-additive-weighted-scoring.md` for why.
 Experiments (EXP-FH-STACK, EXP-FH-PREDICTOR) are backtesting simulations that test signal
 discrimination in decision-relevant contexts — captaincy and transfer selection.
 
-The evaluation framework (`signals/governance/EVAL_DESIGN.md`) defines success criteria and
+The evaluation framework (`model/governance/EVAL_DESIGN.md`) defines success criteria and
 failure conditions before results are known. It cannot be revised retrospectively.
 
 ---
@@ -78,10 +78,9 @@ fpl-intelligence/
 │   └── scoring/     — player scoring from governed registry manifest
 ├── outputs/         — runtime artifacts (scorer HTML, registry CSVs, weekly reports)
 ├── population/      — named population filters: filter_performance, filter_participation
-├── signals/         — signal governance core (decision-of-record + lifecycle gate)
-│   └── governance/       — governance.py (decision-of-record), lifecycle gate, evaluation_metadata.yaml, registry_loader (operational load gate), EVAL_DESIGN.md
-│                          (registry contract → domain/registry/; construction → research/registry/;
-│                           traceability/SIGNAL_REGISTRY.md → model/governance/)
+│                          (signal governance is split: decision-of-record + promotion + traceability → model/governance/;
+│                           registry contract + loaders + lifecycle gate + governance lookup → domain/registry/;
+│                           construction → research/registry/)
 ├── research/        — analytical methodology layer
 │   ├── foundation/  — cross-signal system EDA by stage (complete, closed)
 │   ├── families/    — per-family explore + validate lens studies (form, market, fixture, availability)
@@ -103,7 +102,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 |---|---|---|---|
 | adlc.md | `docs/architecture/adlc.md` | Authoritative analysis lifecycle (explore → validate → model → serve → monitor), mode tags, per-stage test contracts, ID-diet | Sole owner of the word "lifecycle"; how a question becomes a recommendation |
 | implementation-plan.md | `docs/implementation-plan.md` | Phased, dependency-ordered plan for the ADLC-named open work + ENG backlog; final section lists pending ADRs | Sequencing of all pre-season engineering and study work |
-| EVAL_DESIGN.md | `signals/governance/EVAL_DESIGN.md` | Locked success criteria and failure conditions for 2025-26 methodology | All study findings must connect to a question defined here |
+| EVAL_DESIGN.md | `model/governance/EVAL_DESIGN.md` | Locked success criteria and failure conditions for 2025-26 methodology | All study findings must connect to a question defined here |
 | SIGNAL_REGISTRY.md | `model/governance/SIGNAL_REGISTRY.md` | Governance and truth layer for all signals — lifecycle status, lens outcomes, synthesis eligibility | No signal enters synthesis without a confirmed entry |
 | EDA_08_DESIGN.md | `research/foundation/gap/EDA_08_DESIGN.md` | Defines the seven system EDA layers and their gate decisions | All lens studies — no lens runs before EDA is complete |
 | CONTEXT.md | `CONTEXT.md` | Current project state, structure, and rules for new sessions | New session orientation |
@@ -123,7 +122,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 | domain/ | COMPLETE | FPL scoring rules as typed constants with VERIFIED/UNVERIFIED annotations |
 | population/ | COMPLETE | Named population filters: filter_performance (≥60 min), filter_participation (≥1 min) |
 | System EDA | COMPLETE | Governed registry is the authoritative output. Gate decisions in `research/findings/FINDINGS.md` |
-| LENS-FORM | COMPLETE | Approved: xgi_roll3 (DEF), xgi_roll5 (DEF, MID). Records in `signals/governance/evaluation_metadata.yaml` |
+| LENS-FORM | COMPLETE | Approved: xgi_roll3 (DEF), xgi_roll5 (DEF, MID). Records in `model/governance/evaluation_metadata.yaml` |
 | LENS-MARKET | COMPLETE | Approved: transfers_in (DEF, MID), purchase_price (DEF, FWD†), ownership_count (MID). Records in `evaluation_metadata.yaml` |
 | LENS-FIXTURE-GW | COMPLETE | fdr_avg excluded (non-monotonic); reserved as binary moderator. Records in `evaluation_metadata.yaml` |
 | LENS-AVAIL | COMPLETE | Approved: minutes_roll8 (DEF), minutes_roll3/roll8 (MID). Records in `evaluation_metadata.yaml` |

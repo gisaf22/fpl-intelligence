@@ -12,8 +12,8 @@ fpl-intelligence is a governed analytical system for Fantasy Premier League. Its
 ```
 dal/          → validated, deterministic (player_id, gw) spine
 research/     → analytical methodology: foundation EDA, family lenses, statistical kernels
-model/        → registry build / governance vocab (governance) + composition weights (assemble)
-signals/      → signal lifecycle governance and registry build pipeline
+model/        → governance decisions: decision-of-record, promotion, traceability (governance) + composition weights (assemble)
+domain/registry/ → shared leaf: registry contract, loaders, lifecycle gate, governance lookup
 intelligence/ → player scoring and weekly reporting
 ```
 
@@ -24,7 +24,7 @@ To trace a feature to a decision:
 1. Start with `dal/feat/feat_schema.py::FEATURE_REGISTRY` for feature status and approved positions.
 2. Resolve the feature and position in `model/governance/signal_traceability.yaml`.
 3. Use `analysis_paths` for the study/lens implementation.
-4. Derive the finding key as `signal@lens:target[#POS]` and resolve the verdict in `signals/governance/evaluation_metadata.yaml`.
+4. Derive the finding key as `signal@lens:target[#POS]` and resolve the verdict in `model/governance/evaluation_metadata.yaml`.
 5. Search that key in `model/assemble/synth01_decisions.yaml` for composition decisions.
 6. Search that key or listed `derived_from` values in `intelligence/weight_registry.yaml` for intelligence usage.
 
@@ -68,7 +68,7 @@ If a feature has no evaluated traceability route, treat it as conditional/pre-le
 1. [docs/system-purpose.md](system-purpose.md) — system question and research boundaries
 2. [docs/signal-promotion-states.md](signal-promotion-states.md) — signal governance states and promotion criteria
 3. [model/governance/SIGNAL_REGISTRY.md](../model/governance/SIGNAL_REGISTRY.md) — governance registry: signal schema, lifecycle rules, update protocol
-4. [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) — **locked** success criteria and failure conditions (cannot be revised retrospectively)
+4. [model/governance/EVAL_DESIGN.md](../model/governance/EVAL_DESIGN.md) — **locked** success criteria and failure conditions (cannot be revised retrospectively)
 5. [docs/decisions/](decisions/) — architectural decisions: why Spearman, why additive weighting
 6. [docs/studies/](studies/) — study designs and published results
 
@@ -93,7 +93,7 @@ If a feature has no evaluated traceability route, treat it as conditional/pre-le
 | Document | Authoritative for |
 |----------|-------------------|
 | `dal/fct/fct_contracts.py`, `dal/validation/` | All DAL behavior: grain, column contracts, null semantics, dtype contracts, BGW/DGW invariants (code-enforced) |
-| [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) | Success criteria and failure conditions for 2025-26 methodology |
+| [model/governance/EVAL_DESIGN.md](../model/governance/EVAL_DESIGN.md) | Success criteria and failure conditions for 2025-26 methodology |
 | [model/governance/SIGNAL_REGISTRY.md](../model/governance/SIGNAL_REGISTRY.md) | Lifecycle status for every named signal |
 | [docs/signal-promotion-states.md](signal-promotion-states.md) | Signal governance state definitions and promotion rules |
 | [docs/registry-governance.md](registry-governance.md) | Exploratory vs operational registry semantics; lifecycle gate enforcement |
@@ -172,9 +172,9 @@ These files are active governance artifacts owned by their respective layers. Th
 | File | Owned by | Purpose |
 |------|----------|---------|
 | [model/governance/SIGNAL_REGISTRY.md](../model/governance/SIGNAL_REGISTRY.md) | `model/governance/` | Single source of truth for signal lifecycle status (generated/read-only projection). Updated only at methodology milestones. |
-| [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) | `signals/governance/` | Locked success criteria for 2025-26 methodology. Cannot be revised retrospectively. |
+| [model/governance/EVAL_DESIGN.md](../model/governance/EVAL_DESIGN.md) | `model/governance/` | Locked success criteria for 2025-26 methodology. Cannot be revised retrospectively. |
 | [intelligence/weight_registry.yaml](../intelligence/weight_registry.yaml) | `intelligence/` | Operational scoring weights per (signal, position). Updated after SYNTH-01 re-run. |
-| [signals/governance/evaluation_metadata.yaml](../signals/governance/evaluation_metadata.yaml) | `signals/governance/` | Per-signal lens findings, lifecycle states, downstream status. |
+| [model/governance/evaluation_metadata.yaml](../model/governance/evaluation_metadata.yaml) | `model/governance/` | Per-signal lens findings, lifecycle states, downstream status. |
 
 ---
 

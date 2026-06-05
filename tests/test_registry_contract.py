@@ -1,10 +1,7 @@
 import pytest
 
-from signals.governance import (
-    RegistryValidationError,
-    load_registry,
-    validate_registry_contract,
-)
+from domain.registry.operational import load_registry
+from domain.registry.validation import RegistryValidationError, validate_registry_contract
 
 pytestmark = pytest.mark.unit
 

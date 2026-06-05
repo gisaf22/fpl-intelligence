@@ -1,8 +1,8 @@
 """Domain-agnostic statistical kernels.
 
 No FPL-specific constants, no governance imports, no signal classification strings.
-Anything that imports from signals/ or references FPL concepts belongs in
-research/families/, not here.
+Anything that imports governance (model/governance/, domain/registry/) or
+references FPL concepts belongs in research/families/, not here.
 """
 
 from research.kernels.correlation.panel import decompose_rho

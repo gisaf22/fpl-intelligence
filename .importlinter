@@ -5,7 +5,6 @@ root_packages =
     population
     research
     model
-    signals
     intelligence
 
 [importlinter:contract:no_domain_to_anything]
@@ -18,7 +17,6 @@ forbidden_modules =
     population
     research
     model
-    signals
     intelligence
 
 [importlinter:contract:no_population_to_upper_layers]
@@ -30,7 +28,6 @@ forbidden_modules =
     dal
     research
     model
-    signals
     intelligence
 
 [importlinter:contract:no_research_to_downstream]
@@ -39,17 +36,7 @@ type = forbidden
 source_modules =
     research
 forbidden_modules =
-    signals
     model
-    intelligence
-
-[importlinter:contract:no_signals_to_research_or_intelligence]
-name = Signals must not import from research or intelligence
-type = forbidden
-source_modules =
-    signals
-forbidden_modules =
-    research
     intelligence
 
 [importlinter:contract:no_intelligence_to_research_or_model]
@@ -79,5 +66,4 @@ source_modules =
 forbidden_modules =
     research
     model
-    signals
     intelligence

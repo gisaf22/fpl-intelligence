@@ -19,8 +19,12 @@ from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
+from research.families.evidence_record import decision_class_for, write_evidence
 
 RUNS_DIR = Path("research/runs")
+VALIDATE_DIR = Path(__file__).parent
+LENS = "MARKET"
+TARGET_TOKEN = "total_points"
 
 SIGNALS: dict[str, dict] = {
     "transfers_in":      {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
@@ -94,6 +98,19 @@ def _quintile_record(df, signal, signal_id, position, block):
         return None
 
 
+def _evidence_row(signal, position, full_corr, block_corrs, cls):
+    """Project this slice's computed statistics into an evidence.yaml row (ADR-009 Phase C)."""
+    n_passing = sum(1 for b in block_corrs if b and b["ci_excludes_zero"])
+    return {
+        "signal": signal, "position": position,
+        "rho_pooled": full_corr["rho"] if full_corr else None,
+        "rho_ci_lower": full_corr["ci_lower"] if full_corr else None,
+        "rho_ci_upper": full_corr["ci_upper"] if full_corr else None,
+        "block_stability_count": n_passing if full_corr else None,
+        "decision_class": decision_class_for(cls["lens_status"]),
+    }
+
+
 def _classify(full_corr, full_quint, block_corrs, signal, signal_id, position):
     base = {"signal_id": signal_id, "signal": signal, "position": position}
     if full_corr is None:
@@ -128,6 +145,7 @@ def run(db_path: Path = DB_PATH) -> Path:
     pop = state[(state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)].copy()
 
     corr_rows, block_rows, quint_rows, classify_rows = [], [], [], []
+    evidence_rows: list[dict] = []
 
     for signal, cfg in SIGNALS.items():
         signal_id = SIGNAL_IDS[signal]
@@ -157,7 +175,9 @@ def run(db_path: Path = DB_PATH) -> Path:
                 if q:
                     quint_rows.append(q)
 
-            classify_rows.append(_classify(full_corr, full_quint, block_corrs, signal, signal_id, pos))
+            cls = _classify(full_corr, full_quint, block_corrs, signal, signal_id, pos)
+            classify_rows.append(cls)
+            evidence_rows.append(_evidence_row(signal, pos, full_corr, block_corrs, cls))
 
     pd.DataFrame(corr_rows).to_csv(out_dir / "correlation_results.csv", index=False)
     pd.DataFrame(block_rows).to_csv(out_dir / "block_results.csv", index=False)
@@ -170,6 +190,11 @@ def run(db_path: Path = DB_PATH) -> Path:
         "gw_blocks": {k: list(v) for k, v in GW_BLOCKS.items()},
         "quintile_gap_threshold": QUINTILE_GAP_THRESHOLD,
     }, indent=2))
+
+    write_evidence(
+        VALIDATE_DIR, LENS, TARGET_TOKEN, evidence_rows,
+        evidence_run={"source": f"LENS-MARKET-{ts}", "produced": ts, "db_path": str(db_path)},
+    )
 
     print(f"\nRun complete: {out_dir}")
     print(f"\n{'Signal':<20} {'Pos':<5} {'rho':>7}  {'95% CI':^17}  {'CI_excl0':>8}  {'Status'}")

@@ -21,8 +21,12 @@ from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
+from research.families.evidence_record import decision_class_for, write_evidence
 
 RUNS_DIR = Path("research/runs")
+VALIDATE_DIR = Path(__file__).parent
+LENS = "FORM"
+TARGET_TOKEN = "total_points"
 
 # LENS_DESIGN.md §2 — registered signals, valid positions, GW lower bounds
 # Position label from DAL is 'GKP', not 'GK'
@@ -254,6 +258,26 @@ def _classify(
 
 
 # ---------------------------------------------------------------------------
+# Evidence verdict record (ADR-009 Phase C)
+# ---------------------------------------------------------------------------
+
+def _evidence_row(
+    signal: str, position: str, full_corr: dict | None, block_corrs: list[dict | None], cls: dict
+) -> dict:
+    """Project this slice's computed statistics into an evidence.yaml row."""
+    n_passing = sum(1 for b in block_corrs if b and b["ci_excludes_zero"])
+    return {
+        "signal": signal,
+        "position": position,
+        "rho_pooled": full_corr["rho"] if full_corr else None,
+        "rho_ci_lower": full_corr["ci_lower"] if full_corr else None,
+        "rho_ci_upper": full_corr["ci_upper"] if full_corr else None,
+        "block_stability_count": n_passing if full_corr else None,
+        "decision_class": decision_class_for(cls["lens_status"]),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Main run entry point
 # ---------------------------------------------------------------------------
 
@@ -283,6 +307,7 @@ def run(db_path: Path = DB_PATH) -> Path:
     block_rows: list[dict] = []
     quint_rows: list[dict] = []
     classify_rows: list[dict] = []
+    evidence_rows: list[dict] = []
 
     # Naive baseline rho per position (points_roll3, full window)
     # Used to set clears_naive_baseline for non-baseline signals
@@ -330,9 +355,9 @@ def run(db_path: Path = DB_PATH) -> Path:
 
             # Classification (LENS_DESIGN.md §8)
             naive_rho = naive_rho_by_pos.get(pos) if signal not in NAIVE_BASELINES else None
-            classify_rows.append(
-                _classify(full_corr, full_quint, block_corrs, signal, signal_id, pos, naive_rho)
-            )
+            cls = _classify(full_corr, full_quint, block_corrs, signal, signal_id, pos, naive_rho)
+            classify_rows.append(cls)
+            evidence_rows.append(_evidence_row(signal, pos, full_corr, block_corrs, cls))
 
     # Write artefacts (LENS_DESIGN.md §10)
     pd.DataFrame(corr_rows).to_csv(out_dir / "correlation_results.csv", index=False)
@@ -353,6 +378,13 @@ def run(db_path: Path = DB_PATH) -> Path:
         "signals": {s: {**cfg, "signal_id": SIGNAL_IDS[s]} for s, cfg in SIGNALS.items()},
     }
     (out_dir / "run_metadata.json").write_text(json.dumps(meta, indent=2))
+
+    # Evidence verdict record (ADR-009 Phase C): the committed machine half consumed by
+    # model/governance/generate_evaluation_metadata.py. Judgment lives in annotations.yaml.
+    write_evidence(
+        VALIDATE_DIR, LENS, TARGET_TOKEN, evidence_rows,
+        evidence_run={"source": f"LENS-FORM-{ts}", "produced": ts, "db_path": str(db_path)},
+    )
 
     # Summary print
     print(f"\nRun complete: {out_dir}")

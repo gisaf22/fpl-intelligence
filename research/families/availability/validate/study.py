@@ -19,8 +19,12 @@ from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
+from research.families.evidence_record import decision_class_for, write_evidence
 
 RUNS_DIR = Path("research/runs")
+VALIDATE_DIR = Path(__file__).parent
+LENS = "AVAIL"
+TARGET_TOKEN = "played_next_gw"
 
 # LENS_DESIGN.md §2 — primary target is played_next_gw (binary)
 SIGNALS: dict[str, dict] = {
@@ -112,6 +116,19 @@ def _quintile_record(
         return None
 
 
+def _evidence_row(signal, position, full_corr, block_corrs, cls):
+    """Project this slice's computed statistics into an evidence.yaml row (ADR-009 Phase C)."""
+    n_passing = sum(1 for b in block_corrs if b and b["ci_excludes_zero"])
+    return {
+        "signal": signal, "position": position,
+        "rho_pooled": full_corr["rho"] if full_corr else None,
+        "rho_ci_lower": full_corr["ci_lower"] if full_corr else None,
+        "rho_ci_upper": full_corr["ci_upper"] if full_corr else None,
+        "block_stability_count": n_passing if full_corr else None,
+        "decision_class": decision_class_for(cls["lens_status"]),
+    }
+
+
 def _classify(
     full_corr: dict | None, full_quint: dict | None,
     block_corrs: list[dict | None],
@@ -160,6 +177,7 @@ def run(db_path: Path = DB_PATH) -> Path:
     block_rows: list[dict] = []
     quint_rows: list[dict] = []
     classify_rows: list[dict] = []
+    evidence_rows: list[dict] = []
 
     for signal, cfg in SIGNALS.items():
         signal_id = SIGNAL_IDS[signal]
@@ -212,9 +230,9 @@ def run(db_path: Path = DB_PATH) -> Path:
                 (r for r in quint_rows if r["signal"] == signal and r["position"] == pos
                  and r["block"] == "full" and r["target"] == "played_next_gw"), None
             )
-            classify_rows.append(
-                _classify(primary_full, primary_quint, block_corrs, signal, signal_id, pos)
-            )
+            cls = _classify(primary_full, primary_quint, block_corrs, signal, signal_id, pos)
+            classify_rows.append(cls)
+            evidence_rows.append(_evidence_row(signal, pos, primary_full, block_corrs, cls))
 
     pd.DataFrame(corr_rows).to_csv(out_dir / "correlation_results.csv", index=False)
     pd.DataFrame(block_rows).to_csv(out_dir / "block_results.csv", index=False)
@@ -232,6 +250,11 @@ def run(db_path: Path = DB_PATH) -> Path:
         "signals": {s: {**cfg, "signal_id": SIGNAL_IDS[s]} for s, cfg in SIGNALS.items()},
     }
     (out_dir / "run_metadata.json").write_text(json.dumps(meta, indent=2))
+
+    write_evidence(
+        VALIDATE_DIR, LENS, TARGET_TOKEN, evidence_rows,
+        evidence_run={"source": f"LENS-AVAIL-{ts}", "produced": ts, "db_path": str(db_path)},
+    )
 
     print(f"\nRun complete: {out_dir}")
     print(f"\n{'Signal':<16} {'Pos':<5} {'rho':>7}  {'95% CI':^17}  {'CI_excl0':>8}  {'Status'}")

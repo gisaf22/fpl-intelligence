@@ -1,0 +1,81 @@
+lens: AVAIL
+target: played_next_gw
+evidence_run:
+  source: backfill:evaluation_metadata.yaml@v3.0
+  produced: '3.0'
+signals:
+  minutes_roll3:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    DEF:
+      rho_pooled: 0.223
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    MID:
+      rho_pooled: 0.232
+      rho_ci_lower: 0.198
+      rho_ci_upper: 0.269
+      block_stability_count: 3
+      decision_class: informative
+    FWD:
+      rho_pooled: 0.186
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+  minutes_roll5:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    DEF:
+      rho_pooled: 0.213
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    MID:
+      rho_pooled: 0.227
+      rho_ci_lower: 0.19
+      rho_ci_upper: 0.265
+      block_stability_count: 3
+      decision_class: informative
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: 1
+      decision_class: uninformative
+  minutes_roll8:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    DEF:
+      rho_pooled: 0.219
+      rho_ci_lower: 0.174
+      rho_ci_upper: 0.261
+      block_stability_count: 3
+      decision_class: informative
+    MID:
+      rho_pooled: 0.222
+      rho_ci_lower: 0.18
+      rho_ci_upper: 0.261
+      block_stability_count: 3
+      decision_class: informative
+    FWD:
+      rho_pooled: 0.206
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative

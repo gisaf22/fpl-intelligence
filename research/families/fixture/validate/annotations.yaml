@@ -1,0 +1,138 @@
+lens: FIXTURE-GW
+target: total_points
+signals:
+  fdr_avg:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic middle quintiles at GK
+        — FDR does not provide monotonic scoring separation; reserved for binary moderator
+        role in SYNTH-01
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic middle quintiles despite endpoint gap'
+      notes: CI excludes zero but fails decision relevance — non-monotonic middle
+        quintiles despite endpoint gap
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero, Q5-Q1=-2.04 pts endpoint gap, but Q3>Q2
+        quintile reversal breaks monotonicity at DEF — reserved for binary moderator
+        role in SYNTH-01
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q3>Q2 reversal breaks monotonicity'
+      notes: CI excludes zero, Q5-Q1=-2.04 pts endpoint gap but Q3>Q2 reversal breaks
+        monotonicity
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero, Q5-Q1=-1.46 pts endpoint gap, but non-monotonic
+        middle quintiles at MID — FDR rejected as primary scored signal; reserved
+        for binary moderator in SYNTH-01
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic middle quintiles'
+      notes: CI excludes zero, Q5-Q1=-1.46 pts endpoint gap but non-monotonic middle
+        quintiles
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but fails decision relevance at FWD; reserved
+        for binary moderator role (easy vs. difficult fixture) in SYNTH-01, not as
+        primary scored signal
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: fails decision relevance'
+      notes: CI excludes zero but fails decision relevance; reserved for binary moderator
+        role in SYNTH-01
+  was_home:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI crosses zero at GK — home advantage shows no reliable
+        relationship with GK returns
+      source_gate_decisions:
+      - 'G1-FAIL: CI crosses zero'
+      notes: CI crosses zero
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1=-0.145 non-monotonic at DEF —
+        home/away binary does not provide reliable scoring advantage for defenders
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=-0.145 non-monotonic'
+      notes: CI excludes zero but Q5-Q1=-0.145, non-monotonic
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1=0.044 trivially small at MID —
+        home advantage provides no decision-relevant scoring separation for midfielders
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.044 trivially small'
+      notes: CI excludes zero but Q5-Q1=0.044, trivially small — no decision-relevant
+        separation
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI crosses zero at FWD — no reliable home advantage effect
+        on FWD returns
+      source_gate_decisions:
+      - 'G1-FAIL: CI crosses zero'
+      notes: CI crosses zero
+  fixture_count:
+    GK:
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK and FWD blocked from schedule context signal by ontological
+        design (G-EDA2-01); DGW fixture count is primarily relevant for MID/DEF scoring
+        multipliers
+      source_gate_decisions:
+      - 'G-EDA2-01: GK and FWD blocked from schedule context signal'
+      notes: GK and FWD blocked in EDA (G-EDA2-01)
+      decision_class: excluded
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic (Q5-Q1=-0.407) — DGW effect
+        at DEF is a binary multiplier, not a graded monotonic signal; fixture_count
+        should be treated as a binary DGW flag
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic Q5-Q1=-0.407; DGW is binary multiplier not graded
+        signal'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=-0.407); DGW effect is multiplier,
+        not graded signal
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: 'CI excludes zero but non-monotonic (Q5-Q1=-0.404) at MID
+        — same conclusion as DEF: DGW effect is binary, fixture count is not a gradable
+        scoring signal'
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic Q5-Q1=-0.404'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=-0.404)
+    FWD:
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK and FWD blocked from schedule context signal by ontological
+        design (G-EDA2-01)
+      source_gate_decisions:
+      - 'G-EDA2-01: GK and FWD blocked from schedule context signal'
+      notes: FWD blocked in EDA (G-EDA2-01)
+      decision_class: excluded

@@ -372,6 +372,16 @@ Registry update timing:
 - After each experiment completes — experiment finding logged
 - After 2026-27 season ends — decision-level status updated
 
+**Provenance (ADR-009 Phase C).** `evaluation_metadata.yaml` — the scoring
+decision-of-record — is **machine-generated, not hand-authored**. Each lens
+study emits `evidence.yaml` (computed statistics) next to its
+hand-authored `annotations.yaml` (judgment: lifecycle/leakage/behavioral_reason/
+not_applicable) under `research/families/*/validate/`;
+`model/governance/generate_evaluation_metadata.py` merges those with
+`model/assemble/synth01_decisions.yaml` to (re)produce the YAML. Do not edit the
+YAML by hand — change the verdict records and regenerate; a drift-guard test
+(`tests/test_generate_evaluation_metadata.py`) fails if they diverge.
+
 ---
 
 ## 10. Evolution path

@@ -1,0 +1,132 @@
+lens: FORM
+target: total_points
+evidence_run:
+  source: backfill:evaluation_metadata.yaml@v3.0
+  produced: '3.0'
+signals:
+  xgi_roll3:
+    DEF:
+      rho_pooled: 0.123
+      rho_ci_lower: 0.084
+      rho_ci_upper: 0.161
+      block_stability_count: 3
+      decision_class: informative
+    MID:
+      rho_pooled: 0.144
+      rho_ci_lower: 0.107
+      rho_ci_upper: 0.182
+      block_stability_count: 3
+      decision_class: informative
+    FWD:
+      rho_pooled: 0.091
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+  xgi_roll5:
+    DEF:
+      rho_pooled: 0.113
+      rho_ci_lower: 0.071
+      rho_ci_upper: 0.155
+      block_stability_count: 3
+      decision_class: informative
+    MID:
+      rho_pooled: 0.157
+      rho_ci_lower: 0.118
+      rho_ci_upper: 0.197
+      block_stability_count: 3
+      decision_class: informative
+    FWD:
+      rho_pooled: 0.097
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+  goals_scored_roll3:
+    DEF:
+      rho_pooled: 0.018
+      rho_ci_lower: -0.023
+      rho_ci_upper: 0.061
+      block_stability_count: null
+      decision_class: uninformative
+    MID:
+      rho_pooled: 0.076
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    FWD:
+      rho_pooled: 0.097
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+  points_roll3:
+    GK:
+      rho_pooled: 0.071
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    DEF:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    MID:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: 1
+      decision_class: uninformative
+  points_roll5:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    DEF:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    MID:
+      rho_pooled: 0.158
+      rho_ci_lower: 0.118
+      rho_ci_upper: 0.198
+      block_stability_count: 3
+      decision_class: informative
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+  minutes_roll3:
+    DEF:
+      rho_pooled: 0.138
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    MID:
+      rho_pooled: 0.179
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    FWD:
+      rho_pooled: 0.085
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative

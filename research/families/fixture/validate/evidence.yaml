@@ -1,0 +1,69 @@
+lens: FIXTURE-GW
+target: total_points
+evidence_run:
+  source: backfill:evaluation_metadata.yaml@v3.0
+  produced: '3.0'
+signals:
+  fdr_avg:
+    GK:
+      rho_pooled: -0.147
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    DEF:
+      rho_pooled: -0.196
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    MID:
+      rho_pooled: -0.159
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    FWD:
+      rho_pooled: -0.092
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+  was_home:
+    GK:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    DEF:
+      rho_pooled: 0.068
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    MID:
+      rho_pooled: 0.044
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    FWD:
+      rho_pooled: null
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+  fixture_count:
+    DEF:
+      rho_pooled: 0.098
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative
+    MID:
+      rho_pooled: 0.083
+      rho_ci_lower: null
+      rho_ci_upper: null
+      block_stability_count: null
+      decision_class: uninformative

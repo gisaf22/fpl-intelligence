@@ -1,0 +1,279 @@
+lens: FORM
+target: total_points
+signals:
+  xgi_roll3:
+    DEF:
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 3-GW attacking chance quality (xGI) correlates with DEF returns;
+        monotonic concentration in upper quintiles; informative across all 3 temporal
+        blocks
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1 gap'
+      - 'G3-PASS: 3/3 blocks'
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: Informative at MID but does not clear naive baseline (points_roll5
+        MID rho=0.158 vs xgi_roll3 MID rho=0.144); SYNTH-01 must test independent
+        contribution
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1 gap'
+      - 'G3-PASS: 3/3 blocks'
+      notes: Does not clear naive baseline (points_roll5 MID rho=0.158 — borderline
+        above)
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but quintile ordering non-monotonic; haul-concentration
+        effect at FWD destroys monotonic separation — xGI events are burst-concentrated
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering'
+      notes: CI excludes zero but fails monotonicity gate — Q5-Q1 gap non-monotonic;
+        not decision relevant
+    GK:
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK excluded from attacking process signals by ontological
+        design; xGI is not meaningful for goalkeepers
+      source_gate_decisions:
+      - 'G-EDA3-01: GK excluded from attacking process signals'
+      notes: GK excluded from attacking process signals by design (G-EDA3-01)
+      decision_class: excluded
+  xgi_roll5:
+    DEF:
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 5-GW xGI provides longer-horizon form signal; clears naive
+        baseline at DEF; SYNTH-01 to evaluate independence from xgi_roll3
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1 gap'
+      - 'G3-PASS: 3/3 blocks'
+      notes: Clears naive baseline (borderline); SYNTH-01 to test independence from
+        FORM-001
+    MID:
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 5-GW xGI informative at MID but borderline below naive baseline
+        (rho=0.157 vs points_roll5 MID rho=0.158); independence from xgi_roll3 and
+        naive baseline clearance both require SYNTH-01 test
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1 gap'
+      - 'G3-PASS: 3/3 blocks'
+      notes: Clears naive baseline (points_roll5 MID rho=0.158 — borderline below);
+        SYNTH-01 test required
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering — same
+        haul-concentration caveat as xgi_roll3 FWD; 5-GW rolling mean cannot recover
+        monotonic structure from burst event data
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering'
+      notes: CI excludes zero but fails monotonicity gate — same haul-concentration
+        caveat as FORM-001 FWD
+    GK:
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK excluded from attacking process signals by ontological
+        design
+      source_gate_decisions:
+      - 'G-EDA3-01: GK excluded from attacking process signals'
+      notes: GK excluded (G-EDA3-01)
+      decision_class: excluded
+  goals_scored_roll3:
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI crosses zero at DEF — no reliable association between
+        3-GW goal rate and next-GW points at DEF
+      source_gate_decisions:
+      - 'G1-FAIL: CI crosses zero'
+      notes: CI crosses zero
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.38);
+        rolling goal-rate mean destroys burst goal-scoring structure at MID
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.38'
+      notes: CI excludes zero but fails decision relevance — Q5-Q1 0.38, non-monotonic
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic (Q5-Q1=0.79); rolling
+        mean smooths burst goal events — goals too sparse and bursty to form monotonic
+        rolling signal at FWD
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.79'
+      notes: CI excludes zero but fails decision relevance — Q5-Q1 0.79, non-monotonic;
+        rolling mean destroys burst structure
+    GK:
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK excluded from attacking event signals by ontological design
+      source_gate_decisions:
+      - 'G-EDA3-01: GK excluded from attacking event signals'
+      notes: GK excluded from attacking event signals (G-EDA3-01)
+      decision_class: excluded
+  points_roll3:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI crosses zero at GK — no predictive signal even under circularity concern
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G1-FAIL: CI crosses zero'
+      - FORM-004
+      notes: CI crosses zero — naive baseline function not served at GK
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI excludes zero but non-monotonic bin ordering at DEF — excluded regardless
+        of statistical significance
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G2-FAIL: non-monotonic quintile ordering'
+      - FORM-004
+      notes: CI excludes zero but non-monotonic bin ordering — not decision relevant
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        Q5-Q1 gap (0.99) below 1.0 threshold at MID — excluded regardless of statistical
+        significance
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G2-FAIL: Q5-Q1=0.99 below 1.0 threshold'
+      - FORM-004
+      notes: CI excludes zero but Q5-Q1=0.99 (just below 1.0 threshold); monotonic=True
+        but insufficient gap
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI excludes zero in aggregate but only 1/3 temporal blocks stable at FWD —
+        excluded regardless
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G3-FAIL: 1/3 temporal blocks stable'
+      - FORM-004
+      notes: CI excludes zero in aggregate but passes only 1/3 blocks — unstable
+  points_roll5:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI crosses zero at GK — no predictive signal even under circularity concern
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G1-FAIL: CI crosses zero'
+      - FORM-005
+      notes: CI crosses zero
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI excludes zero but fails decision relevance at DEF — excluded regardless
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G2-FAIL: decision relevance'
+      - FORM-005
+      notes: CI excludes zero but fails decision relevance
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target; passes all gates at MID (rho=0.158, 3/3 blocks)
+        but retained only as naive evaluation baseline — excluded as synthesis candidate
+        to prevent evaluation circularity contaminating SYNTH-01
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — reserved as evaluation baseline only'
+      - FORM-005
+      notes: Naive baseline for MID only — sets the benchmark (rho=0.158); not a synthesis
+        candidate as independent signal
+      decision_class: conditional
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: evaluation_circularity
+      behavioral_reason: Lagged target value (evaluation circularity, G-EDA7-02);
+        CI excludes zero but fails decision relevance at FWD — excluded regardless
+      source_gate_decisions:
+      - 'G-EDA7-02: evaluation circularity — lagged target'
+      - 'G2-FAIL: decision relevance'
+      - FORM-005
+      notes: CI excludes zero but fails decision relevance
+  minutes_roll3:
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic bin distributions at DEF;
+        minutes are an exposure proxy blocked as form signal by G-EDA2-02
+      source_gate_decisions:
+      - 'G2-FAIL: non-monotonic quintile ordering'
+      - 'G-EDA2-02: minutes blocked as form proxy'
+      notes: CI excludes zero but fails decision relevance — non-monotonic bin distributions;
+        minutes blocked as form proxy (G-EDA2-02)
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero (rho=0.179) but non-monotonic bins at MID
+        — does not provide monotonic next-GW return separation; minutes blocked as
+        form proxy by G-EDA2-02
+      source_gate_decisions:
+      - 'G2-FAIL: non-monotonic quintile ordering'
+      - 'G-EDA2-02: minutes blocked as form proxy'
+      notes: CI excludes zero (rho=0.179) but non-monotonic bins — does not provide
+        monotonic next-GW return separation
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but fails decision relevance at FWD; minutes
+        blocked as form proxy by G-EDA2-02
+      source_gate_decisions:
+      - 'G2-FAIL: decision relevance'
+      - 'G-EDA2-02: minutes blocked as form proxy'
+      notes: CI excludes zero but fails decision relevance
+    GK:
+      lifecycle_state: not_applicable
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: GK playing time near-constant — no useful variation in the
+        form lens; excluded by design
+      source_gate_decisions:
+      - 'G-EDA2-02: minutes blocked as form proxy'
+      - 'GK-CONSTANT: near-constant playing time'
+      notes: GK excluded (near-constant playing time)
+      decision_class: excluded

@@ -1,0 +1,182 @@
+lens: MARKET
+target: total_points
+signals:
+  transfers_in:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.909)
+        at GK — transfer demand does not provide monotonic scoring signal for GK
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.909'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=0.909)
+    DEF:
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: Transfer demand correlates with next-GW returns at DEF —
+        crowd-sourced momentum/consensus signal; rho=0.187, 3/3 blocks, monotonic
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+    MID:
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: Transfer demand informative at MID — market consensus tracks
+        form with a lag; rho=0.190, 3/3 blocks
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering despite
+        large Q5-Q1 gap (1.98 pts) — market demand at FWD reflects player tier rather
+        than monotonic form signal
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering (monotonic=False)'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=1.98 above gap threshold but
+        non-monotonic bin ordering)
+  transfers_balance:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI crosses zero at GK — net transfer balance has no reliable
+        relationship with GK returns
+      source_gate_decisions:
+      - 'G1-FAIL: CI crosses zero'
+      notes: CI crosses zero
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1 gap (0.563) below decision relevance
+        threshold — net transfer balance provides insufficient scoring separation
+        at DEF
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.563 below threshold'
+      notes: CI excludes zero but Q5-Q1=0.563, below threshold
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1 gap (0.756) below decision relevance
+        threshold — net balance uninformative at MID
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.756 below threshold'
+      notes: CI excludes zero but Q5-Q1=0.756, below threshold
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI crosses zero at FWD — no reliable relationship between
+        net transfer balance and FWD returns
+      source_gate_decisions:
+      - 'G1-FAIL: CI crosses zero'
+      notes: CI crosses zero
+  ownership_count:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.826)
+        at GK — ownership concentration does not track GK form monotonically
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.826'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=0.826)
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: Total ownership count correlates with DEF returns; rho=0.156,
+        3/3 blocks; SYNTH-01 to evaluate independence from transfers_in (crowd-sourced
+        consensus vs inflow)
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      notes: SYNTH-01 to test whether ownership adds independent information beyond
+        transfers_in
+    MID:
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: Ownership count informative at MID; rho=0.168, 3/3 blocks;
+        SYNTH-01 to test independence from transfers_in (crowd-sourced consensus may
+        be collinear with inflow)
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      notes: SYNTH-01 to test independence from transfers_in
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but only 1/3 temporal blocks stable — temporally
+        unstable ownership-return relationship at FWD
+      source_gate_decisions:
+      - G1-PASS
+      - 'G3-FAIL: 1/3 temporal blocks stable'
+      notes: CI excludes zero but passes only 1/3 blocks — unstable
+  purchase_price:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic bin ordering at GK — price
+        tier does not track GK points monotonically
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic bin ordering'
+      notes: CI excludes zero but non-monotonic bin ordering
+    DEF:
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: Market price proxies player quality tier at DEF; rho=0.121,
+        passes 2/3 temporal blocks (borderline stability); SYNTH-01 to test partial
+        correlation controlling for form signals
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-WEAK: 2/3 temporal blocks'
+      notes: Passes 2/3 blocks (borderline stability); SYNTH-01 to test partial correlation
+        controlling for form
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering despite
+        large Q5-Q1 gap (1.37 pts) — price tier signal non-monotonic at MID
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic (monotonic=False, Q5-Q1=1.37)'
+      notes: CI excludes zero but non-monotonic (Q5-Q1=1.37 but monotonic=False)
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: SYNTH-01 in-sample rho=0.155 (G3-WEAK caveat); Phase 9 holdout
+        GW 34-38 reversed to rho=-0.095 (p=0.374, n=89). Reversal attributed to season-end
+        rotation — expensive FWDs rested when teams secured/lost position target.
+        Removed from FWD scoring pending SYNTH-02 phase-conditional evaluation (GW
+        1-30 vs GW 31-38 split). See ENG-02 in docs/governance/eng-issues-2026.md.
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-WEAK: 2/3 temporal blocks'
+      - 'PHASE9-REVERSAL: holdout rho=-0.095, removed from scoring'
+      notes: Removed from FWD scoring — Phase 9 holdout reversal. SYNTH-02 required
+        for phase-conditional evaluation (restrict to GW 1-30).

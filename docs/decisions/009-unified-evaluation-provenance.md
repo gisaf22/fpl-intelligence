@@ -1,6 +1,6 @@
 # ADR-009 — Unified Evaluation Provenance
 
-**Status:** Accepted — Phases A & B merged (2026-06-05); Phases C & D pending
+**Status:** Accepted — Phases A, B & C merged (2026-06-05); Phase D pending
 **Date:** 2026-06-05
 **Applies to:** `research/foundation/`, `research/families/`, `model/governance/evaluation_metadata.yaml`, `model/assemble/composition_study.py`, `domain/registry/{governance_lookup,governance_types}.py`, `serve/scoring/signal_selector.py`
 **ADLC source:** [adlc.md §2 (validate stage emits verdicts)](../architecture/adlc.md), [system-model.md (measurement plane)](../architecture/system-model.md)
@@ -109,8 +109,13 @@ mapping; delete `PRE_LENS_SIGNAL_ALLOWLIST`. Verified no-op by the blast-radius 
 (`domain/registry/verdict.py:resolve_verdict`) merging foundation columns + lens/derived verdict; the
 scorer reads no raw registry columns. Reporting's descriptive registry reads are out of scope (§4).
 
-**Phase C — automate provenance:** lens studies emit machine-readable verdict records; generate
-`evaluation_metadata.yaml` from study outputs; automate the synth merge. Retire hand-authoring.
+**Phase C — automate provenance (merged):** lens studies emit a machine-readable evidence record
+(`research/families/*/validate/evidence.yaml`, written by `study.run()`) beside a hand-authored
+judgment record (`annotations.yaml`); `model/governance/generate_evaluation_metadata.py` merges
+the two tiers with `synth01_decisions.yaml` to generate `evaluation_metadata.yaml` (banner-marked
+generated, drift-guarded by `tests/test_generate_evaluation_metadata.py`). Seeded by a one-time
+lossless backfill of the prior hand-authored YAML (`_backfill_verdict_records.py`); re-running the
+studies to refresh evidence is a research process (deferred). Hand-authoring retired.
 
 **Phase D — kernels for composition stats:** extract `composition_study.py`'s inline partial-rho /
 bootstrap / FDR into `research.kernels` and have the study import them; the study stays in

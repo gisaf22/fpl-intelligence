@@ -1,0 +1,133 @@
+lens: AVAIL
+target: played_next_gw
+signals:
+  minutes_roll3:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1 gap (0.058) below monotonicity
+        threshold — no meaningful availability separation across minutes quintiles
+        at GK
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.058 below threshold'
+      notes: CI excludes zero but Q5-Q1=0.058 below threshold
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.214)
+        — 3-GW minutes does not reliably separate starters from non-starters at DEF
+        in monotonic fashion
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.214'
+      notes: CI excludes zero but fails monotonicity (Q5-Q1=0.214)
+    MID:
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 3-GW average minutes provides reliable availability separation
+        at MID — monotonic quintile ordering, 3/3 temporal blocks, rho=0.232
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.202)
+        — rotation patterns at FWD do not follow a monotonic minutes gradient
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.202'
+      notes: CI excludes zero but fails monotonicity (Q5-Q1=0.202)
+  minutes_roll5:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but Q5-Q1 gap (0.083) below monotonicity
+        threshold at GK — insufficient availability separation even over 5-GW window
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.083 below threshold'
+      notes: CI excludes zero but Q5-Q1=0.083 below threshold
+    DEF:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.226)
+        — 5-GW minutes average fails to provide monotonic availability signal at DEF
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.226'
+      notes: CI excludes zero but fails monotonicity (Q5-Q1=0.226)
+    MID:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: 5-GW average minutes provides reliable availability signal
+        at MID — monotonic ordering, 3/3 temporal blocks, rho=0.227
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero in aggregate but only 1/3 temporal blocks
+        stable — temporally unstable availability signal at FWD
+      source_gate_decisions:
+      - G1-PASS
+      - 'G3-FAIL: 1/3 temporal blocks stable'
+      notes: CI excludes zero in aggregate but passes only 1/3 blocks — unstable
+  minutes_roll8:
+    GK:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic at GK; Q5-Q1=0.103 at
+        threshold boundary — insufficient reliable availability separation even with
+        8-GW window
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: Q5-Q1=0.103 at threshold boundary'
+      notes: CI excludes zero but fails monotonicity; Q5-Q1=0.103 at threshold boundary
+    DEF:
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 8-GW average minutes provides the best availability signal
+        at DEF — longer horizon improves classification stability vs minutes_roll3/5;
+        rho=0.219, 3/3 blocks
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+      notes: 8-GW horizon improves DEF availability classification vs shorter windows
+    MID:
+      lifecycle_state: approved
+      downstream_status: approved
+      leakage_risk: none
+      behavioral_reason: 8-GW average minutes informative at MID alongside minutes_roll3/5;
+        SYNTH-01 to test whether longer horizon adds independent information over
+        shorter windows
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-PASS: monotonic Q5-Q1'
+      - 'G3-PASS: 3/3 blocks'
+    FWD:
+      lifecycle_state: excluded
+      downstream_status: blocked
+      leakage_risk: none
+      behavioral_reason: CI excludes zero but non-monotonic quintile ordering (Q5-Q1=0.263)
+        — availability signal does not follow monotonic minutes gradient at FWD even
+        with 8-GW window
+      source_gate_decisions:
+      - G1-PASS
+      - 'G2-FAIL: non-monotonic quintile ordering Q5-Q1=0.263'
+      notes: CI excludes zero but fails monotonicity (Q5-Q1=0.263)

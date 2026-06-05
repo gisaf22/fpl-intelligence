@@ -83,7 +83,7 @@ def test_confirmed_signals_respect_governance_decision(manifest):
     excluded; load_manifest must route such signals to caveated, not confirmed.
     Regression guard for the gw36 purchase_price@{GK,MID} drift.
     """
-    from signals.governance.governance import get_signal_governance
+    from domain.registry.governance import get_signal_governance
 
     violations = []
     for sig in manifest.confirmed:

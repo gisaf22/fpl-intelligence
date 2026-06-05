@@ -10,8 +10,8 @@ import pytest
 import yaml
 
 from dal.feat.feat_schema import FEATURE_REGISTRY
+from domain.registry.governance import get_signal_governance_by_key
 from domain.registry.schema import GovernanceMetadata
-from signals.governance.governance import get_signal_governance_by_key
 
 pytestmark = pytest.mark.unit
 

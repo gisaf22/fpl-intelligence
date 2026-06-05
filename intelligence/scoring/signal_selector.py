@@ -44,8 +44,8 @@ def _governance_exclusion_reason(signal: str, position: str) -> str | None:
     finding. Signals absent from governance are left to _assert_governance_compliance,
     which enforces the allowlist / ungoverned policy.
     """
+    from domain.registry.governance import get_signal_governance
     from domain.registry.schema import GovernanceMetadataError
-    from signals.governance.governance import get_signal_governance
 
     try:
         gov = get_signal_governance(signal, position)
@@ -157,9 +157,9 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
     Any signal absent from both the allowlist and evaluation_metadata.yaml raises
     GovernanceMetadataError: it is ungoverned and must not enter the scoring manifest.
     """
+    from domain.registry.governance import get_signal_governance
     from domain.registry.lifecycle import LeakageViolationError, LifecycleViolationError
     from domain.registry.schema import GovernanceMetadataError
-    from signals.governance.governance import get_signal_governance
 
     for sig in manifest.confirmed:
         try:

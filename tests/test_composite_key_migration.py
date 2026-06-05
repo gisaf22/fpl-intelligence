@@ -25,11 +25,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from domain.registry.schema import GovernanceMetadata, GovernanceMetadataError
-from signals.governance.governance import (
+from domain.registry.governance import (
     _derive_key,
     get_signal_governance_by_key,
 )
+from domain.registry.schema import GovernanceMetadata, GovernanceMetadataError
 
 pytestmark = pytest.mark.unit
 

@@ -21,12 +21,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
-from numpy.linalg import lstsq
 from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 from domain.registry.finding_key import build_key
+
+# ADR-009 Phase D: statistical primitives live in research.kernels (model/assemble is
+# permitted to import kernels). This study owns weight derivation; the methodology is shared.
+from research.kernels.redundancy import bootstrap_partial_rho, partial_spearman
+from research.kernels.resampling import permutation_rho_baseline
+from research.kernels.stability import fraction_rank_order_changed
 
 OUT_PATH = Path("model/assemble/synth01_decisions.yaml")
 RUNS_DIR = Path("research/runs")
@@ -74,60 +79,6 @@ HIGH_REDUNDANCY_PAIRS = {("DEF", "ownership_count", "transfers_in"),
 
 
 # ---------------------------------------------------------------------------
-# Partial Spearman rho
-# ---------------------------------------------------------------------------
-
-def _partial_spearman(X: np.ndarray, y: np.ndarray, signal_idx: int) -> float:
-    """Partial Spearman rho of X[:, signal_idx] controlling for all other columns.
-
-    Uses the rank-OLS residual method: rank all variables, residualize the signal
-    and target on all other signals via OLS, then compute Pearson correlation of
-    the two residual series.
-
-    For a singleton group (p=1), returns bivariate Spearman rho.
-    """
-    from scipy.stats import rankdata
-
-    n, p = X.shape
-    X_r = np.apply_along_axis(rankdata, 0, X).astype(float)
-    y_r = rankdata(y).astype(float)
-
-    if p == 1:
-        return float(spearmanr(X_r[:, 0], y_r).statistic)
-
-    others = np.delete(X_r, signal_idx, axis=1)
-    A = np.column_stack([np.ones(n), others])
-
-    coef_x = lstsq(A, X_r[:, signal_idx], rcond=None)[0]
-    coef_y = lstsq(A, y_r, rcond=None)[0]
-    resid_x = X_r[:, signal_idx] - A @ coef_x
-    resid_y = y_r - A @ coef_y
-
-    if not (np.isfinite(resid_x).all() and np.isfinite(resid_y).all()):
-        return 0.0
-    denom = np.std(resid_x) * np.std(resid_y)
-    if denom < 1e-12:
-        return 0.0
-    return float(np.corrcoef(resid_x, resid_y)[0, 1])
-
-
-def _bootstrap_partial_rho(
-    X: np.ndarray, y: np.ndarray, signal_idx: int
-) -> tuple[float, float, float]:
-    """Return (partial_rho, ci_lower, ci_upper) via bootstrap resampling."""
-    rho_obs = _partial_spearman(X, y, signal_idx)
-    rng = np.random.default_rng(BOOTSTRAP_SEED)
-    boot = np.empty(N_BOOTSTRAP)
-    for i in range(N_BOOTSTRAP):
-        idx = rng.integers(0, len(y), size=len(y))
-        boot[i] = _partial_spearman(X[idx], y[idx], signal_idx)
-    alpha = 1.0 - CI_LEVEL
-    return (rho_obs,
-            float(np.percentile(boot, 100 * alpha / 2)),
-            float(np.percentile(boot, 100 * (1.0 - alpha / 2))))
-
-
-# ---------------------------------------------------------------------------
 # Weight derivation with bootstrap CIs
 # ---------------------------------------------------------------------------
 
@@ -170,7 +121,7 @@ def _bootstrap_weights(
         idx = rng.integers(0, len(y), size=len(y))
         p_rhos = {}
         for j, sig in enumerate(retained_signals):
-            p_rhos[sig] = _partial_spearman(X_ret[idx], y[idx], j)
+            p_rhos[sig] = partial_spearman(X_ret[idx], y[idx], j)
         w = _normalize_weights(p_rhos)
         for s, wv in w.items():
             boot_weights[s].append(wv)
@@ -196,19 +147,6 @@ def _composite_rho(
         return float("nan")
     composite = sum(weights[s] * valid[s] for s in signals)
     return float(spearmanr(composite, valid[target]).statistic)
-
-
-def _permutation_baseline(
-    data: pd.DataFrame, signal: str, target: str, n_perm: int = 500, seed: int = 99
-) -> float:
-    """Mean absolute Spearman rho under H0 (permuted target). Used as DEF baseline."""
-    valid = data[[signal, target]].dropna()
-    if len(valid) < 10:
-        return 0.0
-    rng = np.random.default_rng(seed)
-    rhos = [abs(float(spearmanr(valid[signal], rng.permutation(valid[target].to_numpy())).statistic))
-            for _ in range(n_perm)]
-    return float(np.mean(rhos))
 
 
 # ---------------------------------------------------------------------------
@@ -262,9 +200,7 @@ def _fdr_moderation_check(
         if len(quartile_orders) < 2:
             continue
 
-        baseline = quartile_orders[0]
-        n_changed = sum(1 for o in quartile_orders[1:] if o != baseline)
-        fraction = n_changed / (len(quartile_orders) - 1)
+        fraction = fraction_rank_order_changed(quartile_orders)
         is_material = fraction > FDR_MODERATION_THRESHOLD
 
         detail.append({
@@ -343,7 +279,9 @@ def run(db_path: Path = DB_PATH) -> Path:
         # --- Partial rho with bootstrap CIs ---
         partial_results: dict[str, tuple[float, float, float]] = {}
         for i, sig in enumerate(signals):
-            rho, ci_lo, ci_hi = _bootstrap_partial_rho(X, y, i)
+            rho, ci_lo, ci_hi = bootstrap_partial_rho(
+                X, y, i, n_samples=N_BOOTSTRAP, ci_level=CI_LEVEL, seed=BOOTSTRAP_SEED
+            )
             partial_results[sig] = (rho, ci_lo, ci_hi)
             print(f"  {sig:20s} partial_rho={rho:+.4f}  CI=[{ci_lo:.4f}, {ci_hi:.4f}]")
 
@@ -388,7 +326,9 @@ def run(db_path: Path = DB_PATH) -> Path:
                 )
                 print(f"  {baseline_note}")
             elif position == "DEF" and retained_sigs:
-                perm_rho = _permutation_baseline(valid, retained_sigs[0], target)
+                perm_rho = permutation_rho_baseline(
+                    valid[retained_sigs[0]].to_numpy(), valid[target].to_numpy()
+                )
                 comp_rho = _composite_rho(valid, retained_sigs, weights, target)
                 baseline_note = (
                     f"DEF composite rho={comp_rho:.4f} vs permutation baseline rho≈{perm_rho:.4f}"

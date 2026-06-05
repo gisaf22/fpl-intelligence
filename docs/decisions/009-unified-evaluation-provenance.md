@@ -1,6 +1,6 @@
 # ADR-009 — Unified Evaluation Provenance
 
-**Status:** Accepted — Phases A, B & C merged (2026-06-05); Phase D pending
+**Status:** Accepted — Phases A–D merged (2026-06-05)
 **Date:** 2026-06-05
 **Applies to:** `research/foundation/`, `research/families/`, `model/governance/evaluation_metadata.yaml`, `model/assemble/composition_study.py`, `domain/registry/{governance_lookup,governance_types}.py`, `serve/scoring/signal_selector.py`
 **ADLC source:** [adlc.md §2 (validate stage emits verdicts)](../architecture/adlc.md), [system-model.md (measurement plane)](../architecture/system-model.md)
@@ -117,9 +117,13 @@ generated, drift-guarded by `tests/test_generate_evaluation_metadata.py`). Seede
 lossless backfill of the prior hand-authored YAML (`_backfill_verdict_records.py`); re-running the
 studies to refresh evidence is a research process (deferred). Hand-authoring retired.
 
-**Phase D — kernels for composition stats:** extract `composition_study.py`'s inline partial-rho /
-bootstrap / FDR into `research.kernels` and have the study import them; the study stays in
-`model/assemble` and continues to own weighting.
+**Phase D — kernels for composition stats (merged):** the statistical primitives moved into
+`research.kernels` — `partial_spearman` + `bootstrap_partial_rho` (`redundancy.py`),
+`permutation_rho_baseline` (`resampling.py`), `fraction_rank_order_changed` (`stability.py`),
+each unit-tested — and `composition_study.py` imports them (kernels are import-linter exempt for
+`model`). The study stays in `model/assemble` and continues to own weight derivation
+(`_normalize_weights`, `_bootstrap_weights`, `_composite_rho`). Extraction verified
+behavior-preserving by numeric equivalence against the prior inline implementations.
 
 Phases A–B are mechanical and low-risk. C is larger (touches the research pipeline); D is an isolated
 refactor independent of A–C.

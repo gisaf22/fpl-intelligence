@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from research.kernels.resampling import MIN_N, bootstrap_spearman_ci
+from research.kernels.resampling import MIN_N, bootstrap_spearman_ci, permutation_rho_baseline
 
 pytestmark = pytest.mark.unit
 
@@ -60,3 +60,23 @@ def test_metamorphic_monotonic_transform_preserves_estimate() -> None:
     transformed = bootstrap_spearman_ci(np.exp(x), y, seed=9)
     assert base is not None and transformed is not None
     assert base["rho"] == pytest.approx(transformed["rho"], abs=1e-9)
+
+
+# ---------------------------------------------------------------------------
+# permutation_rho_baseline
+# ---------------------------------------------------------------------------
+
+
+def test_permutation_baseline_is_seed_deterministic() -> None:
+    x, y = _correlated()
+    assert permutation_rho_baseline(x, y, seed=99) == permutation_rho_baseline(x, y, seed=99)
+
+
+def test_permutation_baseline_near_zero_for_strong_signal() -> None:
+    """Under permuted target the chance baseline is small even when x,y are correlated."""
+    x, y = _correlated()
+    assert permutation_rho_baseline(x, y, n_perm=200, seed=99) < 0.1
+
+
+def test_permutation_baseline_too_few_observations_returns_zero() -> None:
+    assert permutation_rho_baseline(np.arange(MIN_N - 1.0), np.arange(MIN_N - 1.0)) == 0.0

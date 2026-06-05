@@ -75,3 +75,38 @@ def bootstrap_spearman_ci(
         "n": int(n),
         "excludes_zero": bool(ci_lower > 0 or ci_upper < 0),
     }
+
+
+# Default permutations for a null-baseline estimate; smaller than N_BOOTSTRAP since
+# only a mean (not a tail percentile) is read off the null distribution.
+N_PERMUTATIONS = 500
+PERMUTATION_SEED = 99
+
+
+def permutation_rho_baseline(
+    x: np.ndarray,
+    y: np.ndarray,
+    n_perm: int = N_PERMUTATIONS,
+    seed: int = PERMUTATION_SEED,
+) -> float:
+    """Mean absolute Spearman rho under H0 (target permuted relative to the signal).
+
+    Estimates the magnitude of rank correlation expected by chance for this sample
+    size, by repeatedly shuffling ``y`` and recomputing |rho|. Used as a chance
+    baseline an observed association must clear. Deterministic given ``seed``.
+
+    Args:
+        x, y:   Paired observation arrays of equal length.
+        n_perm: Number of target permutations.
+        seed:   RNG seed; fixing it makes the baseline reproducible.
+
+    Returns:
+        Mean |rho| across permutations, or 0.0 when there are fewer than MIN_N pairs.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    if x.size < MIN_N:
+        return 0.0
+    rng = np.random.default_rng(seed)
+    rhos = [abs(float(spearmanr(x, rng.permutation(y)).statistic)) for _ in range(n_perm)]
+    return float(np.mean(rhos))

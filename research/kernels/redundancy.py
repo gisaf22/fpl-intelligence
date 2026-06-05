@@ -159,3 +159,90 @@ def compute_partial_rho(
     # Clamp to [-1, 1] to handle floating point edge cases.
     partial = float(np.clip(partial, -1.0, 1.0))
     return round(partial, 4)
+
+
+def partial_spearman(X: np.ndarray, y: np.ndarray, signal_idx: int) -> float:
+    """Partial Spearman rho of ``X[:, signal_idx]`` vs ``y`` controlling for all other columns.
+
+    Unlike :func:`compute_partial_rho` (a first-order partial against a single
+    conditioning variable), this is the multivariate partial correlation that
+    isolates one signal's contribution against *all* the other signals in ``X``.
+
+    Method (rank-OLS residualisation): rank every column and the target, regress the
+    signal and the target on the remaining ranked signals via least squares, then take
+    the Pearson correlation of the two residual series. For a singleton group (one
+    column) this reduces to the bivariate Spearman rho.
+
+    Args:
+        X:          (n, p) array of signals (columns), one row per observation.
+        y:          (n,) target array.
+        signal_idx: Column index in ``X`` whose partial association is wanted.
+
+    Returns:
+        Partial Spearman rho. Returns 0.0 when the residuals are non-finite or
+        degenerate (a constant residual series), so callers never propagate NaN.
+    """
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n, p = X.shape
+
+    X_r = np.apply_along_axis(stats.rankdata, 0, X).astype(float)
+    y_r = stats.rankdata(y).astype(float)
+
+    if p == 1:
+        return float(stats.spearmanr(X_r[:, 0], y_r).statistic)
+
+    others = np.delete(X_r, signal_idx, axis=1)
+    A = np.column_stack([np.ones(n), others])
+
+    coef_x = np.linalg.lstsq(A, X_r[:, signal_idx], rcond=None)[0]
+    coef_y = np.linalg.lstsq(A, y_r, rcond=None)[0]
+    resid_x = X_r[:, signal_idx] - A @ coef_x
+    resid_y = y_r - A @ coef_y
+
+    if not (np.isfinite(resid_x).all() and np.isfinite(resid_y).all()):
+        return 0.0
+    denom = np.std(resid_x) * np.std(resid_y)
+    if denom < 1e-12:
+        return 0.0
+    return float(np.corrcoef(resid_x, resid_y)[0, 1])
+
+
+def bootstrap_partial_rho(
+    X: np.ndarray,
+    y: np.ndarray,
+    signal_idx: int,
+    n_samples: int = 2000,
+    ci_level: float = 0.95,
+    seed: int = 0,
+) -> tuple[float, float, float]:
+    """Bootstrap percentile CI for :func:`partial_spearman`.
+
+    Resamples observation rows (paired across all columns and the target) with
+    replacement and recomputes the partial rho each time. Deterministic given ``seed``.
+
+    Args:
+        X, y:       Signal matrix and target, as for :func:`partial_spearman`.
+        signal_idx: Column whose partial association is bootstrapped.
+        n_samples:  Number of bootstrap resamples.
+        ci_level:   Two-sided coverage (e.g. 0.95).
+        seed:       RNG seed; fixing it makes the interval reproducible.
+
+    Returns:
+        ``(partial_rho, ci_lower, ci_upper)`` — the observed partial rho on the full
+        sample and the bootstrap percentile interval.
+    """
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=float)
+    rho_obs = partial_spearman(X, y, signal_idx)
+    rng = np.random.default_rng(seed)
+    boot = np.empty(n_samples)
+    for i in range(n_samples):
+        idx = rng.integers(0, len(y), size=len(y))
+        boot[i] = partial_spearman(X[idx], y[idx], signal_idx)
+    alpha = 1.0 - ci_level
+    return (
+        rho_obs,
+        float(np.percentile(boot, 100 * alpha / 2)),
+        float(np.percentile(boot, 100 * (1.0 - alpha / 2))),
+    )

@@ -196,3 +196,26 @@ def flag_pooling_decision(homogeneity: str) -> str:
             f"expected one of {sorted(BLOCK_HOMOGENEITY_VALUES)}"
         )
     return _HOMOGENEITY_TO_POOLING[homogeneity]
+
+
+def fraction_rank_order_changed(orderings: list[list[str]]) -> float:
+    """Fraction of stratum orderings that differ from the first (baseline) ordering.
+
+    Given a per-stratum ranking of items (e.g. signals ranked by rho within each
+    moderator stratum), measures how often the ordering changes relative to the
+    baseline stratum — a moderation diagnostic: if rank ordering is stable across
+    strata the moderator does not reshuffle the signals' relative importance.
+
+    Args:
+        orderings: One ranked list per stratum (each the same items in rank order).
+                   The first element is the baseline ordering.
+
+    Returns:
+        ``n_changed / (n_strata - 1)`` in [0, 1], or 0.0 when fewer than two strata
+        are supplied (no comparison is possible).
+    """
+    if len(orderings) < 2:
+        return 0.0
+    baseline = orderings[0]
+    n_changed = sum(1 for o in orderings[1:] if o != baseline)
+    return n_changed / (len(orderings) - 1)

@@ -116,7 +116,7 @@ fixtures) apply their own static weights to DAL features.
 > SYNTH-01 signal-composition weights (DEF/MID) are evidence-based. See `adlc.md` §4.
 
 **Depends on:** Stage 1 features + Stage 2 registry. Inputs validated by
-`validate_intelligence_inputs()` in `intelligence/intelligence_contracts.py`.
+`validate_intelligence_inputs()` in `serve/input_contracts.py`.
 **Produces:** `ScorerOutput` (per-signal raw + normalised values, excluded-signal reasons) and the
 ranked decision tables.
 

@@ -15,7 +15,7 @@ import pytest
 from serve.availability import flag_availability_risk
 from serve.captain import rank_captain_candidates
 from serve.fixtures import rank_fixture_opportunities
-from serve.intelligence_contracts import (
+from serve.input_contracts import (
     IntelligenceInputError,
     normalize_within_position,
     validate_intelligence_inputs,

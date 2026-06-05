@@ -28,7 +28,7 @@ reproducible artifacts — not through infrastructure alone.
 The intelligence layer never reads directly from `research/findings/`. It consumes only
 governed registry artifacts from `outputs/registry/gw{N}/`.
 
-The gate is enforced at runtime by `signals/governance/lifecycle.py`:
+The gate is enforced at runtime by `domain/registry/lifecycle.py`:
 
 ```python
 # Both operational runners call this before loading any registry:
@@ -38,7 +38,7 @@ assert_operational_safe(registry_path)
 
 This means the registry can only reach the scorer after:
 1. Signals have `promotion_class` in `{core_signal, review_signal}` from system EDA
-2. The registry builder (`signals/characterisation/registry_build_runner.py`) has validated the contract and written to `outputs/registry/gw{N}/`
+2. Promotion (`model/governance/promote.py`) has validated the contract and written the registry to `outputs/registry/gw{N}/` (the finding is built by `research/registry/build.py`)
 3. The operational runner receives the path via `--registry-path outputs/registry/gw{N}/registry.csv`
 
 See [docs/registry-governance.md](../registry-governance.md) for the full exploratory-vs-operational distinction.
@@ -65,7 +65,7 @@ Each output function accepts a features DataFrame produced by the canonical DAL 
 
 ```python
 from dal.pipeline import load as load_mart
-from intelligence import (
+from serve import (
     rank_captain_candidates,
     rank_transfer_targets,
     rank_value_players,
@@ -226,7 +226,7 @@ spine plus rolling window columns derived from it. It does not consume:
 - Exploratory registry artifacts
 
 This separation is enforced by `validate_intelligence_inputs()` in
-`serve/intelligence_contracts.py`, which checks that all required columns are present
+`serve/input_contracts.py`, which checks that all required columns are present
 and raises `IntelligenceInputError` if not — catching accidental use of an
 under-populated DataFrame from a non-DAL source.
 

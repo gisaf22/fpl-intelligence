@@ -85,7 +85,7 @@ The system has three orthogonal planes. Each plane has a distinct purpose and a 
 | `signals/governance/lifecycle.py` | Runtime lifecycle gate — enforces that only governed registry paths reach the scorer |
 | `intelligence/scoring/` | Applies registry-defined signal weights to DAL features; produces scored player tables |
 | `intelligence/reporting/` | Produces weekly signal intelligence reports from scored outputs |
-| `intelligence/intelligence_contracts.py` | Input validation — enforces that execution receives DAL-produced features, not research proxies |
+| `serve/input_contracts.py` | Input validation — enforces that execution receives DAL-produced features, not research proxies |
 
 **Data flow through Execution:**
 

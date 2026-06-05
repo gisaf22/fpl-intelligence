@@ -105,7 +105,7 @@ There is no longer a `signals/` layer. Signal governance is split along a **deci
 
 **Does not own:** Signal characterisation (owned by lens studies), signal lifecycle decisions (owned by `model/governance/`), DAL transformations.
 
-**Contract:** The serve layer consumes DAL state features and governed registry artifacts only. It does not consume exploratory EDA registries or research-stage signal lists. Enforced by `validate_intelligence_inputs()` in `serve/intelligence_contracts.py`. See [intelligence-layer.md](intelligence-layer.md) for full specification.
+**Contract:** The serve layer consumes DAL state features and governed registry artifacts only. It does not consume exploratory EDA registries or research-stage signal lists. Enforced by `validate_intelligence_inputs()` in `serve/input_contracts.py`. See [intelligence-layer.md](intelligence-layer.md) for full specification.
 
 **Consumers:** End users (FPL decision makers). Outputs: scored player tables, weekly HTML report.
 

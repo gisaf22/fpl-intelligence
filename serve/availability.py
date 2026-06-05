@@ -19,7 +19,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from serve.intelligence_contracts import (
+from serve.input_contracts import (
     IntelligenceInputError,
     validate_intelligence_inputs,
 )

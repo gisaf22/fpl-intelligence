@@ -43,7 +43,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-exclude = ["archive/", "examples/", "*.ipynb"]
+exclude = ["archive/", "*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "RUF"]
@@ -83,8 +83,8 @@ select = ["E", "F", "I", "UP", "RUF"]
 
 [tool.mypy]
 python_version = "3.12"
-# Scope: production modules only. studies/, archive/, examples/ intentionally excluded.
-files = ["dal", "serve", "domain", "population"]
+# Scope: production modules + examples/ (kept lint-clean so the quickstart can't silently rot). archive/ excluded.
+files = ["dal", "serve", "domain", "population", "examples"]
 explicit_package_bases = true
 ignore_missing_imports = true
 disallow_untyped_defs = true

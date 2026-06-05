@@ -1,5 +1,9 @@
 """Quickstart: verify the DAL works end to end against a real database.
 
+Builds the mart (if not already built) and reads it back via the canonical
+entry point ``dal.pipeline.load()``, prints shape and column information, and
+exits with a non-zero code on any failure.
+
 Usage:
     FPL_DB_PATH=/path/to/fpl.db python examples/quickstart.py
     python examples/quickstart.py /path/to/fpl.db
@@ -10,13 +14,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from dal import (
-    build_player_gameweek_spine,
-    build_player_gameweek_state,
-    get_player_fixture_base,
-    load_staged_entities,
-)
 from dal.config import DB_PATH as _DEFAULT_DB_PATH
+from dal.exceptions import MartNotBuiltError
+from dal.pipeline import load, run
 
 
 def resolve_db_path() -> Path:
@@ -28,36 +28,29 @@ def resolve_db_path() -> Path:
 def main() -> None:
     db_path = resolve_db_path()
 
-    # ── Spine ──────────────────────────────────────────────────────────────
+    # ── Load the mart, building it first if no cached artifact exists ────────
     try:
-        staged = load_staged_entities(db_path)
-        spine = build_player_gameweek_spine(get_player_fixture_base(staged), staged.events)
+        try:
+            result = load(db_path)
+        except MartNotBuiltError:
+            print("No cached mart found — building (staging → … → mart)…")
+            run(db_path)
+            result = load(db_path)
     except Exception as exc:
-        sys.exit(f"ERROR: spine build failed — {exc}")
+        sys.exit(f"ERROR: mart build/load failed — {exc}")
 
-    print(f"Spine shape:    {spine.shape}")
-    print(spine.head(3).to_string())
+    mart = result.mart
+    gw_min, gw_max = result.gw_range
+
+    # ── Summary ─────────────────────────────────────────────────────────────
+    print(f"Mart shape:     {mart.shape}")
+    print(f"Mart columns:   {list(mart.columns)}")
     print()
-
-    # ── State features ─────────────────────────────────────────────────────
-    try:
-        state = build_player_gameweek_state(spine)
-    except Exception as exc:
-        sys.exit(f"ERROR: state build failed — {exc}")
-
-    print(f"State shape:    {state.shape}")
-    print(f"State columns:  {list(state.columns)}")
-    print()
-
-    # ── Summary ────────────────────────────────────────────────────────────
-    gw_min, gw_max = int(spine["gw"].min()), int(spine["gw"].max())
-    player_count = spine["player_id"].nunique()
-    feature_count = state.shape[1] - spine.shape[1]
-
     print("── Summary ──────────────────────────────────────────")
-    print(f"  Gameweek range : GW{gw_min} – GW{gw_max}")
-    print(f"  Unique players : {player_count}")
-    print(f"  State features : {feature_count} (spine had {spine.shape[1]} columns)")
+    print(f"  Gameweek range : GW{gw_min} - GW{gw_max}")
+    print(f"  Data cutoff GW : GW{result.data_cutoff_gw}")
+    print(f"  Unique players : {mart['player_id'].nunique()}")
+    print(f"  Governed signals : {len(result.signals)}")
     print("DAL OK")
 
 

@@ -1,6 +1,6 @@
 # ADR-009 — Unified Evaluation Provenance
 
-**Status:** Accepted
+**Status:** Accepted — Phases A & B merged (2026-06-05); Phases C & D pending
 **Date:** 2026-06-05
 **Applies to:** `research/foundation/`, `research/families/`, `model/governance/evaluation_metadata.yaml`, `model/assemble/composition_study.py`, `domain/registry/{governance_lookup,governance_types}.py`, `serve/scoring/signal_selector.py`
 **ADLC source:** [adlc.md §2 (validate stage emits verdicts)](../architecture/adlc.md), [system-model.md (measurement plane)](../architecture/system-model.md)

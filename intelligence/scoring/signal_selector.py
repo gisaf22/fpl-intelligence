@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from domain.registry.schema import PRE_LENS_SIGNAL_ALLOWLIST as _PRE_LENS_SIGNAL_ALLOWLIST
 from intelligence.scoring.contracts import CaveatedSignal, ConfirmedSignal, SignalManifest
-from signals.governance.schema import PRE_LENS_SIGNAL_ALLOWLIST as _PRE_LENS_SIGNAL_ALLOWLIST
 
 # Promotion classes eligible for scoring
 _SCORING_CLASSES: frozenset[str] = frozenset({"core_signal", "review_signal"})
@@ -118,9 +118,9 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
     Any signal absent from both the allowlist and evaluation_metadata.yaml raises
     GovernanceMetadataError: it is ungoverned and must not enter the scoring manifest.
     """
+    from domain.registry.schema import GovernanceMetadataError
     from signals.governance.governance import get_signal_governance
     from signals.governance.lifecycle import LeakageViolationError, LifecycleViolationError
-    from signals.governance.schema import GovernanceMetadataError
 
     for sig in manifest.confirmed:
         try:

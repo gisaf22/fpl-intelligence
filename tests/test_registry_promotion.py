@@ -3,9 +3,9 @@
 import pandas as pd
 import pytest
 
+from domain.registry.schema import PROMOTION_CLASS_VALUES
+from domain.registry.schema import RESEARCH_REGISTRY_PATH as DEFAULT_REGISTRY_PATH
 from research.registry.promotion import assign_promotion_class
-from signals.governance.schema import PROMOTION_CLASS_VALUES
-from signals.governance.schema import RESEARCH_REGISTRY_PATH as DEFAULT_REGISTRY_PATH
 
 pytestmark = pytest.mark.unit
 

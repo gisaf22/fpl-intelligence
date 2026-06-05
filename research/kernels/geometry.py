@@ -11,7 +11,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-# --- inlined from signals.governance.schema ---
+# --- inlined from domain.registry.schema ---
 MATCH_LEVEL_SIGNALS: frozenset[str] = frozenset(
     {
         "was_home",

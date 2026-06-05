@@ -78,9 +78,10 @@ fpl-intelligence/
 │   └── scoring/     — player scoring from governed registry manifest
 ├── outputs/         — runtime artifacts (scorer HTML, registry CSVs, weekly reports)
 ├── population/      — named population filters: filter_performance, filter_participation
-├── signals/         — signal governance layer
-│   ├── characterisation/ — registry build pipeline, signal traceability, SIGNAL_REGISTRY.md
-│   └── governance/       — EVAL_DESIGN.md, lifecycle, evaluation metadata, weight_registry.yaml
+├── signals/         — signal governance core (decision-of-record + lifecycle gate)
+│   └── governance/       — governance.py (decision-of-record), lifecycle gate, evaluation_metadata.yaml, registry_loader (operational load gate), EVAL_DESIGN.md
+│                          (registry contract → domain/registry/; construction → research/registry/;
+│                           traceability/SIGNAL_REGISTRY.md → model/governance/)
 ├── research/        — analytical methodology layer
 │   ├── foundation/  — cross-signal system EDA by stage (complete, closed)
 │   ├── families/    — per-family explore + validate lens studies (form, market, fixture, availability)
@@ -103,7 +104,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 | adlc.md | `docs/architecture/adlc.md` | Authoritative analysis lifecycle (explore → validate → model → serve → monitor), mode tags, per-stage test contracts, ID-diet | Sole owner of the word "lifecycle"; how a question becomes a recommendation |
 | implementation-plan.md | `docs/implementation-plan.md` | Phased, dependency-ordered plan for the ADLC-named open work + ENG backlog; final section lists pending ADRs | Sequencing of all pre-season engineering and study work |
 | EVAL_DESIGN.md | `signals/governance/EVAL_DESIGN.md` | Locked success criteria and failure conditions for 2025-26 methodology | All study findings must connect to a question defined here |
-| SIGNAL_REGISTRY.md | `signals/characterisation/SIGNAL_REGISTRY.md` | Governance and truth layer for all signals — lifecycle status, lens outcomes, synthesis eligibility | No signal enters synthesis without a confirmed entry |
+| SIGNAL_REGISTRY.md | `model/governance/SIGNAL_REGISTRY.md` | Governance and truth layer for all signals — lifecycle status, lens outcomes, synthesis eligibility | No signal enters synthesis without a confirmed entry |
 | EDA_08_DESIGN.md | `research/foundation/gap/EDA_08_DESIGN.md` | Defines the seven system EDA layers and their gate decisions | All lens studies — no lens runs before EDA is complete |
 | CONTEXT.md | `CONTEXT.md` | Current project state, structure, and rules for new sessions | New session orientation |
 | downstream-dependency-governance.md | `docs/architecture/downstream-dependency-governance.md` | Allowed and forbidden downstream import patterns; enforced by tests/test_downstream_governance.py | Any new module that accesses signals or DAL data |
@@ -129,7 +130,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 | LENS-GK | PENDING | No design yet. No governed GK signals. All GK scoring PROVISIONAL-EDITORIAL. Deferred to 2026/27 |
 | LENS-FIXTURE-RUN | PENDING | Future lens. Deferred to 2026/27 |
 | Signal registry | COMPLETE | SIGNAL_REGISTRY.md v2.0. evaluation_metadata.yaml v3.0 with lifecycle states and SYNTH-01 decisions |
-| SYNTH-01 | COMPLETE | Partial rho weights set; decisions in `signals/governance/synth01_decisions.yaml`. 5/7 groups stable or improved on holdout GW 34–38 |
+| SYNTH-01 | COMPLETE | Partial rho weights set; decisions in `model/assemble/synth01_decisions.yaml`. 5/7 groups stable or improved on holdout GW 34–38 |
 | Platform evaluation | COMPLETE | Changes 1–8 applied; Changes 1–2 implemented (domain/, population/); Change 3 design locked at `docs/studies/popthresh-01-design.md` |
 | EXP-FH-STACK | DEFERRED | Blocked pending FDR stratification (2026/27) |
 | EXP-FH-PREDICTOR | DEFERRED | Blocked pending FDR stratification (2026/27) |

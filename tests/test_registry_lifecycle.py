@@ -189,7 +189,7 @@ class TestResearchConsumerFlexibility:
 
     def test_load_registry_default_is_research_registry(self):
         """The no-arg default should load the research registry, not an operational one."""
-        from signals.governance.schema import RESEARCH_REGISTRY_PATH
+        from domain.registry.schema import RESEARCH_REGISTRY_PATH
 
         registry = load_registry()
         research = load_registry(RESEARCH_REGISTRY_PATH)

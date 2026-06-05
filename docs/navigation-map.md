@@ -22,11 +22,11 @@ intelligence/ → player scoring and weekly reporting
 To trace a feature to a decision:
 
 1. Start with `dal/feat/feat_schema.py::FEATURE_REGISTRY` for feature status and approved positions.
-2. Resolve the feature and position in `signals/characterisation/signal_traceability.yaml`.
+2. Resolve the feature and position in `model/governance/signal_traceability.yaml`.
 3. Use `analysis_paths` for the study/lens implementation.
 4. Derive the finding key as `signal@lens:target[#POS]` and resolve the verdict in `signals/governance/evaluation_metadata.yaml`.
-5. Search that key in `signals/governance/synth01_decisions.yaml` for composition decisions.
-6. Search that key or listed `derived_from` values in `signals/governance/weight_registry.yaml` for intelligence usage.
+5. Search that key in `model/assemble/synth01_decisions.yaml` for composition decisions.
+6. Search that key or listed `derived_from` values in `intelligence/weight_registry.yaml` for intelligence usage.
 
 If a feature has no evaluated traceability route, treat it as conditional/pre-lens and do not assume it is operationally governed.
 
@@ -67,7 +67,7 @@ If a feature has no evaluated traceability route, treat it as conditional/pre-le
 
 1. [docs/system-purpose.md](system-purpose.md) — system question and research boundaries
 2. [docs/signal-promotion-states.md](signal-promotion-states.md) — signal governance states and promotion criteria
-3. [signals/characterisation/SIGNAL_REGISTRY.md](../signals/characterisation/SIGNAL_REGISTRY.md) — governance registry: signal schema, lifecycle rules, update protocol
+3. [model/governance/SIGNAL_REGISTRY.md](../model/governance/SIGNAL_REGISTRY.md) — governance registry: signal schema, lifecycle rules, update protocol
 4. [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) — **locked** success criteria and failure conditions (cannot be revised retrospectively)
 5. [docs/decisions/](decisions/) — architectural decisions: why Spearman, why additive weighting
 6. [docs/studies/](studies/) — study designs and published results
@@ -94,7 +94,7 @@ If a feature has no evaluated traceability route, treat it as conditional/pre-le
 |----------|-------------------|
 | `dal/fct/fct_contracts.py`, `dal/validation/` | All DAL behavior: grain, column contracts, null semantics, dtype contracts, BGW/DGW invariants (code-enforced) |
 | [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) | Success criteria and failure conditions for 2025-26 methodology |
-| [signals/characterisation/SIGNAL_REGISTRY.md](../signals/characterisation/SIGNAL_REGISTRY.md) | Lifecycle status for every named signal |
+| [model/governance/SIGNAL_REGISTRY.md](../model/governance/SIGNAL_REGISTRY.md) | Lifecycle status for every named signal |
 | [docs/signal-promotion-states.md](signal-promotion-states.md) | Signal governance state definitions and promotion rules |
 | [docs/registry-governance.md](registry-governance.md) | Exploratory vs operational registry semantics; lifecycle gate enforcement |
 | [docs/architecture/downstream-dependency-governance.md](architecture/downstream-dependency-governance.md) | Allowed and forbidden import patterns for downstream modules |
@@ -153,8 +153,8 @@ Complete working documents superseded by durable artifacts. See [docs/archive/RE
 | [docs/archive/operational-convergence-plan.md](archive/operational-convergence-plan.md) | All 9 phases complete; `threshold-registry.md` carries live governance |
 | [docs/archive/state-representation-inventory.md](archive/state-representation-inventory.md) | `_GOVERNED_ROLLING_COLS` / `_COLUMN_META` in `dal/feat/feat_player_gameweek.py` |
 | [docs/archive/minutes-stability-xgi-study.md](archive/minutes-stability-xgi-study.md) | `docs/studies/results/minstab-01-results.md` |
-| [docs/archive/synth01-design.md](archive/synth01-design.md) | `signals/governance/synth01_decisions.yaml` |
-| [docs/archive/synth01-candidate-set.md](archive/synth01-candidate-set.md) | `signals/characterisation/synth01_candidates.yaml` |
+| [docs/archive/synth01-design.md](archive/synth01-design.md) | `model/assemble/synth01_decisions.yaml` |
+| [docs/archive/synth01-candidate-set.md](archive/synth01-candidate-set.md) | `model/assemble/synth01_candidates.yaml` |
 | [docs/archive/architecture-execution-plan.md](archive/architecture-execution-plan.md) | System operational; plan complete |
 
 ### Operational outputs
@@ -171,9 +171,9 @@ These files are active governance artifacts owned by their respective layers. Th
 
 | File | Owned by | Purpose |
 |------|----------|---------|
-| [signals/characterisation/SIGNAL_REGISTRY.md](../signals/characterisation/SIGNAL_REGISTRY.md) | `signals/characterisation/` | Single source of truth for signal lifecycle status. Updated only at methodology milestones. |
+| [model/governance/SIGNAL_REGISTRY.md](../model/governance/SIGNAL_REGISTRY.md) | `model/governance/` | Single source of truth for signal lifecycle status (generated/read-only projection). Updated only at methodology milestones. |
 | [signals/governance/EVAL_DESIGN.md](../signals/governance/EVAL_DESIGN.md) | `signals/governance/` | Locked success criteria for 2025-26 methodology. Cannot be revised retrospectively. |
-| [signals/governance/weight_registry.yaml](../signals/governance/weight_registry.yaml) | `signals/governance/` | Operational scoring weights per (signal, position). Updated after SYNTH-01 re-run. |
+| [intelligence/weight_registry.yaml](../intelligence/weight_registry.yaml) | `intelligence/` | Operational scoring weights per (signal, position). Updated after SYNTH-01 re-run. |
 | [signals/governance/evaluation_metadata.yaml](../signals/governance/evaluation_metadata.yaml) | `signals/governance/` | Per-signal lens findings, lifecycle states, downstream status. |
 
 ---

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from signals.governance.schema import PRIMARY_KEY_COLUMNS
+from domain.registry.schema import PRIMARY_KEY_COLUMNS
 
 SNAPSHOT_COMPARE_FIELDS: tuple[str, ...] = (
     "relationship_geometry",

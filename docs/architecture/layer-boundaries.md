@@ -72,24 +72,23 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 
 **Contract:** Research writes results to files (`research/runs/`, `outputs/`). No downstream layer imports from `research.*` as Python modules — all cross-layer consumption is file-based via `research/findings/`. Every validate study must have a locked `LENS_DESIGN.md` before any code runs.
 
-**Consumers:** `signals/characterisation/` ingests research artifacts. `intelligence/` does not consume research outputs directly.
+**Consumers:** registry construction (`research/registry/`) builds the finding from research artifacts in-layer. `intelligence/` does not consume research outputs directly.
 
 ---
 
 ### Signals (`signals/`)
 
-**Owns:** Signal lifecycle governance and the registry build pipeline.
+**Owns:** Signal lifecycle governance — the decision-of-record and the operational gate.
 
 | Sub-directory | Concern |
 |---|---|
-| `signals/governance/` | Lifecycle enforcement: `assert_operational_safe()`, promotion rules, schema validation, evaluation metadata, `EVAL_DESIGN.md` |
-| `signals/characterisation/` | Registry build pipeline — assembles the governed artifact from confirmed signals |
+| `signals/governance/` | Decision-of-record (`governance.py`, `evaluation_metadata.yaml`), lifecycle enforcement (`assert_operational_safe()`), operational load gate (`registry_loader.py`), `EVAL_DESIGN.md` |
 
-**Does not own:** Statistical computation on raw data (owned by `research/`), DAL transformations, operational scoring.
+**Does not own:** the registry contract (owned by `domain/registry/`), registry construction (owned by `research/registry/`), promotion/publication (owned by `model/governance/promote.py`), statistical computation on raw data (owned by `research/`), DAL transformations, operational scoring.
 
 **Contract:** `signals/governance/lifecycle.py:assert_operational_safe()` is the runtime lifecycle gate — it raises `LifecycleViolationError` if an operational runner attempts to consume a registry from an exploratory path. No signal may be scored without passing this gate.
 
-**Consumers:** `intelligence/` reads the governed registry artifact from `outputs/registry/gw{N}/`. `signals/characterisation/registry_build_runner.py` is the only permitted writer to `outputs/registry/`.
+**Consumers:** `intelligence/` reads the governed registry artifact from `outputs/registry/gw{N}/`. `research/registry/build.py` builds the finding (to `research/findings/`); `model/governance/promote.py` is the only permitted writer to `outputs/registry/` (it validates and promotes the finding).
 
 ---
 
@@ -124,9 +123,9 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 | Dataset-level signal characterisation | `research/foundation/` |
 | Per-family signal methodology and results | `research/families/<f>/validate/` |
 | Domain-agnostic statistical utilities | `research/kernels/` |
-| Signal lifecycle status | `signals/governance/SIGNAL_REGISTRY.md` |
+| Signal lifecycle status | `model/governance/SIGNAL_REGISTRY.md` |
 | Lifecycle gate enforcement | `signals/governance/lifecycle.py` |
-| Registry artifact assembly | `signals/characterisation/registry_build_runner.py` |
+| Registry artifact assembly | `research/registry/build.py` |
 | Operational signal scoring | `intelligence/scoring/` |
 | Weekly reporting | `intelligence/reporting/` |
 
@@ -140,7 +139,7 @@ No two components share ownership of any row in this table. If a proposed change
 
 **Single canonical base table.** The mart layer output (`dal.pipeline.load`) is the only permitted source for all downstream analytics. Using intermediate-layer, fixture-grain, or raw fct/feat data to compute GW-level targets is a contract violation.
 
-**Research does not define signals.** Classification, lifecycle assignment, and signal IDs are determined by the study that produces the evidence and stored in the registry. Research writes artifacts; `signals/characterisation/` ingests them.
+**Research does not define signals.** Classification, lifecycle assignment, and signal IDs are determined by the study that produces the evidence and stored in the registry. Research writes artifacts; registry construction (`research/registry/`) ingests them in-layer.
 
 **Lifecycle gate is path-based.** A registry CSV in `outputs/registry/` is operationally safe. The same content in `research/findings/` is not — path determines safety, not content. `assert_operational_safe()` enforces this at runtime.
 

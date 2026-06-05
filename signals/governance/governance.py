@@ -28,7 +28,7 @@ from typing import Any
 
 import yaml
 
-from signals.governance.schema import GovernanceMetadata, GovernanceMetadataError
+from domain.registry.schema import GovernanceMetadata, GovernanceMetadataError
 
 _EVAL_METADATA_PATH = Path("signals/governance/evaluation_metadata.yaml")
 

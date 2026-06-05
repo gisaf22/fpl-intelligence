@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from signals.governance.schema import (
+from domain.registry.schema import (
     LEAKAGE_RISK_VALUES,
     LIFECYCLE_STATE_VALUES,
     GovernanceMetadata,
@@ -252,8 +252,8 @@ class TestAssertGovernanceCompliance:
 
     def test_missing_governance_metadata_raises_if_not_allowlisted(self) -> None:
         """Signals absent from both evaluation_metadata.yaml and _PRE_LENS_SIGNAL_ALLOWLIST must raise."""
+        from domain.registry.schema import GovernanceMetadataError
         from intelligence.scoring.signal_selector import _assert_governance_compliance
-        from signals.governance.schema import GovernanceMetadataError
 
         manifest = _make_manifest([_make_confirmed("unknown_signal_xyz", "DEF")])
         with pytest.raises(GovernanceMetadataError):
@@ -320,7 +320,7 @@ class TestYAMLCompleteness:
                 )
 
     def test_all_positions_have_downstream_status(self) -> None:
-        from signals.governance.schema import DOWNSTREAM_STATUS_VALUES
+        from domain.registry.schema import DOWNSTREAM_STATUS_VALUES
 
         for entry in self._load_yaml():
             for pos, pos_data in entry["per_position"].items():
@@ -391,8 +391,8 @@ class TestGetSignalGovernanceCompleteness:
 
     def test_all_yaml_entries_resolvable(self) -> None:
         """Every signal-position pair in YAML is resolvable by get_signal_governance()."""
+        from domain.registry.schema import GovernanceMetadata
         from signals.governance.governance import get_signal_governance
-        from signals.governance.schema import GovernanceMetadata
 
         failures = []
         for entry in self._load_yaml():
@@ -439,8 +439,8 @@ class TestGetSignalGovernanceCompleteness:
 
     def test_candidate_entries_have_rho_pooled(self) -> None:
         """Every candidate lifecycle entry has rho_pooled not None in returned metadata."""
+        from domain.registry.schema import GovernanceMetadataError
         from signals.governance.governance import get_signal_governance
-        from signals.governance.schema import GovernanceMetadataError
 
         failures = []
         for entry in self._load_yaml():
@@ -512,9 +512,9 @@ class TestViolationErrorTypes:
         """
         from unittest.mock import patch
 
+        from domain.registry.schema import GovernanceMetadata
         from intelligence.scoring.signal_selector import _assert_governance_compliance
         from signals.governance.lifecycle import LeakageViolationError
-        from signals.governance.schema import GovernanceMetadata
 
         synthetic_gov = GovernanceMetadata(
             signal="bonus_roll3",

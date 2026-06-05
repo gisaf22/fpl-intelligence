@@ -83,14 +83,14 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 
 There is no longer a `signals/` layer. Signal governance is split along a **decide vs. consume** seam:
 
-- **Decision side — `model/governance/`** owns the decision-of-record (`evaluation_metadata.yaml`, `EVAL_DESIGN.md`), promotion/publication (`promote.py` — the only permitted writer to `outputs/registry/`), and the lifecycle ledger (`SIGNAL_REGISTRY.md`, `signal_traceability.yaml`).
-- **Consume side — `domain/registry/`** (the shared leaf) owns the runtime governance primitives every consumer may import: the registry contract (`schema.py`, `validation.py`), the pure + operational loaders (`loader.py`, `operational.py`), the lifecycle gate (`lifecycle.py:assert_operational_safe()`), and the governance lookup (`governance.py:get_signal_governance()`).
+- **Decision side — `model/governance/`** owns the decision-of-record (`evaluation_metadata.yaml`, `EVAL_DESIGN.md`), registry enrichment (`semantics.py`, `promotion.py` — signal-layer semantics, downstream status, promotion class), promotion/publication (`promote.py` — the only permitted writer to `outputs/registry/`), and the lifecycle ledger (`SIGNAL_REGISTRY.md`, `signal_traceability.yaml`). The research build assembles only the *raw evidence* finding; classifying each signal is a governance decision applied at promotion (`promote.py` enriches the raw finding, then validates against the contract, before publishing).
+- **Consume side — `domain/registry/`** (the shared leaf) owns the runtime governance primitives every consumer may import: the registry contract (`schema.py`, `validation.py`), the pure + operational loaders (`loader.py`, `operational.py`), the lifecycle gate (`lifecycle.py:assert_operational_safe()`), and the governance lookup (`governance_lookup.py:get_signal_governance()`). The split mirrors meaning vs. mechanism: `schema.py`/`validation.py`/`governance_types.py` are the contract; the loaders, gate, and lookup are consume-side runtime primitives that read decisions authored in `model/governance/` — they do not make decisions.
 
 **Why split:** `serve/` must consult the decision-of-record at scoring time but may not import `model/` (contract `no_serve_to_research_or_model`). Housing the runtime gate/lookup in `domain/registry/` keeps every consumer's imports legal; `model/governance/` owns the authoring/decision artifacts.
 
 **Contract:** `domain/registry/lifecycle.py:assert_operational_safe()` is the runtime lifecycle gate — it raises `LifecycleViolationError` if an operational runner attempts to consume a registry from an exploratory path. No signal may be scored without passing this gate.
 
-**Consumers:** `serve/` reads the governed registry artifact from `outputs/registry/gw{N}/` and consults `domain.registry` for the gate/lookup. `research/registry/build.py` builds the finding (to `research/findings/`); `model/governance/promote.py` is the only permitted writer to `outputs/registry/` (it validates and promotes the finding).
+**Consumers:** `serve/` reads the governed registry artifact from `outputs/registry/gw{N}/` and consults `domain.registry` for the gate/lookup. `research/registry/build.py` builds the raw evidence finding (to `research/findings/`); `model/governance/promote.py` is the only permitted writer to `outputs/registry/` (it enriches, validates, and promotes the finding).
 
 ---
 
@@ -127,7 +127,8 @@ There is no longer a `signals/` layer. Signal governance is split along a **deci
 | Domain-agnostic statistical utilities | `research/kernels/` |
 | Signal lifecycle status | `model/governance/SIGNAL_REGISTRY.md` |
 | Lifecycle gate enforcement | `domain/registry/lifecycle.py` |
-| Registry artifact assembly | `research/registry/build.py` |
+| Registry artifact assembly (raw evidence) | `research/registry/build.py` |
+| Registry governance enrichment (signal_layer, downstream_status, promotion_class) | `model/governance/{semantics,promotion}.py` (applied at `promote.py`) |
 | Operational signal scoring | `serve/scoring/` |
 | Weekly reporting | `serve/reporting/` |
 

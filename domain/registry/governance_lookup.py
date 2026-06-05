@@ -1,4 +1,10 @@
-"""Runtime access to per-signal-position evaluation governance metadata.
+"""Read-side lookup of per-signal-position governance decisions.
+
+Consume-side only: this resolves and reads governance decisions; it does not make
+them. The decisions live in ``model/governance/evaluation_metadata.yaml`` (the
+decision-of-record, authored by governance). This module exists in ``domain`` —
+the shared leaf — solely so ``serve`` can consult those decisions at scoring time
+without importing ``model`` (forbidden by ``no_serve_to_research_or_model``).
 
 Loads evaluation_metadata.yaml once (cached). Two access points, both raising
 GovernanceMetadataError — never returning None — so callers cannot silently
@@ -28,7 +34,7 @@ from typing import Any
 
 import yaml
 
-from domain.registry.schema import GovernanceMetadata, GovernanceMetadataError
+from domain.registry.governance_types import GovernanceMetadata, GovernanceMetadataError
 
 _EVAL_METADATA_PATH = Path("model/governance/evaluation_metadata.yaml")
 
@@ -40,9 +46,19 @@ _LIFECYCLE_PRIORITY: dict[str, int] = {
 }
 
 
+def _lens_token(lens: str) -> str:
+    """Normalise a lens label to its key token (ADR-003): lowercase, '-' -> '_'."""
+    return lens.lower().replace("-", "_")
+
+
 @functools.lru_cache(maxsize=1)
-def _load_raw() -> list[dict[str, Any]]:
-    """Load and cache the raw evaluation_metadata.yaml findings list."""
+def _load_findings() -> list[dict[str, Any]]:
+    """Load and cache the evaluation_metadata.yaml findings list.
+
+    Each entry's lens label is normalised to its key token once here, stored as
+    ``entry["lens_token"]``, so key-based lookups compare a pre-computed token
+    instead of re-normalising every entry on every call.
+    """
     path = _EVAL_METADATA_PATH
     if not path.exists():
         raise FileNotFoundError(f"Evaluation metadata not found at {path}. Run from the project root directory.")
@@ -51,21 +67,36 @@ def _load_raw() -> list[dict[str, Any]]:
     if not isinstance(data, dict):
         raise ValueError(f"Evaluation metadata at {path} must be a YAML mapping, got {type(data).__name__}")
     findings: list[dict[str, Any]] = data["evaluation_findings"]
+    for entry in findings:
+        entry["lens_token"] = _lens_token(entry["lens"])
     return findings
 
 
-def _lens_token(lens: str) -> str:
-    """Normalise a lens label to its key token (ADR-003): lowercase, '-' -> '_'."""
-    return lens.lower().replace("-", "_")
+def clear_cache() -> None:
+    """Drop the cached evaluation metadata.
+
+    Escape hatch for the lru-cached load — call after the YAML is regenerated
+    (e.g. a long-running process or a test that rewrites the decision-of-record).
+    """
+    _load_findings.cache_clear()
 
 
 def _derive_key(signal_entry: dict[str, Any]) -> str:
     """Composite finding key signal@lens:target for an entry (ADR-003).
 
     Derived from the entry's own fields so the key cannot drift from the row it
-    labels; a meta-test asserts the stored ``key`` equals this derivation.
+    labels. Consumed by the composite-key meta-test, which asserts the stored
+    ``key`` equals this derivation; it recomputes the token from ``lens`` so it
+    also works on raw YAML entries that have not been through ``_load_findings``.
     """
     return f"{signal_entry['signal']}@{_lens_token(signal_entry['lens'])}:{signal_entry['target']}"
+
+
+def _malformed_key_error(key: str) -> GovernanceMetadataError:
+    """Single source of the malformed-composite-key error message (ADR-003)."""
+    return GovernanceMetadataError(
+        f"Malformed composite key {key!r}. Expected 'signal@lens:target[#POSITION]' (ADR-003)."
+    )
 
 
 def _build_metadata(signal_entry: dict[str, Any], position: str, pos_data: dict[str, Any]) -> GovernanceMetadata:
@@ -95,7 +126,7 @@ def get_signal_governance(signal: str, position: str) -> GovernanceMetadata:
 
     Raises GovernanceMetadataError if no entry exists.
     """
-    findings = _load_raw()
+    findings = _load_findings()
     matches: list[GovernanceMetadata] = []
 
     for entry in findings:
@@ -133,21 +164,17 @@ def get_signal_governance_by_key(key: str) -> GovernanceMetadata:
 
     Raises GovernanceMetadataError if the key is malformed or names no finding.
     """
-    finding_part, sep, position = key.partition("#")
+    finding_part, had_hash, position = key.partition("#")
     try:
         signal, lens_target = finding_part.split("@", 1)
         lens_token, target = lens_target.split(":", 1)
     except ValueError as exc:
-        raise GovernanceMetadataError(
-            f"Malformed composite key {key!r}. Expected 'signal@lens:target[#POSITION]' (ADR-003)."
-        ) from exc
-    if not signal or not lens_token or not target or (sep and not position):
-        raise GovernanceMetadataError(
-            f"Malformed composite key {key!r}. Expected 'signal@lens:target[#POSITION]' (ADR-003)."
-        )
+        raise _malformed_key_error(key) from exc
+    if not signal or not lens_token or not target or (had_hash and not position):
+        raise _malformed_key_error(key)
 
-    for entry in _load_raw():
-        if entry["signal"] != signal or _lens_token(entry["lens"]) != lens_token or entry["target"] != target:
+    for entry in _load_findings():
+        if entry["signal"] != signal or entry["lens_token"] != lens_token or entry["target"] != target:
             continue
         per_position = entry.get("per_position", {})
         if position:

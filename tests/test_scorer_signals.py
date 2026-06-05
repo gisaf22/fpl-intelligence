@@ -7,8 +7,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from domain.registry.governance_types import GovernanceMetadataError
 from domain.registry.operational import load_registry
-from domain.registry.schema import GovernanceMetadataError
 from serve.scoring.signal_selector import _PRE_LENS_SIGNAL_ALLOWLIST, load_manifest
 
 pytestmark = pytest.mark.unit
@@ -83,7 +83,7 @@ def test_confirmed_signals_respect_governance_decision(manifest):
     excluded; load_manifest must route such signals to caveated, not confirmed.
     Regression guard for the gw36 purchase_price@{GK,MID} drift.
     """
-    from domain.registry.governance import get_signal_governance
+    from domain.registry.governance_lookup import get_signal_governance
 
     violations = []
     for sig in manifest.confirmed:

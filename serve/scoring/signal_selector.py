@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from domain.registry.schema import PRE_LENS_SIGNAL_ALLOWLIST as _PRE_LENS_SIGNAL_ALLOWLIST
+from domain.registry.governance_types import PRE_LENS_SIGNAL_ALLOWLIST as _PRE_LENS_SIGNAL_ALLOWLIST
 from serve.scoring.contracts import CaveatedSignal, ConfirmedSignal, SignalManifest
 
 # Promotion classes eligible for scoring
@@ -44,8 +44,8 @@ def _governance_exclusion_reason(signal: str, position: str) -> str | None:
     finding. Signals absent from governance are left to _assert_governance_compliance,
     which enforces the allowlist / ungoverned policy.
     """
-    from domain.registry.governance import get_signal_governance
-    from domain.registry.schema import GovernanceMetadataError
+    from domain.registry.governance_lookup import get_signal_governance
+    from domain.registry.governance_types import GovernanceMetadataError
 
     try:
         gov = get_signal_governance(signal, position)
@@ -157,9 +157,9 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
     Any signal absent from both the allowlist and evaluation_metadata.yaml raises
     GovernanceMetadataError: it is ungoverned and must not enter the scoring manifest.
     """
-    from domain.registry.governance import get_signal_governance
+    from domain.registry.governance_lookup import get_signal_governance
+    from domain.registry.governance_types import GovernanceMetadataError
     from domain.registry.lifecycle import LeakageViolationError, LifecycleViolationError
-    from domain.registry.schema import GovernanceMetadataError
 
     for sig in manifest.confirmed:
         try:

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from domain.registry.schema import (
+from domain.registry.governance_types import (
     LEAKAGE_RISK_VALUES,
     LIFECYCLE_STATE_VALUES,
     GovernanceMetadata,
@@ -86,7 +86,7 @@ class TestGovernanceMetadataSchema:
 
 class TestGetSignalGovernance:
     def test_known_approved_signal(self) -> None:
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("xgi_roll3", "DEF")
         assert gov.signal == "xgi_roll3"
@@ -100,7 +100,7 @@ class TestGetSignalGovernance:
         assert gov.ci_upper == pytest.approx(0.161)
 
     def test_known_excluded_signal(self) -> None:
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("fdr_avg", "DEF")
         assert gov.lifecycle_state == "excluded"
@@ -108,7 +108,7 @@ class TestGetSignalGovernance:
         assert gov.leakage_risk == "none"
 
     def test_evaluation_circularity_signal(self) -> None:
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("points_roll3", "DEF")
         assert gov.leakage_risk == "evaluation_circularity"
@@ -117,7 +117,7 @@ class TestGetSignalGovernance:
         assert "G-EDA7-02" in " ".join(gov.source_gate_decisions)
 
     def test_points_roll5_mid_conditional(self) -> None:
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("points_roll5", "MID")
         assert gov.leakage_risk == "evaluation_circularity"
@@ -125,7 +125,7 @@ class TestGetSignalGovernance:
         assert gov.downstream_status == "blocked"
 
     def test_not_applicable_signal(self) -> None:
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("xgi_roll3", "GK")
         assert gov.lifecycle_state == "not_applicable"
@@ -133,33 +133,33 @@ class TestGetSignalGovernance:
         assert "G-EDA3-01" in " ".join(gov.source_gate_decisions)
 
     def test_synth01_approved_purchase_price_def(self) -> None:
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("purchase_price", "DEF")
         assert gov.lifecycle_state == "approved"
         assert gov.downstream_status == "approved"
 
     def test_missing_signal_raises(self) -> None:
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         with pytest.raises(GovernanceMetadataError, match="No evaluation metadata"):
             get_signal_governance("nonexistent_signal", "DEF")
 
     def test_missing_position_raises(self) -> None:
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         with pytest.raises(GovernanceMetadataError, match="No evaluation metadata"):
             get_signal_governance("xgi_roll3", "UNKNOWN_POS")
 
     def test_behavioral_reason_populated(self) -> None:
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("transfers_in", "MID")
         assert gov.behavioral_reason
         assert len(gov.behavioral_reason) > 10
 
     def test_source_gate_decisions_populated(self) -> None:
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("transfers_in", "MID")
         assert len(gov.source_gate_decisions) >= 2
@@ -174,7 +174,7 @@ class TestGetSignalGovernance:
 class TestMultiLensDisambiguation:
     def test_minutes_roll3_mid_returns_approved(self) -> None:
         """FORM-006 MID is excluded; AVAIL-001 MID is approved (G-SYNTH1-09) — should return approved."""
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("minutes_roll3", "MID")
         assert gov.lifecycle_state == "approved"
@@ -183,7 +183,7 @@ class TestMultiLensDisambiguation:
 
     def test_minutes_roll3_def_returns_excluded(self) -> None:
         """Both FORM-006 DEF and AVAIL-001 DEF are excluded — should return excluded."""
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("minutes_roll3", "DEF")
         assert gov.lifecycle_state == "excluded"
@@ -191,7 +191,7 @@ class TestMultiLensDisambiguation:
     def test_minutes_roll3_gk_not_applicable_over_excluded(self) -> None:
         """FORM-006 GK is not_applicable; AVAIL-001 GK is excluded.
         Excluded is more informative (was studied but rejected) — prefer excluded."""
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         gov = get_signal_governance("minutes_roll3", "GK")
         assert gov.lifecycle_state == "excluded"
@@ -252,7 +252,7 @@ class TestAssertGovernanceCompliance:
 
     def test_missing_governance_metadata_raises_if_not_allowlisted(self) -> None:
         """Signals absent from both evaluation_metadata.yaml and _PRE_LENS_SIGNAL_ALLOWLIST must raise."""
-        from domain.registry.schema import GovernanceMetadataError
+        from domain.registry.governance_types import GovernanceMetadataError
         from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("unknown_signal_xyz", "DEF")])
@@ -391,8 +391,8 @@ class TestGetSignalGovernanceCompleteness:
 
     def test_all_yaml_entries_resolvable(self) -> None:
         """Every signal-position pair in YAML is resolvable by get_signal_governance()."""
-        from domain.registry.governance import get_signal_governance
-        from domain.registry.schema import GovernanceMetadata
+        from domain.registry.governance_lookup import get_signal_governance
+        from domain.registry.governance_types import GovernanceMetadata
 
         failures = []
         for entry in self._load_yaml():
@@ -409,7 +409,7 @@ class TestGetSignalGovernanceCompleteness:
 
     def test_returned_metadata_has_all_required_fields(self) -> None:
         """Every returned GovernanceMetadata has all required fields populated."""
-        from domain.registry.governance import get_signal_governance
+        from domain.registry.governance_lookup import get_signal_governance
 
         failures = []
         for entry in self._load_yaml():
@@ -439,8 +439,8 @@ class TestGetSignalGovernanceCompleteness:
 
     def test_candidate_entries_have_rho_pooled(self) -> None:
         """Every candidate lifecycle entry has rho_pooled not None in returned metadata."""
-        from domain.registry.governance import get_signal_governance
-        from domain.registry.schema import GovernanceMetadataError
+        from domain.registry.governance_lookup import get_signal_governance
+        from domain.registry.governance_types import GovernanceMetadataError
 
         failures = []
         for entry in self._load_yaml():
@@ -512,8 +512,8 @@ class TestViolationErrorTypes:
         """
         from unittest.mock import patch
 
+        from domain.registry.governance_types import GovernanceMetadata
         from domain.registry.lifecycle import LeakageViolationError
-        from domain.registry.schema import GovernanceMetadata
         from serve.scoring.signal_selector import _assert_governance_compliance
 
         synthetic_gov = GovernanceMetadata(
@@ -532,7 +532,7 @@ class TestViolationErrorTypes:
         )
         manifest = self._make_manifest([self._make_confirmed("bonus_roll3", "DEF")])
         with patch(
-            "domain.registry.governance.get_signal_governance",
+            "domain.registry.governance_lookup.get_signal_governance",
             return_value=synthetic_gov,
         ):
             with pytest.raises(LeakageViolationError, match="GOVERNANCE VIOLATION"):

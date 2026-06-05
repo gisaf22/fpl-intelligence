@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 
 from domain.signal_layers import SIGNAL_LAYER_VALUES
@@ -32,18 +31,18 @@ REQUIRED_COLUMNS: tuple[str, ...] = (
     "signal",
     "position",
     "population_scope",
-    # characterization synthesis — EDA-7 ownership (assembled from EDA-4/5 outputs)
+    # characterization synthesis — composition/synthesis (model/assemble)
     "population_robustness",
     "preferred_population",
     "temporal_stability",
-    # registry_build metadata — analytics.registry.semantics.enrich_signal_layers()
+    # semantic enrichment — model.governance.semantics.enrich_signal_layers()
     "signal_layer",
     "layer_role",
     "feature_candidate_eligible",
     "downstream_status",
     "interpretation_caveat",
     "variable_level",
-    # registry_build computed — geometry section (sections._geometry_row)
+    # registry-build computed — geometry section (research/registry build via research.kernels)
     "bucketing_scheme",
     "n_records",
     "zero_fraction",
@@ -55,7 +54,7 @@ REQUIRED_COLUMNS: tuple[str, ...] = (
     "low_confidence",
     "support_flags",
     "support_type",
-    # registry_build computed — decomposition section (analytics.relationships.decompose_rho)
+    # registry-build computed — decomposition section (research.kernels.correlation.panel)
     "rho_pooled",
     "rho_between",
     "rho_within",
@@ -63,16 +62,16 @@ REQUIRED_COLUMNS: tuple[str, ...] = (
     "panel_class",
     "decomposition_flag",
     "n_players",
-    # registry_build computed — haul section (analytics.relationships.haul_concentration)
+    # registry-build computed — haul section (research.kernels.correlation.tail)
     "rho_full",
     "rho_no_haul",
     "rho_drop",
     "haul_pct",
     "n_haul",
     "tail_sensitive",
-    # registry_build computed — assembly (analytics.relationships.assign_association_class)
+    # registry-build computed — research.kernels.association.assign_association_class
     "association_class",
-    # EDA-7 synthesis + registry_build computed — analytics.registry.promotion
+    # promotion class — model.governance.promotion.assign_promotion_class
     "promotion_class",
 )
 
@@ -209,56 +208,8 @@ NULLABLE_CONTROLLED_COLUMNS: frozenset[str] = frozenset({"support_type", "promot
 # ---------------------------------------------------------------------------
 # Runtime governance metadata
 # ---------------------------------------------------------------------------
-
-LIFECYCLE_STATE_VALUES: frozenset[str] = frozenset({"candidate", "excluded", "not_applicable", "approved"})
-LEAKAGE_RISK_VALUES: frozenset[str] = frozenset({"none", "evaluation_circularity", "direct"})
-
-
-@dataclass(frozen=True)
-class GovernanceMetadata:
-    """Runtime governance container for a single signal-position pair.
-
-    Populated from evaluation_metadata.yaml via get_signal_governance().
-    When a signal appears in multiple lens studies, the most favorable
-    lifecycle_state is returned (candidate > excluded > not_applicable).
-    """
-
-    signal: str
-    position: str
-    key: str  # composite finding key, e.g. "xgi_roll3@form:total_points" (ADR-003)
-    lens: str  # e.g. "FORM"
-    lifecycle_state: str  # candidate | excluded | not_applicable
-    downstream_status: str  # eligible | caveated | blocked
-    leakage_risk: str  # none | evaluation_circularity | direct
-    behavioral_reason: str
-    source_gate_decisions: tuple[str, ...]
-    rho_pooled: float | None
-    ci_lower: float | None
-    ci_upper: float | None
-
-
-class GovernanceMetadataError(ValueError):
-    """Raised when evaluation governance metadata is missing or unresolvable."""
-
-
-# Signals that predate the lens-study methodology and have no evaluation_metadata.yaml record.
-# Any confirmed signal absent from both this set and evaluation_metadata.yaml is ungoverned
-# and must not enter the scoring manifest.
-PRE_LENS_SIGNAL_ALLOWLIST: frozenset[str] = frozenset(
-    {
-        "assists",
-        "clean_sheets",
-        "creativity",
-        "goals_conceded",
-        "goals_scored",
-        "ict_index",
-        "influence",
-        "saves",
-        "threat",
-        "xa",
-        "xg",
-        "xgc",
-        "xgi",
-        "yellow_cards",
-    }
-)
+# The runtime governance verdict contract (GovernanceMetadata, its error type,
+# the lifecycle/leakage vocabularies, and the pre-lens allowlist) lives in
+# domain.registry.governance_types — it is the contract for evaluation_metadata.yaml
+# lookups, not for the registry CSV. Kept separate so this module stays the
+# single concern "what is a valid registry row".

@@ -1,4 +1,8 @@
-"""Typed loader for governed EDA signal registries."""
+"""Typed loader for governed EDA signal registries.
+
+Consume-side runtime primitive: pure CSV→typed-DataFrame I/O, no lifecycle gating
+(that is ``operational.py``). Lives in ``domain`` so every consumer may import it.
+"""
 
 from __future__ import annotations
 

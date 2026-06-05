@@ -237,8 +237,8 @@ class TestLifecycleEnforcement:
 
     def test_excluded_signal_raises_lifecycle_violation(self) -> None:
         """A signal with lifecycle_state=excluded must not pass governance compliance."""
-        from domain.registry.governance import get_signal_governance
-        from domain.registry.schema import GovernanceMetadataError
+        from domain.registry.governance_lookup import get_signal_governance
+        from domain.registry.governance_types import GovernanceMetadataError
 
         # Find an excluded signal from the evaluation metadata to use as the test case.
         # xgi_roll3 excluded at FWD (FORM-001 G2-FAIL: non-monotonic quintile ordering).

@@ -88,9 +88,16 @@ single-consumer, so a full relocation would over-reach and is tangential to this
 
 ### 4. One normalized read model in `domain/registry`
 
-`serve` consumes a single uniform verdict per (signal, position) regardless of tier, via
-`domain/registry` (preserving `serve ↛ model`). `PRE_LENS_SIGNAL_ALLOWLIST` is deleted once the 14 raw
-signals carry explicit derived records.
+The scoring **decision** path consumes a single uniform verdict per (signal, position) via
+`domain/registry/verdict.py:resolve_verdict() → SignalVerdict`, which merges the foundation registry row
+(promotion_class, layer_role, rho, downstream_status) with the lens/derived governance verdict
+(`resolve_governance`). The scorer reads no raw registry columns — every confirm/caveat decision reads
+the one normalized shape (preserving `serve ↛ model`). `PRE_LENS_SIGNAL_ALLOWLIST` is deleted (Phase A).
+
+**Scope:** this unifies the *verdict-decision* path (scoring). `serve/reporting` reads registry columns
+(`promotion_class`/`downstream_status`) for **descriptive** display — counts, grouping, version diffs —
+and only ever sees the single foundation tier (never the lens YAML), so it carries no two-vocabulary fork
+and is deliberately out of scope: bulk aggregation does not route through a per-signal verdict accessor.
 
 ## Migration path (phased; each phase independently shippable + green)
 
@@ -98,9 +105,9 @@ signals carry explicit derived records.
 `excluded` records for the 14 raw signals from their foundation `downstream_status` using the locked
 mapping; delete `PRE_LENS_SIGNAL_ALLOWLIST`. Verified no-op by the blast-radius proof above.
 
-**Phase B — normalized read model:** unify the two vocabularies behind one `domain/registry` accessor so
-`serve` reads a single verdict shape; reconcile `downstream_status`/`promotion_class` with
-`lifecycle_state` at the read boundary.
+**Phase B — normalized read model:** the scoring decision path reads one `SignalVerdict`
+(`domain/registry/verdict.py:resolve_verdict`) merging foundation columns + lens/derived verdict; the
+scorer reads no raw registry columns. Reporting's descriptive registry reads are out of scope (§4).
 
 **Phase C — automate provenance:** lens studies emit machine-readable verdict records; generate
 `evaluation_metadata.yaml` from study outputs; automate the synth merge. Retire hand-authoring.

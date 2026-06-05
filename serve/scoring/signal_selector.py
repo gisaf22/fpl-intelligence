@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from domain.registry.verdict import SignalVerdict, resolve_verdict
 from serve.scoring.contracts import CaveatedSignal, ConfirmedSignal, SignalManifest
 
 # Promotion classes eligible for scoring
@@ -22,33 +23,23 @@ _LEAKAGE_ROLES: frozenset[str] = frozenset({"points_component"})
 _OUTCOME_COMPONENT_ROLES: frozenset[str] = frozenset({"contribution_index"})
 
 
-def _exclusion_reason(row: dict) -> str | None:
-    """Return a human-readable exclusion reason, or None if the signal is clear."""
-    caveat = str(row.get("interpretation_caveat") or "").lower()
-    layer_role = str(row.get("layer_role") or "")
+def _exclusion_reason(verdict: SignalVerdict) -> str | None:
+    """Return a human-readable exclusion reason for one verdict, or None if clear.
 
-    if layer_role in _LEAKAGE_ROLES or "leakage" in caveat:
-        return "leakage: signal is or directly encodes the scoring target"
-    if layer_role in _OUTCOME_COMPONENT_ROLES:
-        return "outcome-component: mechanistically tautological with FPL points"
-    return None
-
-
-def _governance_exclusion_reason(signal: str, position: str, downstream_status: str) -> str | None:
-    """Return an exclusion reason if the normalized verdict excludes this signal-position.
-
-    Resolves one verdict via ``resolve_governance`` (ADR-009 §4): the lens record if it
-    exists, else a foundation-derived verdict. A registry may promote a signal the
-    decision has since excluded (registry↔governance drift); selection respects the
-    decision, not the finding.
+    Covers both the foundation-tier checks (leakage/outcome-component via layer_role,
+    the rho CI gate) and the governance-decision checks (lifecycle excluded, downstream
+    blocked) — read uniformly from the one normalized verdict (ADR-009 §4).
     """
-    from domain.registry.governance_lookup import resolve_governance
-
-    gov = resolve_governance(signal, position, downstream_status)
-    if gov.lifecycle_state == "excluded":
-        return f"governance: excluded in lifecycle evaluation (source: {gov.key})"
-    if gov.downstream_status == "blocked":
-        return f"governance: downstream status blocked (source: {gov.key})"
+    if verdict.layer_role in _LEAKAGE_ROLES or "leakage" in verdict.interpretation_caveat.lower():
+        return "leakage: signal is or directly encodes the scoring target"
+    if verdict.layer_role in _OUTCOME_COMPONENT_ROLES:
+        return "outcome-component: mechanistically tautological with FPL points"
+    if verdict.rho_pooled is None:
+        return "no directional information: rho_pooled is null"
+    if verdict.lifecycle_state == "excluded":
+        return f"governance: excluded in lifecycle evaluation (source: {verdict.source_key})"
+    if verdict.downstream_status == "blocked":
+        return f"governance: downstream status blocked (source: {verdict.source_key})"
     return None
 
 
@@ -68,61 +59,35 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
     the decision. All other core/review signals go to caveated with the
     exclusion reason. positions_covered reflects only confirmed signals.
     """
-    eligible = registry[registry["promotion_class"].isin(_SCORING_CLASSES)].copy()
-
     confirmed: list[ConfirmedSignal] = []
     caveated: list[CaveatedSignal] = []
 
-    for row in eligible.to_dict(orient="records"):
-        signal = str(row["signal"])
-        position = str(row["position"])
-        promotion_class = str(row["promotion_class"])
-        rho = row.get("rho_pooled")
+    for row in registry.to_dict(orient="records"):
+        verdict = resolve_verdict(row)
+        if verdict.promotion_class not in _SCORING_CLASSES:
+            continue  # not a scoring candidate (blocked rows have no promotion_class)
 
-        reason = _exclusion_reason(row)
+        reason = _exclusion_reason(verdict)
         if reason is not None:
             caveated.append(
                 CaveatedSignal(
-                    signal=signal,
-                    position=position,
+                    signal=verdict.signal,
+                    position=verdict.position,
                     reason=reason,
-                    promotion_class=promotion_class,
+                    promotion_class=verdict.promotion_class,
                 )
             )
             continue
 
-        # rho must be present and meet the minimum strength threshold
-        if rho is None or (rho != rho):  # NaN check via self-inequality
-            caveated.append(
-                CaveatedSignal(
-                    signal=signal,
-                    position=position,
-                    reason="no directional information: rho_pooled is null",
-                    promotion_class=promotion_class,
-                )
-            )
-            continue
-
-        gov_reason = _governance_exclusion_reason(signal, position, str(row.get("downstream_status") or "eligible"))
-        if gov_reason is not None:
-            caveated.append(
-                CaveatedSignal(
-                    signal=signal,
-                    position=position,
-                    reason=gov_reason,
-                    promotion_class=promotion_class,
-                )
-            )
-            continue
-
+        rho = verdict.rho_pooled  # non-null here: _exclusion_reason gates null rho
         confirmed.append(
             ConfirmedSignal(
-                signal=signal,
-                position=position,
-                rho_pooled=float(rho),
+                signal=verdict.signal,
+                position=verdict.position,
+                rho_pooled=rho,
                 direction=1 if rho > 0 else -1,
-                promotion_class=promotion_class,
-                downstream_status=str(row.get("downstream_status") or "eligible"),
+                promotion_class=verdict.promotion_class,
+                downstream_status=verdict.downstream_status,
             )
         )
 

@@ -35,6 +35,30 @@ def _exclusion_reason(row: dict) -> str | None:
     return None
 
 
+def _governance_exclusion_reason(signal: str, position: str) -> str | None:
+    """Return an exclusion reason if the decision-of-record excludes this signal-position.
+
+    Consults evaluation_metadata.yaml (the decision-of-record). A registry may
+    promote a signal as a scoring candidate while governance has since excluded
+    it (registry↔governance drift); selection must respect the decision, not the
+    finding. Signals absent from governance are left to _assert_governance_compliance,
+    which enforces the allowlist / ungoverned policy.
+    """
+    from domain.registry.schema import GovernanceMetadataError
+    from signals.governance.governance import get_signal_governance
+
+    try:
+        gov = get_signal_governance(signal, position)
+    except GovernanceMetadataError:
+        return None
+
+    if gov.lifecycle_state == "excluded":
+        return f"governance: excluded in lifecycle evaluation (source: {gov.key})"
+    if gov.downstream_status == "blocked":
+        return f"governance: downstream status blocked (source: {gov.key})"
+    return None
+
+
 def load_manifest(registry: pd.DataFrame) -> SignalManifest:
     """Build a SignalManifest from a validated governed registry DataFrame.
 
@@ -45,8 +69,11 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
     lens evaluation). MIN_RHO was removed after the synthesis study (set-synth-weights) approved three signals with
     rho < 0.15 via partial rho, confirming the magnitude threshold was not evidence-derived.
 
-    All other core/review signals go to caveated with the exclusion reason.
-    positions_covered reflects only confirmed signals.
+    Signals the decision-of-record (evaluation_metadata.yaml) marks excluded or
+    blocked are routed to caveated even when the registry promotes them — the
+    registry is the finding; governance is the decision, and selection respects
+    the decision. All other core/review signals go to caveated with the
+    exclusion reason. positions_covered reflects only confirmed signals.
     """
     eligible = registry[registry["promotion_class"].isin(_SCORING_CLASSES)].copy()
 
@@ -78,6 +105,18 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
                     signal=signal,
                     position=position,
                     reason="no directional information: rho_pooled is null",
+                    promotion_class=promotion_class,
+                )
+            )
+            continue
+
+        gov_reason = _governance_exclusion_reason(signal, position)
+        if gov_reason is not None:
+            caveated.append(
+                CaveatedSignal(
+                    signal=signal,
+                    position=position,
+                    reason=gov_reason,
                     promotion_class=promotion_class,
                 )
             )

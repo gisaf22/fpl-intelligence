@@ -76,6 +76,29 @@ def test_outcome_component_signals_in_caveated_not_confirmed(manifest):
         assert len(caveated_entries) > 0, f"'{oc_signal}' should appear in caveated but is absent"
 
 
+def test_confirmed_signals_respect_governance_decision(manifest):
+    """No confirmed signal is governance-excluded/blocked (registry↔governance drift guard).
+
+    A registry may promote a signal that the decision-of-record has since
+    excluded; load_manifest must route such signals to caveated, not confirmed.
+    Regression guard for the gw36 purchase_price@{GK,MID} drift.
+    """
+    from signals.governance.governance import get_signal_governance
+
+    violations = []
+    for sig in manifest.confirmed:
+        try:
+            gov = get_signal_governance(sig.signal, sig.position)
+        except GovernanceMetadataError:
+            continue  # ungoverned/allowlist handled by _assert_governance_compliance
+        if gov.lifecycle_state == "excluded" or gov.downstream_status == "blocked":
+            violations.append(
+                f"{sig.signal}/{sig.position}: confirmed but governance "
+                f"lifecycle_state={gov.lifecycle_state}, downstream_status={gov.downstream_status}"
+            )
+    assert not violations, "Governance-excluded signals leaked into confirmed:\n" + "\n".join(violations)
+
+
 def test_confirmed_signals_have_non_null_rho(manifest):
     """Every confirmed signal has a non-null rho_pooled (CI gate, Phase 8 resolution of G-OPS-02)."""
     for sig in manifest.confirmed:

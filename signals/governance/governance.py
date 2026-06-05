@@ -30,7 +30,7 @@ import yaml
 
 from domain.registry.schema import GovernanceMetadata, GovernanceMetadataError
 
-_EVAL_METADATA_PATH = Path("signals/governance/evaluation_metadata.yaml")
+_EVAL_METADATA_PATH = Path("model/governance/evaluation_metadata.yaml")
 
 _LIFECYCLE_PRIORITY: dict[str, int] = {
     "approved": 0,
@@ -109,7 +109,7 @@ def get_signal_governance(signal: str, position: str) -> GovernanceMetadata:
     if not matches:
         raise GovernanceMetadataError(
             f"No evaluation metadata found for signal={signal!r}, position={position!r}. "
-            "Add an entry to signals/governance/evaluation_metadata.yaml."
+            "Add an entry to model/governance/evaluation_metadata.yaml."
         )
 
     def _sort_key(m: GovernanceMetadata) -> tuple[int, float]:
@@ -154,7 +154,7 @@ def get_signal_governance_by_key(key: str) -> GovernanceMetadata:
             if position not in per_position:
                 raise GovernanceMetadataError(
                     f"Composite key {key!r} names position {position!r} with no record in "
-                    f"finding {finding_part!r}. Add it to signals/governance/evaluation_metadata.yaml."
+                    f"finding {finding_part!r}. Add it to model/governance/evaluation_metadata.yaml."
                 )
             return _build_metadata(entry, position, per_position[position])
         # No position suffix: the finding exists; return its first studied position.
@@ -164,5 +164,5 @@ def get_signal_governance_by_key(key: str) -> GovernanceMetadata:
 
     raise GovernanceMetadataError(
         f"No evaluation metadata found for composite key {key!r}. "
-        "Add a finding to signals/governance/evaluation_metadata.yaml."
+        "Add a finding to model/governance/evaluation_metadata.yaml."
     )

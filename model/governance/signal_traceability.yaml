@@ -1,6 +1,6 @@
 # GENERATED / READ-ONLY — governance lineage projection.
 # A read-only view that projects state owned elsewhere (the decision of record is
-# signals/governance/evaluation_metadata.yaml). Housed in model/governance/ as a
+# model/governance/evaluation_metadata.yaml). Housed in model/governance/ as a
 # lineage projection; do not hand-edit as a source of truth.
 # Signal Traceability Matrix — Machine-Readable
 # Version: 1.1
@@ -24,7 +24,7 @@
 #   redundancy           — known high-redundancy relationships at this position
 #   synth01_decision     — SYNTH-01 outcome: APPROVED-PRIMARY | APPROVED-SECONDARY |
 #                          EXCLUDED-REDUNDANT | FWD-SINGLE-SIGNAL | null (not evaluated)
-#   synth01_decision_id  — G-SYNTH1-NN decision ID from signals/governance/evaluation_metadata.yaml
+#   synth01_decision_id  — G-SYNTH1-NN decision ID from model/governance/evaluation_metadata.yaml
 #   operational_role     — form | availability | market | fixture | defensive | null
 #   consumer_modules     — intelligence modules that reference this signal (list)
 #   consumer_note        — explanation when consumer_modules is empty or there is a governance gap
@@ -34,7 +34,7 @@ schema_version: "1.1"
 produced: "2026-06-01"
 authority: "docs/archive/operational-convergence-plan.md §Phase 5; SYNTH-01 post-study update 2026-06-01"
 source_of_truth:
-  evaluation_metadata: signals/governance/evaluation_metadata.yaml
+  evaluation_metadata: model/governance/evaluation_metadata.yaml
   state_inventory: docs/archive/state-representation-inventory.md
   threshold_registry: docs/governance/threshold-registry.md
 analysis_paths:

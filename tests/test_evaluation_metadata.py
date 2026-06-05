@@ -1,4 +1,4 @@
-"""Validation tests for signals/governance/evaluation_metadata.yaml.
+"""Validation tests for model/governance/evaluation_metadata.yaml.
 
 Verifies schema completeness and vocabulary conformance for the structured
 evaluation findings. Does not test rho values — those are sourced from lens
@@ -17,7 +17,7 @@ import yaml
 
 pytestmark = pytest.mark.unit
 
-EVAL_META_PATH = Path("signals/governance/evaluation_metadata.yaml")
+EVAL_META_PATH = Path("model/governance/evaluation_metadata.yaml")
 
 _REQUIRED_POSITION_KEYS = frozenset(
     {"rho_pooled", "rho_ci_lower", "rho_ci_upper", "block_stability_count", "decision_class", "lifecycle_state"}

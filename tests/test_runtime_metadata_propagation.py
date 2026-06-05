@@ -291,7 +291,7 @@ class TestYAMLCompleteness:
 
         import yaml
 
-        path = Path("signals/governance/evaluation_metadata.yaml")
+        path = Path("model/governance/evaluation_metadata.yaml")
         with path.open() as fh:
             data = yaml.safe_load(fh)
         return data["evaluation_findings"]
@@ -384,7 +384,7 @@ class TestGetSignalGovernanceCompleteness:
 
         import yaml
 
-        path = Path("signals/governance/evaluation_metadata.yaml")
+        path = Path("model/governance/evaluation_metadata.yaml")
         with path.open() as fh:
             data = yaml.safe_load(fh)
         return data["evaluation_findings"]

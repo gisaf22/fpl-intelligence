@@ -24,7 +24,7 @@ from dal.feat.feat_schema import FEATURE_REGISTRY
 pytestmark = pytest.mark.unit
 
 TRACEABILITY_PATH = Path("model/governance/signal_traceability.yaml")
-EVAL_META_PATH = Path("signals/governance/evaluation_metadata.yaml")
+EVAL_META_PATH = Path("model/governance/evaluation_metadata.yaml")
 
 
 def _load_traceability() -> list[dict]:

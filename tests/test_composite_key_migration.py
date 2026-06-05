@@ -33,7 +33,7 @@ from signals.governance.governance import (
 
 pytestmark = pytest.mark.unit
 
-_EVAL_PATH = Path("signals/governance/evaluation_metadata.yaml")
+_EVAL_PATH = Path("model/governance/evaluation_metadata.yaml")
 _SYNTH_PATH = Path("model/assemble/synth01_decisions.yaml")
 
 # Lens label -> key token, matching governance._lens_token (lowercase, '-' -> '_').

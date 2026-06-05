@@ -3,7 +3,7 @@
 # Status: FROZEN
 # Frozen at: 2026-05-27
 # Authority: docs/governance/synth01-candidate-set.md (Phase 4 — SYNTH-01 Readiness)
-# Source: signals/governance/evaluation_metadata.yaml
+# Source: model/governance/evaluation_metadata.yaml
 #   Extraction criterion: lifecycle_state=candidate AND downstream_status in [eligible, caveated]
 #
 # IMMUTABLE — do not modify after Phase 4 completes.

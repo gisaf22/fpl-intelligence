@@ -25,10 +25,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from domain.registry.governance_lookup import (
-    _derive_key,
-    get_signal_governance_by_key,
-)
+from domain.registry.finding_key import build_key
+from domain.registry.governance_lookup import get_signal_governance_by_key
 from domain.registry.governance_types import GovernanceMetadata, GovernanceMetadataError
 
 pytestmark = pytest.mark.unit
@@ -72,7 +70,7 @@ def test_finding_key_equals_derived_form():
     """Each stored finding key equals derive(signal, lens, target) — it cannot drift."""
     mismatches = []
     for entry in _findings():
-        expected = _derive_key(entry)
+        expected = build_key(entry["signal"], entry["lens"], entry["target"])
         if entry["key"] != expected:
             mismatches.append(f"{entry['key']!r} != derived {expected!r}")
     assert not mismatches, "Finding keys drifted from their fields:\n" + "\n".join(mismatches)

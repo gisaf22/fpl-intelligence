@@ -26,6 +26,7 @@ from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
+from domain.registry.finding_key import build_key
 
 OUT_PATH = Path("model/assemble/synth01_decisions.yaml")
 RUNS_DIR = Path("research/runs")
@@ -311,15 +312,13 @@ def run(db_path: Path = DB_PATH) -> Path:
         (state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)
     ].copy()
 
-    # Composite finding-key grammar (ADR-003): signal@lens:target#POSITION.
-    # The synth target column (total_points_next_gw) maps to the finding-key target token
-    # (total_points) so a decision key equals its parent finding key + #POSITION.
+    # Composite finding-key grammar (ADR-003) is built by domain.registry.finding_key.
+    # The synth lead-target column (total_points_next_gw) maps to the finding-key target
+    # token (total_points) so a decision key equals its parent finding key + #POSITION.
     _TARGET_TOKEN = {"total_points_next_gw": "total_points", "played_next_gw": "played_next_gw"}
 
     def _composite_key(signal: str, lens: str, target: str, position: str) -> str:
-        lens_tok = lens.lower().replace("-", "_")
-        target_tok = _TARGET_TOKEN.get(target, target)
-        return f"{signal}@{lens_tok}:{target_tok}#{position}"
+        return build_key(signal, lens, _TARGET_TOKEN.get(target, target), position)
 
     all_decisions: list[dict] = []
     retained_for_moderation: list[tuple[str, str, str]] = []

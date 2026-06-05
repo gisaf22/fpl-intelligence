@@ -90,6 +90,34 @@ def derive_lifecycle_state(downstream_status: str) -> str:
     return _FOUNDATION_LIFECYCLE.get(downstream_status, "excluded")
 
 
+def resolve_governance(signal: str, position: str, downstream_status: str = "eligible") -> GovernanceMetadata:
+    """Return one normalized governance verdict for a signal-position (ADR-009 §4).
+
+    The single consume-side accessor unifying the two evaluation tiers: if a lens
+    record exists in evaluation_metadata.yaml it is returned verbatim; otherwise a
+    verdict is *derived* from the foundation ``downstream_status`` (cautious-grade,
+    ADR-009 §1) so every governed signal resolves to one shape. Callers never branch
+    on "has a lens record" or catch GovernanceMetadataError.
+    """
+    try:
+        return get_signal_governance(signal, position)
+    except GovernanceMetadataError:
+        return GovernanceMetadata(
+            signal=signal,
+            position=position,
+            key=f"foundation:{signal}",
+            lens="FOUNDATION",
+            lifecycle_state=derive_lifecycle_state(downstream_status),
+            downstream_status=downstream_status,
+            leakage_risk="none",  # raw-signal leakage is caught by layer_role at manifest build
+            behavioral_reason="foundation-derived verdict (no lens study); ADR-009 §1",
+            source_gate_decisions=(),
+            rho_pooled=None,
+            ci_lower=None,
+            ci_upper=None,
+        )
+
+
 def clear_cache() -> None:
     """Drop the cached evaluation metadata.
 

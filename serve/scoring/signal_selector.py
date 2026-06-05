@@ -34,23 +34,17 @@ def _exclusion_reason(row: dict) -> str | None:
     return None
 
 
-def _governance_exclusion_reason(signal: str, position: str) -> str | None:
-    """Return an exclusion reason if the decision-of-record excludes this signal-position.
+def _governance_exclusion_reason(signal: str, position: str, downstream_status: str) -> str | None:
+    """Return an exclusion reason if the normalized verdict excludes this signal-position.
 
-    Consults evaluation_metadata.yaml (the decision-of-record). A registry may
-    promote a signal as a scoring candidate while governance has since excluded
-    it (registry↔governance drift); selection must respect the decision, not the
-    finding. Signals absent from governance are left to _assert_governance_compliance,
-    which enforces the allowlist / ungoverned policy.
+    Resolves one verdict via ``resolve_governance`` (ADR-009 §4): the lens record if it
+    exists, else a foundation-derived verdict. A registry may promote a signal the
+    decision has since excluded (registry↔governance drift); selection respects the
+    decision, not the finding.
     """
-    from domain.registry.governance_lookup import get_signal_governance
-    from domain.registry.governance_types import GovernanceMetadataError
+    from domain.registry.governance_lookup import resolve_governance
 
-    try:
-        gov = get_signal_governance(signal, position)
-    except GovernanceMetadataError:
-        return None
-
+    gov = resolve_governance(signal, position, downstream_status)
     if gov.lifecycle_state == "excluded":
         return f"governance: excluded in lifecycle evaluation (source: {gov.key})"
     if gov.downstream_status == "blocked":
@@ -109,7 +103,7 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
             )
             continue
 
-        gov_reason = _governance_exclusion_reason(signal, position)
+        gov_reason = _governance_exclusion_reason(signal, position, str(row.get("downstream_status") or "eligible"))
         if gov_reason is not None:
             caveated.append(
                 CaveatedSignal(
@@ -152,27 +146,15 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
       2. lifecycle_state == "excluded"  — signal was rejected in lens evaluation
       3. downstream_status == "blocked" — evaluation blocked advancement
 
-    Signals with no evaluation_metadata.yaml record are governed by their foundation
-    verdict instead: lifecycle_state is derived from the registry downstream_status
-    (ADR-009 §1, eligible/caveated → candidate, blocked/unknown → excluded). A signal
-    whose derived lifecycle is excluded must not enter the scoring manifest.
+    Each confirmed signal resolves to one normalized verdict via ``resolve_governance``
+    (ADR-009 §4): the lens record if it exists, else a foundation-derived verdict. The
+    same three hard-fail conditions apply uniformly to both tiers — no per-tier branching.
     """
-    from domain.registry.governance_lookup import derive_lifecycle_state, get_signal_governance
-    from domain.registry.governance_types import GovernanceMetadataError
+    from domain.registry.governance_lookup import resolve_governance
     from domain.registry.lifecycle import LeakageViolationError, LifecycleViolationError
 
     for sig in manifest.confirmed:
-        try:
-            gov = get_signal_governance(sig.signal, sig.position)
-        except GovernanceMetadataError:
-            # No lens record: govern by the derived foundation verdict.
-            if derive_lifecycle_state(sig.downstream_status) == "excluded":
-                raise LifecycleViolationError(
-                    f"GOVERNANCE VIOLATION: {sig.signal}@{sig.position} has no lens record and "
-                    f"its foundation status {sig.downstream_status!r} derives to excluded "
-                    f"(ADR-009); it must not appear as confirmed in the scoring manifest."
-                ) from None
-            continue
+        gov = resolve_governance(sig.signal, sig.position, sig.downstream_status)
 
         if gov.leakage_risk == "direct":
             raise LeakageViolationError(

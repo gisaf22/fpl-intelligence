@@ -158,6 +158,11 @@ def test_compute_relationship_sections_can_feed_registry_assembly():
         signals=["bps"],
         config=SectionBuildConfig(positions=("MID",), n_bootstrap=0),
     )
+    # The build assembles raw evidence; governance enriches at promotion. Mirror
+    # that pipeline to obtain a contract-valid governed registry.
+    from model.governance.promotion import enrich_promotion_class
+    from model.governance.semantics import enrich_signal_layers
+
     registry = assemble_registry_from_sections(
         geometry=sections.geometry,
         stability=sections.stability,
@@ -165,6 +170,8 @@ def test_compute_relationship_sections_can_feed_registry_assembly():
         haul=sections.haul,
         expected_n=1,
     )
+    assert "downstream_status" not in registry.columns  # raw evidence finding
+    registry = enrich_promotion_class(enrich_signal_layers(registry))
 
     validate_registry_contract(registry)
     assert registry.loc[0, "signal"] == "bps"

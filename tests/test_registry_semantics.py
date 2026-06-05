@@ -3,8 +3,8 @@ import pytest
 
 from domain.registry.operational import load_registry
 from domain.registry.validation import validate_registry_contract
-from research.registry.promotion import enrich_promotion_class
-from research.registry.semantics import enrich_signal_layers
+from model.governance.promotion import enrich_promotion_class
+from model.governance.semantics import enrich_signal_layers
 
 pytestmark = pytest.mark.unit
 

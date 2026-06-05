@@ -1,13 +1,19 @@
 """Promotion of a registry finding to the operational registry.
 
 Governance promotes a research *finding*: research builds it (``research.registry.build``)
-and writes it under research/findings/ (exploratory). Promotion reads that
-artifact file-based — **no import of research** — validates it against the
-registry contract, asserts the publication target is an operational (non-exploratory)
-location, and publishes it to outputs/registry/.
+and writes the raw evidence finding under research/findings/ (exploratory).
+Promotion reads that artifact file-based — **no import of research** — applies
+governance enrichment (signal-layer semantics + promotion class), validates the
+enriched registry against the contract, asserts the publication target is an
+operational (non-exploratory) location, and publishes it to outputs/registry/.
+
+Enrichment is governance's responsibility, not the build's: the research build
+emits raw evidence; the decision of how each signal is classified (signal_layer,
+downstream_status, promotion_class) is applied here. Enrichment is idempotent, so
+promoting an already-enriched finding re-derives the same governance columns.
 
 This is the governance half of the build/promote split: research builds, governance
-promotes. The build never publishes; this is the only path to outputs/registry/.
+enriches + promotes. The build never publishes; this is the only path to outputs/registry/.
 """
 
 from __future__ import annotations
@@ -22,6 +28,8 @@ from domain.registry.lifecycle import assert_operational_safe
 from domain.registry.loader import load_registry
 from domain.registry.schema import OPERATIONAL_REGISTRY_DIR
 from domain.registry.validation import validate_registry_contract
+from model.governance.promotion import enrich_promotion_class
+from model.governance.semantics import enrich_signal_layers
 
 
 @dataclass(frozen=True)
@@ -64,6 +72,10 @@ def promote_registry(
     assert_operational_safe(target_dir)
 
     registry = load_registry(source_finding)
+    # Governance enrichment: apply signal-layer semantics + promotion class to the
+    # raw evidence finding before validating against the full contract. Idempotent.
+    registry = enrich_signal_layers(registry)
+    registry = enrich_promotion_class(registry)
     validate_registry_contract(registry)
 
     target_dir.mkdir(parents=True, exist_ok=True)

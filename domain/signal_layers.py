@@ -3,7 +3,7 @@
 Single source of truth for the signal-layer controlled vocabulary and the
 per-signal semantic mapping. Lives in ``domain/`` (alongside ``fpl_scoring``)
 so that both research characterization (``research.foundation``) and registry
-construction (``research.registry.semantics``) can depend on it without either
+construction (``model.governance.semantics``) can depend on it without either
 importing the other — this is the edge that removes the foundation→model cycle.
 
 No FPL scoring logic, no pandas, no governance imports.

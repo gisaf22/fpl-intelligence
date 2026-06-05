@@ -2,10 +2,20 @@ import pandas as pd
 import pytest
 
 from domain.registry.operational import load_registry
-from domain.registry.validation import validate_registry_contract
 from research.registry.assembler import assemble_registry_from_sections
 
 pytestmark = pytest.mark.unit
+
+# Columns applied by governance enrichment at promotion time (model.governance),
+# not by the research build. The assembler emits a raw evidence finding without them.
+_GOVERNANCE_ENRICHED_COLUMNS = (
+    "signal_layer",
+    "layer_role",
+    "feature_candidate_eligible",
+    "downstream_status",
+    "interpretation_caveat",
+    "promotion_class",
+)
 
 
 def _split_current_registry(registry: pd.DataFrame):
@@ -59,7 +69,10 @@ def _split_current_registry(registry: pd.DataFrame):
     )
 
 
-def test_assemble_registry_from_sections_preserves_current_registry_contract():
+def test_assemble_registry_from_sections_emits_raw_evidence_finding():
+    """The build assembles raw evidence only — governance enrichment is applied at
+    promotion time (model.governance), so the assembled finding must NOT carry the
+    governance-enriched columns and must carry the computed evidence."""
     current = load_registry()
     geometry, stability, decomposition, haul = _split_current_registry(current)
 
@@ -71,17 +84,17 @@ def test_assemble_registry_from_sections_preserves_current_registry_contract():
         expected_n=len(current),
     )
 
-    validate_registry_contract(assembled)
-    assert list(assembled.columns) == list(current.columns)
     assert len(assembled) == len(current)
+    # Governance enrichment has not run yet.
+    for column in _GOVERNANCE_ENRICHED_COLUMNS:
+        assert column not in assembled.columns, f"{column} should be added at promotion, not build"
+    # Raw evidence the build is responsible for is present.
+    assert "association_class" in assembled.columns
+    assert "rho_pooled" in assembled.columns
+    assert "support_flags" in assembled.columns
     pd.testing.assert_series_equal(
-        assembled["association_class"],
-        current["association_class"],
-        check_names=False,
-    )
-    pd.testing.assert_series_equal(
-        assembled["downstream_status"],
-        current["downstream_status"],
+        assembled["association_class"].reset_index(drop=True),
+        current["association_class"].reset_index(drop=True),
         check_names=False,
     )
 

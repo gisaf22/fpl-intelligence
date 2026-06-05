@@ -40,12 +40,44 @@ def test_promote_validates_before_writing_outputs(tmp_path):
     invalid_finding = tmp_path / "invalid_finding.csv"
     output_dir = tmp_path / "registry" / "gw36"
 
-    pd.read_csv(FINDING_PATH).drop(columns=["signal_layer"]).to_csv(invalid_finding, index=False)
+    # Drop a computed-evidence column: governance enrichment cannot recreate it, so
+    # the contract check fails. (Governance columns like signal_layer would be
+    # re-added by enrichment, so dropping them would not surface a validation error.)
+    pd.read_csv(FINDING_PATH).drop(columns=["rho_pooled"]).to_csv(invalid_finding, index=False)
 
     with pytest.raises(Exception, match="missing required columns"):
         promote_registry(finding_path=invalid_finding, gw=36, output_dir=output_dir)
 
     assert not output_dir.exists()
+
+
+def test_promote_enriches_raw_evidence_finding(tmp_path):
+    """A raw evidence finding (no governance columns) is enriched at promotion:
+    promote adds signal_layer/downstream_status/promotion_class, then validates
+    and publishes the full governed registry."""
+    governance_columns = [
+        "signal_layer",
+        "layer_role",
+        "feature_candidate_eligible",
+        "downstream_status",
+        "interpretation_caveat",
+        "promotion_class",
+    ]
+    raw_finding = tmp_path / "raw_finding.csv"
+    raw = pd.read_csv(FINDING_PATH).drop(columns=governance_columns)
+    raw.to_csv(raw_finding, index=False)
+    # Precondition: the finding really is raw.
+    for column in governance_columns:
+        assert column not in pd.read_csv(raw_finding).columns
+
+    output_dir = tmp_path / "registry" / "gw36"
+    result = promote_registry(finding_path=raw_finding, gw=36, output_dir=output_dir)
+
+    promoted = load_registry(result.registry_path)
+    validate_registry_contract(promoted)
+    for column in governance_columns:
+        assert column in promoted.columns, f"{column} should be added by promotion enrichment"
+    assert len(promoted) == 104
 
 
 def test_promote_rejects_exploratory_target(tmp_path):

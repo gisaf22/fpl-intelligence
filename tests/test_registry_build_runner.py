@@ -5,7 +5,6 @@ import pandas as pd
 import pytest
 
 from domain.registry.operational import load_registry
-from domain.registry.validation import validate_registry_contract
 from model.governance.promote import promote_registry
 from research.registry.build import main, run_registry_build
 from serve.reporting.weekly_report_runner import run_week
@@ -126,8 +125,11 @@ def test_registry_build_computed_mode_writes_finding_and_comparison(tmp_path):
         n_bootstrap=0,
     )
 
+    # Computed build emits a raw evidence finding — governance enrichment (and the
+    # full-contract validation it enables) happens at promotion, not here.
     generated = load_registry(result.finding_path)
-    validate_registry_contract(generated)
+    assert "promotion_class" not in generated.columns
+    assert "rho_pooled" in generated.columns
     assert result.build_mode == "computed"
     assert result.source_dataset_path == prepared_data_path
     assert result.comparison_path is not None

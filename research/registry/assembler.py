@@ -1,4 +1,13 @@
-"""Registry assembly from computed relationship section outputs."""
+"""Registry assembly from computed relationship section outputs.
+
+Assembles the *raw evidence* registry: the computed relationship sections
+(geometry, stability, decomposition, haul) plus the association class and
+consolidated support flags. It deliberately stops short of governance
+enrichment — signal-layer semantics, downstream status, and promotion class
+are applied at promotion time by ``model.governance`` (the build is research;
+enrichment is a governance decision). The promoted artifact carries the full
+``REQUIRED_COLUMNS`` contract; the finding this produces is a subset of it.
+"""
 
 from __future__ import annotations
 
@@ -6,8 +15,6 @@ import pandas as pd
 
 from domain.registry.schema import REQUIRED_COLUMNS
 from research.kernels.association import assign_association_class, consolidate_flags
-from research.registry.promotion import enrich_promotion_class
-from research.registry.semantics import enrich_signal_layers
 
 SECTION_KEY_COLUMNS: tuple[str, ...] = ("signal", "position")
 
@@ -113,8 +120,6 @@ def assemble_registry_from_sections(
     registry = registry.drop(columns=[column for column in flag_columns[1:] if column in registry.columns])
 
     registry["association_class"] = [assign_association_class(row) for row in registry.to_dict(orient="records")]
-    registry = enrich_signal_layers(registry)
-    registry = enrich_promotion_class(registry)
 
     extra_columns = [column for column in registry.columns if column not in REQUIRED_COLUMNS]
     return registry[[column for column in REQUIRED_COLUMNS if column in registry.columns] + extra_columns]

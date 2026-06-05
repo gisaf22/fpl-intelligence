@@ -88,13 +88,20 @@ def computed_registry(seed_registry: pd.DataFrame) -> pd.DataFrame:
         signals=signals,
         config=SectionBuildConfig(n_bootstrap=200),
     )
-    return assemble_registry_from_sections(
+    # The build emits a raw evidence finding; governance enrichment is applied at
+    # promotion. Mirror that here so the computed registry is schema-comparable with
+    # the (enriched) seed.
+    from model.governance.promotion import enrich_promotion_class
+    from model.governance.semantics import enrich_signal_layers
+
+    assembled = assemble_registry_from_sections(
         geometry=sections.geometry,
         stability=sections.stability,
         decomposition=sections.decomposition,
         haul=sections.haul,
         expected_n=len(sections.geometry),
     )
+    return enrich_promotion_class(enrich_signal_layers(assembled))
 
 
 # ---------------------------------------------------------------------------

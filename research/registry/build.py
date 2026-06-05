@@ -1,9 +1,11 @@
 """CLI entry point for building the registry finding.
 
-Research builds the finding and writes it to an exploratory research location
-(under research/findings/). It stops there — it does not validate the contract
-or publish to outputs/registry/. Promotion (validate + lifecycle gate + publish)
-is a governance concern: see ``model.governance.promote``.
+Research builds the *raw evidence* finding (computed relationship sections +
+association class) and writes it to an exploratory research location (under
+research/findings/). It stops there — it does not enrich, validate the contract,
+or publish to outputs/registry/. Governance enrichment (signal-layer semantics +
+promotion class), contract validation, the lifecycle gate, and publication are
+governance concerns: see ``model.governance.promote``.
 """
 
 from __future__ import annotations
@@ -118,8 +120,9 @@ def run_registry_build(
 ) -> RegistryBuildResult:
     """Build the gameweek-scoped registry finding and write it to research/findings/.
 
-    This stops at the finding: it does not validate the registry contract or
-    publish to outputs/registry/. Promotion is a governance concern — call
+    This stops at the raw evidence finding: it does not enrich, validate the
+    registry contract, or publish to outputs/registry/. Governance enrichment +
+    promotion is a governance concern — call
     ``model.governance.promote.promote_registry`` on the finding artifact.
     """
     if gw <= 0:

@@ -54,6 +54,12 @@ Constants that embed game rules are duplicated across five locations with no sha
 
 ## Change 2 — Population Layer (New Module)
 
+> **SUPERSEDED (2026-06-04).** The `population/` layer created by this change was later removed.
+> With one production caller and one unused function, it failed an abstraction-elimination review:
+> the minutes≥60 filter is now inlined in `research/registry/population_builder.py` against
+> `domain.fpl_scoring.CLEAN_SHEET_MIN_MINUTES`. The game-rule derivation chain survives via that
+> constant. The section below is retained as the original rationale of record.
+
 ### Current State
 
 The analytical population filter (which player-gameweek rows are eligible for signal characterisation) is defined in exactly one place: `signals/characterisation/population.py:13` as `MINUTES_THRESHOLD: int = 60`. This constant is used by `signals/characterisation/population_builder.py` to filter the registry build population.

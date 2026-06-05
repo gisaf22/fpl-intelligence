@@ -77,7 +77,6 @@ fpl-intelligence/
 │   ├── reporting/   — weekly report runner and output generators
 │   └── scoring/     — player scoring from governed registry manifest
 ├── outputs/         — runtime artifacts (scorer HTML, registry CSVs, weekly reports)
-├── population/      — named population filters: filter_performance, filter_participation
 ├── research/        — analytical methodology layer
 │   ├── foundation/  — cross-signal system EDA by stage (complete, closed)
 │   ├── families/    — per-family explore + validate lens studies (form, market, fixture, availability)
@@ -117,7 +116,6 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 |---|---|---|
 | DAL layer | COMPLETE | fct/feat/mart restructure complete; Pandera FEAT_SCHEMA; pipeline run/load separation; full unit suite green |
 | domain/ | COMPLETE | FPL scoring rules as typed constants with VERIFIED/UNVERIFIED annotations |
-| population/ | COMPLETE | Named population filters: filter_performance (≥60 min), filter_participation (≥1 min) |
 | System EDA | COMPLETE | Governed registry is the authoritative output. Gate decisions in `research/findings/FINDINGS.md` |
 | LENS-FORM | COMPLETE | Approved: xgi_roll3 (DEF), xgi_roll5 (DEF, MID). Records in `model/governance/evaluation_metadata.yaml` |
 | LENS-MARKET | COMPLETE | Approved: transfers_in (DEF, MID), purchase_price (DEF, FWD†), ownership_count (MID). Records in `evaluation_metadata.yaml` |
@@ -127,7 +125,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 | LENS-FIXTURE-RUN | PENDING | Future lens. Deferred to 2026/27 |
 | Signal registry | COMPLETE | SIGNAL_REGISTRY.md v2.0. evaluation_metadata.yaml v3.0 with lifecycle states and SYNTH-01 decisions |
 | SYNTH-01 | COMPLETE | Partial rho weights set; decisions in `model/assemble/synth01_decisions.yaml`. 5/7 groups stable or improved on holdout GW 34–38 |
-| Platform evaluation | COMPLETE | Changes 1–8 applied; Changes 1–2 implemented (domain/, population/); Change 3 design locked at `docs/studies/popthresh-01-design.md` |
+| Platform evaluation | COMPLETE | Changes 1–8 applied; Change 1 (domain/) implemented; Change 2 (population/ layer) later reversed — the minutes≥60 filter is a one-liner inlined in `research/registry/population_builder.py` using `domain.fpl_scoring.CLEAN_SHEET_MIN_MINUTES`; Change 3 design locked at `docs/studies/popthresh-01-design.md` |
 | EXP-FH-STACK | DEFERRED | Blocked pending FDR stratification (2026/27) |
 | EXP-FH-PREDICTOR | DEFERRED | Blocked pending FDR stratification (2026/27) |
 

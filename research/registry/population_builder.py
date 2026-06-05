@@ -8,7 +8,6 @@ from dal.mart import POSITION_CODE_MAP
 from domain.fpl_scoring import CLEAN_SHEET_MIN_MINUTES
 from domain.registry.population import OUTPUT_COLUMNS
 from domain.registry_signals import REGISTRY_BUILD_INPUT_COLUMNS
-from population.populations import filter_performance
 
 
 def _build_registry_population(
@@ -45,7 +44,9 @@ def _build_registry_population(
             "check that spine contains gameweeks at or before this value"
         )
 
-    df = filter_performance(df)
+    # Performance population: restrict to the >=60-minute FPL scoring regime so total_points
+    # has a single generating process (clean-sheet / appearance / BPS baselines all break at 60).
+    df = df.loc[df["minutes"] >= CLEAN_SHEET_MIN_MINUTES].copy()
     if df.empty:
         raise ValueError(
             f"no rows remain after filtering minutes >= {CLEAN_SHEET_MIN_MINUTES}; data_cutoff_gw={data_cutoff_gw}"

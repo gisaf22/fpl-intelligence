@@ -14,7 +14,7 @@ dal/          → validated, deterministic (player_id, gw) spine
 research/     → analytical methodology: foundation EDA, family lenses, statistical kernels
 model/        → governance decisions: decision-of-record, promotion, traceability (governance) + composition weights (assemble)
 domain/registry/ → shared leaf: registry contract, loaders, lifecycle gate, governance lookup
-intelligence/ → player scoring and weekly reporting
+serve/ → player scoring and weekly reporting
 ```
 
 ## Spine traversal
@@ -26,7 +26,7 @@ To trace a feature to a decision:
 3. Use `analysis_paths` for the study/lens implementation.
 4. Derive the finding key as `signal@lens:target[#POS]` and resolve the verdict in `model/governance/evaluation_metadata.yaml`.
 5. Search that key in `model/assemble/synth01_decisions.yaml` for composition decisions.
-6. Search that key or listed `derived_from` values in `intelligence/weight_registry.yaml` for intelligence usage.
+6. Search that key or listed `derived_from` values in `serve/weight_registry.yaml` for intelligence usage.
 
 If a feature has no evaluated traceability route, treat it as conditional/pre-lens and do not assume it is operationally governed.
 
@@ -173,7 +173,7 @@ These files are active governance artifacts owned by their respective layers. Th
 |------|----------|---------|
 | [model/governance/SIGNAL_REGISTRY.md](../model/governance/SIGNAL_REGISTRY.md) | `model/governance/` | Single source of truth for signal lifecycle status (generated/read-only projection). Updated only at methodology milestones. |
 | [model/governance/EVAL_DESIGN.md](../model/governance/EVAL_DESIGN.md) | `model/governance/` | Locked success criteria for 2025-26 methodology. Cannot be revised retrospectively. |
-| [intelligence/weight_registry.yaml](../intelligence/weight_registry.yaml) | `intelligence/` | Operational scoring weights per (signal, position). Updated after SYNTH-01 re-run. |
+| [serve/weight_registry.yaml](../serve/weight_registry.yaml) | `serve/` | Operational scoring weights per (signal, position). Updated after SYNTH-01 re-run. |
 | [model/governance/evaluation_metadata.yaml](../model/governance/evaluation_metadata.yaml) | `model/governance/` | Per-signal lens findings, lifecycle states, downstream status. |
 
 ---

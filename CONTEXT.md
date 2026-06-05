@@ -73,14 +73,11 @@ fpl-intelligence/
 │   └── studies/        — study designs and published results
 ├── domain/          — FPL scoring rules as typed constants (VERIFIED/UNVERIFIED)
 ├── examples/        — quickstart script for DAL end-to-end validation
-├── intelligence/    — operational intelligence layer
+├── serve/           — operational intelligence (serving) layer  [package renamed from intelligence/]
 │   ├── reporting/   — weekly report runner and output generators
 │   └── scoring/     — player scoring from governed registry manifest
 ├── outputs/         — runtime artifacts (scorer HTML, registry CSVs, weekly reports)
 ├── population/      — named population filters: filter_performance, filter_participation
-│                          (signal governance is split: decision-of-record + promotion + traceability → model/governance/;
-│                           registry contract + loaders + lifecycle gate + governance lookup → domain/registry/;
-│                           construction → research/registry/)
 ├── research/        — analytical methodology layer
 │   ├── foundation/  — cross-signal system EDA by stage (complete, closed)
 │   ├── families/    — per-family explore + validate lens studies (form, market, fixture, availability)
@@ -153,14 +150,17 @@ exempt). Suite green: ruff, mypy, import-linter, full unit tests.
 - **Full-season study re-open** — targeted re-run of *only* the sample-limited findings (thin
   FWD/GK sub-populations, end-of-season weeks) now that full 2025-26 data is available; prep for
   2026/27. Not a wholesale rerun — keep the settled method rules and clean verdicts.
-- **Phase 7 topology consolidation** — fold `signals/` into `model/governance/` and rename
-  `intelligence/ → serve/`. Riskier (governance core, wide consumer surface); needs a dedicated
-  plan doc first.
+**Phase 7 topology consolidation — COMPLETE.** `signals/` dissolved (decision-of-record +
+promotion → `model/governance/`; registry contract, loaders, lifecycle gate, governance lookup →
+`domain/registry/`); `intelligence/` renamed `serve/`. Import-linter down to 6 contracts. See
+`docs/audit/signals_governance_consolidation_plan_2026-06-04.md` and
+`docs/audit/intelligence_to_serve_rename_plan_2026-06-04.md`.
 
 The older engineering / ADLC-adoption backlog (mode tags, ID-diet, model-stage governance gap)
-lives in `docs/implementation-plan.md` and `docs/governance/eng-issues-2026.md`. Known live
-gotcha: the committed `outputs/registry/gw36/registry.csv` is not governance-compliant
-(`purchase_price@GK`), so a full `scoring_runner` CLI run still hard-fails — see ENG-02.
+lives in `docs/implementation-plan.md` and `docs/governance/eng-issues-2026.md`. The former
+`gw36` governance-compliance gotcha is resolved: `serve.scoring.signal_selector.load_manifest`
+now routes governance-excluded signals to caveated, so the `scoring_runner` CLI no longer
+hard-fails on `purchase_price@GK`.
 
 ---
 

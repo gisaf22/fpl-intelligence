@@ -1,8 +1,11 @@
-# Intelligence Layer
+# Intelligence Layer (`serve/`)
+
+> The package was renamed `intelligence/` → `serve/`. This doc keeps the filename
+> `intelligence-layer.md` (to preserve inbound links); the layer is the `serve/` package.
 
 ## Purpose
 
-The intelligence layer (`intelligence/`) produces concrete FPL decision-support outputs
+The serve layer (`serve/`) produces concrete FPL decision-support outputs
 from trusted, governed signal data. It sits at the top of the data pipeline:
 
 ```
@@ -12,7 +15,7 @@ dal/ — validated, deterministic (player_id, gw) spine + state features
   ↓
 outputs/registry/gw{N}/ — governed signal registry artifact
   ↓
-intelligence/ — player scoring and weekly reporting  ← this layer
+serve/ — player scoring and weekly reporting  ← this layer
 ```
 
 The layer answers: *"Can FPL-derived signals improve FPL decisions?"* through explicit,
@@ -44,7 +47,7 @@ See [docs/registry-governance.md](../registry-governance.md) for the full explor
 
 ## Signal filtering in the scorer
 
-`intelligence/scoring/signal_selector.py` applies three filters when loading a registry:
+`serve/scoring/signal_selector.py` applies three filters when loading a registry:
 
 | Filter | Condition | Rationale |
 |--------|-----------|-----------|
@@ -200,7 +203,7 @@ outputs/registry/gw{N}/
 outputs/scorer/
     gw{N}_player_scores.html  — scored player table with explainability spans
 
-intelligence/reporting/
+serve/reporting/
     (weekly snapshot data written to DB or stdout via reporting runner)
 ```
 
@@ -223,7 +226,7 @@ spine plus rolling window columns derived from it. It does not consume:
 - Exploratory registry artifacts
 
 This separation is enforced by `validate_intelligence_inputs()` in
-`intelligence/intelligence_contracts.py`, which checks that all required columns are present
+`serve/intelligence_contracts.py`, which checks that all required columns are present
 and raises `IntelligenceInputError` if not — catching accidental use of an
 under-populated DataFrame from a non-DAL source.
 

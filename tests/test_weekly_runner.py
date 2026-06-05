@@ -4,8 +4,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from domain.registry.lifecycle import LifecycleViolationError
 from intelligence.reporting.weekly_report_runner import main, run_week
-from signals.governance.lifecycle import LifecycleViolationError
 
 pytestmark = pytest.mark.unit
 

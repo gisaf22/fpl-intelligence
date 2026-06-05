@@ -28,7 +28,7 @@ def load_registry(
     """
     registry_path = Path(path)
     if operational:
-        from signals.governance.lifecycle import assert_operational_safe
+        from domain.registry.lifecycle import assert_operational_safe
 
         assert_operational_safe(registry_path)
     return _load_registry_typed(registry_path)

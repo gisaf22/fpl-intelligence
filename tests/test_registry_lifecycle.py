@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from signals.governance.lifecycle import (
+from domain.registry.lifecycle import (
     LifecycleViolationError,
     assert_operational_safe,
     is_exploratory_path,

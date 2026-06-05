@@ -157,9 +157,9 @@ def _assert_governance_compliance(manifest: SignalManifest) -> None:
     Any signal absent from both the allowlist and evaluation_metadata.yaml raises
     GovernanceMetadataError: it is ungoverned and must not enter the scoring manifest.
     """
+    from domain.registry.lifecycle import LeakageViolationError, LifecycleViolationError
     from domain.registry.schema import GovernanceMetadataError
     from signals.governance.governance import get_signal_governance
-    from signals.governance.lifecycle import LeakageViolationError, LifecycleViolationError
 
     for sig in manifest.confirmed:
         try:

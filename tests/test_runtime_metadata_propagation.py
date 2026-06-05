@@ -488,8 +488,8 @@ class TestViolationErrorTypes:
 
     def test_excluded_signal_raises_lifecycle_violation_error(self) -> None:
         """lifecycle_state=excluded raises LifecycleViolationError (not just ValueError)."""
+        from domain.registry.lifecycle import LifecycleViolationError
         from intelligence.scoring.signal_selector import _assert_governance_compliance
-        from signals.governance.lifecycle import LifecycleViolationError
 
         manifest = self._make_manifest([self._make_confirmed("fdr_avg", "DEF")])
         with pytest.raises(LifecycleViolationError, match="GOVERNANCE VIOLATION"):
@@ -497,8 +497,8 @@ class TestViolationErrorTypes:
 
     def test_blocked_downstream_raises_lifecycle_violation_error(self) -> None:
         """downstream_status=blocked raises LifecycleViolationError (not just ValueError)."""
+        from domain.registry.lifecycle import LifecycleViolationError
         from intelligence.scoring.signal_selector import _assert_governance_compliance
-        from signals.governance.lifecycle import LifecycleViolationError
 
         manifest = self._make_manifest([self._make_confirmed("purchase_price", "GK")])
         with pytest.raises(LifecycleViolationError, match="GOVERNANCE VIOLATION"):
@@ -512,9 +512,9 @@ class TestViolationErrorTypes:
         """
         from unittest.mock import patch
 
+        from domain.registry.lifecycle import LeakageViolationError
         from domain.registry.schema import GovernanceMetadata
         from intelligence.scoring.signal_selector import _assert_governance_compliance
-        from signals.governance.lifecycle import LeakageViolationError
 
         synthetic_gov = GovernanceMetadata(
             signal="bonus_roll3",
@@ -540,12 +540,12 @@ class TestViolationErrorTypes:
 
     def test_lifecycle_violation_error_is_value_error(self) -> None:
         """LifecycleViolationError is a subclass of ValueError (backward compatibility)."""
-        from signals.governance.lifecycle import LifecycleViolationError
+        from domain.registry.lifecycle import LifecycleViolationError
 
         assert issubclass(LifecycleViolationError, ValueError)
 
     def test_leakage_violation_error_is_value_error(self) -> None:
         """LeakageViolationError is a subclass of ValueError (backward compatibility)."""
-        from signals.governance.lifecycle import LeakageViolationError
+        from domain.registry.lifecycle import LeakageViolationError
 
         assert issubclass(LeakageViolationError, ValueError)

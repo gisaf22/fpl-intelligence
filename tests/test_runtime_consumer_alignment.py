@@ -253,21 +253,21 @@ class TestLifecycleEnforcement:
                 "not excluded — test requires an excluded signal"
             )
 
+        from domain.registry.lifecycle import LifecycleViolationError
         from intelligence.scoring.signal_selector import _assert_governance_compliance
-        from signals.governance.lifecycle import LifecycleViolationError
 
         manifest = self._make_manifest_with_signal("xgi_roll3", "FWD")
         with pytest.raises(LifecycleViolationError):
             _assert_governance_compliance(manifest)
 
     def test_exploratory_path_raises_lifecycle_violation(self) -> None:
-        from signals.governance.lifecycle import LifecycleViolationError, assert_operational_safe
+        from domain.registry.lifecycle import LifecycleViolationError, assert_operational_safe
 
         with pytest.raises(LifecycleViolationError):
             assert_operational_safe("research/findings/some_registry.csv")
 
     def test_operational_path_passes(self) -> None:
-        from signals.governance.lifecycle import assert_operational_safe
+        from domain.registry.lifecycle import assert_operational_safe
 
         # Should not raise for a non-exploratory path
         assert_operational_safe("outputs/registry/joint_registry.csv")

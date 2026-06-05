@@ -5,7 +5,7 @@ registries from exploratory research output directories. Research consumers
 (EDA notebooks, registry builder) carry no such restriction.
 
 Usage:
-    from signals.governance.lifecycle import assert_operational_safe
+    from domain.registry.lifecycle import assert_operational_safe
     assert_operational_safe(registry_path)   # raises LifecycleViolationError if exploratory
 """
 

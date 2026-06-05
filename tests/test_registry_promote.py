@@ -4,9 +4,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from domain.registry.lifecycle import LifecycleViolationError
 from model.governance.promote import main, promote_registry
 from signals.governance import load_registry, validate_registry_contract
-from signals.governance.lifecycle import LifecycleViolationError
 
 pytestmark = pytest.mark.unit
 

@@ -18,10 +18,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from domain.registry.lifecycle import assert_operational_safe
 from domain.registry.loader import load_registry
 from domain.registry.schema import OPERATIONAL_REGISTRY_DIR
 from domain.registry.validation import validate_registry_contract
-from signals.governance.lifecycle import assert_operational_safe
 
 
 @dataclass(frozen=True)

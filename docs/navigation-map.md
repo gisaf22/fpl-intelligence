@@ -144,19 +144,6 @@ Bounded, immutable records of why key decisions were made. Read before changing 
 | [docs/studies/results/rolling-xgi-horizon-study-results.md](studies/results/rolling-xgi-horizon-study-results.md) | Rolling xGI published results |
 | [docs/studies/results/rolling-xgi-real-validation.md](studies/results/rolling-xgi-real-validation.md) | Real validation results |
 
-### Archived (historical record only — read-only)
-
-Complete working documents superseded by durable artifacts. See [docs/archive/README.md](archive/README.md) for the full supersession table.
-
-| File | Superseded by |
-|------|---------------|
-| [docs/archive/operational-convergence-plan.md](archive/operational-convergence-plan.md) | All 9 phases complete; `threshold-registry.md` carries live governance |
-| [docs/archive/state-representation-inventory.md](archive/state-representation-inventory.md) | `_GOVERNED_ROLLING_COLS` / `_COLUMN_META` in `dal/feat/feat_player_gameweek.py` |
-| [docs/archive/minutes-stability-xgi-study.md](archive/minutes-stability-xgi-study.md) | `docs/studies/results/minstab-01-results.md` |
-| [docs/archive/synth01-design.md](archive/synth01-design.md) | `model/assemble/synth01_decisions.yaml` |
-| [docs/archive/synth01-candidate-set.md](archive/synth01-candidate-set.md) | `model/assemble/synth01_candidates.yaml` |
-| [docs/archive/architecture-execution-plan.md](archive/architecture-execution-plan.md) | System operational; plan complete |
-
 ### Operational outputs
 
 | File | Content |
@@ -185,4 +172,4 @@ When you add, move, or archive a document:
 1. Add it to the appropriate section above.
 2. If it's authoritative, add a row to the authority table.
 3. If it's a new architectural decision, add it to the decisions table.
-4. If it's being archived, add it to the archived table and update [docs/archive/README.md](archive/README.md).
+4. If a document is fully superseded, delete it (git history preserves it) and fix inbound links — do not keep a parallel archive of stale docs.

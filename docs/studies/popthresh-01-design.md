@@ -299,5 +299,5 @@ DESIGN LOCKED  →  IMPLEMENTATION  →  VALIDATION PASS  →  EXECUTION  →  R
 - `docs/architecture/platform-evaluation-2026.md` Change 3 — engineering context for this study
 - `population/populations.py` — `filter_performance` is updated if threshold changes
 - `domain/fpl_scoring.py` — `CLEAN_SHEET_MIN_MINUTES` is updated if threshold changes
-- `docs/archive/minutes-stability-xgi-study.md` — MINSTAB-01 design (template for this doc)
+- `docs/studies/minutes-stability-xgi-study.md` — MINSTAB-01 design (template for this doc)
 - `studies/kernels/windows.py` — block stability kernel used in §7

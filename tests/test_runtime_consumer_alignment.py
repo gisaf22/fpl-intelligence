@@ -2,7 +2,7 @@
 
 Verifies that:
 1. No intelligence module contains hardcoded weight values — all weights are
-   loaded from intelligence/weight_registry.yaml.
+   loaded from serve/weight_registry.yaml.
 2. The weight registry loader hard-fails on missing entries.
 3. signals.py lifecycle enforcement raises LifecycleViolationError for excluded signals.
 4. score_provenance() returns a complete audit trail for a synthetic test case.
@@ -25,7 +25,7 @@ pytestmark = pytest.mark.unit
 
 def _intelligence_module_paths() -> list[Path]:
     """Return paths to the four operational intelligence modules."""
-    root = Path("intelligence")
+    root = Path("serve")
     return [
         root / "captain.py",
         root / "value.py",
@@ -130,7 +130,7 @@ class TestNoHardcodedWeights:
                     assert float_vals == [], (
                         f"{path}: _WEIGHTS is assigned a literal dict with float values "
                         f"({len(float_vals)} entries). Replace with get_module_weights() "
-                        "from intelligence.weight_registry."
+                        "from serve.weight_registry."
                     )
 
     @pytest.mark.parametrize("path", _intelligence_module_paths(), ids=lambda p: p.name)
@@ -152,7 +152,7 @@ class TestWeightRegistryLoader:
     """Verify weight_registry.py loads correctly and hard-fails on bad input."""
 
     def test_known_modules_load(self) -> None:
-        from intelligence.weight_registry import get_module_weights
+        from serve.weight_registry import get_module_weights
 
         for module in ("captain", "value", "fixtures", "transfers"):
             weights = get_module_weights(module)
@@ -162,7 +162,7 @@ class TestWeightRegistryLoader:
                 assert isinstance(v, float), f"{module}.{k}: weight must be float, got {type(v)}"
 
     def test_all_weights_positive(self) -> None:
-        from intelligence.weight_registry import get_module_weights
+        from serve.weight_registry import get_module_weights
 
         for module in ("captain", "value", "fixtures", "transfers"):
             weights = get_module_weights(module)
@@ -170,27 +170,27 @@ class TestWeightRegistryLoader:
                 assert v > 0, f"{module}.{k}: weight must be positive, got {v}"
 
     def test_missing_module_raises(self) -> None:
-        from intelligence.weight_registry import WeightRegistryError, get_module_weights
+        from serve.weight_registry import WeightRegistryError, get_module_weights
 
         with pytest.raises(WeightRegistryError):
             get_module_weights("nonexistent_module_xyz")
 
     def test_get_weight_metadata_returns_dict(self) -> None:
-        from intelligence.weight_registry import get_weight_metadata
+        from serve.weight_registry import get_weight_metadata
 
         meta = get_weight_metadata("captain", "form_score")
         assert isinstance(meta, dict)
         assert "value" in meta
 
     def test_get_weight_metadata_missing_raises(self) -> None:
-        from intelligence.weight_registry import WeightRegistryError, get_weight_metadata
+        from serve.weight_registry import WeightRegistryError, get_weight_metadata
 
         with pytest.raises(WeightRegistryError):
             get_weight_metadata("captain", "nonexistent_key_xyz")
 
     def test_fdr_opportunity_score_not_in_fixtures(self) -> None:
         """fdr_opportunity_score must not appear in fixtures registry."""
-        from intelligence.weight_registry import get_module_weights
+        from serve.weight_registry import get_module_weights
 
         weights = get_module_weights("fixtures")
         assert "fdr_opportunity_score" not in weights, (
@@ -200,7 +200,7 @@ class TestWeightRegistryLoader:
 
     def test_fixtures_has_two_components(self) -> None:
         """fixtures module scoring uses exactly team_attack_score and dgw_bonus_score."""
-        from intelligence.weight_registry import get_module_weights
+        from serve.weight_registry import get_module_weights
 
         weights = get_module_weights("fixtures")
         assert set(weights.keys()) == {"team_attack_score", "dgw_bonus_score"}, (
@@ -218,7 +218,7 @@ class TestLifecycleEnforcement:
 
     def _make_manifest_with_signal(self, signal: str, position: str, rho: float = 0.30):
         """Build a synthetic SignalManifest containing a single confirmed signal."""
-        from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
+        from serve.scoring.contracts import ConfirmedSignal, SignalManifest
 
         confirmed = [
             ConfirmedSignal(
@@ -254,7 +254,7 @@ class TestLifecycleEnforcement:
             )
 
         from domain.registry.lifecycle import LifecycleViolationError
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = self._make_manifest_with_signal("xgi_roll3", "FWD")
         with pytest.raises(LifecycleViolationError):
@@ -291,7 +291,7 @@ class TestScoreProvenance:
 
     @pytest.mark.parametrize("module", ["captain", "value", "fixtures", "transfers"])
     def test_provenance_top_level_keys(self, module: str, synthetic_features: pd.DataFrame) -> None:
-        from intelligence.provenance import score_provenance
+        from serve.provenance import score_provenance
 
         result = score_provenance(synthetic_features, player_id=1, gw=5, module=module)
 
@@ -305,8 +305,8 @@ class TestScoreProvenance:
 
     @pytest.mark.parametrize("module", ["captain", "value", "fixtures", "transfers"])
     def test_provenance_signal_structure(self, module: str, synthetic_features: pd.DataFrame) -> None:
-        from intelligence.provenance import score_provenance
-        from intelligence.weight_registry import get_module_weights
+        from serve.provenance import score_provenance
+        from serve.weight_registry import get_module_weights
 
         result = score_provenance(synthetic_features, player_id=1, gw=5, module=module)
         weights = get_module_weights(module)
@@ -328,8 +328,8 @@ class TestScoreProvenance:
 
     @pytest.mark.parametrize("module", ["captain", "value", "fixtures", "transfers"])
     def test_provenance_weights_match_registry(self, module: str, synthetic_features: pd.DataFrame) -> None:
-        from intelligence.provenance import score_provenance
-        from intelligence.weight_registry import get_module_weights
+        from serve.provenance import score_provenance
+        from serve.weight_registry import get_module_weights
 
         result = score_provenance(synthetic_features, player_id=1, gw=5, module=module)
         registry_weights = get_module_weights(module)
@@ -341,19 +341,19 @@ class TestScoreProvenance:
             )
 
     def test_provenance_unknown_module_raises(self, synthetic_features: pd.DataFrame) -> None:
-        from intelligence.provenance import score_provenance
+        from serve.provenance import score_provenance
 
         with pytest.raises(ValueError, match="not in provenance map"):
             score_provenance(synthetic_features, player_id=1, gw=5, module="unknown_xyz")
 
     def test_provenance_missing_player_raises(self, synthetic_features: pd.DataFrame) -> None:
-        from intelligence.provenance import score_provenance
+        from serve.provenance import score_provenance
 
         with pytest.raises(ValueError, match="no data for player_id=999"):
             score_provenance(synthetic_features, player_id=999, gw=5, module="captain")
 
     def test_provenance_registry_source_references_yaml(self, synthetic_features: pd.DataFrame) -> None:
-        from intelligence.provenance import score_provenance
+        from serve.provenance import score_provenance
 
         result = score_provenance(synthetic_features, player_id=1, gw=5, module="captain")
         assert "weight_registry.yaml" in result["registry_source"]
@@ -364,7 +364,7 @@ class TestScoreProvenance:
 
     def test_provenance_fwd_position_present(self, synthetic_features: pd.DataFrame) -> None:
         """FWD players must return valid provenance — FWD guard affects scores, not lookup."""
-        from intelligence.provenance import score_provenance
+        from serve.provenance import score_provenance
 
         result = score_provenance(synthetic_features, player_id=2, gw=5, module="transfers")
         assert result["position"] == "FWD"
@@ -413,7 +413,7 @@ class TestFdrRemovedFromScoring:
 
     def test_fixtures_score_unaffected_by_fdr_alone(self) -> None:
         """Players with identical fixture_context but different fdr_avg get equal scores."""
-        from intelligence.fixtures import rank_fixture_opportunities
+        from serve.fixtures import rank_fixture_opportunities
 
         features = self._features_with_varying_fdr()
         result = rank_fixture_opportunities(features, target_gw=5)
@@ -428,7 +428,7 @@ class TestFdrRemovedFromScoring:
 
     def test_captain_score_unaffected_by_fdr_alone(self) -> None:
         """Captain scores must not vary when only fdr_avg differs."""
-        from intelligence.captain import rank_captain_candidates as rank_captains
+        from serve.captain import rank_captain_candidates as rank_captains
 
         rows = [
             _base_features_row(
@@ -490,7 +490,7 @@ class TestFwdScopeGuard:
         )
 
     def test_transfers_fwd_xgi_neutralised(self) -> None:
-        from intelligence.transfers import rank_transfer_targets
+        from serve.transfers import rank_transfer_targets
 
         features = self._fwd_features_varying_xgi()
         result = rank_transfer_targets(features, target_gw=5)
@@ -506,7 +506,7 @@ class TestFwdScopeGuard:
         )
 
     def test_captain_fwd_xgi_neutralised(self) -> None:
-        from intelligence.captain import rank_captain_candidates
+        from serve.captain import rank_captain_candidates
 
         features = self._fwd_features_varying_xgi()
         result = rank_captain_candidates(features, target_gw=5)
@@ -531,7 +531,7 @@ class TestMinutesRoll8Wired:
     """availability.py must use minutes_roll8 for DEF/MID long_horizon_flag (AVAIL-003)."""
 
     def test_long_horizon_flag_in_output(self) -> None:
-        from intelligence.availability import flag_availability_risk
+        from serve.availability import flag_availability_risk
 
         features = _make_features(
             _base_features_row(
@@ -543,7 +543,7 @@ class TestMinutesRoll8Wired:
         assert "minutes_roll8" in result.columns
 
     def test_def_low_roll8_gets_long_horizon_flag(self) -> None:
-        from intelligence.availability import flag_availability_risk
+        from serve.availability import flag_availability_risk
 
         features = _make_features(
             _base_features_row(
@@ -563,7 +563,7 @@ class TestMinutesRoll8Wired:
 
     def test_gk_not_flagged_by_roll8(self) -> None:
         """GK players are excluded from minutes_roll8 governance (AVAIL-003 non-monotonic at GK)."""
-        from intelligence.availability import flag_availability_risk
+        from serve.availability import flag_availability_risk
 
         features = _make_features(
             _base_features_row(
@@ -584,7 +584,7 @@ class TestMinutesRoll8Wired:
 
     def test_fwd_not_flagged_by_roll8(self) -> None:
         """FWD players are excluded from minutes_roll8 governance (AVAIL-003 G2-FAIL at FWD)."""
-        from intelligence.availability import flag_availability_risk
+        from serve.availability import flag_availability_risk
 
         features = _make_features(
             _base_features_row(

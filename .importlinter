@@ -5,7 +5,7 @@ root_packages =
     population
     research
     model
-    intelligence
+    serve
 
 [importlinter:contract:no_domain_to_anything]
 name = Domain is the shared leaf — must import nothing project-internal
@@ -17,7 +17,7 @@ forbidden_modules =
     population
     research
     model
-    intelligence
+    serve
 
 [importlinter:contract:no_population_to_upper_layers]
 name = Population is shared infra — may import domain only, nothing above
@@ -28,7 +28,7 @@ forbidden_modules =
     dal
     research
     model
-    intelligence
+    serve
 
 [importlinter:contract:no_research_to_downstream]
 name = Research must not import from downstream layers
@@ -37,13 +37,13 @@ source_modules =
     research
 forbidden_modules =
     model
-    intelligence
+    serve
 
-[importlinter:contract:no_intelligence_to_research_or_model]
+[importlinter:contract:no_serve_to_research_or_model]
 name = Intelligence must not import from research or model
 type = forbidden
 source_modules =
-    intelligence
+    serve
 forbidden_modules =
     research
     model
@@ -66,4 +66,4 @@ source_modules =
 forbidden_modules =
     research
     model
-    intelligence
+    serve

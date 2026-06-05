@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from intelligence.value import rank_value_players
+from serve.value import rank_value_players
 from tests.helpers.baselines import baseline_fixture_only, baseline_recent_points
 from tests.helpers.metrics import return_variance
 from tests.helpers.windows import assert_no_future_leakage

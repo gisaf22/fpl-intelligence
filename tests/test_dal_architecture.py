@@ -25,7 +25,7 @@ pytestmark = pytest.mark.unit
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DAL_ROOT = REPO_ROOT / "dal"
-INTELLIGENCE_ROOT = REPO_ROOT / "intelligence"
+SERVE_ROOT = REPO_ROOT / "serve"
 
 # Research-layer namespaces the runtime must never import. The studies→research module
 # migration is complete (see docs/audit/research_migration_phase5_*.md); no production
@@ -111,10 +111,10 @@ def test_intelligence_does_not_import_studies() -> None:
 
     Runtime scoring consumes registry-approved signals only. Research modules
     (now under research/) are analytical artifacts — importing them into
-    intelligence/ couples runtime behavior to experimental code paths.
+    serve/ couples runtime behavior to experimental code paths.
     """
     violations: list[str] = []
-    for path in _python_files(INTELLIGENCE_ROOT):
+    for path in _python_files(SERVE_ROOT):
         for namespace in RESEARCH_NAMESPACES:
             violations.extend(_imports_from(path, namespace))
     assert not violations, (
@@ -124,7 +124,7 @@ def test_intelligence_does_not_import_studies() -> None:
 
 
 def test_dal_architecture_tests_are_not_vacuous() -> None:
-    """Sanity check: dal/ subdirectories and intelligence/ actually exist and contain Python files.
+    """Sanity check: dal/ subdirectories and serve/ actually exist and contain Python files.
 
     Prevents architecture tests from silently passing on empty/missing directories.
     """
@@ -135,7 +135,7 @@ def test_dal_architecture_tests_are_not_vacuous() -> None:
         assert len(py_files) > 0, (
             f"dal/{subdir}/ exists but contains no .py files — architecture tests would scan no code"
         )
-    assert INTELLIGENCE_ROOT.exists(), f"Expected intelligence/ to exist — check REPO_ROOT={REPO_ROOT}"
-    assert len(_python_files(INTELLIGENCE_ROOT)) > 0, (
-        "intelligence/ exists but contains no .py files — architecture tests would scan no code"
+    assert SERVE_ROOT.exists(), f"Expected serve/ to exist — check REPO_ROOT={REPO_ROOT}"
+    assert len(_python_files(SERVE_ROOT)) > 0, (
+        "serve/ exists but contains no .py files — architecture tests would scan no code"
     )

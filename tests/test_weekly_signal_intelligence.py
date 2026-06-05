@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 
 from domain.registry.operational import load_registry
-from intelligence.reporting.signal_intelligence import (
+from serve.reporting.signal_intelligence import (
     CONTEXT_CONDITION_LAYERS,
     CONTEXT_NOTE_COLUMNS,
     POSITIONAL_SUMMARY_COLUMNS,

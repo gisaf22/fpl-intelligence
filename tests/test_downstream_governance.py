@@ -1,6 +1,6 @@
 """Downstream dependency governance enforcement.
 
-Checks that downstream modules (signals/, research/, model/, intelligence/) do not:
+Checks that downstream modules (research/, model/, serve/) do not:
   - import from pipeline.* (retired module namespace)
   - query staging tables directly via sqlite3 or pd.read_sql outside the DAL
   - import dal.staging or dal.intermediate directly
@@ -24,7 +24,7 @@ _DOWNSTREAM_DIRS = [
     _PROJECT_ROOT / "signals",
     _PROJECT_ROOT / "research",
     _PROJECT_ROOT / "model",
-    _PROJECT_ROOT / "intelligence",
+    _PROJECT_ROOT / "serve",
 ]
 
 # Tests directories are exempt from DAL-layer isolation rules (they may test internals).
@@ -117,16 +117,16 @@ def test_no_direct_sql_in_notebooks():
 _FORBIDDEN_DAL_IMPORTS = ("dal.staging", "dal.intermediate")
 
 _STAGING_ALLOWLIST: set = {
-    # intelligence/reporting/weekly_report_runner.py re-exports validate_data_freshness
+    # serve/reporting/weekly_report_runner.py re-exports validate_data_freshness
     # and resolve_target_gw for the weekly runner; direct staging access is intentional here.
-    _PROJECT_ROOT / "intelligence/reporting/weekly_report_runner.py",
+    _PROJECT_ROOT / "serve/reporting/weekly_report_runner.py",
 }
 
 
 def test_no_staging_or_intermediate_imports_in_downstream():
     """G-3: downstream .py files must not import dal.staging or dal.intermediate.
 
-    intelligence/reporting/weekly_report_runner.py is the sole allowed exception — it
+    serve/reporting/weekly_report_runner.py is the sole allowed exception — it
     re-exports validate_data_freshness and resolve_target_gw for GW freshness validation.
     """
     violations = []

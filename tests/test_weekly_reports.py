@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 from domain.registry.operational import load_registry
-from intelligence.reporting.reports import (
+from serve.reporting.reports import (
     build_signal_summary,
     build_stable_performance_signals,
     build_summary_by_layer,

@@ -12,10 +12,10 @@ import sys
 from pathlib import Path
 
 from dal.pipeline import load as load_mart
-from intelligence.scoring.contracts import ScorerInput, ScorerOutput
-from intelligence.scoring.engine import NoDataForGameweek, score
-from intelligence.scoring.renderer import render
-from intelligence.scoring.signal_selector import load_manifest_from_path
+from serve.scoring.contracts import ScorerInput, ScorerOutput
+from serve.scoring.engine import NoDataForGameweek, score
+from serve.scoring.renderer import render
+from serve.scoring.signal_selector import load_manifest_from_path
 
 
 def _load_registry_meta(registry_path: Path) -> dict:

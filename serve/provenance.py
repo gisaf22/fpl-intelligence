@@ -1,4 +1,4 @@
-"""Score provenance — traceability from intelligence module output to governance.
+"""Score provenance — traceability from serve module output to governance.
 
 score_provenance() returns a complete audit trail for any player's score from
 any intelligence module: which signals contributed, what weights they received,
@@ -18,7 +18,7 @@ from typing import Any
 import pandas as pd
 import yaml
 
-from intelligence.weight_registry import get_module_weights, get_weight_metadata
+from serve.weight_registry import get_module_weights, get_weight_metadata
 
 _TRACEABILITY_PATH = Path("model/governance/signal_traceability.yaml")
 
@@ -148,7 +148,7 @@ def score_provenance(
             "weight": weight_value,
             "signals": state_cols,
             "state_values": state_values,
-            "registry_source": (f"intelligence/weight_registry.yaml §modules.{module}.weights.{component}"),
+            "registry_source": (f"serve/weight_registry.yaml §modules.{module}.weights.{component}"),
             "signal_id": meta.get("signal_id"),
             "provenance": str(meta.get("note", "")).strip(),
             "caveats": caveats,
@@ -159,6 +159,6 @@ def score_provenance(
         "gw": int(gw),
         "module": module,
         "position": position,
-        "registry_source": (f"intelligence/weight_registry.yaml §modules.{module}"),
+        "registry_source": (f"serve/weight_registry.yaml §modules.{module}"),
         "signals": signals_provenance,
     }

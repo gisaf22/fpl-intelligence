@@ -9,7 +9,7 @@ from __future__ import annotations
 import html
 from collections import defaultdict
 
-from intelligence.scoring.contracts import ConfirmedSignal, PlayerScore, ScorerOutput
+from serve.scoring.contracts import ConfirmedSignal, PlayerScore, ScorerOutput
 
 _POSITIONS: tuple[str, ...] = ("GK", "DEF", "MID", "FWD")
 

@@ -15,7 +15,7 @@ from domain.registry.schema import GovernanceMetadata
 
 pytestmark = pytest.mark.unit
 
-_WEIGHT_REGISTRY_PATH = Path("intelligence/weight_registry.yaml")
+_WEIGHT_REGISTRY_PATH = Path("serve/weight_registry.yaml")
 _TRACEABILITY_PATH = Path("model/governance/signal_traceability.yaml")
 
 

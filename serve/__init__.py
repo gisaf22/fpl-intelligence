@@ -18,11 +18,11 @@ All functions accept a features DataFrame produced by:
 See docs/operational-intelligence.md for design rationale and limitations.
 """
 
-from intelligence.availability import flag_availability_risk
-from intelligence.captain import rank_captain_candidates
-from intelligence.fixtures import rank_fixture_opportunities
-from intelligence.transfers import rank_transfer_targets
-from intelligence.value import rank_value_players
+from serve.availability import flag_availability_risk
+from serve.captain import rank_captain_candidates
+from serve.fixtures import rank_fixture_opportunities
+from serve.transfers import rank_transfer_targets
+from serve.value import rank_value_players
 
 __all__ = [
     "flag_availability_risk",

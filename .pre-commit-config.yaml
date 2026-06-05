@@ -17,7 +17,7 @@ repos:
         language: system
         types: [python]
         # Only run mypy on production modules; pass changed files through the scope filter.
-        files: ^(dal|signals|intelligence|domain|population)/
+        files: ^(dal|serve|domain|population)/
         args: [--config-file, pyproject.toml]
         pass_filenames: false
 

@@ -3,7 +3,7 @@
 Produces a ranked list of captain options for a target gameweek based on
 recent form, attacking involvement, fixture context, and minutes stability.
 
-Weights are loaded from the module weight registry (intelligence/weight_registry.yaml).
+Weights are loaded from the module weight registry (serve/weight_registry.yaml).
 
 Scope constraints (validate-stage lens findings + the model-stage synthesis verdict
 set-synth-weights; see docs/decisions/):
@@ -19,13 +19,13 @@ from __future__ import annotations
 
 import pandas as pd
 
-from intelligence.intelligence_contracts import (
+from serve.intelligence_contracts import (
     IntelligenceInputError,
     normalize_within_position,
     validate_intelligence_inputs,
     weighted_composite,
 )
-from intelligence.weight_registry import get_module_weights
+from serve.weight_registry import get_module_weights
 
 # Weights loaded from governance registry — fails hard if entry missing.
 _WEIGHTS: dict[str, float] = get_module_weights("captain")

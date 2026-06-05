@@ -5,7 +5,7 @@ team-level attacking output and DGW presence as observable inputs — no predict
 modeling. Opponent defensive weakness is proxied through recent team-level
 concession rates derived from the curated spine.
 
-Weights are loaded from the module weight registry (intelligence/weight_registry.yaml).
+Weights are loaded from the module weight registry (serve/weight_registry.yaml).
 
 fdr_avg excluded from scoring at all positions (fdr_avg@fixture_gw:total_points G2-FAIL); retained as
 informational output only. DGW detection uses STATE fixture_context column.
@@ -15,13 +15,13 @@ from __future__ import annotations
 
 import pandas as pd
 
-from intelligence.intelligence_contracts import (
+from serve.intelligence_contracts import (
     IntelligenceInputError,
     normalize_within_position,
     validate_intelligence_inputs,
     weighted_composite,
 )
-from intelligence.weight_registry import get_module_weights
+from serve.weight_registry import get_module_weights
 
 # Weights loaded from governance registry — fails hard if entry missing.
 _WEIGHTS: dict[str, float] = get_module_weights("fixtures")

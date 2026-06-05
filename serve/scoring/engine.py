@@ -2,7 +2,7 @@
 
 Inputs:
   state    — DataFrame from dal.pipeline.load().mart
-  manifest — SignalManifest from intelligence.scoring.signal_selector.load_manifest()
+  manifest — SignalManifest from serve.scoring.signal_selector.load_manifest()
   gw       — target gameweek integer
 
 Output:
@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 from dal.mart import POSITION_CODE_MAP
-from intelligence.scoring.contracts import ConfirmedSignal, PlayerScore, ScorerOutput, SignalManifest
+from serve.scoring.contracts import ConfirmedSignal, PlayerScore, ScorerOutput, SignalManifest
 
 
 class NoDataForGameweek(Exception):

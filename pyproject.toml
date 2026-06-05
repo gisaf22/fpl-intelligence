@@ -84,7 +84,7 @@ select = ["E", "F", "I", "UP", "RUF"]
 [tool.mypy]
 python_version = "3.12"
 # Scope: production modules only. studies/, archive/, examples/ intentionally excluded.
-files = ["dal", "intelligence", "domain", "population"]
+files = ["dal", "serve", "domain", "population"]
 explicit_package_bases = true
 ignore_missing_imports = true
 disallow_untyped_defs = true

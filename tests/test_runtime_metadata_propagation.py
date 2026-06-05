@@ -204,7 +204,7 @@ class TestMultiLensDisambiguation:
 
 def _make_confirmed(signal: str, position: str) -> object:
     """Return a minimal ConfirmedSignal-like object."""
-    from intelligence.scoring.contracts import ConfirmedSignal
+    from serve.scoring.contracts import ConfirmedSignal
 
     return ConfirmedSignal(
         signal=signal,
@@ -216,27 +216,27 @@ def _make_confirmed(signal: str, position: str) -> object:
 
 
 def _make_manifest(confirmed: list) -> object:
-    from intelligence.scoring.contracts import SignalManifest
+    from serve.scoring.contracts import SignalManifest
 
     return SignalManifest(confirmed=confirmed, caveated=[], positions_covered={})
 
 
 class TestAssertGovernanceCompliance:
     def test_valid_candidate_passes(self) -> None:
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("xgi_roll3", "DEF")])
         _assert_governance_compliance(manifest)  # should not raise
 
     def test_excluded_signal_raises(self) -> None:
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("fdr_avg", "DEF")])
         with pytest.raises(ValueError, match="GOVERNANCE VIOLATION"):
             _assert_governance_compliance(manifest)
 
     def test_evaluation_circularity_signal_raises(self) -> None:
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("points_roll3", "DEF")])
         with pytest.raises(ValueError, match="GOVERNANCE VIOLATION"):
@@ -244,7 +244,7 @@ class TestAssertGovernanceCompliance:
 
     def test_blocked_downstream_raises(self) -> None:
         """purchase_price GK is blocked — should hard-fail."""
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("purchase_price", "GK")])
         with pytest.raises(ValueError, match="GOVERNANCE VIOLATION"):
@@ -253,7 +253,7 @@ class TestAssertGovernanceCompliance:
     def test_missing_governance_metadata_raises_if_not_allowlisted(self) -> None:
         """Signals absent from both evaluation_metadata.yaml and _PRE_LENS_SIGNAL_ALLOWLIST must raise."""
         from domain.registry.schema import GovernanceMetadataError
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("unknown_signal_xyz", "DEF")])
         with pytest.raises(GovernanceMetadataError):
@@ -261,20 +261,20 @@ class TestAssertGovernanceCompliance:
 
     def test_allowlisted_pre_lens_signal_passes(self) -> None:
         """Pre-lens signals on _PRE_LENS_SIGNAL_ALLOWLIST pass compliance without an evaluation record."""
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("goals_scored", "DEF")])
         _assert_governance_compliance(manifest)  # should not raise
 
     def test_approved_signal_passes(self) -> None:
         """purchase_price DEF is approved by SYNTH-01 (G-SYNTH1-06) — should pass compliance."""
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([_make_confirmed("purchase_price", "DEF")])
         _assert_governance_compliance(manifest)  # should not raise
 
     def test_empty_manifest_passes(self) -> None:
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = _make_manifest([])
         _assert_governance_compliance(manifest)  # should not raise
@@ -471,7 +471,7 @@ class TestViolationErrorTypes:
     """
 
     def _make_confirmed(self, signal: str, position: str) -> object:
-        from intelligence.scoring.contracts import ConfirmedSignal
+        from serve.scoring.contracts import ConfirmedSignal
 
         return ConfirmedSignal(
             signal=signal,
@@ -482,14 +482,14 @@ class TestViolationErrorTypes:
         )
 
     def _make_manifest(self, confirmed: list) -> object:
-        from intelligence.scoring.contracts import SignalManifest
+        from serve.scoring.contracts import SignalManifest
 
         return SignalManifest(confirmed=confirmed, caveated=[], positions_covered={})
 
     def test_excluded_signal_raises_lifecycle_violation_error(self) -> None:
         """lifecycle_state=excluded raises LifecycleViolationError (not just ValueError)."""
         from domain.registry.lifecycle import LifecycleViolationError
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = self._make_manifest([self._make_confirmed("fdr_avg", "DEF")])
         with pytest.raises(LifecycleViolationError, match="GOVERNANCE VIOLATION"):
@@ -498,7 +498,7 @@ class TestViolationErrorTypes:
     def test_blocked_downstream_raises_lifecycle_violation_error(self) -> None:
         """downstream_status=blocked raises LifecycleViolationError (not just ValueError)."""
         from domain.registry.lifecycle import LifecycleViolationError
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         manifest = self._make_manifest([self._make_confirmed("purchase_price", "GK")])
         with pytest.raises(LifecycleViolationError, match="GOVERNANCE VIOLATION"):
@@ -514,7 +514,7 @@ class TestViolationErrorTypes:
 
         from domain.registry.lifecycle import LeakageViolationError
         from domain.registry.schema import GovernanceMetadata
-        from intelligence.scoring.signal_selector import _assert_governance_compliance
+        from serve.scoring.signal_selector import _assert_governance_compliance
 
         synthetic_gov = GovernanceMetadata(
             signal="bonus_roll3",

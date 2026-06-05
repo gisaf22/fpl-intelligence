@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 from domain.registry.operational import load_registry
-from intelligence.reporting.snapshots import (
+from serve.reporting.snapshots import (
     SNAPSHOT_CHANGE_COLUMNS,
     build_snapshot_changes,
     default_previous_snapshot_path,

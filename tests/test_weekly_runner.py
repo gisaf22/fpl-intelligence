@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from domain.registry.lifecycle import LifecycleViolationError
-from intelligence.reporting.weekly_report_runner import main, run_week
+from serve.reporting.weekly_report_runner import main, run_week
 
 pytestmark = pytest.mark.unit
 

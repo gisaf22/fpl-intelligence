@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from intelligence.captain import rank_captain_candidates
+from serve.captain import rank_captain_candidates
 from tests.helpers.baselines import baseline_highest_xgi, baseline_recent_points
 from tests.helpers.metrics import (
     downside_rate,

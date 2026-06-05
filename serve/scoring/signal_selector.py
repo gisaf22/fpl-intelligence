@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from domain.registry.schema import PRE_LENS_SIGNAL_ALLOWLIST as _PRE_LENS_SIGNAL_ALLOWLIST
-from intelligence.scoring.contracts import CaveatedSignal, ConfirmedSignal, SignalManifest
+from serve.scoring.contracts import CaveatedSignal, ConfirmedSignal, SignalManifest
 
 # Promotion classes eligible for scoring
 _SCORING_CLASSES: frozenset[str] = frozenset({"core_signal", "review_signal"})

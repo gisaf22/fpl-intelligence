@@ -9,7 +9,7 @@ import pytest
 
 from domain.registry.operational import load_registry
 from domain.registry.schema import GovernanceMetadataError
-from intelligence.scoring.signal_selector import _PRE_LENS_SIGNAL_ALLOWLIST, load_manifest
+from serve.scoring.signal_selector import _PRE_LENS_SIGNAL_ALLOWLIST, load_manifest
 
 pytestmark = pytest.mark.unit
 
@@ -148,8 +148,8 @@ def test_ungoverned_signal_raises_governance_error(registry):
     Injects a synthetic confirmed signal with a made-up name to verify the allowlist
     check fires rather than silently continuing.
     """
-    from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
-    from intelligence.scoring.signal_selector import _assert_governance_compliance
+    from serve.scoring.contracts import ConfirmedSignal, SignalManifest
+    from serve.scoring.signal_selector import _assert_governance_compliance
 
     fake_signal = ConfirmedSignal(
         signal="ungoverned_synthetic_signal",
@@ -169,8 +169,8 @@ def test_ungoverned_signal_raises_governance_error(registry):
 
 def test_allowlist_signals_pass_governance_without_evaluation_record(registry):
     """Pre-lens signals on _PRE_LENS_SIGNAL_ALLOWLIST pass governance compliance without an evaluation record."""
-    from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
-    from intelligence.scoring.signal_selector import _assert_governance_compliance
+    from serve.scoring.contracts import ConfirmedSignal, SignalManifest
+    from serve.scoring.signal_selector import _assert_governance_compliance
 
     # pick one allowlist signal per position to exercise the bypass
     for signal_name in list(_PRE_LENS_SIGNAL_ALLOWLIST)[:3]:

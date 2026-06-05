@@ -14,8 +14,8 @@
 # ordering in >15% of cases for all 3 checked groups (DEF × FORM, MID × FORM, MID × AVAIL).
 # Implementation deferred; fixture_context DGW binary is the current operational FDR proxy.
 #
-# Loading: intelligence/weight_registry.py — hard-fails if a module or weight key
-# is absent from this file. No silent defaults anywhere in the intelligence layer.
+# Loading: serve/weight_registry.py — hard-fails if a module or weight key
+# is absent from this file. No silent defaults anywhere in the serve layer.
 #
 # Key decisions reflected here:
 #   - fdr_avg removed from all scoring weights (fdr_avg excluded at all positions in

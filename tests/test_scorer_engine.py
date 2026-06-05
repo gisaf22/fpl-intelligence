@@ -10,8 +10,8 @@ from dal.fct.fct_player_gameweek import build_player_gameweek_spine
 from dal.feat.feat_player_gameweek import build_player_gameweek_state
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import load_staged_entities
-from intelligence.scoring.contracts import ConfirmedSignal, SignalManifest
-from intelligence.scoring.engine import NoDataForGameweek, score
+from serve.scoring.contracts import ConfirmedSignal, SignalManifest
+from serve.scoring.engine import NoDataForGameweek, score
 
 pytestmark = pytest.mark.unit
 
@@ -132,7 +132,7 @@ def test_players_ranked_within_position(state):
 def test_excluded_signals_absent_from_composite(state):
     """bonus and bps must not appear in signal_normalised of any player score."""
     from domain.registry.operational import load_registry
-    from intelligence.scoring.signal_selector import load_manifest
+    from serve.scoring.signal_selector import load_manifest
 
     registry = load_registry(Path("research/findings/records/eda_03_joint_registry.csv"))
     manifest = load_manifest(registry)

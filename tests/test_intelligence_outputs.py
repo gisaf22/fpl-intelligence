@@ -12,17 +12,17 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from intelligence.availability import flag_availability_risk
-from intelligence.captain import rank_captain_candidates
-from intelligence.fixtures import rank_fixture_opportunities
-from intelligence.intelligence_contracts import (
+from serve.availability import flag_availability_risk
+from serve.captain import rank_captain_candidates
+from serve.fixtures import rank_fixture_opportunities
+from serve.intelligence_contracts import (
     IntelligenceInputError,
     normalize_within_position,
     validate_intelligence_inputs,
     weighted_composite,
 )
-from intelligence.transfers import rank_transfer_targets
-from intelligence.value import rank_value_players
+from serve.transfers import rank_transfer_targets
+from serve.value import rank_value_players
 
 pytestmark = pytest.mark.unit
 
@@ -529,11 +529,11 @@ class TestIntelligenceGovernance:
 
     def test_intelligence_does_not_import_eda(self):
         """Intelligence modules must not depend on research EDA paths."""
-        import intelligence.availability as avail_mod
-        import intelligence.captain as cap_mod
-        import intelligence.fixtures as fix_mod
-        import intelligence.transfers as trans_mod
-        import intelligence.value as val_mod
+        import serve.availability as avail_mod
+        import serve.captain as cap_mod
+        import serve.fixtures as fix_mod
+        import serve.transfers as trans_mod
+        import serve.value as val_mod
 
         # Research-layer artifact roots are forbidden in operational modules. The
         # studies/ tree is gone; the exploratory seed registry now lives under

@@ -69,9 +69,9 @@ entries:
     synth01_decision_id: G-SYNTH1-01
     operational_role: form
     consumer_modules:
-      - intelligence/captain.py
-      - intelligence/value.py
-      - intelligence/transfers.py
+      - serve/captain.py
+      - serve/value.py
+      - serve/transfers.py
     consumer_note: null
     threshold_dependencies: []
 
@@ -92,9 +92,9 @@ entries:
     synth01_decision_id: G-SYNTH1-07
     operational_role: form
     consumer_modules:
-      - intelligence/captain.py
-      - intelligence/value.py
-      - intelligence/transfers.py
+      - serve/captain.py
+      - serve/value.py
+      - serve/transfers.py
     consumer_note: "MID scope guard applied in captain.py, value.py, transfers.py — xgi_roll3 zeroed for MID players before normalization; zeroed group returns neutral 0.5 on all xgi_roll3-derived scores."
     threshold_dependencies: []
 
@@ -113,9 +113,9 @@ entries:
     redundancy: null
     operational_role: form
     consumer_modules:
-      - intelligence/captain.py
-      - intelligence/value.py
-      - intelligence/transfers.py
+      - serve/captain.py
+      - serve/value.py
+      - serve/transfers.py
     consumer_note: "FWD scope guard applied in captain.py, value.py, transfers.py — xgi_roll3 zeroed for FWD players before normalization; all-zero FWD group returns neutral 0.5."
     threshold_dependencies: []
 
@@ -156,9 +156,9 @@ entries:
     synth01_decision_id: G-SYNTH1-02
     operational_role: form
     consumer_modules:
-      - intelligence/captain.py
-      - intelligence/value.py
-      - intelligence/transfers.py
+      - serve/captain.py
+      - serve/value.py
+      - serve/transfers.py
     consumer_note: null
     threshold_dependencies: []
 
@@ -179,9 +179,9 @@ entries:
     synth01_decision_id: G-SYNTH1-08
     operational_role: form
     consumer_modules:
-      - intelligence/captain.py
-      - intelligence/value.py
-      - intelligence/transfers.py
+      - serve/captain.py
+      - serve/value.py
+      - serve/transfers.py
     consumer_note: "xgi_roll3 MID guard applied in all three modules (G-SYNTH1-07); xgi_roll5 is not guarded at MID — it is the primary form signal here."
     threshold_dependencies: []
 
@@ -200,9 +200,9 @@ entries:
     redundancy: null
     operational_role: form
     consumer_modules:
-      - intelligence/captain.py
-      - intelligence/value.py
-      - intelligence/transfers.py
+      - serve/captain.py
+      - serve/value.py
+      - serve/transfers.py
     consumer_note: "FWD scope guard applied in captain.py, value.py, transfers.py — xgi_roll5 zeroed for FWD players before normalization; all-zero FWD group returns neutral 0.5."
     threshold_dependencies: []
 
@@ -469,7 +469,7 @@ entries:
     redundancy: null
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
+      - serve/availability.py
     consumer_note: "Consumed at all positions by availability.py for risk classification (AVAIL-T-01, AVAIL-T-02). GK is not a candidate; availability risk classification use at GK is provisional."
     threshold_dependencies:
       - AVAIL-T-01
@@ -490,8 +490,8 @@ entries:
     redundancy: "Temporal window overlap with minutes_roll5 and minutes_roll8 in availability domain"
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
-      - intelligence/captain.py
+      - serve/availability.py
+      - serve/captain.py
     consumer_note: "DEF exclusion from AVAIL means captain.py DEF eligibility filter use is provisional. Phase 8 calibration required."
     threshold_dependencies:
       - AVAIL-T-01
@@ -515,8 +515,8 @@ entries:
     synth01_decision_id: G-SYNTH1-09
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
-      - intelligence/captain.py
+      - serve/availability.py
+      - serve/captain.py
     consumer_note: null
     threshold_dependencies:
       - AVAIL-T-01
@@ -538,8 +538,8 @@ entries:
     redundancy: null
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
-      - intelligence/captain.py
+      - serve/availability.py
+      - serve/captain.py
     consumer_note: "FWD exclusion means captain.py FWD eligibility filter use is provisional. Phase 8 calibration required."
     threshold_dependencies:
       - AVAIL-T-01
@@ -563,7 +563,7 @@ entries:
     redundancy: null
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
+      - serve/availability.py
     consumer_note: "Consumed by availability.py for divergence calculation at all positions. GK exclusion from AVAIL study; divergence use is provisional at GK."
     threshold_dependencies: []
 
@@ -582,10 +582,10 @@ entries:
     redundancy: null
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
-      - intelligence/value.py
-      - intelligence/fixtures.py
-      - intelligence/transfers.py
+      - serve/availability.py
+      - serve/value.py
+      - serve/fixtures.py
+      - serve/transfers.py
     consumer_note: "DEF exclusion means eligibility floor at DEF is editorially motivated. Phase 8 calibration required."
     threshold_dependencies:
       - VAL-T-01
@@ -609,10 +609,10 @@ entries:
     synth01_decision_id: G-SYNTH1-10
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
-      - intelligence/value.py
-      - intelligence/fixtures.py
-      - intelligence/transfers.py
+      - serve/availability.py
+      - serve/value.py
+      - serve/fixtures.py
+      - serve/transfers.py
     consumer_note: "minutes_roll5 consumed by value.py, fixtures.py, transfers.py as eligibility floor (minutes_roll5 >= 30) — this is a threshold use, not a scored signal use. Threshold use continues pending VAL-T-01/TRANS-T-01/FIX-T-01 calibration."
     threshold_dependencies:
       - VAL-T-01
@@ -634,10 +634,10 @@ entries:
     redundancy: null
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
-      - intelligence/value.py
-      - intelligence/fixtures.py
-      - intelligence/transfers.py
+      - serve/availability.py
+      - serve/value.py
+      - serve/fixtures.py
+      - serve/transfers.py
     consumer_note: "FWD exclusion means eligibility floor at FWD is editorially motivated. Phase 8 calibration required."
     threshold_dependencies:
       - VAL-T-01
@@ -681,7 +681,7 @@ entries:
     synth01_decision_id: G-SYNTH1-03
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
+      - serve/availability.py
     consumer_note: "wired to availability.py as long_horizon_flag for DEF players (minutes_roll8 < 60 threshold). Only DEF and MID positions governed by AVAIL-003."
     threshold_dependencies: []
 
@@ -702,7 +702,7 @@ entries:
     synth01_decision_id: G-SYNTH1-11
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
+      - serve/availability.py
     consumer_note: "wired to availability.py as long_horizon_flag for MID players (minutes_roll8 < 60 threshold)."
     threshold_dependencies: []
 
@@ -995,7 +995,7 @@ entries:
     synth01_decision_id: G-SYNTH1-06
     operational_role: market
     consumer_modules:
-      - intelligence/value.py
+      - serve/value.py
     consumer_note: "value.py uses purchase_price as efficiency denominator (xgi_roll5/purchase_price) at all positions — role is price normalization, not a directly scored signal."
     threshold_dependencies: []
 
@@ -1014,7 +1014,7 @@ entries:
     redundancy: null
     operational_role: market
     consumer_modules:
-      - intelligence/value.py
+      - serve/value.py
     consumer_note: "value.py uses purchase_price as efficiency denominator at all positions despite MID exclusion. Price normalization role differs from scored signal role."
     threshold_dependencies: []
 
@@ -1035,7 +1035,7 @@ entries:
     synth01_decision_id: G-SYNTH1-14
     operational_role: market
     consumer_modules:
-      - intelligence/value.py
+      - serve/value.py
     consumer_note: "value.py uses purchase_price as efficiency denominator at FWD despite exclusion — role is price normalization, not a directly scored market signal. Tracking under PENDING-EVAL pending SYNTH-02."
     threshold_dependencies: []
 
@@ -1503,7 +1503,7 @@ entries:
     redundancy: null
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
+      - serve/availability.py
     consumer_note: "Consumed by availability.py (falling_trend_flag). Domain restriction enforced by _AVAILABILITY_DOMAIN_ONLY in player_gameweek_state.py."
     threshold_dependencies:
       - STATE-T-01
@@ -1524,7 +1524,7 @@ entries:
     redundancy: null
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
+      - serve/availability.py
     consumer_note: "Consumed by availability.py. Domain restriction enforced."
     threshold_dependencies:
       - STATE-T-01
@@ -1545,7 +1545,7 @@ entries:
     redundancy: null
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
+      - serve/availability.py
     consumer_note: "Consumed by availability.py. Domain restriction enforced."
     threshold_dependencies:
       - STATE-T-01
@@ -1566,7 +1566,7 @@ entries:
     redundancy: null
     operational_role: availability
     consumer_modules:
-      - intelligence/availability.py
+      - serve/availability.py
     consumer_note: "Consumed by availability.py but GK near-constant playing time limits practical utility of the trend classification."
     threshold_dependencies:
       - STATE-T-01
@@ -1587,9 +1587,9 @@ entries:
     redundancy: null
     operational_role: fixture
     consumer_modules:
-      - intelligence/fixtures.py
-      - intelligence/captain.py
-      - intelligence/transfers.py
+      - serve/fixtures.py
+      - serve/captain.py
+      - serve/transfers.py
     consumer_note: "fixtures.py migrated from spine is_dgw to STATE fixture_context. captain.py and transfers.py also consume fixture_context for DGW-based fixture_score component."
     threshold_dependencies: []
 
@@ -1608,9 +1608,9 @@ entries:
     redundancy: null
     operational_role: fixture
     consumer_modules:
-      - intelligence/fixtures.py
-      - intelligence/captain.py
-      - intelligence/transfers.py
+      - serve/fixtures.py
+      - serve/captain.py
+      - serve/transfers.py
     consumer_note: "all three modules now consume fixture_context from STATE."
     threshold_dependencies: []
 
@@ -1629,9 +1629,9 @@ entries:
     redundancy: null
     operational_role: fixture
     consumer_modules:
-      - intelligence/fixtures.py
-      - intelligence/captain.py
-      - intelligence/transfers.py
+      - serve/fixtures.py
+      - serve/captain.py
+      - serve/transfers.py
     consumer_note: "all three modules now consume fixture_context from STATE."
     threshold_dependencies: []
 
@@ -1650,6 +1650,6 @@ entries:
     redundancy: null
     operational_role: fixture
     consumer_modules:
-      - intelligence/captain.py
+      - serve/captain.py
     consumer_note: "captain.py consumes fixture_context for DGW fixture_score component."
     threshold_dependencies: []

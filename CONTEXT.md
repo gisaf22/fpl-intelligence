@@ -138,8 +138,7 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 ## 6. What is next
 
 **Research-layer migration: COMPLETE (2026-06-04).** `studies/` was migrated to the object-primary
-topology (`research/` + `model/` + `archive/`, see §3) and deleted. Plan:
-`docs/audit/research_migration_phase5_2026-06-03.md` (fully executed). Composite-key governance
+topology (`research/` + `model/` + `archive/`, see §3) and deleted. Composite-key governance
 (ADR-003) and the ADLC lifecycle doc (`docs/architecture/adlc.md`) are in place. Import-linter now
 enforces the research↔model boundary (`model ↛ research.{foundation,families,findings}`, kernels
 exempt). Suite green: ruff, mypy, import-linter, full unit tests.
@@ -152,9 +151,7 @@ exempt). Suite green: ruff, mypy, import-linter, full unit tests.
   2026/27. Not a wholesale rerun — keep the settled method rules and clean verdicts.
 **Phase 7 topology consolidation — COMPLETE.** `signals/` dissolved (decision-of-record +
 promotion → `model/governance/`; registry contract, loaders, lifecycle gate, governance lookup →
-`domain/registry/`); `intelligence/` renamed `serve/`. Import-linter down to 6 contracts. See
-`docs/audit/signals_governance_consolidation_plan_2026-06-04.md` and
-`docs/audit/intelligence_to_serve_rename_plan_2026-06-04.md`.
+`domain/registry/`); `intelligence/` renamed `serve/`. Import-linter down to 6 contracts.
 
 The older engineering / ADLC-adoption backlog (mode tags, ID-diet, model-stage governance gap)
 lives in `docs/implementation-plan.md` and `docs/governance/eng-issues-2026.md`. The former

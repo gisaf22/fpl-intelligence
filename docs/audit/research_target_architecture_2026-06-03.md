@@ -5,8 +5,9 @@ research layer, derived from the **committed object-primary topology** in
 [studies/STRATEGY.md §1](../../studies/STRATEGY.md). No diffs here (that is Phase 5). No strategy
 re-evaluation (Phases 1–3 are closed).
 
-**Supersedes:** the target paths in `research_layer_migration_blueprint_2026-06-03.md`, which were
-mapped against the now-rejected class-primary tree.
+**Note:** an earlier migration blueprint mapped target paths against a now-rejected class-primary
+tree; this document superseded it. The object-primary topology described here is the as-built state
+(see `docs/architecture/layer-boundaries.md`).
 
 ---
 

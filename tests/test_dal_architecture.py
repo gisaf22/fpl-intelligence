@@ -28,8 +28,8 @@ DAL_ROOT = REPO_ROOT / "dal"
 SERVE_ROOT = REPO_ROOT / "serve"
 
 # Research-layer namespaces the runtime must never import. The studies→research module
-# migration is complete (see docs/audit/research_migration_phase5_*.md); no production
-# code imports `studies.*` any longer, so the guard tracks only the live namespace.
+# migration is complete; no production code imports `studies.*` any longer, so the guard
+# tracks only the live namespace.
 RESEARCH_NAMESPACES = ("research",)
 
 

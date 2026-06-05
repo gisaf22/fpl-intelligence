@@ -1,9 +1,10 @@
 import pandas as pd
 import pytest
 
+from domain.registry.operational import load_registry
+from domain.registry.validation import validate_registry_contract
 from research.registry.promotion import enrich_promotion_class
 from research.registry.semantics import enrich_signal_layers
-from signals.governance import load_registry, validate_registry_contract
 
 pytestmark = pytest.mark.unit
 

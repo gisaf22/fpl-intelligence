@@ -4,10 +4,11 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from domain.registry.operational import load_registry
+from domain.registry.validation import validate_registry_contract
 from intelligence.reporting.weekly_report_runner import run_week
 from model.governance.promote import promote_registry
 from research.registry.build import main, run_registry_build
-from signals.governance import load_registry, validate_registry_contract
 
 pytestmark = pytest.mark.unit
 

@@ -19,7 +19,7 @@ from domain.registry.lifecycle import (
     assert_operational_safe,
     is_exploratory_path,
 )
-from signals.governance.registry_loader import load_registry
+from domain.registry.operational import load_registry
 
 pytestmark = pytest.mark.unit
 

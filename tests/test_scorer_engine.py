@@ -131,8 +131,8 @@ def test_players_ranked_within_position(state):
 
 def test_excluded_signals_absent_from_composite(state):
     """bonus and bps must not appear in signal_normalised of any player score."""
+    from domain.registry.operational import load_registry
     from intelligence.scoring.signal_selector import load_manifest
-    from signals.governance.registry_loader import load_registry
 
     registry = load_registry(Path("research/findings/records/eda_03_joint_registry.csv"))
     manifest = load_manifest(registry)

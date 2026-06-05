@@ -1,9 +1,10 @@
-"""Governance gate wrapper around the typed registry loader.
+"""Operational gate wrapper around the typed registry loader.
 
-The pure typed loader moved to ``domain.registry.loader`` (the shared leaf).
-The operational gate stays here, with governance: when ``operational=True`` the
-path is asserted to be a promoted operational artifact (not an exploratory
-research/findings output) before the typed load is delegated to domain.
+The pure typed loader is ``domain.registry.loader`` (the shared leaf). This
+wrapper adds the lifecycle gate: when ``operational=True`` the path is asserted
+to be a promoted operational artifact (not an exploratory research/findings
+output) before the typed load is delegated. Operational consumers (scorer,
+report runner) call this; research consumers use the pure loader directly.
 """
 
 from __future__ import annotations

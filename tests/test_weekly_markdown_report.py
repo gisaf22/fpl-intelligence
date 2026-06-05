@@ -1,5 +1,6 @@
 import pytest
 
+from domain.registry.operational import load_registry
 from intelligence.reporting.insight_card_writer import build_insight_cards
 from intelligence.reporting.reports import (
     build_signal_summary,
@@ -9,7 +10,6 @@ from intelligence.reporting.reports import (
     build_weekly_markdown_report,
     write_weekly_markdown_report,
 )
-from signals.governance import load_registry
 
 pytestmark = pytest.mark.unit
 

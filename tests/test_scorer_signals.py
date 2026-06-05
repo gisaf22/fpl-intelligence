@@ -7,9 +7,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from domain.registry.operational import load_registry
 from domain.registry.schema import GovernanceMetadataError
 from intelligence.scoring.signal_selector import _PRE_LENS_SIGNAL_ALLOWLIST, load_manifest
-from signals.governance.registry_loader import load_registry
 
 pytestmark = pytest.mark.unit
 

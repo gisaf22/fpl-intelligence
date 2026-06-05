@@ -196,7 +196,7 @@ def load_manifest_from_path(registry_path: str | Path) -> SignalManifest:
     registry path is an exploratory-state artifact (research/findings/).
     Also asserts evaluation governance compliance for all confirmed signals.
     """
-    from signals.governance.registry_loader import load_registry
+    from domain.registry.operational import load_registry
 
     registry = load_registry(registry_path, operational=True)
     manifest = load_manifest(registry)

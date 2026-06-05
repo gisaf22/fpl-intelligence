@@ -26,10 +26,10 @@ import pytest
 
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import load_staged_entities
+from domain.registry.operational import load_registry
 from research.registry.assembler import assemble_registry_from_sections
 from research.registry.config import assign_gw_block
 from research.registry.sections import SectionBuildConfig, compute_relationship_sections
-from signals.governance import load_registry
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 

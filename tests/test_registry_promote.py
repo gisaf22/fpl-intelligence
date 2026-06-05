@@ -5,8 +5,9 @@ import pandas as pd
 import pytest
 
 from domain.registry.lifecycle import LifecycleViolationError
+from domain.registry.operational import load_registry
+from domain.registry.validation import validate_registry_contract
 from model.governance.promote import main, promote_registry
-from signals.governance import load_registry, validate_registry_contract
 
 pytestmark = pytest.mark.unit
 

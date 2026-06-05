@@ -5,8 +5,8 @@ from domain.registry.lifecycle import (
     LifecycleViolationError,
     assert_operational_safe,
 )
+from domain.registry.operational import load_registry
 from domain.registry.validation import RegistryValidationError, validate_registry_contract
-from signals.governance.registry_loader import load_registry
 
 __all__ = [
     "LeakageViolationError",

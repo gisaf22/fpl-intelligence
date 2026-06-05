@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from domain.registry.operational import load_registry
 from intelligence.reporting.insight_card_writer import INSIGHT_COLUMNS, build_insight_cards, write_insight_cards
 from intelligence.reporting.reports import (
     build_signal_summary,
@@ -8,7 +9,6 @@ from intelligence.reporting.reports import (
     build_summary_by_layer,
     build_summary_by_position,
 )
-from signals.governance import load_registry
 
 pytestmark = pytest.mark.unit
 

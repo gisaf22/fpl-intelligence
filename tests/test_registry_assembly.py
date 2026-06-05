@@ -1,8 +1,9 @@
 import pandas as pd
 import pytest
 
+from domain.registry.operational import load_registry
+from domain.registry.validation import validate_registry_contract
 from research.registry.assembler import assemble_registry_from_sections
-from signals.governance import load_registry, validate_registry_contract
 
 pytestmark = pytest.mark.unit
 

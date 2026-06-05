@@ -37,7 +37,7 @@ def load_registry(path: str | Path = RESEARCH_REGISTRY_PATH) -> pd.DataFrame:
 
     This is the pure typed loader — it performs no lifecycle/operational gating.
     The operational gate (``operational=True``) lives with governance in
-    ``signals.governance.registry_loader.load_registry``, which delegates here
+    ``domain.registry.operational.load_registry``, which delegates here
     after asserting the path is a promoted artifact.
     """
     registry_path = Path(path)

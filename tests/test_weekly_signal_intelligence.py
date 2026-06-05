@@ -13,6 +13,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+from domain.registry.operational import load_registry
 from intelligence.reporting.signal_intelligence import (
     CONTEXT_CONDITION_LAYERS,
     CONTEXT_NOTE_COLUMNS,
@@ -24,7 +25,6 @@ from intelligence.reporting.signal_intelligence import (
     build_stable_signal_observations,
     write_signal_intelligence,
 )
-from signals.governance import load_registry
 
 pytestmark = pytest.mark.unit
 

@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from domain.registry.operational import load_registry
 from intelligence.reporting.reports import (
     build_signal_summary,
     build_stable_performance_signals,
@@ -8,7 +9,6 @@ from intelligence.reporting.reports import (
     build_summary_by_position,
     write_weekly_report_tables,
 )
-from signals.governance import load_registry
 
 pytestmark = pytest.mark.unit
 

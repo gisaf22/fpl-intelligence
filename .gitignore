@@ -9,8 +9,8 @@ __pycache__/
 *.db-wal
 .aider*
 .venv
-.pytest_cachedata/
 .pytest_cache/
+data/
 .claude/
 .claude/settings.local.json
 outputs/*

@@ -17,7 +17,7 @@ import pandas as pd
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
-from research.families.evidence_record import decision_class_for, write_evidence
+from research.families.evidence_record import build_evidence_row, write_evidence
 from research.kernels.resampling import bootstrap_spearman_ci
 
 RUNS_DIR = Path(__file__).resolve().parents[4] / "research" / "runs"
@@ -103,21 +103,6 @@ def _quintile_record(
     except Exception:
         return None
 
-
-def _evidence_row(
-    signal: str, position: str, full_corr: dict | None,
-    block_corrs: list[dict | None], cls: dict,
-) -> dict:
-    """Project this slice's computed statistics into an evidence.yaml row (ADR-009 Phase C)."""
-    n_passing = sum(1 for b in block_corrs if b and b["ci_excludes_zero"])
-    return {
-        "signal": signal, "position": position,
-        "rho_pooled": full_corr["rho"] if full_corr else None,
-        "rho_ci_lower": full_corr["ci_lower"] if full_corr else None,
-        "rho_ci_upper": full_corr["ci_upper"] if full_corr else None,
-        "block_stability_count": n_passing if full_corr else None,
-        "decision_class": decision_class_for(cls["lens_status"]),
-    }
 
 
 def _classify(
@@ -223,7 +208,7 @@ def run(db_path: Path = DB_PATH) -> Path:
             )
             cls = _classify(primary_full, primary_quint, block_corrs, signal, signal_id, pos)
             classify_rows.append(cls)
-            evidence_rows.append(_evidence_row(signal, pos, primary_full, block_corrs, cls))
+            evidence_rows.append(build_evidence_row(signal, pos, primary_full, block_corrs, cls))
 
     pd.DataFrame(corr_rows).to_csv(out_dir / "correlation_results.csv", index=False)
     pd.DataFrame(block_rows).to_csv(out_dir / "block_results.csv", index=False)

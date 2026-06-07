@@ -19,6 +19,7 @@ from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 from research.families.evidence_record import build_evidence_row, write_evidence
 from research.kernels.resampling import bootstrap_spearman_ci
+from research.kernels.stratification import quintile_stratification
 
 RUNS_DIR = Path(__file__).resolve().parents[4] / "research" / "runs"
 VALIDATE_DIR = Path(__file__).parent
@@ -76,32 +77,10 @@ def _quintile_record(
     df: pd.DataFrame, signal: str, signal_id: str, position: str,
     block: str, target: str, gap_threshold: float
 ) -> dict | None:
-    valid = df[[signal, target]].dropna()
-    if len(valid) < 25:
-        return None
-    try:
-        ranked = valid.copy()
-        ranked["quintile"] = pd.qcut(
-            ranked[signal].rank(method="first"), 5,
-            labels=["Q1", "Q2", "Q3", "Q4", "Q5"],
-        )
-        means_s = ranked.groupby("quintile", observed=True)[target].mean()
-        if not all(f"Q{i}" in means_s.index for i in range(1, 6)):
-            return None
-        means = [float(means_s[f"Q{i}"]) for i in range(1, 6)]
-        gap = means[4] - means[0]
-        is_monotonic = all(means[i] <= means[i + 1] for i in range(4))
-        return {
-            "signal_id": signal_id, "signal": signal, "position": position,
-            "block": block, "target": target,
-            "q1_mean": round(means[0], 3), "q2_mean": round(means[1], 3),
-            "q3_mean": round(means[2], 3), "q4_mean": round(means[3], 3),
-            "q5_mean": round(means[4], 3),
-            "q5_q1_gap": round(gap, 3), "is_monotonic": is_monotonic,
-            "decision_relevant": bool(gap >= gap_threshold and is_monotonic),
-        }
-    except Exception:
-        return None
+    return quintile_stratification(
+        df, signal, signal_id, position, block,
+        target=target, gap_threshold=gap_threshold, bidirectional=False,
+    )
 
 
 

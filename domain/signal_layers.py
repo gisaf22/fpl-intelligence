@@ -25,6 +25,16 @@ SIGNAL_LAYER_VALUES: frozenset[str] = frozenset(
     }
 )
 
+# Leakage classification (ADR-010 ruling d): the ontology owns *which* layer_role values
+# constitute target leakage / outcome-component. Serve enforces these at scoring time but
+# does not re-list them — it imports these sets so the classification has one home.
+#
+# LEAKAGE_LAYER_ROLES        — signal IS or directly encodes the scoring target (e.g. bonus).
+# OUTCOME_COMPONENT_LAYER_ROLES — signal is mechanistically tautological with FPL points
+#                                 (e.g. bps, a descriptive contribution index).
+LEAKAGE_LAYER_ROLES: frozenset[str] = frozenset({"points_component"})
+OUTCOME_COMPONENT_LAYER_ROLES: frozenset[str] = frozenset({"contribution_index"})
+
 SIGNAL_LAYER_MAPPING: dict[str, dict[str, Any]] = {
     "minutes": {
         "signal_layer": "exposure",

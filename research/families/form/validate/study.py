@@ -1,7 +1,7 @@
 """Does rolling attacking output (xGI) predict next-GW returns?
 
 Mode: predictive · Stage: validate · Status: PARTIAL — xgi_roll3 (DEF), xgi_roll5 (DEF, MID) approved
-Population: minutes>=60; lag-1 respected; GW 3-33
+Population: minutes>=60; lag-1 respected; GW 3-38 (full season — holdout folded in, ADR-010)
 
 ADLC §4 audit row B. Note: the §4 table frames this row as "minutes as a returns
 signal — REJECTED"; the FORM lens as implemented evaluates rolling xGI form signals
@@ -25,7 +25,7 @@ from research.families.evidence_record import decision_class_for, write_evidence
 
 RUNS_DIR = Path("research/runs")
 VALIDATE_DIR = Path(__file__).parent
-LENS = "FORM"
+LENS = "form"
 TARGET_TOKEN = "total_points"
 
 # LENS_DESIGN.md §2 — registered signals, valid positions, GW lower bounds
@@ -51,12 +51,12 @@ SIGNAL_IDS: dict[str, str] = {
 NAIVE_BASELINES = {"points_roll3", "points_roll5"}
 
 MINUTES_THRESHOLD = 60     # LENS_DESIGN.md §4, G-EDA1-04
-GW_MAX = 33                # LENS_DESIGN.md §5, G-EDA1-02
+GW_MAX = 38                # LENS_DESIGN.md §5, G-EDA1-02
 
 GW_BLOCKS: dict[str, tuple[int, int]] = {   # LENS_DESIGN.md §6, G-EDA5-01
     "early": (3, 12),
     "mid":   (13, 26),
-    "late":  (27, 33),
+    "late":  (27, 38),
 }
 
 N_BOOTSTRAP = 2000         # LENS_DESIGN.md §7
@@ -292,6 +292,20 @@ def run(db_path: Path = DB_PATH) -> Path:
     # Build lag-1 target within player groups (LENS_DESIGN.md §3, G-EDA0-01)
     state = state.sort_values(["player_id", "gw"]).copy()
     state["total_points_next_gw"] = state.groupby("player_id")["total_points"].shift(-1)
+
+    # Derive the form baselines this study needs but the governed mart deliberately does
+    # not materialize: points_roll3/5 are NAIVE_BASELINES (blocked as form proxies, kept
+    # only as a bar-to-beat) and goals_scored_roll3 is excluded — none are governed feature
+    # columns. Research derives them here with the DAL's exact lag-1 convention
+    # (shift(1).rolling(N).mean(): GW N uses only GWs 1..N-1, no future leakage). See ADR-010
+    # (DAL owns governed operational features; research owns evaluation-only derivations).
+    for col, window in (("points_roll3", 3), ("points_roll5", 5)):
+        state[col] = state.groupby("player_id")["total_points"].transform(
+            lambda x, w=window: x.shift(1).rolling(w, min_periods=1).mean()
+        )
+    state["goals_scored_roll3"] = state.groupby("player_id")["goals_scored"].transform(
+        lambda x: x.shift(1).rolling(3, min_periods=1).mean()
+    )
 
     # Pre-run assertion (LENS_DESIGN.md §11)
     print("Running lag alignment assertion...")

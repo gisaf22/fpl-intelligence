@@ -4,7 +4,7 @@ Mode: predictive · Stage: validate · Status: PARTIAL — transfers_in (DEF, MI
 Population: minutes>=60; lag-1 respected; GW 3-33
 
 ADLC §4 audit (unlettered fixture/market lens row).
-† FWD purchase_price reverses on holdout GW 34-38 — see ENG-02.
+† FWD purchase_price weakens to uninformative once GW34-38 fold in (ENG-02 regime reversal, full-season).
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from research.families.evidence_record import decision_class_for, write_evidence
 
 RUNS_DIR = Path("research/runs")
 VALIDATE_DIR = Path(__file__).parent
-LENS = "MARKET"
+LENS = "market"
 TARGET_TOKEN = "total_points"
 
 SIGNALS: dict[str, dict] = {
@@ -39,9 +39,9 @@ SIGNAL_IDS: dict[str, str] = {
 }
 
 MINUTES_THRESHOLD = 60
-GW_MAX = 33
+GW_MAX = 38
 GW_BLOCKS: dict[str, tuple[int, int]] = {
-    "early": (3, 12), "mid": (13, 26), "late": (27, 33),
+    "early": (3, 12), "mid": (13, 26), "late": (27, 38),
 }
 N_BOOTSTRAP = 2000
 BOOTSTRAP_SEED = 42

@@ -25,7 +25,7 @@ candidates:
 
   - signal: xgi_roll3
     position: DEF
-    lens: FORM
+    lens: form
     target: total_points
     signal_id: FORM-001
     rho_pooled: 0.123
@@ -39,7 +39,7 @@ candidates:
 
   - signal: xgi_roll5
     position: DEF
-    lens: FORM
+    lens: form
     target: total_points
     signal_id: FORM-002
     rho_pooled: 0.113
@@ -53,7 +53,7 @@ candidates:
 
   - signal: minutes_roll8
     position: DEF
-    lens: AVAIL
+    lens: avail
     target: played_next_gw
     signal_id: AVAIL-003
     rho_pooled: 0.219
@@ -67,7 +67,7 @@ candidates:
 
   - signal: transfers_in
     position: DEF
-    lens: MARKET
+    lens: market
     target: total_points
     signal_id: MARKET-001
     rho_pooled: 0.187
@@ -81,7 +81,7 @@ candidates:
 
   - signal: ownership_count
     position: DEF
-    lens: MARKET
+    lens: market
     target: total_points
     signal_id: MARKET-003
     rho_pooled: 0.156
@@ -95,7 +95,7 @@ candidates:
 
   - signal: purchase_price
     position: DEF
-    lens: MARKET
+    lens: market
     target: total_points
     signal_id: MARKET-004
     rho_pooled: 0.121
@@ -113,7 +113,7 @@ candidates:
 
   - signal: xgi_roll3
     position: MID
-    lens: FORM
+    lens: form
     target: total_points
     signal_id: FORM-001
     rho_pooled: 0.144
@@ -128,7 +128,7 @@ candidates:
 
   - signal: xgi_roll5
     position: MID
-    lens: FORM
+    lens: form
     target: total_points
     signal_id: FORM-002
     rho_pooled: 0.157
@@ -143,7 +143,7 @@ candidates:
 
   - signal: minutes_roll3
     position: MID
-    lens: AVAIL
+    lens: avail
     target: played_next_gw
     signal_id: AVAIL-001
     rho_pooled: 0.232
@@ -157,7 +157,7 @@ candidates:
 
   - signal: minutes_roll5
     position: MID
-    lens: AVAIL
+    lens: avail
     target: played_next_gw
     signal_id: AVAIL-002
     rho_pooled: 0.227
@@ -171,7 +171,7 @@ candidates:
 
   - signal: minutes_roll8
     position: MID
-    lens: AVAIL
+    lens: avail
     target: played_next_gw
     signal_id: AVAIL-003
     rho_pooled: 0.222
@@ -185,7 +185,7 @@ candidates:
 
   - signal: transfers_in
     position: MID
-    lens: MARKET
+    lens: market
     target: total_points
     signal_id: MARKET-001
     rho_pooled: 0.190
@@ -199,7 +199,7 @@ candidates:
 
   - signal: ownership_count
     position: MID
-    lens: MARKET
+    lens: market
     target: total_points
     signal_id: MARKET-003
     rho_pooled: 0.168
@@ -217,7 +217,7 @@ candidates:
 
   - signal: purchase_price
     position: FWD
-    lens: MARKET
+    lens: market
     target: total_points
     signal_id: MARKET-004
     rho_pooled: 0.155

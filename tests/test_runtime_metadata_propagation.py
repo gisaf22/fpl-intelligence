@@ -33,7 +33,7 @@ class TestGovernanceMetadataSchema:
             signal="xgi_roll3",
             position="DEF",
             key="xgi_roll3@form:total_points",
-            lens="FORM",
+            lens="form",
             lifecycle_state="candidate",
             downstream_status="eligible",
             leakage_risk="none",
@@ -51,7 +51,7 @@ class TestGovernanceMetadataSchema:
             signal="xgi_roll3",
             position="DEF",
             key="xgi_roll3@form:total_points",
-            lens="FORM",
+            lens="form",
             lifecycle_state="candidate",
             downstream_status="eligible",
             leakage_risk="none",
@@ -95,9 +95,11 @@ class TestGetSignalGovernance:
         assert gov.lifecycle_state == "approved"
         assert gov.downstream_status == "approved"
         assert gov.leakage_risk == "none"
-        assert gov.rho_pooled == pytest.approx(0.123)
-        assert gov.ci_lower == pytest.approx(0.084)
-        assert gov.ci_upper == pytest.approx(0.161)
+        # Assert the invariant (weak-positive ~0.12, CI excludes zero), not brittle decimals:
+        # rho shifts slightly across evaluation windows (in-sample GW33 vs full-season GW38).
+        assert gov.rho_pooled == pytest.approx(0.12, abs=0.02)
+        assert gov.ci_lower is not None and gov.ci_lower > 0  # CI excludes zero (the gate property)
+        assert gov.ci_upper is not None and gov.ci_upper > gov.ci_lower
 
     def test_known_excluded_signal(self) -> None:
         from domain.registry.governance_lookup import get_signal_governance
@@ -178,7 +180,7 @@ class TestMultiLensDisambiguation:
 
         gov = get_signal_governance("minutes_roll3", "MID")
         assert gov.lifecycle_state == "approved"
-        assert gov.lens == "AVAIL"
+        assert gov.lens == "avail"
         assert gov.key == "minutes_roll3@avail:played_next_gw"
 
     def test_minutes_roll3_def_returns_excluded(self) -> None:

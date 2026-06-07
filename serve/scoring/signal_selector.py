@@ -11,16 +11,16 @@ from pathlib import Path
 import pandas as pd
 
 from domain.registry.verdict import SignalVerdict, resolve_verdict
+from domain.signal_layers import LEAKAGE_LAYER_ROLES, OUTCOME_COMPONENT_LAYER_ROLES
 from serve.scoring.contracts import CaveatedSignal, ConfirmedSignal, SignalManifest
 
 # Promotion classes eligible for scoring
 _SCORING_CLASSES: frozenset[str] = frozenset({"core_signal", "review_signal"})
 
-# layer_role values that represent leakage (signal is or directly derives the target)
-_LEAKAGE_ROLES: frozenset[str] = frozenset({"points_component"})
-
-# layer_role values that are outcome-components (mechanistically tautological to the target)
-_OUTCOME_COMPONENT_ROLES: frozenset[str] = frozenset({"contribution_index"})
+# Leakage / outcome-component classification is owned by the domain ontology (ADR-010 ruling d):
+# serve enforces these at scoring time but references the canonical sets rather than re-listing them.
+_LEAKAGE_ROLES = LEAKAGE_LAYER_ROLES
+_OUTCOME_COMPONENT_ROLES = OUTCOME_COMPONENT_LAYER_ROLES
 
 
 def _exclusion_reason(verdict: SignalVerdict) -> str | None:
@@ -80,6 +80,7 @@ def load_manifest(registry: pd.DataFrame) -> SignalManifest:
             continue
 
         rho = verdict.rho_pooled  # non-null here: _exclusion_reason gates null rho
+        assert rho is not None  # narrow float | None -> float (gated above); fail-closed if that ever changes
         confirmed.append(
             ConfirmedSignal(
                 signal=verdict.signal,

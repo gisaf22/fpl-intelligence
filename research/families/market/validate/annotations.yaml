@@ -1,4 +1,4 @@
-lens: MARKET
+lens: market
 target: total_points
 signals:
   transfers_in:
@@ -44,46 +44,55 @@ signals:
       - 'G2-FAIL: non-monotonic quintile ordering (monotonic=False)'
       notes: CI excludes zero but non-monotonic (Q5-Q1=1.98 above gap threshold but
         non-monotonic bin ordering)
+  # RETIRED signal (was MARKET-002): tested and rejected at every position, then removed
+  # from the active market study SIGNALS set. transfers_balance (= transfers_in − transfers_out)
+  # is no longer evaluated, so its evidence is no longer recomputed. The excluded verdict is
+  # kept on record; decision_class is annotation-pinned (uninformative — gate failures below)
+  # so it survives provenance refreshes without re-running this retired signal.
   transfers_balance:
     GK:
       lifecycle_state: excluded
       downstream_status: blocked
       leakage_risk: none
+      decision_class: uninformative
       behavioral_reason: CI crosses zero at GK — net transfer balance has no reliable
         relationship with GK returns
       source_gate_decisions:
       - 'G1-FAIL: CI crosses zero'
-      notes: CI crosses zero
+      notes: 'Retired signal (MARKET-002); verdict on record, not re-evaluated. CI crosses zero.'
     DEF:
       lifecycle_state: excluded
       downstream_status: blocked
       leakage_risk: none
+      decision_class: uninformative
       behavioral_reason: CI excludes zero but Q5-Q1 gap (0.563) below decision relevance
         threshold — net transfer balance provides insufficient scoring separation
         at DEF
       source_gate_decisions:
       - G1-PASS
       - 'G2-FAIL: Q5-Q1=0.563 below threshold'
-      notes: CI excludes zero but Q5-Q1=0.563, below threshold
+      notes: 'Retired signal (MARKET-002); verdict on record, not re-evaluated. Q5-Q1=0.563, below threshold.'
     MID:
       lifecycle_state: excluded
       downstream_status: blocked
       leakage_risk: none
+      decision_class: uninformative
       behavioral_reason: CI excludes zero but Q5-Q1 gap (0.756) below decision relevance
         threshold — net balance uninformative at MID
       source_gate_decisions:
       - G1-PASS
       - 'G2-FAIL: Q5-Q1=0.756 below threshold'
-      notes: CI excludes zero but Q5-Q1=0.756, below threshold
+      notes: 'Retired signal (MARKET-002); verdict on record, not re-evaluated. Q5-Q1=0.756, below threshold.'
     FWD:
       lifecycle_state: excluded
       downstream_status: blocked
       leakage_risk: none
+      decision_class: uninformative
       behavioral_reason: CI crosses zero at FWD — no reliable relationship between
         net transfer balance and FWD returns
       source_gate_decisions:
       - 'G1-FAIL: CI crosses zero'
-      notes: CI crosses zero
+      notes: 'Retired signal (MARKET-002); verdict on record, not re-evaluated. CI crosses zero.'
   ownership_count:
     GK:
       lifecycle_state: excluded

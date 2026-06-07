@@ -1,4 +1,4 @@
-lens: AVAIL
+lens: avail
 target: played_next_gw
 signals:
   minutes_roll3:

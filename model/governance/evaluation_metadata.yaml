@@ -32,13 +32,13 @@ leakage_risk_vocab:
 evaluation_findings:
 - key: xgi_roll3@form:total_points
   signal: xgi_roll3
-  lens: FORM
+  lens: form
   target: total_points
   per_position:
     DEF:
-      rho_pooled: 0.123
-      rho_ci_lower: 0.084
-      rho_ci_upper: 0.161
+      rho_pooled: 0.1234
+      rho_ci_lower: 0.0859
+      rho_ci_upper: 0.1598
       block_stability_count: 3
       decision_class: informative
       lifecycle_state: approved
@@ -56,9 +56,9 @@ evaluation_findings:
       composition_role: primary
       synth01_decision_id: xgi_roll3@form:total_points#DEF
     MID:
-      rho_pooled: 0.144
-      rho_ci_lower: 0.107
-      rho_ci_upper: 0.182
+      rho_pooled: 0.1459
+      rho_ci_lower: 0.1083
+      rho_ci_upper: 0.1842
       block_stability_count: 3
       decision_class: informative
       lifecycle_state: excluded
@@ -78,10 +78,10 @@ evaluation_findings:
       composition_role: redundant
       synth01_decision_id: xgi_roll3@form:total_points#MID
     FWD:
-      rho_pooled: 0.091
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.0997
+      rho_ci_lower: 0.0209
+      rho_ci_upper: 0.178
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -115,15 +115,15 @@ evaluation_findings:
       composition_role: null
 - key: xgi_roll5@form:total_points
   signal: xgi_roll5
-  lens: FORM
+  lens: form
   target: total_points
   per_position:
     DEF:
-      rho_pooled: 0.113
-      rho_ci_lower: 0.071
-      rho_ci_upper: 0.155
+      rho_pooled: 0.1105
+      rho_ci_lower: 0.0715
+      rho_ci_upper: 0.1495
       block_stability_count: 3
-      decision_class: informative
+      decision_class: uninformative
       lifecycle_state: approved
       downstream_status: approved
       leakage_risk: none
@@ -140,9 +140,9 @@ evaluation_findings:
       composition_role: secondary
       synth01_decision_id: xgi_roll5@form:total_points#DEF
     MID:
-      rho_pooled: 0.157
-      rho_ci_lower: 0.118
-      rho_ci_upper: 0.197
+      rho_pooled: 0.158
+      rho_ci_lower: 0.1201
+      rho_ci_upper: 0.1957
       block_stability_count: 3
       decision_class: informative
       lifecycle_state: approved
@@ -162,10 +162,10 @@ evaluation_findings:
       composition_role: primary
       synth01_decision_id: xgi_roll5@form:total_points#MID
     FWD:
-      rho_pooled: 0.097
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1093
+      rho_ci_lower: 0.0225
+      rho_ci_upper: 0.1904
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -200,14 +200,14 @@ evaluation_findings:
       composition_role: null
 - key: goals_scored_roll3@form:total_points
   signal: goals_scored_roll3
-  lens: FORM
+  lens: form
   target: total_points
   per_position:
     DEF:
-      rho_pooled: 0.018
-      rho_ci_lower: -0.023
-      rho_ci_upper: 0.061
-      block_stability_count: null
+      rho_pooled: 0.0313
+      rho_ci_lower: -0.0075
+      rho_ci_upper: 0.0707
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -221,10 +221,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     MID:
-      rho_pooled: 0.076
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.0692
+      rho_ci_lower: 0.0324
+      rho_ci_upper: 0.1076
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -239,10 +239,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     FWD:
-      rho_pooled: 0.097
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.0971
+      rho_ci_lower: 0.0236
+      rho_ci_upper: 0.1742
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -276,14 +276,14 @@ evaluation_findings:
       composition_role: null
 - key: points_roll3@form:total_points
   signal: points_roll3
-  lens: FORM
+  lens: form
   target: total_points
   per_position:
     GK:
-      rho_pooled: 0.071
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.0906
+      rho_ci_lower: 0.0143
+      rho_ci_upper: 0.1645
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -299,10 +299,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.118
+      rho_ci_lower: 0.0803
+      rho_ci_upper: 0.1541
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -319,10 +319,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     MID:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1475
+      rho_ci_lower: 0.1097
+      rho_ci_upper: 0.1858
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -340,9 +340,9 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     FWD:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
+      rho_pooled: 0.1259
+      rho_ci_lower: 0.05
+      rho_ci_upper: 0.2023
       block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
@@ -361,14 +361,14 @@ evaluation_findings:
       composition_role: null
 - key: points_roll5@form:total_points
   signal: points_roll5
-  lens: FORM
+  lens: form
   target: total_points
   per_position:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1048
+      rho_ci_lower: 0.025
+      rho_ci_upper: 0.1778
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -384,10 +384,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1153
+      rho_ci_lower: 0.075
+      rho_ci_upper: 0.1549
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -403,9 +403,9 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     MID:
-      rho_pooled: 0.158
-      rho_ci_lower: 0.118
-      rho_ci_upper: 0.198
+      rho_pooled: 0.1529
+      rho_ci_lower: 0.1157
+      rho_ci_upper: 0.1897
       block_stability_count: 3
       decision_class: conditional
       lifecycle_state: excluded
@@ -423,10 +423,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     FWD:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1003
+      rho_ci_lower: 0.0163
+      rho_ci_upper: 0.178
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -443,14 +443,14 @@ evaluation_findings:
       composition_role: null
 - key: minutes_roll3@form:total_points
   signal: minutes_roll3
-  lens: FORM
+  lens: form
   target: total_points
   per_position:
     DEF:
-      rho_pooled: 0.138
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1382
+      rho_ci_lower: 0.0991
+      rho_ci_upper: 0.1739
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -466,10 +466,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     MID:
-      rho_pooled: 0.179
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.173
+      rho_ci_lower: 0.137
+      rho_ci_upper: 0.2083
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -486,10 +486,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     FWD:
-      rho_pooled: 0.085
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1003
+      rho_ci_lower: 0.0237
+      rho_ci_upper: 0.1742
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -523,14 +523,14 @@ evaluation_findings:
       composition_role: null
 - key: minutes_roll3@avail:played_next_gw
   signal: minutes_roll3
-  lens: AVAIL
+  lens: avail
   target: played_next_gw
   per_position:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1525
+      rho_ci_lower: 0.0465
+      rho_ci_upper: 0.2555
+      block_stability_count: 0
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -546,10 +546,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: 0.223
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.2171
+      rho_ci_lower: 0.1775
+      rho_ci_upper: 0.2536
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -565,9 +565,9 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     MID:
-      rho_pooled: 0.232
-      rho_ci_lower: 0.198
-      rho_ci_upper: 0.269
+      rho_pooled: 0.2268
+      rho_ci_lower: 0.1907
+      rho_ci_upper: 0.2631
       block_stability_count: 3
       decision_class: informative
       lifecycle_state: approved
@@ -584,10 +584,10 @@ evaluation_findings:
       composition_role: primary
       synth01_decision_id: minutes_roll3@avail:played_next_gw#MID
     FWD:
-      rho_pooled: 0.186
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.2112
+      rho_ci_lower: 0.141
+      rho_ci_upper: 0.2828
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -603,14 +603,14 @@ evaluation_findings:
       composition_role: null
 - key: minutes_roll5@avail:played_next_gw
   signal: minutes_roll5
-  lens: AVAIL
+  lens: avail
   target: played_next_gw
   per_position:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1522
+      rho_ci_lower: 0.0441
+      rho_ci_upper: 0.2494
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -625,10 +625,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: 0.213
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.2097
+      rho_ci_lower: 0.1711
+      rho_ci_upper: 0.246
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -643,9 +643,9 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     MID:
-      rho_pooled: 0.227
-      rho_ci_lower: 0.19
-      rho_ci_upper: 0.265
+      rho_pooled: 0.2242
+      rho_ci_lower: 0.1869
+      rho_ci_upper: 0.2592
       block_stability_count: 3
       decision_class: informative
       lifecycle_state: excluded
@@ -662,11 +662,11 @@ evaluation_findings:
       composition_role: redundant
       synth01_decision_id: minutes_roll5@avail:played_next_gw#MID
     FWD:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: 1
-      decision_class: uninformative
+      rho_pooled: 0.2067
+      rho_ci_lower: 0.1285
+      rho_ci_upper: 0.2782
+      block_stability_count: 2
+      decision_class: informative
       lifecycle_state: excluded
       downstream_status: blocked
       leakage_risk: none
@@ -681,14 +681,14 @@ evaluation_findings:
       composition_role: null
 - key: minutes_roll8@avail:played_next_gw
   signal: minutes_roll8
-  lens: AVAIL
+  lens: avail
   target: played_next_gw
   per_position:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1445
+      rho_ci_lower: 0.0374
+      rho_ci_upper: 0.2434
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -704,11 +704,11 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: 0.219
-      rho_ci_lower: 0.174
-      rho_ci_upper: 0.261
+      rho_pooled: 0.2169
+      rho_ci_lower: 0.1764
+      rho_ci_upper: 0.2614
       block_stability_count: 3
-      decision_class: informative
+      decision_class: uninformative
       lifecycle_state: approved
       downstream_status: approved
       leakage_risk: none
@@ -725,9 +725,9 @@ evaluation_findings:
       composition_role: primary
       synth01_decision_id: minutes_roll8@avail:played_next_gw#DEF
     MID:
-      rho_pooled: 0.222
-      rho_ci_lower: 0.18
-      rho_ci_upper: 0.261
+      rho_pooled: 0.2177
+      rho_ci_lower: 0.1817
+      rho_ci_upper: 0.2538
       block_stability_count: 3
       decision_class: informative
       lifecycle_state: approved
@@ -745,10 +745,10 @@ evaluation_findings:
       composition_role: secondary
       synth01_decision_id: minutes_roll8@avail:played_next_gw#MID
     FWD:
-      rho_pooled: 0.206
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.2311
+      rho_ci_lower: 0.1532
+      rho_ci_upper: 0.3072
+      block_stability_count: 2
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -765,14 +765,14 @@ evaluation_findings:
       composition_role: null
 - key: transfers_in@market:total_points
   signal: transfers_in
-  lens: MARKET
+  lens: market
   target: total_points
   per_position:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1448
+      rho_ci_lower: 0.0703
+      rho_ci_upper: 0.2215
+      block_stability_count: 2
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -787,9 +787,9 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: 0.187
-      rho_ci_lower: 0.146
-      rho_ci_upper: 0.226
+      rho_pooled: 0.1921
+      rho_ci_lower: 0.1557
+      rho_ci_upper: 0.2286
       block_stability_count: 3
       decision_class: informative
       lifecycle_state: approved
@@ -806,9 +806,9 @@ evaluation_findings:
       composition_role: primary
       synth01_decision_id: transfers_in@market:total_points#DEF
     MID:
-      rho_pooled: 0.19
-      rho_ci_lower: 0.153
-      rho_ci_upper: 0.23
+      rho_pooled: 0.1841
+      rho_ci_lower: 0.1474
+      rho_ci_upper: 0.219
       block_stability_count: 3
       decision_class: informative
       lifecycle_state: approved
@@ -825,10 +825,10 @@ evaluation_findings:
       composition_role: primary
       synth01_decision_id: transfers_in@market:total_points#MID
     FWD:
-      rho_pooled: 0.127
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1183
+      rho_ci_lower: 0.0421
+      rho_ci_upper: 0.191
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -846,7 +846,7 @@ evaluation_findings:
       composition_role: null
 - key: transfers_balance@market:total_points
   signal: transfers_balance
-  lens: MARKET
+  lens: market
   target: total_points
   per_position:
     GK:
@@ -862,12 +862,13 @@ evaluation_findings:
         relationship with GK returns
       source_gate_decisions:
       - 'G1-FAIL: CI crosses zero'
-      notes: CI crosses zero
+      notes: Retired signal (MARKET-002); verdict on record, not re-evaluated. CI
+        crosses zero.
       synth01_decision: null
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: 0.066
+      rho_pooled: null
       rho_ci_lower: null
       rho_ci_upper: null
       block_stability_count: null
@@ -881,12 +882,13 @@ evaluation_findings:
       source_gate_decisions:
       - G1-PASS
       - 'G2-FAIL: Q5-Q1=0.563 below threshold'
-      notes: CI excludes zero but Q5-Q1=0.563, below threshold
+      notes: Retired signal (MARKET-002); verdict on record, not re-evaluated. Q5-Q1=0.563,
+        below threshold.
       synth01_decision: null
       composition_weight: null
       composition_role: null
     MID:
-      rho_pooled: 0.102
+      rho_pooled: null
       rho_ci_lower: null
       rho_ci_upper: null
       block_stability_count: null
@@ -899,7 +901,8 @@ evaluation_findings:
       source_gate_decisions:
       - G1-PASS
       - 'G2-FAIL: Q5-Q1=0.756 below threshold'
-      notes: CI excludes zero but Q5-Q1=0.756, below threshold
+      notes: Retired signal (MARKET-002); verdict on record, not re-evaluated. Q5-Q1=0.756,
+        below threshold.
       synth01_decision: null
       composition_weight: null
       composition_role: null
@@ -916,20 +919,21 @@ evaluation_findings:
         net transfer balance and FWD returns
       source_gate_decisions:
       - 'G1-FAIL: CI crosses zero'
-      notes: CI crosses zero
+      notes: Retired signal (MARKET-002); verdict on record, not re-evaluated. CI
+        crosses zero.
       synth01_decision: null
       composition_weight: null
       composition_role: null
 - key: ownership_count@market:total_points
   signal: ownership_count
-  lens: MARKET
+  lens: market
   target: total_points
   per_position:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1205
+      rho_ci_lower: 0.0453
+      rho_ci_upper: 0.1946
+      block_stability_count: 2
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -944,9 +948,9 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: 0.156
-      rho_ci_lower: 0.117
-      rho_ci_upper: 0.196
+      rho_pooled: 0.1447
+      rho_ci_lower: 0.1086
+      rho_ci_upper: 0.1801
       block_stability_count: 3
       decision_class: informative
       lifecycle_state: excluded
@@ -966,9 +970,9 @@ evaluation_findings:
       composition_role: redundant
       synth01_decision_id: ownership_count@market:total_points#DEF
     MID:
-      rho_pooled: 0.168
-      rho_ci_lower: 0.13
-      rho_ci_upper: 0.205
+      rho_pooled: 0.162
+      rho_ci_lower: 0.1243
+      rho_ci_upper: 0.1953
       block_stability_count: 3
       decision_class: informative
       lifecycle_state: approved
@@ -987,9 +991,9 @@ evaluation_findings:
       composition_role: secondary
       synth01_decision_id: ownership_count@market:total_points#MID
     FWD:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
+      rho_pooled: 0.1232
+      rho_ci_lower: 0.0488
+      rho_ci_upper: 0.1994
       block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
@@ -1006,14 +1010,14 @@ evaluation_findings:
       composition_role: null
 - key: purchase_price@market:total_points
   signal: purchase_price
-  lens: MARKET
+  lens: market
   target: total_points
   per_position:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1044
+      rho_ci_lower: 0.0235
+      rho_ci_upper: 0.1816
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1028,9 +1032,9 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: 0.121
-      rho_ci_lower: 0.082
-      rho_ci_upper: 0.162
+      rho_pooled: 0.1126
+      rho_ci_lower: 0.075
+      rho_ci_upper: 0.1498
       block_stability_count: 2
       decision_class: informative
       lifecycle_state: approved
@@ -1050,10 +1054,10 @@ evaluation_findings:
       composition_role: secondary
       synth01_decision_id: purchase_price@market:total_points#DEF
     MID:
-      rho_pooled: 0.121
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1113
+      rho_ci_lower: 0.0748
+      rho_ci_upper: 0.1479
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1068,11 +1072,11 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     FWD:
-      rho_pooled: 0.155
-      rho_ci_lower: 0.077
-      rho_ci_upper: 0.237
+      rho_pooled: 0.1222
+      rho_ci_lower: 0.0478
+      rho_ci_upper: 0.2024
       block_stability_count: 2
-      decision_class: informative
+      decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
       leakage_risk: none
@@ -1089,19 +1093,19 @@ evaluation_findings:
       notes: Removed from FWD scoring — Phase 9 holdout reversal. SYNTH-02 required
         for phase-conditional evaluation (restrict to GW 1-30).
       synth01_decision: FWD-SINGLE-SIGNAL
-      composition_weight: 0.0
-      composition_role: null
+      composition_weight: 1.0
+      composition_role: primary
       synth01_decision_id: purchase_price@market:total_points#FWD
 - key: fdr_avg@fixture_gw:total_points
   signal: fdr_avg
-  lens: FIXTURE-GW
+  lens: fixture_gw
   target: total_points
   per_position:
     GK:
-      rho_pooled: -0.147
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: -0.1622
+      rho_ci_lower: -0.2346
+      rho_ci_upper: -0.0919
+      block_stability_count: 2
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1118,10 +1122,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: -0.196
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: -0.1923
+      rho_ci_lower: -0.2246
+      rho_ci_upper: -0.158
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1138,10 +1142,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     MID:
-      rho_pooled: -0.159
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: -0.1583
+      rho_ci_lower: -0.1922
+      rho_ci_upper: -0.1244
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1158,10 +1162,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     FWD:
-      rho_pooled: -0.092
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: -0.1127
+      rho_ci_lower: -0.1818
+      rho_ci_upper: -0.0426
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1179,14 +1183,14 @@ evaluation_findings:
       composition_role: null
 - key: was_home@fixture_gw:total_points
   signal: was_home
-  lens: FIXTURE-GW
+  lens: fixture_gw
   target: total_points
   per_position:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.0626
+      rho_ci_lower: -0.0104
+      rho_ci_upper: 0.1401
+      block_stability_count: 0
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1200,10 +1204,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: 0.068
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.0826
+      rho_ci_lower: 0.0459
+      rho_ci_upper: 0.1195
+      block_stability_count: 3
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1218,10 +1222,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     MID:
-      rho_pooled: 0.044
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.0512
+      rho_ci_lower: 0.0164
+      rho_ci_upper: 0.0874
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1237,10 +1241,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     FWD:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.0322
+      rho_ci_lower: -0.0416
+      rho_ci_upper: 0.1038
+      block_stability_count: 0
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1255,7 +1259,7 @@ evaluation_findings:
       composition_role: null
 - key: fixture_count@fixture_gw:total_points
   signal: fixture_count
-  lens: FIXTURE-GW
+  lens: fixture_gw
   target: total_points
   per_position:
     GK:
@@ -1277,10 +1281,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     DEF:
-      rho_pooled: 0.098
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1054
+      rho_ci_lower: 0.0722
+      rho_ci_upper: 0.1384
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked
@@ -1298,10 +1302,10 @@ evaluation_findings:
       composition_weight: null
       composition_role: null
     MID:
-      rho_pooled: 0.083
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.0988
+      rho_ci_lower: 0.0623
+      rho_ci_upper: 0.1318
+      block_stability_count: 1
       decision_class: uninformative
       lifecycle_state: excluded
       downstream_status: blocked

@@ -2,7 +2,7 @@
 SYNTH-01 Execution — Phase 7, Operational Convergence Plan.
 
 Mode: assemble · Stage: model · Status: PARTIALLY SET — DEF/MID composition weights evidence-based; module weights still editorial; FDR conditioning deferred (MATERIAL)
-Population: minutes>=60; DGW excluded; GW 6-33; holdout GW 34-38
+Population: minutes>=60; DGW excluded; GW 6-38 (full season — holdout folded in for season review, ADR-010)
 ADLC §4 audit row E.
 
 Computes partial Spearman rho for each candidate controlling for all other
@@ -10,7 +10,11 @@ same-position × same-lens candidates. Resolves redundancy pairs and
 within-window families via marginal gain test. Derives composition weights
 with bootstrap CIs. Runs FDR moderation sensitivity check.
 
-Output: model/assemble/synth01_decisions.yaml
+Output: model/assemble/synth01_recommendations.yaml — the study's evidence + the rule's
+*recommended* decision/weight/role. Governance ratifies these into the decision-of-record
+(model/assemble/synth01_decisions.yaml) via generate_synth01_decisions.py (ADR-010 ruling c).
+The study no longer emits the decision directly — recommendation and decision authority are
+separated.
 """
 
 from __future__ import annotations
@@ -33,14 +37,14 @@ from research.kernels.redundancy import bootstrap_partial_rho, partial_spearman
 from research.kernels.resampling import permutation_rho_baseline
 from research.kernels.stability import fraction_rank_order_changed
 
-OUT_PATH = Path("model/assemble/synth01_decisions.yaml")
+OUT_PATH = Path("model/assemble/synth01_recommendations.yaml")
 RUNS_DIR = Path("research/runs")
 
 N_BOOTSTRAP = 2000
 BOOTSTRAP_SEED = 42
 CI_LEVEL = 0.95
 MINUTES_THRESHOLD = 60
-GW_MAX = 33
+GW_MAX = 38
 MARGINAL_GAIN_THRESHOLD = 0.02
 MAX_WEIGHT = 0.60
 EQUAL_WEIGHT_IMPROVEMENT_THRESHOLD = 0.02
@@ -51,22 +55,22 @@ FDR_MODERATION_THRESHOLD = 0.15
 # ---------------------------------------------------------------------------
 
 GROUPS: list[dict] = [
-    dict(position="DEF", lens="FORM",
+    dict(position="DEF", lens="form",
          signals=["xgi_roll3", "xgi_roll5"],
          target="total_points_next_gw", gw_min=6),
-    dict(position="DEF", lens="AVAIL",
+    dict(position="DEF", lens="avail",
          signals=["minutes_roll8"],
          target="played_next_gw", gw_min=9),
-    dict(position="DEF", lens="MARKET",
+    dict(position="DEF", lens="market",
          signals=["transfers_in", "ownership_count", "purchase_price"],
          target="total_points_next_gw", gw_min=1),
-    dict(position="MID", lens="FORM",
+    dict(position="MID", lens="form",
          signals=["xgi_roll3", "xgi_roll5"],
          target="total_points_next_gw", gw_min=6),
-    dict(position="MID", lens="AVAIL",
+    dict(position="MID", lens="avail",
          signals=["minutes_roll3", "minutes_roll5", "minutes_roll8"],
          target="played_next_gw", gw_min=9),
-    dict(position="MID", lens="MARKET",
+    dict(position="MID", lens="market",
          signals=["transfers_in", "ownership_count"],
          target="total_points_next_gw", gw_min=1),
 ]
@@ -256,7 +260,7 @@ def run(db_path: Path = DB_PATH) -> Path:
     def _composite_key(signal: str, lens: str, target: str, position: str) -> str:
         return build_key(signal, lens, _TARGET_TOKEN.get(target, target), position)
 
-    all_decisions: list[dict] = []
+    all_recommendations: list[dict] = []
     retained_for_moderation: list[tuple[str, str, str]] = []
     group_summaries: list[dict] = []
 
@@ -384,15 +388,15 @@ def run(db_path: Path = DB_PATH) -> Path:
                 "signal": sig,
                 "position": position,
                 "lens": lens,
-                "decision": decision_str,
                 "partial_rho": round(rho, 4),
                 "partial_ci_lower": round(ci_lo, 4),
                 "partial_ci_upper": round(ci_hi, 4),
-                "composition_weight": round(weight_val, 4),
-                "contribution_class": contrib,
                 "marginal_gain": round(abs(rho), 4),
                 "evidence": evidence,
                 "notes": notes,
+                "recommended_decision": decision_str,
+                "recommended_weight": round(weight_val, 4),
+                "recommended_contribution_class": contrib,
             }
 
             w_ci = weight_cis.get(sig)
@@ -400,7 +404,7 @@ def run(db_path: Path = DB_PATH) -> Path:
                 entry["weight_ci_lower"] = round(w_ci[0], 4)
                 entry["weight_ci_upper"] = round(w_ci[1], 4)
 
-            all_decisions.append(entry)
+            all_recommendations.append(entry)
 
         group_summaries.append({
             "group": f"{position} × {lens}",
@@ -412,21 +416,21 @@ def run(db_path: Path = DB_PATH) -> Path:
             "baseline_note": baseline_note,
         })
 
-    # --- FWD single-signal decision ---
-    all_decisions.append({
-        "key": _composite_key("purchase_price", "MARKET", "total_points_next_gw", "FWD"),
+    # --- FWD single-signal recommendation ---
+    all_recommendations.append({
+        "key": _composite_key("purchase_price", "market", "total_points_next_gw", "FWD"),
         "signal": "purchase_price",
         "position": "FWD",
-        "lens": "MARKET",
-        "decision": "FWD-SINGLE-SIGNAL",
+        "lens": "market",
         "partial_rho": 0.155,
         "partial_ci_lower": 0.077,
         "partial_ci_upper": 0.237,
-        "composition_weight": 1.0,
-        "contribution_class": "primary",
         "marginal_gain": 0.155,
         "evidence": "Sole FWD candidate. No composite synthesis — single-signal qualified score. bivariate rho=0.155 from LENS-MARKET evaluation_metadata.yaml.",
         "notes": "G3-WEAK: 2/3 temporal blocks. Intelligence consumers must acknowledge caveat. Not evaluated by partial rho (no other FWD candidates to control for).",
+        "recommended_decision": "FWD-SINGLE-SIGNAL",
+        "recommended_weight": 1.0,
+        "recommended_contribution_class": "primary",
     })
 
     # --- FDR moderation check ---
@@ -434,9 +438,9 @@ def run(db_path: Path = DB_PATH) -> Path:
     moderation = _fdr_moderation_check(pop, retained_for_moderation)
     print(f"  {moderation['verdict']}")
 
-    # --- Assemble output ---
-    approved = [d for d in all_decisions if d["decision"].startswith("APPROVED")]
-    excluded = [d for d in all_decisions if "EXCLUDED" in d["decision"]]
+    # --- Assemble recommendation output (decisions are ratified by governance, ADR-010 ruling c) ---
+    approved = [d for d in all_recommendations if d["recommended_decision"].startswith("APPROVED")]
+    excluded = [d for d in all_recommendations if "EXCLUDED" in d["recommended_decision"]]
 
     output = {
         "version": "synth01",
@@ -444,18 +448,20 @@ def run(db_path: Path = DB_PATH) -> Path:
         "authority": "Operational Convergence Plan Phase 7",
         "candidate_registry": "model/assemble/synth01_candidates.yaml",
         "design_doc": "docs/governance/synth01-design.md",
-        "total_decisions": len(all_decisions),
-        "approved_count": len(approved),
-        "excluded_count": len(excluded),
         "fdr_moderation_check": moderation,
         "group_summary": group_summaries,
-        "decisions": all_decisions,
+        "recommendations": all_recommendations,
     }
 
     with open(OUT_PATH, "w") as f:
+        f.write(
+            "# Machine-written by composition_study.run() — evidence + the rule's RECOMMENDED\n"
+            "# decision/weight/role. Ratified into synth01_decisions.yaml by governance via\n"
+            "# generate_synth01_decisions.py (ADR-010 ruling c).\n"
+        )
         yaml.dump(output, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
-    print(f"\nDecisions written to {OUT_PATH}")
+    print(f"\nRecommendations written to {OUT_PATH}")
     print(f"Run artifacts: {run_dir}")
     print(f"\nSummary: {len(approved)} approved, {len(excluded)} excluded")
     for g in group_summaries:

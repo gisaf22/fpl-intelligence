@@ -8,25 +8,26 @@ from domain.registry.finding_key import (
     FindingKey,
     FindingKeyError,
     build_key,
-    lens_token,
     parse_key,
 )
 
 pytestmark = pytest.mark.unit
 
 
-def test_lens_token_normalises():
-    assert lens_token("FORM") == "form"
-    assert lens_token("AVAIL") == "avail"
-    assert lens_token("Market-Behavior") == "market_behavior"
+def test_build_key_rejects_non_canonical_lens():
+    """Lens must be the canonical lowercase token — no silent normalisation (ADR-003 amendment)."""
+    with pytest.raises(FindingKeyError, match="Non-canonical lens"):
+        build_key("xgi_roll3", "FORM", "total_points")
+    with pytest.raises(FindingKeyError, match="Non-canonical lens"):
+        build_key("fdr_avg", "FIXTURE-GW", "total_points")
 
 
 def test_build_key_without_position():
-    assert build_key("xgi_roll3", "FORM", "total_points") == "xgi_roll3@form:total_points"
+    assert build_key("xgi_roll3", "form", "total_points") == "xgi_roll3@form:total_points"
 
 
 def test_build_key_with_position():
-    assert build_key("purchase_price", "MARKET", "total_points", "FWD") == "purchase_price@market:total_points#FWD"
+    assert build_key("purchase_price", "market", "total_points", "FWD") == "purchase_price@market:total_points#FWD"
 
 
 def test_parse_key_lens_finding():
@@ -58,11 +59,11 @@ def test_parse_key_rejects_malformed(key):
 @pytest.mark.parametrize(
     ("signal", "lens", "target", "position"),
     [
-        ("xgi_roll3", "FORM", "total_points", None),
-        ("minutes_roll3", "AVAIL", "played_next_gw", "MID"),
-        ("purchase_price", "MARKET", "total_points", "FWD"),
+        ("xgi_roll3", "form", "total_points", None),
+        ("minutes_roll3", "avail", "played_next_gw", "MID"),
+        ("purchase_price", "market", "total_points", "FWD"),
     ],
 )
 def test_build_then_parse_round_trips(signal, lens, target, position):
     parsed = parse_key(build_key(signal, lens, target, position))
-    assert parsed == FindingKey(signal, lens_token(lens), target, position)
+    assert parsed == FindingKey(signal, lens, target, position)

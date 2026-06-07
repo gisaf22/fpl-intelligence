@@ -30,13 +30,13 @@ from typing import Any
 
 import yaml
 
-# Lens label (as it appears in evaluation_metadata.yaml / finding keys) -> the
-# research family validate directory that owns its verdict records.
+# Lens token (canonical lowercase, as it appears in evaluation_metadata.yaml / finding
+# keys; ADR-003 amendment) -> the research family validate directory that owns its records.
 LENS_VALIDATE_DIRS: dict[str, Path] = {
-    "FORM": Path("research/families/form/validate"),
-    "AVAIL": Path("research/families/availability/validate"),
-    "MARKET": Path("research/families/market/validate"),
-    "FIXTURE-GW": Path("research/families/fixture/validate"),
+    "form": Path("research/families/form/validate"),
+    "avail": Path("research/families/availability/validate"),
+    "market": Path("research/families/market/validate"),
+    "fixture_gw": Path("research/families/fixture/validate"),
 }
 
 # Study population label -> the governance/runtime position label.

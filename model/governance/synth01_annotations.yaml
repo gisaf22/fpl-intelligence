@@ -1,0 +1,90 @@
+# Human-authored governance ratification of composition recommendations (ADR-010 ruling c).
+# Per key: ratified_decision/weight/contribution_class may ACCEPT or OVERRIDE the study's
+# recommendation. Merged with synth01_recommendations.yaml by generate_synth01_decisions.py.
+version: synth01
+authority: model/governance — composition ratification (ADR-010 ruling c)
+annotations:
+- key: xgi_roll3@form:total_points#DEF
+  ratified_decision: APPROVED-PRIMARY
+  ratified_weight: 0.5
+  ratified_contribution_class: primary
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: xgi_roll5@form:total_points#DEF
+  ratified_decision: APPROVED-SECONDARY
+  ratified_weight: 0.5
+  ratified_contribution_class: secondary
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: minutes_roll8@avail:played_next_gw#DEF
+  ratified_decision: APPROVED-PRIMARY
+  ratified_weight: 1.0
+  ratified_contribution_class: primary
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: transfers_in@market:total_points#DEF
+  ratified_decision: APPROVED-PRIMARY
+  ratified_weight: 0.5
+  ratified_contribution_class: primary
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: ownership_count@market:total_points#DEF
+  ratified_decision: EXCLUDED-REDUNDANT
+  ratified_weight: 0.0
+  ratified_contribution_class: redundant
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: purchase_price@market:total_points#DEF
+  ratified_decision: APPROVED-SECONDARY
+  ratified_weight: 0.5
+  ratified_contribution_class: secondary
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: xgi_roll3@form:total_points#MID
+  ratified_decision: EXCLUDED-REDUNDANT
+  ratified_weight: 0.0
+  ratified_contribution_class: redundant
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: xgi_roll5@form:total_points#MID
+  ratified_decision: APPROVED-PRIMARY
+  ratified_weight: 1.0
+  ratified_contribution_class: primary
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: minutes_roll3@avail:played_next_gw#MID
+  ratified_decision: APPROVED-PRIMARY
+  ratified_weight: 0.5
+  ratified_contribution_class: primary
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: minutes_roll5@avail:played_next_gw#MID
+  ratified_decision: EXCLUDED-REDUNDANT
+  ratified_weight: 0.0
+  ratified_contribution_class: redundant
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: minutes_roll8@avail:played_next_gw#MID
+  ratified_decision: APPROVED-SECONDARY
+  ratified_weight: 0.5
+  ratified_contribution_class: secondary
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: transfers_in@market:total_points#MID
+  ratified_decision: APPROVED-PRIMARY
+  ratified_weight: 0.5
+  ratified_contribution_class: primary
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: ownership_count@market:total_points#MID
+  ratified_decision: APPROVED-SECONDARY
+  ratified_weight: 0.5
+  ratified_contribution_class: secondary
+  rationale: 'Backfill ratification: accepts the study recommendation verbatim (ADR-010
+    ruling c).'
+- key: purchase_price@market:total_points#FWD
+  ratified_decision: FWD-SINGLE-SIGNAL
+  ratified_weight: 1.0
+  ratified_contribution_class: primary
+  rationale: 'Accepts the study recommendation (sole FWD candidate → weight 1.0, primary).
+    Corrects a stale 0.0/null carried by the prior hand-authored record (ADR-010 ruling c).'

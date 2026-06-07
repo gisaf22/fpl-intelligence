@@ -23,7 +23,7 @@ from research.families.evidence_record import decision_class_for, write_evidence
 
 RUNS_DIR = Path("research/runs")
 VALIDATE_DIR = Path(__file__).parent
-LENS = "AVAIL"
+LENS = "avail"
 TARGET_TOKEN = "played_next_gw"
 
 # LENS_DESIGN.md §2 — primary target is played_next_gw (binary)
@@ -40,12 +40,12 @@ SIGNAL_IDS: dict[str, str] = {
 }
 
 MINUTES_THRESHOLD = 60
-GW_MAX = 33
+GW_MAX = 38
 
 GW_BLOCKS: dict[str, tuple[int, int]] = {
     "early": (3, 12),
     "mid":   (13, 26),
-    "late":  (27, 33),
+    "late":  (27, 38),
 }
 
 N_BOOTSTRAP = 2000

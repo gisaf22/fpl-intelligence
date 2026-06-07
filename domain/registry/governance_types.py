@@ -28,7 +28,7 @@ class GovernanceMetadata:
     signal: str
     position: str
     key: str  # composite finding key, e.g. "xgi_roll3@form:total_points" (ADR-003)
-    lens: str  # e.g. "FORM"
+    lens: str  # e.g. "form"
     lifecycle_state: str  # approved | candidate | excluded | not_applicable
     downstream_status: str  # eligible | caveated | blocked
     leakage_risk: str  # none | evaluation_circularity | direct

@@ -1,15 +1,11 @@
-# GENERATED — DO NOT EDIT BY HAND (ADR-010 ruling c).
-# Regenerate with: python -m model.governance.generate_synth01_decisions
-# Source: model/assemble/synth01_recommendations.yaml
-#       + model/governance/synth01_annotations.yaml
+# Machine-written by composition_study.run() — evidence + the rule's RECOMMENDED
+# decision/weight/role. Ratified into synth01_decisions.yaml by governance via
+# generate_synth01_decisions.py (ADR-010 ruling c).
 version: synth01
 produced: '2026-06-06'
 authority: Operational Convergence Plan Phase 7
 candidate_registry: model/assemble/synth01_candidates.yaml
 design_doc: docs/governance/synth01-design.md
-total_decisions: 14
-approved_count: 10
-excluded_count: 3
 fdr_moderation_check:
   material: true
   n_material_groups: 3
@@ -105,221 +101,221 @@ group_summary:
     ownership_count: 0.5
   equal_weight_preferred: true
   baseline_note: MID composite rho=0.1662 vs naive baseline rho=0.158 — CLEARS baseline
-decisions:
+recommendations:
 - key: xgi_roll3@form:total_points#DEF
   signal: xgi_roll3
   position: DEF
   lens: form
-  decision: APPROVED-PRIMARY
   partial_rho: 0.048
   partial_ci_lower: 0.0091
   partial_ci_upper: 0.0869
-  composition_weight: 0.5
-  contribution_class: primary
   marginal_gain: 0.048
   evidence: partial_rho=0.0480; CI=[0.0091, 0.0869]; controlling for ['xgi_roll5'];
     n=2471
   notes: '|partial_rho|=0.0480 >= 0.02 threshold. Weight=1.0000'
+  recommended_decision: APPROVED-PRIMARY
+  recommended_weight: 1.0
+  recommended_contribution_class: primary
 - key: xgi_roll5@form:total_points#DEF
   signal: xgi_roll5
   position: DEF
   lens: form
-  decision: APPROVED-SECONDARY
   partial_rho: 0.018
   partial_ci_lower: -0.0199
   partial_ci_upper: 0.0558
-  composition_weight: 0.5
-  contribution_class: secondary
   marginal_gain: 0.018
   evidence: partial_rho=0.0180; CI=[-0.0199, 0.0558]; controlling for ['xgi_roll3'];
     n=2471
   notes: '|partial_rho|=0.0180 < 0.02 threshold. Absorbed by: [''xgi_roll3''].'
+  recommended_decision: EXCLUDED-REDUNDANT
+  recommended_weight: 0.0
+  recommended_contribution_class: redundant
 - key: minutes_roll8@avail:played_next_gw#DEF
   signal: minutes_roll8
   position: DEF
   lens: avail
-  decision: APPROVED-PRIMARY
   partial_rho: 0.2169
   partial_ci_lower: 0.1764
   partial_ci_upper: 0.2614
-  composition_weight: 1.0
-  contribution_class: primary
   marginal_gain: 0.2169
   evidence: partial_rho=0.2169; CI=[0.1764, 0.2614]; controlling for none (singleton);
     n=2238
   notes: '|partial_rho|=0.2169 >= 0.02 threshold. Weight=1.0000'
+  recommended_decision: APPROVED-PRIMARY
+  recommended_weight: 1.0
+  recommended_contribution_class: primary
 - key: transfers_in@market:total_points#DEF
   signal: transfers_in
   position: DEF
   lens: market
-  decision: APPROVED-PRIMARY
   partial_rho: 0.1063
   partial_ci_lower: 0.0696
   partial_ci_upper: 0.1433
-  composition_weight: 0.5
-  contribution_class: primary
   marginal_gain: 0.1063
   evidence: partial_rho=0.1063; CI=[0.0696, 0.1433]; controlling for ['ownership_count',
     'purchase_price']; n=2870
   notes: '|partial_rho|=0.1063 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
     composite did not improve by >=0.02 rho units). Weight CI=[0.5974, 0.6000].'
+  recommended_decision: APPROVED-PRIMARY
+  recommended_weight: 0.5
+  recommended_contribution_class: primary
   weight_ci_lower: 0.5974
   weight_ci_upper: 0.6
 - key: ownership_count@market:total_points#DEF
   signal: ownership_count
   position: DEF
   lens: market
-  decision: EXCLUDED-REDUNDANT
   partial_rho: -0.0123
   partial_ci_lower: -0.0473
   partial_ci_upper: 0.0244
-  composition_weight: 0.0
-  contribution_class: redundant
   marginal_gain: 0.0123
   evidence: partial_rho=-0.0123; CI=[-0.0473, 0.0244]; controlling for ['transfers_in',
     'purchase_price']; n=2870
   notes: '|partial_rho|=0.0123 < 0.02 threshold. Absorbed by: [''transfers_in'', ''purchase_price''].
     Confirms HIGH REDUNDANCY SUBSTITUTE resolution from synth01_candidates.yaml.'
+  recommended_decision: EXCLUDED-REDUNDANT
+  recommended_weight: 0.0
+  recommended_contribution_class: redundant
 - key: purchase_price@market:total_points#DEF
   signal: purchase_price
   position: DEF
   lens: market
-  decision: APPROVED-SECONDARY
   partial_rho: 0.0499
   partial_ci_lower: 0.0119
   partial_ci_upper: 0.0857
-  composition_weight: 0.5
-  contribution_class: secondary
   marginal_gain: 0.0499
   evidence: partial_rho=0.0499; CI=[0.0119, 0.0857]; controlling for ['transfers_in',
     'ownership_count']; n=2870
   notes: '|partial_rho|=0.0499 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.4026].'
+  recommended_decision: APPROVED-SECONDARY
+  recommended_weight: 0.5
+  recommended_contribution_class: secondary
   weight_ci_lower: 0.4
   weight_ci_upper: 0.4026
 - key: xgi_roll3@form:total_points#MID
   signal: xgi_roll3
   position: MID
   lens: form
-  decision: EXCLUDED-REDUNDANT
   partial_rho: 0.0125
   partial_ci_lower: -0.0262
   partial_ci_upper: 0.0485
-  composition_weight: 0.0
-  contribution_class: redundant
   marginal_gain: 0.0125
   evidence: partial_rho=0.0125; CI=[-0.0262, 0.0485]; controlling for ['xgi_roll5'];
     n=2666
   notes: '|partial_rho|=0.0125 < 0.02 threshold. Absorbed by: [''xgi_roll5''].'
+  recommended_decision: EXCLUDED-REDUNDANT
+  recommended_weight: 0.0
+  recommended_contribution_class: redundant
 - key: xgi_roll5@form:total_points#MID
   signal: xgi_roll5
   position: MID
   lens: form
-  decision: APPROVED-PRIMARY
   partial_rho: 0.0619
   partial_ci_lower: 0.0252
   partial_ci_upper: 0.0994
-  composition_weight: 1.0
-  contribution_class: primary
   marginal_gain: 0.0619
   evidence: partial_rho=0.0619; CI=[0.0252, 0.0994]; controlling for ['xgi_roll3'];
     n=2666
   notes: '|partial_rho|=0.0619 >= 0.02 threshold. Weight=1.0000'
+  recommended_decision: APPROVED-PRIMARY
+  recommended_weight: 1.0
+  recommended_contribution_class: primary
 - key: minutes_roll3@avail:played_next_gw#MID
   signal: minutes_roll3
   position: MID
   lens: avail
-  decision: APPROVED-PRIMARY
   partial_rho: 0.0464
   partial_ci_lower: 0.0051
   partial_ci_upper: 0.0827
-  composition_weight: 0.5
-  contribution_class: primary
   marginal_gain: 0.0464
   evidence: partial_rho=0.0464; CI=[0.0051, 0.0827]; controlling for ['minutes_roll5',
     'minutes_roll8']; n=2401
   notes: '|partial_rho|=0.0464 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
+  recommended_decision: APPROVED-PRIMARY
+  recommended_weight: 0.5
+  recommended_contribution_class: primary
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
 - key: minutes_roll5@avail:played_next_gw#MID
   signal: minutes_roll5
   position: MID
   lens: avail
-  decision: EXCLUDED-REDUNDANT
   partial_rho: 0.0151
   partial_ci_lower: -0.0227
   partial_ci_upper: 0.0536
-  composition_weight: 0.0
-  contribution_class: redundant
   marginal_gain: 0.0151
   evidence: partial_rho=0.0151; CI=[-0.0227, 0.0536]; controlling for ['minutes_roll3',
     'minutes_roll8']; n=2401
   notes: '|partial_rho|=0.0151 < 0.02 threshold. Absorbed by: [''minutes_roll3'',
     ''minutes_roll8''].'
+  recommended_decision: EXCLUDED-REDUNDANT
+  recommended_weight: 0.0
+  recommended_contribution_class: redundant
 - key: minutes_roll8@avail:played_next_gw#MID
   signal: minutes_roll8
   position: MID
   lens: avail
-  decision: APPROVED-SECONDARY
   partial_rho: 0.0428
   partial_ci_lower: 0.0057
   partial_ci_upper: 0.0797
-  composition_weight: 0.5
-  contribution_class: secondary
   marginal_gain: 0.0428
   evidence: partial_rho=0.0428; CI=[0.0057, 0.0797]; controlling for ['minutes_roll3',
     'minutes_roll5']; n=2401
   notes: '|partial_rho|=0.0428 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
+  recommended_decision: APPROVED-SECONDARY
+  recommended_weight: 0.5
+  recommended_contribution_class: secondary
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
 - key: transfers_in@market:total_points#MID
   signal: transfers_in
   position: MID
   lens: market
-  decision: APPROVED-PRIMARY
   partial_rho: 0.0744
   partial_ci_lower: 0.0371
   partial_ci_upper: 0.1113
-  composition_weight: 0.5
-  contribution_class: primary
   marginal_gain: 0.0744
   evidence: partial_rho=0.0744; CI=[0.0371, 0.1113]; controlling for ['ownership_count'];
     n=3112
   notes: '|partial_rho|=0.0744 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
+  recommended_decision: APPROVED-PRIMARY
+  recommended_weight: 0.5
+  recommended_contribution_class: primary
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
 - key: ownership_count@market:total_points#MID
   signal: ownership_count
   position: MID
   lens: market
-  decision: APPROVED-SECONDARY
   partial_rho: 0.0311
   partial_ci_lower: -0.0065
   partial_ci_upper: 0.0673
-  composition_weight: 0.5
-  contribution_class: secondary
   marginal_gain: 0.0311
   evidence: partial_rho=0.0311; CI=[-0.0065, 0.0673]; controlling for ['transfers_in'];
     n=3112
   notes: '|partial_rho|=0.0311 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
+  recommended_decision: APPROVED-SECONDARY
+  recommended_weight: 0.5
+  recommended_contribution_class: secondary
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
 - key: purchase_price@market:total_points#FWD
   signal: purchase_price
   position: FWD
   lens: market
-  decision: FWD-SINGLE-SIGNAL
   partial_rho: 0.155
   partial_ci_lower: 0.077
   partial_ci_upper: 0.237
-  composition_weight: 1.0
-  contribution_class: primary
   marginal_gain: 0.155
   evidence: Sole FWD candidate. No composite synthesis — single-signal qualified score.
     bivariate rho=0.155 from LENS-MARKET evaluation_metadata.yaml.
   notes: 'G3-WEAK: 2/3 temporal blocks. Intelligence consumers must acknowledge caveat.
     Not evaluated by partial rho (no other FWD candidates to control for).'
+  recommended_decision: FWD-SINGLE-SIGNAL
+  recommended_weight: 1.0
+  recommended_contribution_class: primary

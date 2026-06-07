@@ -1,7 +1,7 @@
 """Does single-GW fixture difficulty predict returns?
 
 Mode: predictive · Stage: validate · Status: REJECTED — fdr_avg excluded (non-monotonic); reserved as binary moderator
-Population: same-GW target total_points; GW 3-33
+Population: same-GW target total_points; GW 3-38 (full season — holdout folded in, ADR-010)
 
 ADLC §4 audit (unlettered fixture/market lens row).
 """
@@ -12,15 +12,14 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 from research.families.evidence_record import decision_class_for, write_evidence
+from research.kernels.resampling import bootstrap_spearman_ci
 
-RUNS_DIR = Path("research/runs")
+RUNS_DIR = Path(__file__).resolve().parents[4] / "research" / "runs"
 VALIDATE_DIR = Path(__file__).parent
 LENS = "fixture_gw"
 TARGET_TOKEN = "total_points"
@@ -49,31 +48,26 @@ CI_LEVEL = 0.95
 QUINTILE_GAP_THRESHOLD = 1.0
 
 
-def _bootstrap_spearman_ci(x, y, n_samples, seed):
-    rho_obs = float(spearmanr(x, y).statistic)
-    rng = np.random.default_rng(seed)
-    boot = np.empty(n_samples)
-    for i in range(n_samples):
-        idx = rng.integers(0, len(x), size=len(x))
-        boot[i] = spearmanr(x[idx], y[idx]).statistic
-    alpha = 1.0 - CI_LEVEL
-    return rho_obs, float(np.percentile(boot, 100 * alpha / 2)), float(np.percentile(boot, 100 * (1 - alpha / 2)))
-
-
-def _correlation_record(df, signal, signal_id, position, block):
+def _correlation_record(
+    df: pd.DataFrame, signal: str, signal_id: str, position: str, block: str
+) -> dict | None:
     valid = df[[signal, "total_points"]].dropna()
     if len(valid) < 10:
         return None
     x, y = valid[signal].to_numpy(), valid["total_points"].to_numpy()
-    rho, ci_lo, ci_hi = _bootstrap_spearman_ci(x, y, N_BOOTSTRAP, BOOTSTRAP_SEED)
+    ci = bootstrap_spearman_ci(x, y, n_samples=N_BOOTSTRAP, ci_level=CI_LEVEL, seed=BOOTSTRAP_SEED)
+    if ci is None:
+        return None
     return {
         "signal_id": signal_id, "signal": signal, "position": position, "block": block,
-        "rho": round(rho, 4), "ci_lower": round(ci_lo, 4), "ci_upper": round(ci_hi, 4),
-        "n": len(valid), "ci_excludes_zero": bool(ci_lo > 0 or ci_hi < 0),
+        "rho": ci["rho"], "ci_lower": ci["ci_lower"], "ci_upper": ci["ci_upper"],
+        "n": ci["n"], "ci_excludes_zero": ci["excludes_zero"],
     }
 
 
-def _quintile_record(df, signal, signal_id, position, block):
+def _quintile_record(
+    df: pd.DataFrame, signal: str, signal_id: str, position: str, block: str
+) -> dict | None:
     valid = df[[signal, "total_points"]].dropna()
     if len(valid) < 25:
         return None
@@ -102,7 +96,10 @@ def _quintile_record(df, signal, signal_id, position, block):
         return None
 
 
-def _evidence_row(signal, position, full_corr, block_corrs, cls):
+def _evidence_row(
+    signal: str, position: str, full_corr: dict | None,
+    block_corrs: list[dict | None], cls: dict,
+) -> dict:
     """Project this slice's computed statistics into an evidence.yaml row (ADR-009 Phase C)."""
     n_passing = sum(1 for b in block_corrs if b and b["ci_excludes_zero"])
     return {
@@ -115,7 +112,11 @@ def _evidence_row(signal, position, full_corr, block_corrs, cls):
     }
 
 
-def _classify(full_corr, full_quint, block_corrs, signal, signal_id, position):
+def _classify(
+    full_corr: dict | None, full_quint: dict | None,
+    block_corrs: list[dict | None],
+    signal: str, signal_id: str, position: str,
+) -> dict:
     base = {"signal_id": signal_id, "signal": signal, "position": position}
     if full_corr is None:
         return {**base, "lens_status": "uninformative", "rationale": "insufficient observations"}
@@ -188,8 +189,8 @@ def run(db_path: Path = DB_PATH) -> Path:
     pd.DataFrame(quint_rows).to_csv(out_dir / "quintile_results.csv", index=False)
     pd.DataFrame(classify_rows).to_csv(out_dir / "classification_summary.csv", index=False)
     (out_dir / "run_metadata.json").write_text(json.dumps({
-        "timestamp": ts, "db_path": str(db_path), "n_bootstrap": N_BOOTSTRAP,
-        "bootstrap_seed": BOOTSTRAP_SEED, "ci_level": CI_LEVEL,
+        "timestamp": ts, "db_path": str(db_path), "db_row_count": len(state),
+        "n_bootstrap": N_BOOTSTRAP, "bootstrap_seed": BOOTSTRAP_SEED, "ci_level": CI_LEVEL,
         "minutes_threshold": MINUTES_THRESHOLD, "gw_max": GW_MAX,
         "gw_blocks": {k: list(v) for k, v in GW_BLOCKS.items()},
         "quintile_gap_threshold": QUINTILE_GAP_THRESHOLD,

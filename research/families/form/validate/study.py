@@ -15,15 +15,14 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 from research.families.evidence_record import decision_class_for, write_evidence
+from research.kernels.resampling import bootstrap_spearman_ci
 
-RUNS_DIR = Path("research/runs")
+RUNS_DIR = Path(__file__).resolve().parents[4] / "research" / "runs"
 VALIDATE_DIR = Path(__file__).parent
 LENS = "form"
 TARGET_TOKEN = "total_points"
@@ -83,38 +82,56 @@ def _assert_lag_alignment(state: pd.DataFrame, out_dir: Path) -> None:
         lines.append("FAIL [1] GW 1 xgi_roll3 rows contain non-null values — warmup not enforced.")
         failed = True
 
-    # Check 2: Lag-1 target alignment for player 1
-    # total_points_next_gw at GW N must equal total_points at GW N+1
-    p1 = state[state["player_id"] == 1].sort_values("gw")
-    mismatches = 0
-    for _, row in p1.iterrows():
-        if pd.isna(row["total_points_next_gw"]):
-            continue
-        nxt = p1[p1["gw"] == row["gw"] + 1]
-        if not nxt.empty and abs(row["total_points_next_gw"] - nxt["total_points"].iloc[0]) > 1e-6:
-            mismatches += 1
-    if mismatches == 0:
-        lines.append("PASS [2] Lag-1 target matches total_points at GW N+1 for player 1.")
+    # Check 2: Lag-1 target alignment for a sample of players.
+    # total_points_next_gw at GW N must equal total_points at GW N+1.
+    # Sample up to 5 players that have at least 3 GW rows to provide population-level coverage.
+    all_player_ids = state["player_id"].unique()
+    sample_ids = [
+        pid for pid in sorted(all_player_ids)
+        if len(state[state["player_id"] == pid]) >= 3
+    ][:5]
+    total_mismatches = 0
+    checked_players = 0
+    for pid in sample_ids:
+        pdata = state[state["player_id"] == pid].sort_values("gw")
+        for _, row in pdata.iterrows():
+            if pd.isna(row["total_points_next_gw"]):
+                continue
+            nxt = pdata[pdata["gw"] == row["gw"] + 1]
+            if not nxt.empty and abs(row["total_points_next_gw"] - nxt["total_points"].iloc[0]) > 1e-6:
+                total_mismatches += 1
+        checked_players += 1
+    if total_mismatches == 0:
+        lines.append(
+            f"PASS [2] Lag-1 target matches total_points at GW N+1 "
+            f"for {checked_players} sampled players (ids: {sample_ids})."
+        )
     else:
-        lines.append(f"FAIL [2] {mismatches} lag-1 target mismatches for player 1.")
+        lines.append(
+            f"FAIL [2] {total_mismatches} lag-1 target mismatches across "
+            f"{checked_players} sampled players (ids: {sample_ids})."
+        )
         failed = True
 
-    # Check 3: xgi_roll3 at GW 4 = mean(xgi at GW 1, 2, 3) for player 1
-    # GW 4 is the first row with a full 3-period window
-    p1_gw4_roll3 = p1[p1["gw"] == 4]["xgi_roll3"].values
-    p1_gw123_xgi = p1[p1["gw"].isin([1, 2, 3])]["xgi"].mean()
-    if len(p1_gw4_roll3) == 1 and abs(p1_gw4_roll3[0] - p1_gw123_xgi) < 1e-4:
-        lines.append(
-            f"PASS [3] xgi_roll3 at GW 4 = {p1_gw4_roll3[0]:.4f} "
-            f"matches mean(GW 1-3 xgi) = {p1_gw123_xgi:.4f}."
-        )
-    else:
-        val = p1_gw4_roll3[0] if len(p1_gw4_roll3) == 1 else "N/A"
-        lines.append(
-            f"WARN [3] xgi_roll3 at GW 4 = {val}, mean(GW 1-3 xgi) = {p1_gw123_xgi:.4f}. "
-            "Check min_periods setting in DAL state layer."
-        )
-        # Warn only — min_periods < 3 is a known DAL characteristic documented in LENS_DESIGN §5
+    # Check 3: xgi_roll3 at GW 4 = mean(xgi at GW 1, 2, 3) for the first sampled player.
+    # GW 4 is the first row with a full 3-period window.
+    check_pid = sample_ids[0] if sample_ids else None
+    if check_pid is not None:
+        pdata = state[state["player_id"] == check_pid].sort_values("gw")
+        p_gw4_roll3 = pdata[pdata["gw"] == 4]["xgi_roll3"].values
+        p_gw123_xgi = pdata[pdata["gw"].isin([1, 2, 3])]["xgi"].mean()
+        if len(p_gw4_roll3) == 1 and abs(p_gw4_roll3[0] - p_gw123_xgi) < 1e-4:
+            lines.append(
+                f"PASS [3] xgi_roll3 at GW 4 = {p_gw4_roll3[0]:.4f} "
+                f"matches mean(GW 1-3 xgi) = {p_gw123_xgi:.4f} for player {check_pid}."
+            )
+        else:
+            val = p_gw4_roll3[0] if len(p_gw4_roll3) == 1 else "N/A"
+            lines.append(
+                f"WARN [3] xgi_roll3 at GW 4 = {val}, mean(GW 1-3 xgi) = {p_gw123_xgi:.4f} "
+                f"for player {check_pid}. Check min_periods setting in DAL state layer."
+            )
+            # Warn only — min_periods < 3 is a known DAL characteristic documented in LENS_DESIGN §5
 
     status = "FAIL" if failed else "PASS"
     header = f"Lag alignment check: {status}\nProduced: {datetime.now().isoformat()}\n"
@@ -124,24 +141,6 @@ def _assert_lag_alignment(state: pd.DataFrame, out_dir: Path) -> None:
         raise AssertionError(
             f"Lag alignment check FAILED. See {out_dir / 'lag_alignment_check.txt'}."
         )
-
-
-# ---------------------------------------------------------------------------
-# Bootstrap Spearman CI
-# ---------------------------------------------------------------------------
-
-def _bootstrap_spearman_ci(
-    x: np.ndarray, y: np.ndarray, n_samples: int, seed: int
-) -> tuple[float, float, float]:
-    """Return (rho, ci_lower, ci_upper) via bootstrap resampling of observation pairs."""
-    rho_obs = float(spearmanr(x, y).statistic)
-    rng = np.random.default_rng(seed)
-    boot = np.empty(n_samples)
-    for i in range(n_samples):
-        idx = rng.integers(0, len(x), size=len(x))
-        boot[i] = spearmanr(x[idx], y[idx]).statistic
-    alpha = 1.0 - CI_LEVEL
-    return rho_obs, float(np.percentile(boot, 100 * alpha / 2)), float(np.percentile(boot, 100 * (1 - alpha / 2)))
 
 
 # ---------------------------------------------------------------------------
@@ -155,17 +154,19 @@ def _correlation_record(
     if len(valid) < 10:
         return None
     x, y = valid[signal].to_numpy(), valid["total_points_next_gw"].to_numpy()
-    rho, ci_lo, ci_hi = _bootstrap_spearman_ci(x, y, N_BOOTSTRAP, BOOTSTRAP_SEED)
+    ci = bootstrap_spearman_ci(x, y, n_samples=N_BOOTSTRAP, ci_level=CI_LEVEL, seed=BOOTSTRAP_SEED)
+    if ci is None:
+        return None
     return {
         "signal_id": signal_id,
         "signal": signal,
         "position": position,
         "block": block,
-        "rho": round(rho, 4),
-        "ci_lower": round(ci_lo, 4),
-        "ci_upper": round(ci_hi, 4),
-        "n": len(valid),
-        "ci_excludes_zero": bool(ci_lo > 0 or ci_hi < 0),
+        "rho": ci["rho"],
+        "ci_lower": ci["ci_lower"],
+        "ci_upper": ci["ci_upper"],
+        "n": ci["n"],
+        "ci_excludes_zero": ci["excludes_zero"],
     }
 
 
@@ -382,6 +383,7 @@ def run(db_path: Path = DB_PATH) -> Path:
     meta = {
         "timestamp": ts,
         "db_path": str(db_path),
+        "db_row_count": len(state),
         "n_bootstrap": N_BOOTSTRAP,
         "bootstrap_seed": BOOTSTRAP_SEED,
         "ci_level": CI_LEVEL,

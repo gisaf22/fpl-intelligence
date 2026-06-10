@@ -25,10 +25,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
+from research.kernels.inferential.resampling import bootstrap_spearman_ci
 
 RUNS_DIR = Path("research/runs")
 
@@ -59,24 +59,6 @@ GKP = "GKP"
 # Shared primitives
 # ---------------------------------------------------------------------------
 
-def _bootstrap_spearman_ci(
-    x: np.ndarray, y: np.ndarray, n_samples: int = N_BOOTSTRAP, seed: int = BOOTSTRAP_SEED
-) -> tuple[float, float, float]:
-    """Return (rho_obs, ci_lower, ci_upper) via bootstrap resampling."""
-    rho_obs = float(spearmanr(x, y).statistic)
-    rng = np.random.default_rng(seed)
-    boot = np.empty(n_samples)
-    for i in range(n_samples):
-        idx = rng.integers(0, len(x), size=len(x))
-        boot[i] = float(spearmanr(x[idx], y[idx]).statistic)
-    alpha = 1.0 - CI_LEVEL
-    return (
-        rho_obs,
-        float(np.percentile(boot, 100 * alpha / 2)),
-        float(np.percentile(boot, 100 * (1 - alpha / 2))),
-    )
-
-
 def _correlation_record(
     df: pd.DataFrame,
     signal: str,
@@ -89,17 +71,19 @@ def _correlation_record(
     if len(valid) < 10:
         return None
     x, y = valid[signal].to_numpy(dtype=float), valid[target].to_numpy(dtype=float)
-    rho, ci_lo, ci_hi = _bootstrap_spearman_ci(x, y)
+    ci = bootstrap_spearman_ci(x, y, n_samples=N_BOOTSTRAP, seed=BOOTSTRAP_SEED)
+    if ci is None:
+        return None
     return {
         "sub_study": sub_study,
         "signal": signal,
         "position": position,
         "block": block,
-        "rho": round(rho, 4),
-        "ci_lower": round(ci_lo, 4),
-        "ci_upper": round(ci_hi, 4),
-        "n": len(valid),
-        "ci_excludes_zero": bool(ci_lo > 0 or ci_hi < 0),
+        "rho": ci["rho"],
+        "ci_lower": ci["ci_lower"],
+        "ci_upper": ci["ci_upper"],
+        "n": ci["n"],
+        "ci_excludes_zero": bool(ci["ci_lower"] > 0 or ci["ci_upper"] < 0),
     }
 
 
@@ -124,7 +108,7 @@ def _partial_spearman(
     def _residuals(a: np.ndarray, b: np.ndarray) -> np.ndarray:
         rz_c = rz - rz.mean()
         coef = float(np.dot(a - a.mean(), rz_c) / np.dot(rz_c, rz_c))
-        return a - a.mean() - coef * rz_c
+        return np.asarray(a - a.mean() - coef * rz_c)
 
     ex = _residuals(rx, rz)
     ey = _residuals(ry, rz)

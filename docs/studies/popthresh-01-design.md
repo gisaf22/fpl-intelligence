@@ -296,7 +296,6 @@ DESIGN LOCKED  →  IMPLEMENTATION  →  VALIDATION PASS  →  EXECUTION  →  R
 ## 15. Related Documents
 
 - `docs/governance/threshold-registry.md` §REG-T-01, §AVAIL-T-02 — governance items this study closes
-- `docs/architecture/platform-evaluation-2026.md` Change 3 — engineering context for this study
 - `population/populations.py` — `filter_performance` is updated if threshold changes
 - `domain/fpl_scoring.py` — `CLEAN_SHEET_MIN_MINUTES` is updated if threshold changes
 - `docs/studies/minutes-stability-xgi-study.md` — MINSTAB-01 design (template for this doc)

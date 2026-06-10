@@ -60,6 +60,7 @@ def _base_features_row(
     fdr_avg: float = 3.0,
     is_bgw: int = 0,
     fixture_context: str = "SGW",
+    is_warmup_gw: bool = False,
 ) -> dict:
     return {
         "player_id": player_id,
@@ -84,6 +85,7 @@ def _base_features_row(
         "goals_scored": goals_scored,
         "fdr_avg": fdr_avg,
         "is_bgw": is_bgw,
+        "is_warmup_gw": is_warmup_gw,
         "fixture_context": fixture_context,
     }
 

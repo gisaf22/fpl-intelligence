@@ -13,21 +13,23 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from research.kernels.correlation.panel import decompose_rho
-from research.kernels.correlation.tail import haul_concentration
-from research.kernels.geometry import (
+from research.kernels.diagnostic.panel import split_between_within_player_rho
+from research.kernels.diagnostic.tail import measure_tail_event_dependence
+from research.kernels.descriptive.binning import (
     BLOCK_ORDER,
     MATCH_LEVEL_SIGNALS,
+    POSITIONS,
+    bin_analysis,
+    select_bucketing_scheme,
+)
+from research.kernels.diagnostic.shape import (
     MONO_CONF_HIGH,
     MONO_CONF_LOW,
     MONOTONIC_GEOMETRIES,
-    POSITIONS,
-    bin_analysis,
     classify_geometry,
-    monotonicity_confidence,
-    select_bucketing_scheme,
-    stability_classify,
 )
+from research.kernels.diagnostic.stability import stability_classify
+from research.kernels.inferential.monotonicity import monotonicity_confidence
 
 
 def _require_columns(
@@ -255,7 +257,7 @@ def _stability_row(
             block_geometry = classify_geometry(block_stats)
             block_gaps[block] = _q_gap(block_stats, block_geometry)
 
-        pooled_gap = float(geometry_row["q1_q5_mean_gap"])
+        pooled_gap = float(geometry_row["q1_q5_mean_gap"])  # type: ignore[arg-type]
         stability = stability_classify(pooled_gap, block_gaps)
 
     return {
@@ -316,7 +318,7 @@ def compute_relationship_sections(
                 )
             )
 
-            decomp = decompose_rho(
+            decomp = split_between_within_player_rho(
                 work,
                 signal=signal,
                 target=cfg.target_column,
@@ -327,7 +329,7 @@ def compute_relationship_sections(
                 {"signal": signal, "position": position, **decomp}
             )
 
-            haul = haul_concentration(
+            haul = measure_tail_event_dependence(
                 work,
                 signal=signal,
                 target=cfg.target_column,

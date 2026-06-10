@@ -87,3 +87,26 @@ Quintile gap threshold: 1.0 (total_points target, same as LENS-FORM).
 ## 9. Design lock declaration
 
 Locked 2026-05-22. No changes after first correlation run.
+
+---
+
+## Amendment A — GW window and late-block expansion (ADR-010)
+
+**Amendment date:** 2026-06-07  
+**Governing decision:** ADR-010 (layered decision model + full-season review)  
+**Sections amended:** §4 (population/GW window), §5 (late block)
+
+### §4 amendment
+
+Original: "`minutes >= 60` at GW N (G-EDA1-04). GW 3-33 (G-EDA1-02, G-EDA1-03)."
+
+**Amended:** Study window is GW 3 to **GW 38** inclusive (full season; holdout folded in).
+ADR-010 lifted the original GW 34-38 holdout exclusion.
+The study implementation uses `GW_MAX = 38`.
+
+### §5 amendment
+
+Original late block: "GW 27-33"
+
+**Amended:** Late block is **GW 27-38** (11 GWs).
+Implementation: `"late": (27, 38)` in `GW_BLOCKS`.

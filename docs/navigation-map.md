@@ -128,7 +128,6 @@ Bounded, immutable records of why key decisions were made. Read before changing 
 | [docs/architecture/layer-boundaries.md](architecture/layer-boundaries.md) | Component ownership boundaries, dependency direction, non-overlap rules |
 | [docs/architecture/runtime-artifacts.md](architecture/runtime-artifacts.md) | What artifacts are produced, where they live, gitignore policy |
 | [docs/architecture/db-schema.md](architecture/db-schema.md) | Source database table and column reference |
-| [docs/architecture/platform-evaluation-2026.md](architecture/platform-evaluation-2026.md) | Platform evaluation program: completed changes and one remaining study |
 | [docs/foundations/representation-governance.md](foundations/representation-governance.md) | Transform admissibility rules: what operations are valid per signal temporal type |
 | [docs/foundations/signal-ontology.md](foundations/signal-ontology.md) | 8 information classes; forward constraints for future research |
 | [dal/README.md](../dal/README.md) | DAL entry points and layer overview |

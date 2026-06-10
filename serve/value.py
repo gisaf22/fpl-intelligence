@@ -94,7 +94,7 @@ def rank_value_players(
         raise IntelligenceInputError(f"rank_value_players: no data for gw={target_gw}")
 
     eligible = gw_df[
-        (gw_df["purchase_price"].fillna(0) >= _MIN_PRICE) & (gw_df["minutes_roll5"].fillna(0) >= _MIN_MINUTES_ROLL5)
+        (gw_df["purchase_price"] >= _MIN_PRICE) & (~gw_df["is_warmup_gw"]) & (gw_df["minutes_roll5"] >= _MIN_MINUTES_ROLL5)
     ].copy()
 
     if max_price is not None:
@@ -104,7 +104,7 @@ def rank_value_players(
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
     # xgi_per_cost for display: uses original xgi values (informational output).
-    eligible["xgi_per_cost"] = eligible["xgi_roll5"].fillna(0) / eligible["purchase_price"]
+    eligible["xgi_per_cost"] = eligible["xgi_roll5"] / eligible["purchase_price"]
 
     # xgi_roll5 excluded at FWD: xgi_roll5@form:total_points G2-FAIL.
     # xgi_roll3 excluded at FWD (xgi_roll3@form:total_points G2-FAIL) and MID (xgi_roll3@form:total_points#MID:
@@ -112,8 +112,8 @@ def rank_value_players(
     # normalize_within_position (neutral, not removed).
     fwd_mask = eligible["position_label"] == "FWD"
     mid_mask = eligible["position_label"] == "MID"
-    xgi_roll5_scored = eligible["xgi_roll5"].fillna(0).where(~fwd_mask, 0.0)
-    xgi_roll3_scored = eligible["xgi_roll3"].fillna(0).where(~(fwd_mask | mid_mask), 0.0)
+    xgi_roll5_scored = eligible["xgi_roll5"].where(~fwd_mask, 0.0)
+    xgi_roll3_scored = eligible["xgi_roll3"].where(~(fwd_mask | mid_mask), 0.0)
     eligible["_xgi_per_cost_scored"] = xgi_roll5_scored / eligible["purchase_price"]
 
     # Consistency: how close are xgi_roll3 and xgi_roll5?

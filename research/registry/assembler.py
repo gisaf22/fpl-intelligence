@@ -14,7 +14,7 @@ from __future__ import annotations
 import pandas as pd
 
 from domain.registry.schema import REQUIRED_COLUMNS
-from research.kernels.association import assign_association_class, consolidate_flags
+from domain.registry.association import assign_association_class, consolidate_flags
 
 SECTION_KEY_COLUMNS: tuple[str, ...] = ("signal", "position")
 

@@ -1653,3 +1653,91 @@ entries:
       - serve/captain.py
     consumer_note: "captain.py consumes fixture_context for DGW fixture_score component."
     threshold_dependencies: []
+
+  - signal: is_warmup_gw
+    position: DEF
+    meaning: "True on a player's first GW in the data — rolling signals are NaN. Structural eligibility guard."
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Not an analytical signal — structural flag derived from player GW history. Consumers filter ~is_warmup_gw before applying rolling signal eligibility thresholds."
+    redundancy: null
+    operational_role: eligibility_guard
+    consumer_modules:
+      - serve/captain.py
+      - serve/transfers.py
+      - serve/fixtures.py
+      - serve/value.py
+    consumer_note: "Replaces fillna(0) eligibility gate pattern across serve layer."
+    threshold_dependencies: []
+
+  - signal: is_warmup_gw
+    position: MID
+    meaning: "True on a player's first GW in the data — rolling signals are NaN. Structural eligibility guard."
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Not an analytical signal — structural flag. Same caveat as DEF entry."
+    redundancy: null
+    operational_role: eligibility_guard
+    consumer_modules:
+      - serve/captain.py
+      - serve/transfers.py
+      - serve/fixtures.py
+      - serve/value.py
+    consumer_note: "Replaces fillna(0) eligibility gate pattern across serve layer."
+    threshold_dependencies: []
+
+  - signal: is_warmup_gw
+    position: FWD
+    meaning: "True on a player's first GW in the data — rolling signals are NaN. Structural eligibility guard."
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Not an analytical signal — structural flag. Same caveat as DEF entry."
+    redundancy: null
+    operational_role: eligibility_guard
+    consumer_modules:
+      - serve/captain.py
+      - serve/transfers.py
+      - serve/fixtures.py
+      - serve/value.py
+    consumer_note: "Replaces fillna(0) eligibility gate pattern across serve layer."
+    threshold_dependencies: []
+
+  - signal: is_warmup_gw
+    position: GK
+    meaning: "True on a player's first GW in the data — rolling signals are NaN. Structural eligibility guard."
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Not an analytical signal — structural flag. Same caveat as DEF entry."
+    redundancy: null
+    operational_role: eligibility_guard
+    consumer_modules:
+      - serve/captain.py
+      - serve/transfers.py
+      - serve/fixtures.py
+      - serve/value.py
+    consumer_note: "Replaces fillna(0) eligibility gate pattern across serve layer."
+    threshold_dependencies: []

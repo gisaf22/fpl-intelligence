@@ -300,3 +300,27 @@ document is immutable.
 
 Post-hoc changes to population definition, GW window, bootstrap parameters, block
 boundaries, or classification logic constitute methodological failure per EVAL_DESIGN.md §8.2.
+
+---
+
+## Amendment A — GW window and late-block expansion (ADR-010)
+
+**Amendment date:** 2026-06-07  
+**Governing decision:** ADR-010 (layered decision model + full-season review)  
+**Sections amended:** §5 (GW window), §6 (late block)
+
+### §5 amendment
+
+Original: "Study window: GW 3 to GW 33 inclusive. Upper bound GW 33: GW 34 excluded."
+
+**Amended:** Study window is GW 3 to **GW 38** inclusive (full season; holdout folded in).
+The original GW 34-38 holdout exclusion was lifted by ADR-010 to enable a full-season
+season review. The study implementation uses `GW_MAX = 38`.
+
+### §6 amendment
+
+Original late block: "GW 27-33"
+
+**Amended:** Late block is **GW 27-38** (11 GWs). The extended late block captures
+end-of-season fixtures including DGWs and blank gameweeks that were previously excluded.
+Implementation: `"late": (27, 38)` in `GW_BLOCKS`.

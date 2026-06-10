@@ -34,6 +34,9 @@ jobs:
       - name: Type check (mypy)
         run: uv run mypy  # blocking gate — production scope per [tool.mypy] files=
 
+      - name: Import contracts (import-linter)
+        run: uv run lint-imports  # blocking gate — enforces .importlinter layer boundaries
+
       - name: Build fixture DB
         run: uv run python tests/fixtures/create_test_db.py
 

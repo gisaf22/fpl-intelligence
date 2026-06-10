@@ -115,7 +115,7 @@ def compute_block_variance_scoped(
     mid   = state_conditioned[state_conditioned["gw"].between(15, 24)]
     late  = state_conditioned[state_conditioned["gw"].between(25, gw_upper)]
     blocks = {"early": early, "mid": mid, "late": late}
-    return compute_block_variance(blocks, numeric_signals, positions, min_n)
+    return compute_block_variance(blocks, numeric_signals, positions, min_n)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------

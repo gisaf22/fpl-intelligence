@@ -36,45 +36,49 @@ from domain.signal_layers import (
     SIGNAL_LAYER_MAPPING,
     SIGNAL_LAYER_VALUES,
 )
-from research.foundation.joint.association import assign_association_class, consolidate_flags
-from research.kernels.correlation.panel import decompose_rho
-from research.kernels.correlation.tail import haul_concentration
-from research.kernels.geometry import (
-    ASSOCIATION_CLASS_TAXONOMY,
+from domain.registry.association import (
+    HAUL_DROP_MATERIAL,
+    HAUL_THRESHOLD_PTS,
+    assign_association_class,
+    consolidate_flags,
+)
+from research.kernels.diagnostic.panel import split_between_within_player_rho
+from research.kernels.diagnostic.tail import measure_tail_event_dependence
+from research.kernels.descriptive.binning import (
     BLOCK_ORDER,
     DISCRETE_BINS,
     DISCRETE_LABELS,
     FDR_ORDINAL_BINS,
     FDR_ORDINAL_LABELS,
     FDR_SIGNALS,
-    GEOMETRY_TAXONOMY,
-    HAUL_DROP_MATERIAL,
-    HAUL_THRESHOLD_PTS,
     MATCH_LEVEL_SIGNALS,
     MIN_ACTIVE_BINS,
-    MIN_N_HAUL,
-    MIN_N_PANEL_PLAYERS,
     MIN_N_PER_BIN,
     MIN_N_SHAPE,
-    MONO_CONF_HIGH,
-    MONO_CONF_LOW,
-    MONOTONIC_GEOMETRIES,
-    PANEL_CLASS_THRESHOLDS,
     POPULATION_ROBUSTNESS_VALUES,
     POPULATION_SCOPE_VALUES,
     POSITIONS,
     QUANTILE_N_BINS,
     SPARSE_THRESHOLD,
-    SUPPORT_TYPE_TAXONOMY,
     TWO_STAGE_NZ_LABELS,
-    UPPER_TAIL_GEOMETRIES,
     bin_analysis,
+    select_bucketing_scheme,
+)
+from research.kernels.diagnostic.shape import (
+    ASSOCIATION_CLASS_TAXONOMY,
+    GEOMETRY_TAXONOMY,
+    MONO_CONF_HIGH,
+    MONO_CONF_LOW,
+    MONOTONIC_GEOMETRIES,
+    MIN_N_HAUL,
+    MIN_N_PANEL_PLAYERS,
+    SUPPORT_TYPE_TAXONOMY,
+    UPPER_TAIL_GEOMETRIES,
     classify_geometry,
     get_bin_direction,
-    monotonicity_confidence,
-    select_bucketing_scheme,
-    stability_classify,
 )
+from research.kernels.diagnostic.stability import stability_classify
+from research.kernels.inferential.monotonicity import monotonicity_confidence
 
 
 def validate_registry(registry: pd.DataFrame, expected_n: int) -> list[str]:

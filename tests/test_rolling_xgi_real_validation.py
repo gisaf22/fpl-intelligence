@@ -24,7 +24,7 @@ from research.families.form.explore.rolling_xgi_study import (
     evaluate_rolling_xgi_horizons,
     interpret_results,
 )
-from research.kernels.windows import assert_no_future_leakage
+from tests.helpers.windows import assert_no_future_leakage
 
 pytestmark = pytest.mark.unit
 

@@ -70,7 +70,7 @@ def summarize_signals(
             if len(clean) >= 3 and clean.nunique() > 1:
                 skew_val = float(stats.skew(clean, bias=False))
 
-            pos_label = POSITION_MAP.get(position, position)
+            pos_label = POSITION_MAP.get(position, position)  # type: ignore[call-overload]
             zero_pct = float((clean == 0).mean() * 100)
             numeric_rows.append({
                 "signal": signal,
@@ -103,7 +103,7 @@ def summarize_signals(
             mode_value = clean.mode().iloc[0] if not clean.mode().empty else None
             categorical_rows.append({
                 "signal": signal,
-                "position": POSITION_MAP.get(position, position),
+                "position": POSITION_MAP.get(position, position),  # type: ignore[call-overload]
                 "n": len(clean),
                 "n_unique": int(clean.nunique()),
                 "mode": mode_value,
@@ -186,7 +186,7 @@ def compute_block_variance(
                     continue
                 rows.append({
                     "signal": signal,
-                    "position": POSITION_MAP.get(position, position),
+                    "position": POSITION_MAP.get(position, position),  # type: ignore[call-overload]
                     "block": block_name,
                     "std": float(clean.std()),
                     "mean": float(clean.mean()),
@@ -233,7 +233,7 @@ def compute_block_homogeneity(
                 for name, df in blocks.items()
             }
             mid = block_data.get("mid", pd.Series(dtype=float))
-            row: dict[str, Any] = {"signal": signal, "position": POSITION_MAP.get(position, position)}
+            row: dict[str, Any] = {"signal": signal, "position": POSITION_MAP.get(position, position)}  # type: ignore[call-overload]
 
             for ref_block in ["early", "late"]:
                 other = block_data.get(ref_block, pd.Series(dtype=float))
@@ -272,7 +272,7 @@ def compute_block_homogeneity(
                 for name, df in blocks.items()
             }
             mid = block_data.get("mid", pd.Series(dtype=object))
-            row = {"signal": signal, "position": POSITION_MAP.get(position, position)}
+            row = {"signal": signal, "position": POSITION_MAP.get(position, position)}  # type: ignore[call-overload]
 
             if len(mid) < min_n:
                 row["note"] = "INSUFFICIENT_SUPPORT"
@@ -316,7 +316,7 @@ def compute_within_group_redundancy(
             rows.append({
                 "signal_a": sig_a,
                 "signal_b": sig_b,
-                "position": POSITION_MAP.get(position, position),
+                "position": POSITION_MAP.get(position, position),  # type: ignore[call-overload]
                 "n": len(pos_df),
                 "rho": round(float(rho), 4),
                 "flag": float(rho) >= HIGH_REDUNDANCY_RHO,

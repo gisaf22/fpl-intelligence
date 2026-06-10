@@ -33,12 +33,10 @@ from domain.registry.finding_key import build_key
 
 # ADR-009 Phase D: statistical primitives live in research.kernels (model/assemble is
 # permitted to import kernels). This study owns weight derivation; the methodology is shared.
-from research.kernels.redundancy import bootstrap_partial_rho, partial_spearman
-from research.kernels.resampling import permutation_rho_baseline
-from research.kernels.stability import fraction_rank_order_changed
+from research.kernels.inferential.resampling import bootstrap_partial_rho, estimate_chance_correlation, partial_spearman
 
-OUT_PATH = Path("model/assemble/synth01_recommendations.yaml")
-RUNS_DIR = Path("research/runs")
+OUT_PATH = Path(__file__).resolve().parents[2] / "model" / "assemble" / "synth01_recommendations.yaml"
+RUNS_DIR = Path(__file__).resolve().parents[2] / "research" / "runs"
 
 N_BOOTSTRAP = 2000
 BOOTSTRAP_SEED = 42
@@ -49,6 +47,22 @@ MARGINAL_GAIN_THRESHOLD = 0.02
 MAX_WEIGHT = 0.60
 EQUAL_WEIGHT_IMPROVEMENT_THRESHOLD = 0.02
 FDR_MODERATION_THRESHOLD = 0.15
+
+
+
+def _moderation_instability_rate(orderings: list[list[str]]) -> float:
+    """Fraction of FDR strata where signal rank ordering differs from the baseline stratum.
+
+    Used only here to measure whether fixture difficulty conditioning materially
+    reorders signal importance. Near 0 = FDR doesn't change rankings; near 1 = it
+    consistently reshuffles them.
+    """
+    if len(orderings) < 2:
+        return 0.0
+    baseline = orderings[0]
+    n_changed = sum(1 for o in orderings[1:] if o != baseline)
+    return n_changed / (len(orderings) - 1)
+
 
 # ---------------------------------------------------------------------------
 # Evaluation groups — position × lens, ordered by gw_min (most restrictive)
@@ -204,7 +218,7 @@ def _fdr_moderation_check(
         if len(quartile_orders) < 2:
             continue
 
-        fraction = fraction_rank_order_changed(quartile_orders)
+        fraction = _moderation_instability_rate(quartile_orders)
         is_material = fraction > FDR_MODERATION_THRESHOLD
 
         detail.append({
@@ -284,7 +298,8 @@ def run(db_path: Path = DB_PATH) -> Path:
         partial_results: dict[str, tuple[float, float, float]] = {}
         for i, sig in enumerate(signals):
             rho, ci_lo, ci_hi = bootstrap_partial_rho(
-                X, y, i, n_samples=N_BOOTSTRAP, ci_level=CI_LEVEL, seed=BOOTSTRAP_SEED
+                X, y, i, partial_spearman,
+                n_samples=N_BOOTSTRAP, ci_level=CI_LEVEL, seed=BOOTSTRAP_SEED,
             )
             partial_results[sig] = (rho, ci_lo, ci_hi)
             print(f"  {sig:20s} partial_rho={rho:+.4f}  CI=[{ci_lo:.4f}, {ci_hi:.4f}]")
@@ -330,7 +345,7 @@ def run(db_path: Path = DB_PATH) -> Path:
                 )
                 print(f"  {baseline_note}")
             elif position == "DEF" and retained_sigs:
-                perm_rho = permutation_rho_baseline(
+                perm_rho = estimate_chance_correlation(
                     valid[retained_sigs[0]].to_numpy(), valid[target].to_numpy()
                 )
                 comp_rho = _composite_rho(valid, retained_sigs, weights, target)

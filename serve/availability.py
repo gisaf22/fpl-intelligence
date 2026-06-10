@@ -94,7 +94,7 @@ def flag_availability_risk(
     roll3 = gw_df["minutes_roll3"].fillna(0)
     roll5 = gw_df["minutes_roll5"].fillna(0)
     roll8 = gw_df["minutes_roll8"].fillna(0)
-    trend = gw_df["minutes_trend"].fillna("")
+    trend = gw_df["minutes_trend"]  # null-safe: (trend == "falling") returns False on NaN
 
     # Component risk signals — each is a binary flag.
     gw_df["minutes_divergence"] = (roll5 - roll3).clip(lower=0)

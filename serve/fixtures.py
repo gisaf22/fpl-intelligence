@@ -120,7 +120,7 @@ def rank_fixture_opportunities(
     if ref_df.empty:
         raise IntelligenceInputError(f"rank_fixture_opportunities: no data for gw={target_gw}")
 
-    eligible = ref_df[ref_df["minutes_roll5"].fillna(0) >= _MIN_MINUTES_ROLL5].copy()
+    eligible = ref_df[~ref_df["is_warmup_gw"] & (ref_df["minutes_roll5"] >= _MIN_MINUTES_ROLL5)].copy()
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 

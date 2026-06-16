@@ -270,37 +270,6 @@ invalidates all downstream results.
 
 ---
 
-### `research/foundation/signals/profiling.py`
-**Rung:** D  
-**Question:** What do the signals look like marginally — distribution shape, zero
-mass, variance, structural zeros by position?  
-**What it does:** Per-signal, per-position distribution profiling. Identifies
-structural zeros (e.g. saves for outfield players). Produces a signal status table.  
-**Input:** player-GW DataFrame  
-**Output:** profiling summary table; structural zero flags  
-**Run order:** After integrity checks; before scoping or association studies  
-**Gaps:**
-- No formal test for bimodality (e.g. binary signals like `was_home`) — these
-  are handled by binary-signal lists but not detected automatically
-
----
-
-### `research/foundation/signals/scoping.py`
-**Rung:** D / Dg  
-**Question:** Are the signals' distributions stable across exposure scopes
-(all players vs started players)? Which scope is the preferred population for
-each signal?  
-**What it does:** Dual-scope distribution summaries; exposure sensitivity
-classification; preferred population assignment.  
-**Input:** player-GW DataFrame; exposure filter definitions  
-**Output:** dual-scope summary; population preference per signal  
-**Run order:** After profiling.py  
-**Gaps:**
-- Preferred population choice is heuristic — no formal test of which scope
-  produces more reliable downstream inference
-
----
-
 ### `research/foundation/scope/population.py`
 **Rung:** Dg  
 **Question:** Is the signal→target association stable across population scopes,
@@ -309,7 +278,7 @@ or does it change materially when we restrict to starters only?
 `stable` / `scope_sensitive` / `untested`.  
 **Input:** player-GW DataFrame; signal and target names; scope definitions  
 **Output:** population_robustness verdict per (signal, position)  
-**Run order:** After scoping.py — needs preferred population identified first  
+**Run order:** After descriptive signal profiling  
 **Gaps:**
 - Rho shift threshold (0.10) and geometry-change criterion are heuristic
 - No bootstrap CI on either scope's rho — the shift comparison is point-estimate only
@@ -469,8 +438,6 @@ Pre-statistical
 
 Descriptive / Diagnostic (foundation)
   kernels/distribution.py           ← signal shapes
-  foundation/signals/profiling.py   ← marginal distributions
-  foundation/signals/scoping.py     ← exposure sensitivity
   foundation/scope/population.py    ← dual-scope rho comparison
   foundation/joint/association.py   ← full structural characterisation
 
@@ -570,7 +537,7 @@ Assessment outcome: keep in `research/foundation/integrity/` but rename to clari
 
 | # | File | Action | Reason for deferral |
 |---|---|---|---|
-| B1 | `research/kernels/stability.py` — block boundaries | **Analytical evaluation in `eda_05_signal_stability.ipynb`** | Need full 2025-26 data to verify editorial block boundaries against actual signal change points |
+| B1 | `research/kernels/stability.py` — block boundaries | **Analytical evaluation in `temporal/signal_stability.ipynb`** | Need full 2025-26 data to verify editorial block boundaries against actual signal change points |
 | B2 | `research/kernels/stability.py` — `resolve_pooling_strategy` enforcement | **Enforce `restrict_to_midseason` in study runners** | Blocked on B1 — boundary validation must precede enforcement |
 
 ---
@@ -579,7 +546,7 @@ Assessment outcome: keep in `research/foundation/integrity/` but rename to clari
 
 | File | What was done |
 |---|---|
-| `research/kernels/distribution.py` | `analyze_by_group` deleted; FPL domain functions moved to `research/foundation/target/` (split into `fixture_context.py`, `haul_analysis.py`, `visualisation.py`); `analyze_data_completeness` moved to `dal/fct/validation/completeness.py`; file now owns only `compute_distribution_stats` + `compare_cohorts` |
+| `research/kernels/distribution.py` | `analyze_by_group` deleted; `analyze_data_completeness` moved to `dal/fct/validation/completeness.py`; file now owns only `compute_distribution_stats` + `compare_cohorts`. FPL domain helpers (`fixture_context.py`, `haul_analysis.py`, `visualisation.py`) subsequently retired with the old EDA layer. |
 | `research/kernels/association.py` | Deleted — moved to `domain/registry/association.py` as governance decision logic, not a kernel |
 | `research/foundation/joint/association.py` | Deleted — workaround copy eliminated |
 | `research/kernels/stability.py` | `moderation_instability_rate` moved to `model/assemble/composition_study.py` as `_moderation_instability_rate`; `stability_classify` moved in from `geometry.py` |

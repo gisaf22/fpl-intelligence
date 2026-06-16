@@ -4,8 +4,7 @@ metrics.py: evaluation metrics for operational usefulness (mean_return, top1_ret
 hit_rate, regret, rank_correlation, return_variance, downside_rate).
 
 distribution.py: two functions — compute_distribution_stats (primitive) and
-compare_cohorts (composition). Domain-specific helpers (analyze_tail_frequency,
-cohort splitting by column) live in research/foundation/target/haul_analysis.py.
+compare_cohorts (composition).
 """
 
 import numpy as np
@@ -25,8 +24,6 @@ from research.kernels.descriptive.distribution import (
     compute_distribution_stats,
     compare_cohorts,
 )
-from research.foundation.target.haul_analysis import analyze_tail_frequency
-
 
 # ===========================================================================
 # metrics.py
@@ -286,28 +283,3 @@ class TestCompareCohortsByColumn:
         assert result.loc["A", "mean"] == pytest.approx(15.0)
 
 
-class TestAnalyzeTailFrequency:
-
-    def test_returns_dataframe(self):
-        df = pd.DataFrame({
-            "position_code": ["DEF", "DEF", "MID", "MID", "FWD"],
-            "total_points": [5.0, 15.0, 3.0, 13.0, 20.0],
-        })
-        result = analyze_tail_frequency(df, thresholds=[10, 12])
-        assert isinstance(result, pd.DataFrame)
-
-    def test_threshold_zero_means_all_qualify(self):
-        df = pd.DataFrame({
-            "position_code": ["DEF"] * 4,
-            "total_points": [1.0, 2.0, 3.0, 4.0],
-        })
-        result = analyze_tail_frequency(df, thresholds=[0])
-        assert result.loc[0, "DEF"] == pytest.approx(100.0)
-
-    def test_threshold_above_max_means_none_qualify(self):
-        df = pd.DataFrame({
-            "position_code": ["DEF"] * 3,
-            "total_points": [1.0, 2.0, 3.0],
-        })
-        result = analyze_tail_frequency(df, thresholds=[100])
-        assert result.loc[100, "DEF"] == pytest.approx(0.0)

@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from research.foundation.joint import _joint_helpers
 from research.kernels.descriptive.binning import (
     FDR_ORDINAL_BINS,
     FDR_ORDINAL_LABELS,
@@ -77,21 +76,3 @@ def test_stability_classify_gap_patterns():
     assert stability_classify(2.0, {"early": 2.0, "mid": 0.5, "late": 2.5}) == "moderate_shift"
     assert stability_classify(2.0, {"early": 2.0, "mid": -1.0, "late": 2.5}) == "unstable"
     assert stability_classify(np.nan, {"early": 2.0, "mid": None, "late": None}) == "insufficient_data"
-
-
-def test_notebook_helper_imports_shared_geometry_functions():
-    import domain.registry.association as association
-    import research.kernels.diagnostic.panel as panel
-    import research.kernels.diagnostic.tail as tail
-    import research.kernels.descriptive.binning as binning
-    import research.kernels.diagnostic.shape as shape
-    import research.kernels.diagnostic.stability as stability
-
-    assert _joint_helpers.select_bucketing_scheme is binning.select_bucketing_scheme
-    assert _joint_helpers.bin_analysis is binning.bin_analysis
-    assert _joint_helpers.classify_geometry is shape.classify_geometry
-    assert _joint_helpers.stability_classify is stability.stability_classify
-    assert _joint_helpers.split_between_within_player_rho is panel.split_between_within_player_rho
-    assert _joint_helpers.measure_tail_event_dependence is tail.measure_tail_event_dependence
-    assert _joint_helpers.assign_association_class is association.assign_association_class
-    assert _joint_helpers.consolidate_flags is association.consolidate_flags

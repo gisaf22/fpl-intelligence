@@ -270,7 +270,7 @@ invalidates all downstream results.
 
 ---
 
-### `research/foundation/scope/population.py`
+### `research/foundation/population/robustness.py`
 **Rung:** Dg  
 **Question:** Is the signal→target association stable across population scopes,
 or does it change materially when we restrict to starters only?  
@@ -438,7 +438,7 @@ Pre-statistical
 
 Descriptive / Diagnostic (foundation)
   kernels/distribution.py           ← signal shapes
-  foundation/scope/population.py    ← dual-scope rho comparison
+  foundation/population/robustness.py ← dual-scope rho comparison
   foundation/joint/association.py   ← full structural characterisation
 
 Inferential / Qualification (families)

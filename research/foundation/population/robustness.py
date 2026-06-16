@@ -1,14 +1,16 @@
-"""Population validity utilities for EDA-4.
+"""Population-robustness utilities for the population/ foundation layer.
 
 Computes dual-scope rho comparisons and classifies population robustness
-for each signal-position pair.
+for each signal-position pair. Backs `population/scope_sensitivity.ipynb`
+(the layer's scope-robustness readout); the original EDA-4 verdict it refreshes
+is recorded in research/findings/FINDINGS.md (G-EDA4-01/02).
 
 Vocabulary: schema uses {stable, scope_sensitive, untested}.
 The EDA_DESIGN.md alternative {robust, moderate_shift, unstable} was not
 committed to the schema and is not used here. The thresholds below implement
 the design doc definitions mapped onto the schema vocabulary:
   stable          — rho shift < 0.10 AND geometry type unchanged
-  scope_sensitive — rho shift 0.10–0.25 OR geometry type changes
+  scope_sensitive — rho shift 0.10-0.25 OR geometry type changes
   untested        — insufficient data in one or both scopes to compare
 """
 

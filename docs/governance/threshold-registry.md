@@ -148,7 +148,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **File** | `domain/fpl_scoring.py` (platform Change 1); consumed via `population/populations.py:filter_performance` (platform Change 2). `MINUTES_THRESHOLD` in `signals/characterisation/population.py` was removed and replaced by this import. |
 | **Stated rationale** | FPL scoring regime boundary: clean sheet eligibility, additional appearance point, and BPS minutes baseline all change at 60 minutes. |
 | **Governance assessment** | Semantically grounded in FPL rules. The 60-minute boundary is meaningful for participation classification. However, for predictive population robustness purposes, this threshold has not been evaluated empirically. |
-| **Evidence required to promote** | Population robustness analysis: evaluate signal-to-noise in `xgi_roll3` associations at 45, 60, and 75 minute participation floors. See `research/foundation/scope/population_threshold_study.py` (Change 3 — deferred to 2026/27). |
+| **Evidence required to promote** | Population robustness analysis: evaluate signal-to-noise in `xgi_roll3` associations at 45, 60, and 75 minute participation floors. See `docs/studies/popthresh-01-design.md` (POPTHRESH-01 — design locked, deferred to 2026/27). |
 | **2026/27 disposition** | EVALUATION-DEFERRED — carries to 2026/27; see docs/studies/popthresh-01-design.md |
 
 ### REG-T-02 — `HAUL_THRESHOLD_PTS`

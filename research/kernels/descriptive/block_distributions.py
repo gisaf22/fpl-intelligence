@@ -1,8 +1,10 @@
 """Per-block signal distribution statistics — Rung D (Descriptive).
 
-Computes distribution stats (median, IQR, quartiles) for each
-(signal, position, GW block) slice. Output feeds assess_distribution_stability
-in research.kernels.diagnostic.stability.
+Computes distribution stats (median, IQR, quartiles, upper-tail percentiles)
+for each (signal, position, GW block) slice. The median/IQR feed
+assess_distribution_stability in research.kernels.diagnostic.stability; the
+p90/p99 tail percentiles characterise how the haul ceiling moves across blocks
+(stability of the centre says nothing about the tail).
 """
 
 from __future__ import annotations
@@ -34,7 +36,7 @@ def compute_signal_block_distributions(
 
     Returns:
         DataFrame with one row per (signal, position, block) and columns:
-        signal, position, block, n, median, q1, q3, iqr, min_gw, max_gw.
+        signal, position, block, n, median, q1, q3, iqr, p90, p99, min_gw, max_gw.
         Rows with n < MIN_N_FOR_BLOCK_STATS have NaN for distribution columns.
     """
     if gw_blocks is None:
@@ -68,11 +70,14 @@ def compute_signal_block_distributions(
                 rows.append({"signal": signal, "position": position, "block": block_name,
                              "n": n, "median": float("nan"), "q1": float("nan"),
                              "q3": float("nan"), "iqr": float("nan"),
+                             "p90": float("nan"), "p99": float("nan"),
                              "min_gw": min_gw, "max_gw": max_gw})
             else:
                 q1, q3 = float(np.percentile(s, 25)), float(np.percentile(s, 75))
+                p90, p99 = float(np.percentile(s, 90)), float(np.percentile(s, 99))
                 rows.append({"signal": signal, "position": position, "block": block_name,
                              "n": n, "median": float(np.median(s)), "q1": q1, "q3": q3,
-                             "iqr": q3 - q1, "min_gw": min_gw, "max_gw": max_gw})
+                             "iqr": q3 - q1, "p90": p90, "p99": p99,
+                             "min_gw": min_gw, "max_gw": max_gw})
 
     return pd.DataFrame(rows)

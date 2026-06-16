@@ -18,10 +18,27 @@ XGI_COMPONENTS: tuple[str, ...] = ("xg", "xa")
 # unpublished). All four fields are present in the mart.
 ICT_COMPONENTS: tuple[str, ...] = ("influence", "creativity", "threat")
 
+# defensive_contribution is the FPL-computed Defensive Contribution count
+# (2025/26 rule). It aggregates raw defensive actions, position-dependently:
+#   DEF:      CBIT  = clearances_blocks_interceptions + tackles
+#   MID/FWD:  CBIRT = clearances_blocks_interceptions + tackles + recoveries
+# GK are not subject to the rule (the field is structurally 0 for GK). Unlike
+# xgi/ict_index this is a *precomputed* mart field rather than a sum we
+# reconstruct, and `recoveries` only contributes at MID/FWD — but it carries
+# the same parent->components redundancy (including the count alongside its raw
+# actions double-counts at the positions where they apply), so the same
+# "pick one representation" rule applies. All four fields are present in the mart.
+DC_COMPONENTS: tuple[str, ...] = (
+    "clearances_blocks_interceptions",
+    "tackles",
+    "recoveries",
+)
+
 # Canonical composites: the recommended single representative when components
 # and composite are both available. Prefer the composite when you want a single
 # summary; prefer the components when you need separable contributions.
 COMPOSITE_SIGNALS: dict[str, tuple[str, ...]] = {
     "xgi": XGI_COMPONENTS,
     "ict_index": ICT_COMPONENTS,
+    "defensive_contribution": DC_COMPONENTS,
 }

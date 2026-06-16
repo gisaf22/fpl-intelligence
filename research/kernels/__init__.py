@@ -13,7 +13,6 @@ but are part of the kernels public surface. All other kernels are imported direc
     from research.kernels.inferential.resampling import bootstrap_spearman_ci, bootstrap_partial_rho, partial_spearman
     from research.kernels.inferential.monotonicity import monotonicity_confidence
     from research.kernels.diagnostic.stability import assess_distribution_stability, resolve_pooling_strategy
-    from research.kernels.diagnostic.redundancy import compute_pairwise_rho, identify_redundant_pairs
     from research.kernels.diagnostic.conditioning import compute_conditional_rho
     from research.kernels.diagnostic.panel import split_between_within_player_rho   # via __init__
     from research.kernels.diagnostic.tail import measure_tail_event_dependence      # via __init__
@@ -29,4 +28,4 @@ chains explicit and avoids circular-import risk from the sub-package structure.
 from research.kernels.diagnostic.panel import split_between_within_player_rho
 from research.kernels.diagnostic.tail import measure_tail_event_dependence
 
-__all__ = ["split_between_within_player_rho", "measure_tail_event_dependence"]
+__all__ = ["measure_tail_event_dependence", "split_between_within_player_rho"]

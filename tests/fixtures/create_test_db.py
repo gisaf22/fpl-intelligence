@@ -232,7 +232,11 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         selected INTEGER NOT NULL DEFAULT 0,
         transfers_in INTEGER NOT NULL DEFAULT 0,
         transfers_out INTEGER NOT NULL DEFAULT 0,
-        transfers_balance INTEGER NOT NULL DEFAULT 0
+        transfers_balance INTEGER NOT NULL DEFAULT 0,
+        tackles INTEGER NOT NULL DEFAULT 0,
+        clearances_blocks_interceptions INTEGER NOT NULL DEFAULT 0,
+        recoveries INTEGER NOT NULL DEFAULT 0,
+        defensive_contribution INTEGER NOT NULL DEFAULT 0
     );
     """)
 
@@ -436,7 +440,8 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
     # total_points, influence, creativity, threat, ict_index, expected_goals, expected_assists,
     # expected_goal_involvements, expected_goals_conceded, starts, in_dreamteam,
     # opponent_team, was_home, kickoff_time, team_h_score, team_a_score, value, selected,
-    # transfers_in, transfers_out, transfers_balance
+    # transfers_in, transfers_out, transfers_balance,
+    # tackles, clearances_blocks_interceptions, recoveries, defensive_contribution
 
     rows = [
         # --- P1 (GK, T1, always home side in T1 fixtures) ---
@@ -479,6 +484,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             200,
             100,
             100,
+            0,
+            1,
+            1,
+            2,
         ),
         # GW2/F2: T1 home vs T3.  P1 at T1 home. T3 scored 1 → goals_conceded=1.
         (
@@ -519,6 +528,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             180,
             110,
             70,
+            0,
+            1,
+            0,
+            1,
         ),
         # GW3: T1 has NO fixture → BGW for P1. No history row.
         # GW4/F5: T1 home vs T2.  P1 at T1 home. T2 scored 0 → clean sheet.
@@ -560,6 +573,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             220,
             130,
             90,
+            0,
+            0,
+            1,
+            1,
         ),
         # GW5/F7: T1 home vs T3.  P1 at T1 home. Clean sheet.
         (
@@ -600,6 +617,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             210,
             120,
             90,
+            0,
+            1,
+            1,
+            2,
         ),
         # --- P2 (GK, T2) ---
         # GW1/F1: T1 home vs T2.  P2 at T2 away. T1 scored 2 → P2 concedes 2.
@@ -641,6 +662,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             150,
             120,
             30,
+            0,
+            1,
+            1,
+            2,
         ),
         # GW2/F3: T2 home vs T4.  P2 at T2 home. T4 scored 0 → clean sheet.
         (
@@ -681,6 +706,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             160,
             110,
             50,
+            0,
+            0,
+            1,
+            1,
         ),
         # GW3/F4: T2 home vs T3.  P2 at T2 home. T3 scored 1 → P2 concedes 1.
         (
@@ -721,6 +750,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             170,
             120,
             50,
+            0,
+            1,
+            0,
+            1,
         ),
         # GW4/F5: T1 home vs T2.  P2 at T2 away. T1 scored 1 → P2 concedes 1. DGW fixture 1.
         # transfers_in/out/balance are GW-level — same value on both DGW fixtures.
@@ -762,6 +795,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             180,
             130,
             50,
+            0,
+            0,
+            1,
+            1,
         ),
         # GW4/F6: T2 home vs T4.  P2 at T2 home. T4 scored 1 → P2 concedes 1. DGW fixture 2.
         # Identical GW-level market stats as F5 (same GW).
@@ -803,6 +840,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             180,
             130,
             50,
+            0,
+            1,
+            1,
+            2,
         ),
         # GW5/F8: T2 home vs T4.  P2 at T2 home. Clean sheet.
         (
@@ -843,6 +884,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             190,
             115,
             75,
+            0,
+            1,
+            0,
+            1,
         ),
         # --- P3 (MID, at T1 for GW1-2, BGW in GW3, transfers to T2 for GW4-5) ---
         # players.team = 2 (T2, current snapshot). Bug: BGW GW3 gets team_id=T2.
@@ -887,6 +932,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             300,
             150,
             150,
+            1,
+            1,
+            2,
+            4,
         ),
         # GW2/F2: T1 home vs T3.  P3 at T1 home.
         (
@@ -927,6 +976,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             280,
             140,
             140,
+            2,
+            1,
+            3,
+            6,
         ),
         # GW3: T1 has NO fixture → BGW for P3. No history row.
         # GW4/F5: T1 home vs T2.  P3 now at T2 away.
@@ -969,6 +1022,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             320,
             160,
             160,
+            2,
+            2,
+            2,
+            6,
         ),
         # GW4/F6: T2 home vs T4.  P3 at T2 home. DGW fixture 2.
         # Identical GW-level market stats as F5 (same GW).
@@ -1010,6 +1067,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             320,
             160,
             160,
+            2,
+            2,
+            2,
+            6,
         ),
         # GW5/F8: T2 home vs T4.  P3 at T2 home.
         (
@@ -1050,6 +1111,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             330,
             165,
             165,
+            1,
+            2,
+            2,
+            5,
         ),
         # --- P4 (DEF, always at T1 — same home fixtures as P1; BGW in GW3) ---
         # SC-5 (zero-minute): GW1/F1 T1 home vs T2 (2-0). Unused sub → minutes=0, starts=0.
@@ -1092,6 +1157,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             100,
             50,
             50,
+            0,
+            0,
+            0,
+            0,
         ),
         # SC-6 (warm-up sub): GW2/F2 T1 home vs T3 (1-1). Off the bench → starts=0, minutes=27.
         #   T1 conceded 1 → goals_conceded=1, clean_sheets=0.
@@ -1133,6 +1202,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             120,
             60,
             60,
+            1,
+            2,
+            1,
+            3,
         ),
         # GW3: T1 has NO fixture → BGW for P4. No history row.
         # SC-7 (red card): GW4/F5 T1 home vs T2 (1-0). Sent off → red_cards=1, starts=1, minutes=63.
@@ -1175,6 +1248,10 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             130,
             65,
             65,
+            2,
+            8,
+            1,
+            10,
         ),
         # GW5/F7 T1 home vs T3 (2-0). Normal 90-min start, clean sheet.
         (
@@ -1215,12 +1292,16 @@ def _insert_player_histories(conn: sqlite3.Connection) -> None:
             140,
             70,
             70,
+            2,
+            3,
+            1,
+            5,
         ),
     ]
 
     conn.executemany(
         """INSERT INTO player_histories VALUES
-           (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+           (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         rows,
     )
 

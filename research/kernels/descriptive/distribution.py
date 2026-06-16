@@ -24,11 +24,17 @@ def compute_distribution_stats(series: pd.Series) -> dict[str, float]:
     special-casing missing slices.
     """
     s = series.dropna()
+    _nan_keys = ["count", "mean", "median", "std", "min", "max",
+                 "p25", "p75", "iqr", "p90", "p95", "p99", "skew", "kurtosis", "variance"]
     if len(s) == 0:
-        return {k: np.nan for k in [
-            "count", "mean", "median", "std", "min", "max",
-            "p25", "p75", "iqr", "p90", "p95", "p99", "skew", "kurtosis", "variance",
-        ]}
+        return {k: np.nan for k in _nan_keys}
+    val = float(s.iloc[0])
+    if s.std() == 0:
+        return {
+            "count": len(s), "mean": val, "median": val, "std": 0.0, "variance": 0.0,
+            "min": val, "max": val, "p25": val, "p75": val, "p90": val, "p95": val,
+            "p99": val, "iqr": 0.0, "skew": np.nan, "kurtosis": np.nan,
+        }
     return {
         "count": len(s),
         "mean": s.mean(),

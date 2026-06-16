@@ -31,6 +31,26 @@ def test_goal_points_decrease_with_attack():
     assert fpl.GOAL_POINTS_GK > fpl.GOAL_POINTS_DEF > fpl.GOAL_POINTS_MID > fpl.GOAL_POINTS_FWD
 
 
+def test_goals_conceded_penalty_constants():
+    assert fpl.GOALS_CONCEDED_PER_PENALTY > 0
+    assert fpl.GOALS_CONCEDED_PENALTY_POINTS < 0
+
+
+def test_dc_thresholds_and_points_positive():
+    assert fpl.DC_CBIT_THRESHOLD_DEF > 0
+    assert fpl.DC_CBIRT_THRESHOLD_MID_FWD > fpl.DC_CBIT_THRESHOLD_DEF
+    assert fpl.DC_POINTS > 0
+
+
+def test_defensive_contribution_points_by_position():
+    assert fpl.defensive_contribution_points("DEF", fpl.DC_CBIT_THRESHOLD_DEF - 1) == 0
+    assert fpl.defensive_contribution_points("DEF", fpl.DC_CBIT_THRESHOLD_DEF) == fpl.DC_POINTS
+    assert fpl.defensive_contribution_points("MID", fpl.DC_CBIRT_THRESHOLD_MID_FWD - 1) == 0
+    assert fpl.defensive_contribution_points("MID", fpl.DC_CBIRT_THRESHOLD_MID_FWD) == fpl.DC_POINTS
+    assert fpl.defensive_contribution_points("FWD", fpl.DC_CBIRT_THRESHOLD_MID_FWD) == fpl.DC_POINTS
+    assert fpl.defensive_contribution_points("GK", 999) == 0
+
+
 def test_discipline_constants_are_negative():
     assert fpl.YELLOW_CARD_POINTS < 0
     assert fpl.RED_CARD_POINTS < 0

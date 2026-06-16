@@ -155,24 +155,6 @@ are false positives by chance?
 
 ---
 
-### `research/kernels/redundancy.py`
-**Rung:** Dg  
-**Question:** Do any signal pairs measure the same underlying construct? Would
-including both add noise rather than information to the composition model?  
-**What it does:** Pairwise Spearman correlation between signals; flags pairs above
-DEFAULT_REDUNDANCY_THRESHOLD (0.85); partial correlation to disentangle algebraic
-identity from construct overlap.  
-**Input:** player-GW DataFrame, list of signal names, position  
-**Output:** pairwise rho DataFrame; redundant pairs list; partial rho dict  
-**Run order:** After distribution profiling; before composition (model layer)  
-**Gaps:**
-- Threshold 0.85 is editorial, not statistically justified
-- Partial correlation assumes linear relationships — may miss non-linear redundancy
-- No confidence interval on pairwise rho — a pair with rho = 0.86 from n=40
-  has wide uncertainty; this is not flagged
-
----
-
 ### `research/kernels/conditioning.py`
 **Rung:** Dg / I  
 **Question:** Does the signal→target relationship hold uniformly across subgroups,
@@ -502,7 +484,6 @@ Inferential / Qualification (families)
     families/evidence_record.py     ← write evidence.yaml
 
 Composition (model)
-  kernels/redundancy.py             ← signal redundancy
   kernels/resampling.py             ← bootstrap CIs on weights
   model/assemble/composition_study.py ← recommendations
 
@@ -603,5 +584,4 @@ Assessment outcome: keep in `research/foundation/integrity/` but rename to clari
 | `research/foundation/joint/association.py` | Deleted — workaround copy eliminated |
 | `research/kernels/stability.py` | `moderation_instability_rate` moved to `model/assemble/composition_study.py` as `_moderation_instability_rate`; `stability_classify` moved in from `geometry.py` |
 | `research/kernels/geometry.py` | `stability_classify` moved out; `PANEL_CLASS_THRESHOLDS`, `HAUL_THRESHOLD_PTS`, `HAUL_DROP_MATERIAL` moved to `domain/registry/association.py` |
-| `research/kernels/redundancy.py` | `bootstrap_partial_rho` moved to `resampling.py` (injected partial_fn); `partial_spearman` moved to `composition_study.py` as `_partial_spearman`; `compute_partial_rho` deleted; file now owns only pairwise redundancy screening |
 | `domain/registry/association.py` | Created — canonical home for `assign_association_class`, `consolidate_flags`, `PANEL_CLASS_THRESHOLDS`, `HAUL_THRESHOLD_PTS`, `HAUL_DROP_MATERIAL` |

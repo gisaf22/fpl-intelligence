@@ -10,6 +10,20 @@ Verification source: FPL bootstrap-static endpoint
   element_types[].squad_min_play, game_settings.*
 
 Last verified: season 2025/26
+
+Defensive Contribution (2025/26 rule): DEF earn DC_POINTS for 10+ CBIT
+(clearances + blocks + interceptions + tackles) actions in a match; MID/FWD
+earn DC_POINTS for 12+ CBIRT (CBIT + recoveries) actions. The underlying
+`tackles`, `recoveries`, `clearances_blocks_interceptions`,
+`defensive_contribution` fields are staged through to the analytical mart as
+plain per-fixture counts (additive across double-gameweek fixtures, like
+`penalties_saved`). Applying `defensive_contribution_points()` to a
+gameweek-summed `defensive_contribution` count is exact for single-fixture
+gameweeks, but can disagree with FPL's true per-fixture-then-summed points for
+the small population of double-gameweek rows where the per-fixture and summed
+thresholds land on opposite sides of the boundary — see
+research/foundation/structure/target.ipynb section (d) for this caveat in a
+total_points reconstruction.
 """
 
 # ---------------------------------------------------------------------------
@@ -42,6 +56,44 @@ CLEAN_SHEET_POINTS_GK: int = 4  # VERIFIED 2025/26
 CLEAN_SHEET_POINTS_DEF: int = 4  # VERIFIED 2025/26
 CLEAN_SHEET_POINTS_MID: int = 1  # VERIFIED 2025/26
 CLEAN_SHEET_POINTS_FWD: int = 0  # VERIFIED 2025/26
+
+# ---------------------------------------------------------------------------
+# Goals conceded
+# ---------------------------------------------------------------------------
+
+# UNVERIFIED — long-standing FPL rule: GK and DEF lose 1 point for every 2
+# goals conceded while on the pitch. MID and FWD are not subject to this
+# penalty. Not yet cross-checked against bootstrap-static.
+GOALS_CONCEDED_PER_PENALTY: int = 2  # UNVERIFIED
+GOALS_CONCEDED_PENALTY_POINTS: int = -1  # UNVERIFIED
+
+# ---------------------------------------------------------------------------
+# Defensive Contribution (2025/26 rule)
+# ---------------------------------------------------------------------------
+
+# UNVERIFIED — cross-checked empirically via the total_points reconstruction in
+# target.ipynb (raises DEF/MID exact-match rate close to the GK/FWD baseline),
+# not yet cross-checked directly against bootstrap-static.
+DC_CBIT_THRESHOLD_DEF: int = 10  # UNVERIFIED — CBIT (tackles+CBI) threshold for DEF
+DC_CBIRT_THRESHOLD_MID_FWD: int = 12  # UNVERIFIED — CBIRT (CBIT+recoveries) threshold for MID/FWD
+DC_POINTS: int = 2  # UNVERIFIED
+
+
+def defensive_contribution_points(position: str, defensive_contribution: int) -> int:
+    """2pts if `defensive_contribution` meets the position's CBIT/CBIRT threshold.
+
+    DEF use the CBIT threshold; MID/FWD use the CBIRT threshold; GK are not
+    subject to this rule. Applying this to a gameweek-summed
+    `defensive_contribution` count is exact for single-fixture gameweeks, but
+    can disagree with FPL's true per-fixture-then-summed points for the small
+    population of double-gameweek rows — see target.ipynb section (d).
+    """
+    if position == "DEF":
+        return DC_POINTS if defensive_contribution >= DC_CBIT_THRESHOLD_DEF else 0
+    if position in ("MID", "FWD"):
+        return DC_POINTS if defensive_contribution >= DC_CBIRT_THRESHOLD_MID_FWD else 0
+    return 0
+
 
 # ---------------------------------------------------------------------------
 # Goals

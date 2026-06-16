@@ -210,4 +210,46 @@ SIGNAL_LAYER_MAPPING: dict[str, dict[str, Any]] = {
         "feature_candidate_eligible": True,
         "interpretation_caveat": "sparse/low-frequency caveats apply",
     },
+    "own_goals": {
+        "signal_layer": "discipline",
+        "layer_role": "negative_event",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "sparse/low-frequency caveats apply",
+    },
+    "penalties_missed": {
+        "signal_layer": "discipline",
+        "layer_role": "negative_event",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "sparse/low-frequency caveats apply",
+    },
+    "penalties_saved": {
+        "signal_layer": "defensive_context",
+        "layer_role": "goalkeeper_action",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "GK-specific; sparse event caveats apply",
+    },
+    "tackles": {
+        "signal_layer": "defensive_context",
+        "layer_role": "defensive_action",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "position-dependent; DEF/MID-relevant",
+    },
+    "clearances_blocks_interceptions": {
+        "signal_layer": "defensive_context",
+        "layer_role": "defensive_action",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "position-dependent; DEF-relevant",
+    },
+    "recoveries": {
+        "signal_layer": "defensive_context",
+        "layer_role": "defensive_action",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "position-dependent; DEF/MID-relevant",
+    },
+    "defensive_contribution": {
+        "signal_layer": "defensive_context",
+        "layer_role": "defensive_contribution_index",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "FPL CBIT/CBIRT count; drives DC bonus (2025/26 rule); non-linear at DGW",
+    },
 }

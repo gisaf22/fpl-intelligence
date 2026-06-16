@@ -35,4 +35,11 @@ REGISTRY_BUILD_INPUT_COLUMNS: tuple[str, ...] = (
     "purchase_price",
     "transfers_in",
     "transfers_out",
+    "own_goals",
+    "penalties_missed",
+    "penalties_saved",
+    "tackles",
+    "clearances_blocks_interceptions",
+    "recoveries",
+    "defensive_contribution",
 )

@@ -138,7 +138,6 @@ Tests for the weekly reporting pipeline: snapshots, signal intelligence summarie
 | File | Covers |
 |------|--------|
 | `test_signals_population.py` | Population filter logic |
-| `test_signals_redundancy.py` | Redundancy detection |
 | `test_signals_stability.py` | Signal stability computation |
 
 ### Integration tests — `tests/test_integrated_*.py`

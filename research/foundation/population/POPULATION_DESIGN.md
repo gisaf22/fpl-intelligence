@@ -1,39 +1,53 @@
 # Population layer — design and intent
 
 **Status:** intent doc for the informative `population/` layer
-**Produced:** 2026-06-16
+**Produced:** 2026-06-16 (updated 2026-06-17)
 **Class:** read-only informative artifact (no *new* gate decisions, no PROCEED/STOP verdict)
 
 ---
 
-## 1. Purpose
+## 1. Purpose and where we are on the ladder
 
 `population/` is the one foundation layer with a **prescriptive** purpose. Every
 other layer (structure/, temporal/, fixture/) imposes a `minutes > 0`
 participation filter and explicitly **defers the 60-minute performance-boundary
-question to here**. This layer answers it: it describes the minutes landscape,
-characterises the 60-minute mark, and measures whether the choice of population
-scope actually changes analytical conclusions — then **restates** (does not
-re-originate) the prescription that downstream should analyse on the
-qualified-start population (`minutes >= 60`).
+question to here**.
 
-The layer stays **informative**: it does not mint a new gate. Its guiding
-questions are phrased as **directives** (Determine / Establish / Quantify /
-Prescribe) to make the prescriptive purpose explicit while keeping the artifacts
-verdict-free.
+The research layer will eventually hold the whole **descriptive → diagnostic →
+inferential → hypothesis** ladder. **This layer is currently on the descriptive
+rung only**: it *describes* the minutes landscape, and the *association* of the
+minutes-bands with both Y (`total_points`) and X (each signal) — exactly the way
+the temporal layer describes structure and association across season-thirds. It
+restates (does not re-originate) the settled prescription that downstream should
+analyse on the qualified-start population (`minutes >= 60`).
+
+Guiding questions are phrased as **directives** to make the prescriptive purpose
+explicit while keeping the artifacts descriptive and verdict-free. Anything that
+*explains* the description — confounding, minutes-adjustment, significance — is a
+**later rung** (diagnostic or inferential, TBD) and is deferred (§5).
+
+Mapping population onto temporal (minutes-bands = season-thirds):
+
+| Descriptive piece | Temporal | Population |
+|---|---|---|
+| structure | block definition | `minutes_distribution.ipynb` |
+| **bands × Y** | `target_stability.ipynb` | `population_boundary.ipynb` |
+| **bands × X** | `signal_stability.ipynb` | `signal_minutes.ipynb` |
+| (closing) association across scopes | — | `scope_sensitivity.ipynb` |
 
 ## 2. Notebooks
 
-| Notebook | Role | Question class |
+| Notebook | Role | Rung |
 |---|---|---|
 | `minutes_distribution.ipynb` | Describe the minutes / rotation landscape by position | descriptive |
-| `population_boundary.ipynb` | Characterise the 60-minute mark — is it a regime boundary? | descriptive |
-| `scope_sensitivity.ipynb` | Measure whether re-scoping the population changes signal→target association | descriptive readout of association deltas |
+| `population_boundary.ipynb` | Characterise the 60-minute mark (bands × Y) | descriptive |
+| `signal_minutes.ipynb` | Describe each signal's level across minutes-bands (bands × X) | descriptive |
+| `scope_sensitivity.ipynb` | Describe whether the population definition changes the signal→points association | descriptive (association readout) |
 
-## 3. Directive questions (the prescriptive framing)
+## 3. Directive questions
 
 **`minutes_distribution.ipynb`**
-- Determine how minutes distribute by position — establish who plays full matches vs who is rotated/subbed.
+- Determine how minutes distribute by position — who plays full matches vs who is rotated/subbed.
 - Establish each position's start rate, given the player featured.
 - Quantify each position's secure-minutes (60+) share vs its cameo/partial share.
 
@@ -42,64 +56,63 @@ verdict-free.
 - Establish what a 60-minute filter would include vs discard (blank-rate + scoring by minutes band).
 - State, with evidence, whether 60 is a defensible population boundary — restating the settled prescription, not originating a new gate.
 
+**`signal_minutes.ipynb`**
+- Determine how each signal's typical level sits across minutes-bands — does it rise with minutes on the pitch or stay flat?
+- Establish which signals move most from cameo to full-game appearances and which barely move.
+
 **`scope_sensitivity.ipynb`**
-- Determine whether re-scoping `minutes > 0` → `minutes >= 60` changes the signal→target association (delta-rho per signal-position).
-- Establish which (signal, position) pairs are scope-robust vs scope-sensitive.
-- Prescribe which population scope downstream should analyse on — and explain why an earlier "nothing changes" reading and this "this changes a lot" reading can both be correct.
+- Determine whether re-scoping `minutes > 0` → `minutes >= 60` changes each signal's rank-correlation with points (a per-position shift).
+- Establish which (signal, position) pairs are unaffected by the cutoff and which shift a lot.
+- *(Explaining the shift, and prescribing a scope, is deferred — §5.)*
 
 ## 4. Shared method
 
 - **GW range:** whole completed season, `GW 1 .. data_cutoff_gw` (dynamic).
 - **Base population:** `minutes > 0` participation (the player featured), **not** a
   performance gate — the 60-minute mark is the *object of study* here, not a
-  pre-imposed filter. `scope_sensitivity` is the exception: it keeps the full
-  minutes axis and derives both scopes (`>= 60` and `> 0`) internally.
-- **Boundary under test:** `minutes >= 60` — the FPL scoring regime break (clean-sheet
-  eligibility, the second appearance point, full BPS baseline).
-- **DGW:** distributions pool SGW + DGW and flag the confound; per-fixture
-  normalisation is the `fixture/` layer's job.
+  pre-imposed filter. `scope_sensitivity` derives both scopes (`>= 60` and `> 0`)
+  internally from the full minutes axis.
+- **Minutes-bands** (`signal_minutes`, `population_boundary`): `1-29 / 30-59 /
+  60-89 / 90+` — played by `compute_signal_block_distributions` with
+  `gw_column="minutes"` (the kernel bins by whatever column it is given).
+- **DGW:** distributions pool SGW + DGW and flag the confound; DGW full-plays land
+  in the `90+` band (~180 min, doubled counts). Per-fixture normalisation is the
+  `fixture/` layer's job.
 
-## 5. The scope-sensitivity method and its key finding
+## 5. Deferred — the later-rung follow-up (not built)
 
-`scope_sensitivity.ipynb` orchestrates the dedicated, tested module
-`research/foundation/population/robustness.py` (`compute_dual_scope_rho`,
-`classify_population_robustness`) plus the shared shape kernels
-(`select_bucketing_scheme` → `bin_analysis` → `classify_geometry`) for per-scope
-geometry. Output is a **descriptive** robustness readout — point-estimate rho
-shifts and a `{stable, scope_sensitive, untested}` label per pair — with no gate.
+`scope_sensitivity.ipynb` *describes* that the signal→points association shifts
+across the two population definitions for many raw single-game stats (43/84
+testable pairs shift, up to 0.53; movers are the per-match accumulating stats —
+`starts`, defensive counts, ICT totals; sparse/rate-like stats barely move).
+`signal_minutes.ipynb` separately *describes* that those same accumulating stats
+sit higher in higher-minute bands.
 
-**Key finding (full season, raw per-GW mart signals).** The 60-minute cutoff is
-**not neutral** for raw single-game stats: 43/84 testable pairs are
-`scope_sensitive` (mean |shift| 0.12, max 0.53). The movers are the
-**minutes-accumulating counts** — `starts`, defensive-action counts
-(`defensive_contribution`, `recoveries`, `clearances_blocks_interceptions`,
-`tackles`), `goals_conceded`, and per-match ICT totals (`creativity`, `xa`,
-`xgi`). Raw counts pile up with minutes, so the participation population
-(`minutes > 0`) inflates rho via a **minutes confound** that the 60+ scope
-removes. Sparse / rate-like signals (`goals_scored`, `assists`, `bonus`, `saves`,
-`penalties_saved`) barely move.
+**It deliberately stops at description.** *Explaining* the shift — whether minutes
+drives it, what the association looks like once minutes is adjusted for — is a
+later rung (diagnostic or inferential, TBD), not concluded in this layer. Recorded
+here so a later phase can pick it up, with the method options and the fact that the
+tooling already exists:
+- minutes-adjusted association (partial Spearman controlling for minutes) —
+  `research/kernels/inferential/resampling.py` (`partial_spearman`,
+  `bootstrap_partial_rho`);
+- per-90 normalisation of counts;
+- association within minutes-bands —
+  `research/kernels/diagnostic/conditioning.py` (`compute_conditional_rho`,
+  `classify_heterogeneity`).
 
-**Reconciliation (plain terms).** An earlier robustness check read "nothing
-changes across the boundary." That was on the **smoothed rolling-average form
-signals** the scorer actually uses (a player's average over recent games), which
-do not carry a per-week minutes effect. This notebook reads the **raw
-single-game stats**, which do. Both are correct on different inputs. The finding
-*strengthens* the `minutes >= 60` prescription: for raw stats the cutoff removes
-a "they just played more" illusion that would otherwise make minutes-driven
-signals look more predictive than they are.
+Cross-references **POPTHRESH-01** (`docs/studies/popthresh-01-design.md`), the
+design-locked study of whether 60 is the *optimal* threshold (T30/T45/T75/T90).
 
-## 6. Out of scope
+**No causal claims.** "An extra 30 minutes causes +X points" is causal (Pearl
+rung 2) and is out of scope for the whole layer — exposure is confounded with
+player quality; minutes-adjustment yields an *association*, not causation.
 
-- **POPTHRESH-01** (`docs/studies/popthresh-01-design.md`) — the separate
-  design-locked study of whether 60 is the *optimal* threshold vs T30/T45/T75/T90.
-  Referenced as the home for the optimality question; not executed here.
-- **Causal claims.** "An extra 30 minutes causes +X points" is causal (Pearl rung
-  2) and deliberately out of scope — exposure is confounded with player quality.
-
-## 7. Supporting module
+## 6. Supporting module
 
 `research/foundation/population/robustness.py` — relocated from the retired
 `foundation/scope/` (its sibling `eda_04` was deleted). Tested by
-`tests/test_signals_population.py`. Vocabulary `{stable, scope_sensitive,
-untested}`; thresholds (`rho_shift < 0.10` stable, `<= 0.25` scope_sensitive) are
-operational heuristics, not significance tests.
+`tests/test_signals_population.py`. Backs `scope_sensitivity.ipynb`
+(`compute_dual_scope_rho`, `classify_population_robustness`). Vocabulary
+`{stable, scope_sensitive, untested}`; thresholds are operational heuristics, not
+significance tests.

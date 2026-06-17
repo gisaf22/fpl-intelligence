@@ -32,7 +32,7 @@ minutes axis). Both are Descriptive. Characterising a column in isolation —
 does a signal fire, does it move, what kind is it — is the `structure/` layer's
 job. `population/` is the **relational** side of Descriptive: it relates Y and
 X *to* the minutes axis. Minutes' own univariate shape appears here only as
-**axis setup** — enough to show the distribution is bimodal and to justify
+**axis setup** — enough to show the distribution's shape (a full-match spike at 90 over a cameo/partial tail) and to justify
 where the 60-minute band edge sits — never as a deliverable.
 
 Why 60 recurs: FPL's scoring rules change at 60 minutes — clean-sheet
@@ -54,7 +54,7 @@ three build on.
 
 | Notebook | Role | Within Descriptive |
 |---|---|---|
-| `minutes_distribution.ipynb` | Establish the minutes axis — bimodal shape + where the band edges sit | univariate (axis setup) |
+| `minutes_distribution.ipynb` | Establish the minutes axis — spike-and-tail shape + where the band edges sit | univariate (axis setup) |
 | `points_by_minutes_band.ipynb` | How Y sits across minutes-bands (bands × Y) | relational |
 | `signals_by_minutes_band.ipynb` | How each signal X sits across minutes-bands (bands × X) | relational |
 | `scope_sensitivity.ipynb` | Whether the population definition shifts the signal→points association | relational (association readout) |
@@ -62,7 +62,7 @@ three build on.
 ## 3. Directive questions
 
 **`minutes_distribution.ipynb`** *(axis setup — establishes the minutes axis the relational notebooks read against)*
-- Determine how minutes distribute by position — establish that the distribution is bimodal (full-match mass vs cameo/partial mass).
+- Determine how minutes distribute by position — establish the shape (a full-match spike at 90 over a cameo/partial tail, not a clean two-hump distribution).
 - Quantify each position's secure-minutes (60+) share, justifying where the 60-minute band edge sits.
 
 **`points_by_minutes_band.ipynb`**

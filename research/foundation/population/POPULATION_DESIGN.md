@@ -55,8 +55,8 @@ three build on.
 | Notebook | Role | Within Descriptive |
 |---|---|---|
 | `minutes_distribution.ipynb` | Establish the minutes axis — bimodal shape + where the band edges sit | univariate (axis setup) |
-| `population_boundary.ipynb` | How Y sits across minutes-bands (bands × Y) | relational |
-| `signal_minutes.ipynb` | How each signal X sits across minutes-bands (bands × X) | relational |
+| `points_by_minutes_band.ipynb` | How Y sits across minutes-bands (bands × Y) | relational |
+| `signals_by_minutes_band.ipynb` | How each signal X sits across minutes-bands (bands × X) | relational |
 | `scope_sensitivity.ipynb` | Whether the population definition shifts the signal→points association | relational (association readout) |
 
 ## 3. Directive questions
@@ -65,12 +65,12 @@ three build on.
 - Determine how minutes distribute by position — establish that the distribution is bimodal (full-match mass vs cameo/partial mass).
 - Quantify each position's secure-minutes (60+) share, justifying where the 60-minute band edge sits.
 
-**`population_boundary.ipynb`**
+**`points_by_minutes_band.ipynb`**
 - Determine whether mean scoring lifts at/after 60 minutes or ramps smoothly — is 60 a regime boundary or an arbitrary cut?
 - Establish what a 60-minute filter would include vs discard (blank-rate + scoring by minutes band).
 - Describe whether scoring steps at 60 (a property of the scoring rules) or ramps smoothly — purely the descriptive picture, nothing decided here.
 
-**`signal_minutes.ipynb`**
+**`signals_by_minutes_band.ipynb`**
 - Determine how each signal's typical level sits across minutes-bands — does it rise with minutes on the pitch or stay flat?
 - Establish which signals move most from cameo to full-game appearances and which barely move.
 
@@ -86,7 +86,7 @@ three build on.
   performance gate — the 60-minute mark is the *object of study* here, not a
   pre-imposed filter. `scope_sensitivity` derives both scopes (`>= 60` and `> 0`)
   internally from the full minutes axis.
-- **Minutes-bands** (`signal_minutes`, `population_boundary`): `1-29 / 30-59 /
+- **Minutes-bands** (`signals_by_minutes_band`, `points_by_minutes_band`): `1-29 / 30-59 /
   60-89 / 90+` — played by `compute_signal_block_distributions` with
   `gw_column="minutes"` (the kernel bins by whatever column it is given).
 - **DGW:** distributions pool SGW + DGW and flag the confound; DGW full-plays land
@@ -99,7 +99,7 @@ three build on.
 across the two population definitions for many raw single-game stats (43/84
 testable pairs shift, up to 0.53; movers are the per-match accumulating stats —
 `starts`, defensive counts, ICT totals; sparse/rate-like stats barely move).
-`signal_minutes.ipynb` separately *describes* that those same accumulating stats
+`signals_by_minutes_band.ipynb` separately *describes* that those same accumulating stats
 sit higher in higher-minute bands.
 
 **It deliberately stops at description.** *Explaining* the shift — whether minutes

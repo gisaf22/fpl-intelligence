@@ -100,9 +100,12 @@ three build on.
 ## 5. Deferred — the Diagnostic-tier follow-up (not built)
 
 `scope_sensitivity.ipynb` *describes* that the signal→points association shifts
-across the two population definitions for many raw single-game stats (44/84
-testable pairs shift, up to 0.61; movers are the per-match accumulating stats —
-`starts`, defensive counts, ICT totals; sparse/rate-like stats barely move).
+across the two population definitions for many raw single-game stats (41/80
+testable pairs shift, up to 0.40; movers are the per-match accumulating stats —
+defensive counts, `goals_conceded`, ICT totals; sparse/rate-like stats barely
+move). `starts` is excluded from the signal set as a near-mechanical minutes
+proxy (it would top the shift table by construction); the starts axis is
+deferred.
 `signals_by_minutes_band.ipynb` separately *describes* that those same accumulating stats
 sit higher in higher-minute bands.
 

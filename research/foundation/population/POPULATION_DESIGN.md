@@ -84,20 +84,24 @@ three build on.
 - **GW range:** whole completed season, `GW 1 .. data_cutoff_gw` (dynamic).
 - **Base population:** `minutes > 0` participation (the player featured), **not** a
   performance gate — the 60-minute mark is the *object of study* here, not a
-  pre-imposed filter. `scope_sensitivity` derives both scopes (`>= 60` and `> 0`)
-  internally from the full minutes axis.
-- **Minutes-bands** (`signals_by_minutes_band`, `points_by_minutes_band`): `1-29 / 30-59 /
-  60-89 / 90+` — played by `compute_signal_block_distributions` with
-  `gw_column="minutes"` (the kernel bins by whatever column it is given).
-- **DGW:** distributions pool SGW + DGW and flag the confound; DGW full-plays land
-  in the `90+` band (~180 min, doubled counts). Per-fixture normalisation is the
-  `fixture/` layer's job.
+  pre-imposed filter. Double-gameweeks are **excluded for now** (`is_dgw == False`;
+  see DGW bullet). `scope_sensitivity` derives both scopes (`>= 60` and `> 0`)
+  internally from the (DGW-excluded) minutes axis.
+- **Minutes-bands** (`signals_by_minutes_band`, `points_by_minutes_band`): `1-29 /
+  30-59 / 60+` — collapsed at 60 because FPL's scoring rules do not distinguish
+  60-89 from 90 (same appearance / clean-sheet regime), so `60+` is the
+  rule-aligned band. `signals_by_minutes_band` plays them via
+  `compute_signal_block_distributions` with `gw_column="minutes"` (the kernel bins
+  by whatever column it is given).
+- **DGW:** **excluded for now** (`is_dgw == False`) — this drops the
+  fixture-doubling confound (the ~180-minute rows) cleanly rather than pooling and
+  flagging it. Per-fixture DGW treatment is the `fixture/` layer's job.
 
 ## 5. Deferred — the Diagnostic-tier follow-up (not built)
 
 `scope_sensitivity.ipynb` *describes* that the signal→points association shifts
-across the two population definitions for many raw single-game stats (43/84
-testable pairs shift, up to 0.53; movers are the per-match accumulating stats —
+across the two population definitions for many raw single-game stats (44/84
+testable pairs shift, up to 0.61; movers are the per-match accumulating stats —
 `starts`, defensive counts, ICT totals; sparse/rate-like stats barely move).
 `signals_by_minutes_band.ipynb` separately *describes* that those same accumulating stats
 sit higher in higher-minute bands.

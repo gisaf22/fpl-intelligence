@@ -8,23 +8,32 @@
 
 ## 1. Purpose and where we are on the ladder
 
-`population/` is the one foundation layer with a **prescriptive** purpose. Every
-other layer (structure/, temporal/, fixture/) imposes a `minutes > 0`
-participation filter and explicitly **defers the 60-minute performance-boundary
-question to here**.
+`population/` characterises **minutes — playing time / exposure — as an
+analytical axis**, the same way `temporal/` characterises time and `structure/`
+characterises signal shape. It describes the minutes landscape (structure) and
+how the target Y (`total_points`) and each signal X sit across minutes-bands.
+
+Minutes is a *special* axis for two reasons — which is why it gets its own layer,
+and why the other foundation layers (which all run on `minutes > 0`) explicitly
+**defer the characterisation of the 60-minute mark to here**:
+1. it is also the variable that defines the **analytical population** used
+   downstream (the `minutes >= 60` filter), and
+2. FPL scoring has a structural **regime break at 60** (clean-sheet eligibility,
+   the second appearance point, the BPS baseline).
+
+But this layer's job is to **describe** that axis, **not to prescribe** the
+filter. The `minutes >= 60` population choice is settled *elsewhere*
+(`research/findings/FINDINGS.md` G-EDA4-01/02; the `*-60min-*` decision docs); this
+layer supplies the descriptive evidence around it and does not re-originate or
+re-decide it.
 
 The research layer will eventually hold the whole **descriptive → diagnostic →
 inferential → hypothesis** ladder. **This layer is currently on the descriptive
-rung only**: it *describes* the minutes landscape, and the *association* of the
-minutes-bands with both Y (`total_points`) and X (each signal) — exactly the way
-the temporal layer describes structure and association across season-thirds. It
-restates (does not re-originate) the settled prescription that downstream should
-analyse on the qualified-start population (`minutes >= 60`).
-
-Guiding questions are phrased as **directives** to make the prescriptive purpose
-explicit while keeping the artifacts descriptive and verdict-free. Anything that
-*explains* the description — confounding, minutes-adjustment, significance — is a
-**later rung** (diagnostic or inferential, TBD) and is deferred (§5).
+rung only** — exactly like `temporal/`. Guiding questions are phrased as
+**directives** (Determine / Establish / Quantify) purely as a style choice;
+anything that *explains* the description — confounding, minutes-adjustment,
+significance — is a **later rung** (diagnostic or inferential, TBD) and is
+deferred (§5).
 
 Mapping population onto temporal (minutes-bands = season-thirds):
 
@@ -54,7 +63,7 @@ Mapping population onto temporal (minutes-bands = season-thirds):
 **`population_boundary.ipynb`**
 - Determine whether mean scoring lifts at/after 60 minutes or ramps smoothly — is 60 a regime boundary or an arbitrary cut?
 - Establish what a 60-minute filter would include vs discard (blank-rate + scoring by minutes band).
-- State, with evidence, whether 60 is a defensible population boundary — restating the settled prescription, not originating a new gate.
+- State what descriptive evidence the boundary shows (does scoring step at 60?) — the evidence behind the settled population choice recorded elsewhere, not a new gate.
 
 **`signal_minutes.ipynb`**
 - Determine how each signal's typical level sits across minutes-bands — does it rise with minutes on the pitch or stay flat?

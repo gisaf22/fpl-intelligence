@@ -1,9 +1,9 @@
 """Population-robustness utilities for the population/ foundation layer.
 
 Computes dual-scope rho comparisons and classifies population robustness
-for each signal-position pair. Backs `population/scope_sensitivity.ipynb`
-(the layer's scope-robustness readout); the original EDA-4 verdict it refreshes
-is recorded in research/findings/FINDINGS.md (G-EDA4-01/02).
+for each signal-position pair. Backs `population/scope_sensitivity.ipynb`,
+which describes how each signal's association with points reads under the two
+population definitions (minutes > 0 vs minutes >= 60).
 
 Vocabulary: schema uses {stable, scope_sensitive, untested}.
 The EDA_DESIGN.md alternative {robust, moderate_shift, unstable} was not

@@ -9,40 +9,21 @@
 ## 1. Purpose and where we are on the ladder
 
 `population/` characterises **minutes — playing time / exposure — as an
-analytical axis**, the same way `temporal/` characterises time and `structure/`
-characterises signal shape. It describes the minutes landscape (structure) and
-how the target Y (`total_points`) and each signal X sit across minutes-bands.
+analytical axis**: it describes the minutes landscape, and how the target Y
+(`total_points`) and each signal X sit across minutes-bands.
 
-Minutes is a *special* axis for two reasons — which is why it gets its own layer,
-and why the other foundation layers (which all run on `minutes > 0`) explicitly
-**defer the characterisation of the 60-minute mark to here**:
-1. it is also the variable that defines the **analytical population** used
-   downstream (the `minutes >= 60` filter), and
-2. FPL scoring has a structural **regime break at 60** (clean-sheet eligibility,
-   the second appearance point, the BPS baseline).
+Why minutes gets its own layer, and why the 60-minute mark recurs: FPL's scoring
+rules have a structural change at 60 minutes — clean-sheet eligibility, the second
+appearance point, and the BPS baseline all switch there. So 60 is a natural line
+to look at on the minutes axis. That is a property of the game's rules — not a
+gate, decision, or threshold this layer sets.
 
-But this layer's job is to **describe** that axis, **not to prescribe** the
-filter. The `minutes >= 60` population choice is settled *elsewhere*
-(`research/findings/FINDINGS.md` G-EDA4-01/02; the `*-60min-*` decision docs); this
-layer supplies the descriptive evidence around it and does not re-originate or
-re-decide it.
-
-The research layer will eventually hold the whole **descriptive → diagnostic →
-inferential → hypothesis** ladder. **This layer is currently on the descriptive
-rung only** — exactly like `temporal/`. Guiding questions are phrased as
-**directives** (Determine / Establish / Quantify) purely as a style choice;
-anything that *explains* the description — confounding, minutes-adjustment,
-significance — is a **later rung** (diagnostic or inferential, TBD) and is
-deferred (§5).
-
-Mapping population onto temporal (minutes-bands = season-thirds):
-
-| Descriptive piece | Temporal | Population |
-|---|---|---|
-| structure | block definition | `minutes_distribution.ipynb` |
-| **bands × Y** | `target_stability.ipynb` | `population_boundary.ipynb` |
-| **bands × X** | `signal_stability.ipynb` | `signal_minutes.ipynb` |
-| (closing) association across scopes | — | `scope_sensitivity.ipynb` |
+This layer is on the **descriptive rung**: it describes the data and nothing else
+— it does not decide, gate, or recommend a population. Guiding questions are
+phrased as directives (Determine / Establish / Quantify) as a style choice.
+Anything that *explains* the description — confounding, minutes-adjustment,
+significance — is a **later rung** (diagnostic or inferential) and is deferred
+(§5).
 
 ## 2. Notebooks
 
@@ -63,7 +44,7 @@ Mapping population onto temporal (minutes-bands = season-thirds):
 **`population_boundary.ipynb`**
 - Determine whether mean scoring lifts at/after 60 minutes or ramps smoothly — is 60 a regime boundary or an arbitrary cut?
 - Establish what a 60-minute filter would include vs discard (blank-rate + scoring by minutes band).
-- State what descriptive evidence the boundary shows (does scoring step at 60?) — the evidence behind the settled population choice recorded elsewhere, not a new gate.
+- Describe whether scoring steps at 60 (a property of the scoring rules) or ramps smoothly — purely the descriptive picture, nothing decided here.
 
 **`signal_minutes.ipynb`**
 - Determine how each signal's typical level sits across minutes-bands — does it rise with minutes on the pitch or stay flat?
@@ -72,7 +53,7 @@ Mapping population onto temporal (minutes-bands = season-thirds):
 **`scope_sensitivity.ipynb`**
 - Determine whether re-scoping `minutes > 0` → `minutes >= 60` changes each signal's rank-correlation with points (a per-position shift).
 - Establish which (signal, position) pairs are unaffected by the cutoff and which shift a lot.
-- *(Explaining the shift, and prescribing a scope, is deferred — §5.)*
+- *(Explaining the shift is deferred — §5.)*
 
 ## 4. Shared method
 
@@ -109,9 +90,6 @@ tooling already exists:
 - association within minutes-bands —
   `research/kernels/diagnostic/conditioning.py` (`compute_conditional_rho`,
   `classify_heterogeneity`).
-
-Cross-references **POPTHRESH-01** (`docs/studies/popthresh-01-design.md`), the
-design-locked study of whether 60 is the *optimal* threshold (T30/T45/T75/T90).
 
 **No causal claims.** "An extra 30 minutes causes +X points" is causal (Pearl
 rung 2) and is out of scope for the whole layer — exposure is confounded with

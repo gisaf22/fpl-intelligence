@@ -86,6 +86,10 @@ implication section is needed.
 All former partial signals have been resolved by EDA-8 gate decisions (G-EDA8-01 through
 G-EDA8-10). No open-question signals remain.
 
+> **Provenance note:** the EDA-8 source study (`foundation/gap/`) was retired with the
+> old gate-decision framework; the conclusions below are the record. The original
+> study code (`eda_08_study.py`, `EDA_08_DESIGN.md`) lives in git history if needed.
+
 | Signal | Resolution | Gate |
 |---|---|---|
 | saves (GKP) | Uninformative as a standalone signal — structural tension between saves and clean sheet points | G-EDA8-01, G-EDA8-02 |

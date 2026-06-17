@@ -6,40 +6,64 @@
 
 ---
 
-## 1. Purpose and where we are on the ladder
+## 1. Purpose and where we sit on the analytics maturity model
 
 `population/` characterises **minutes — playing time / exposure — as an
-analytical axis**: it describes the minutes landscape, and how the target Y
-(`total_points`) and each signal X sit across minutes-bands.
+analytical axis**: how the target Y (`total_points`) and each signal X sit
+across the minutes axis and its 60-minute bands.
 
-Why minutes gets its own layer, and why the 60-minute mark recurs: FPL's scoring
-rules have a structural change at 60 minutes — clean-sheet eligibility, the second
-appearance point, and the BPS baseline all switch there. So 60 is a natural line
-to look at on the minutes axis. That is a property of the game's rules — not a
-gate, decision, or threshold this layer sets.
+Every piece of analysis is placed on **Gartner's analytics maturity model** —
+four ascending tiers, each answering a harder question:
 
-This layer is on the **descriptive rung**: it describes the data and nothing else
-— it does not decide, gate, or recommend a population. Guiding questions are
-phrased as directives (Determine / Establish / Quantify) as a style choice.
-Anything that *explains* the description — confounding, minutes-adjustment,
-significance — is a **later rung** (diagnostic or inferential) and is deferred
-(§5).
+| Tier | Question | Example on the minutes axis |
+|---|---|---|
+| **Descriptive** | *What happened?* | Scoring is higher in the 60+ bands than in cameo bands |
+| **Diagnostic** | *Why did it happen?* | Is that lift driven by minutes, or confounded by player quality? |
+| **Predictive** | *What will happen?* | Will this player clear 60' next week? |
+| **Prescriptive** | *What should I do?* | Hold / transfer / captain this asset |
+
+**This entire layer sits in the Descriptive tier.** It describes what the
+minutes landscape looks like and how Y and X distribute across it. It does not
+explain *why* (Diagnostic), forecast (Predictive), or recommend (Prescriptive).
+
+One distinction that is **not** a move up the model: *univariate shape* (one
+column on its own) vs *relational description* (a column read against the
+minutes axis). Both are Descriptive. Characterising a column in isolation —
+does a signal fire, does it move, what kind is it — is the `structure/` layer's
+job. `population/` is the **relational** side of Descriptive: it relates Y and
+X *to* the minutes axis. Minutes' own univariate shape appears here only as
+**axis setup** — enough to show the distribution is bimodal and to justify
+where the 60-minute band edge sits — never as a deliverable.
+
+Why 60 recurs: FPL's scoring rules change at 60 minutes — clean-sheet
+eligibility, the second appearance point, and the BPS baseline all switch
+there. So 60 is a natural line on the minutes axis. That is a property of the
+game's rules — not a gate, decision, or threshold this layer sets.
+
+Guiding questions are phrased as directives (Determine / Establish / Quantify)
+as a style choice. Anything that *explains* the description — confounding,
+minutes-adjustment, significance — is the **Diagnostic** tier and is deferred
+(§5). Forecasting (Predictive) and squad decisions (Prescriptive) are higher
+tiers owned by other layers.
 
 ## 2. Notebooks
 
-| Notebook | Role | Rung |
+All four are Descriptive-tier. Three are relational (the layer's actual
+purpose); `minutes_distribution` is the univariate axis-setup that the other
+three build on.
+
+| Notebook | Role | Within Descriptive |
 |---|---|---|
-| `minutes_distribution.ipynb` | Describe the minutes / rotation landscape by position | descriptive |
-| `population_boundary.ipynb` | Characterise the 60-minute mark (bands × Y) | descriptive |
-| `signal_minutes.ipynb` | Describe each signal's level across minutes-bands (bands × X) | descriptive |
-| `scope_sensitivity.ipynb` | Describe whether the population definition changes the signal→points association | descriptive (association readout) |
+| `minutes_distribution.ipynb` | Establish the minutes axis — bimodal shape + where the band edges sit | univariate (axis setup) |
+| `population_boundary.ipynb` | How Y sits across minutes-bands (bands × Y) | relational |
+| `signal_minutes.ipynb` | How each signal X sits across minutes-bands (bands × X) | relational |
+| `scope_sensitivity.ipynb` | Whether the population definition shifts the signal→points association | relational (association readout) |
 
 ## 3. Directive questions
 
-**`minutes_distribution.ipynb`**
-- Determine how minutes distribute by position — who plays full matches vs who is rotated/subbed.
-- Establish each position's start rate, given the player featured.
-- Quantify each position's secure-minutes (60+) share vs its cameo/partial share.
+**`minutes_distribution.ipynb`** *(axis setup — establishes the minutes axis the relational notebooks read against)*
+- Determine how minutes distribute by position — establish that the distribution is bimodal (full-match mass vs cameo/partial mass).
+- Quantify each position's secure-minutes (60+) share, justifying where the 60-minute band edge sits.
 
 **`population_boundary.ipynb`**
 - Determine whether mean scoring lifts at/after 60 minutes or ramps smoothly — is 60 a regime boundary or an arbitrary cut?
@@ -69,7 +93,7 @@ significance — is a **later rung** (diagnostic or inferential) and is deferred
   in the `90+` band (~180 min, doubled counts). Per-fixture normalisation is the
   `fixture/` layer's job.
 
-## 5. Deferred — the later-rung follow-up (not built)
+## 5. Deferred — the Diagnostic-tier follow-up (not built)
 
 `scope_sensitivity.ipynb` *describes* that the signal→points association shifts
 across the two population definitions for many raw single-game stats (43/84
@@ -79,8 +103,8 @@ testable pairs shift, up to 0.53; movers are the per-match accumulating stats �
 sit higher in higher-minute bands.
 
 **It deliberately stops at description.** *Explaining* the shift — whether minutes
-drives it, what the association looks like once minutes is adjusted for — is a
-later rung (diagnostic or inferential, TBD), not concluded in this layer. Recorded
+drives it, what the association looks like once minutes is adjusted for — is the
+Diagnostic tier, not concluded in this layer. Recorded
 here so a later phase can pick it up, with the method options and the fact that the
 tooling already exists:
 - minutes-adjusted association (partial Spearman controlling for minutes) —

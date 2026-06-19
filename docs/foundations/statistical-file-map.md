@@ -270,18 +270,9 @@ invalidates all downstream results.
 
 ---
 
-### `research/foundation/population/robustness.py`
-**Rung:** Dg  
-**Question:** Is the signal→target association stable across population scopes,
-or does it change materially when we restrict to starters only?  
-**What it does:** Dual-scope rho comparison; classifies population robustness as
-`stable` / `scope_sensitive` / `untested`.  
-**Input:** player-GW DataFrame; signal and target names; scope definitions  
-**Output:** population_robustness verdict per (signal, position)  
-**Run order:** After descriptive signal profiling  
-**Gaps:**
-- Rho shift threshold (0.10) and geometry-change criterion are heuristic
-- No bootstrap CI on either scope's rho — the shift comparison is point-estimate only
+*`research/foundation/population/robustness.py` — removed. Dual-scope rho
+classification (`stable`/`scope_sensitive`/`untested`) was superseded by the
+within-band rho EDA in `association_by_minutes_band.ipynb`.*
 
 ---
 
@@ -438,7 +429,7 @@ Pre-statistical
 
 Descriptive / Diagnostic (foundation)
   kernels/distribution.py           ← signal shapes
-  foundation/population/robustness.py ← dual-scope rho comparison
+  association_by_minutes_band.ipynb   ← within-band rho (signal↔points) EDA
   foundation/joint/association.py   ← full structural characterisation
 
 Inferential / Qualification (families)

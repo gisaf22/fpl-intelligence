@@ -57,7 +57,7 @@ three build on.
 | `minutes_distribution.ipynb` | Establish the minutes axis — spike-and-tail shape + where the band edges sit | univariate (axis setup) |
 | `points_by_minutes_band.ipynb` | How Y sits across minutes-bands (bands × Y) | relational |
 | `signals_by_minutes_band.ipynb` | How each signal X sits across minutes-bands (bands × X) | relational |
-| `scope_sensitivity.ipynb` | How the signal→points rank-association (rho) varies across minutes-bands — EDA, visualised | relational (association readout) |
+| `association_by_minutes_band.ipynb` | How the signal→points rank-association (rho) varies across minutes-bands — EDA, visualised | relational (association readout) |
 
 ## 3. Directive questions
 
@@ -74,7 +74,7 @@ three build on.
 - Determine how each signal's typical level sits across minutes-bands — does it rise with minutes on the pitch or stay flat?
 - Establish which signals move most from cameo to full-game appearances and which barely move.
 
-**`scope_sensitivity.ipynb`** *(EDA — visualisation + understanding, not classification)*
+**`association_by_minutes_band.ipynb`** *(EDA — visualisation + understanding, not classification)*
 - Determine, per (signal, position), how the Spearman rho between the signal and points varies across the minutes-bands (`1-29 / 30-59 / 60+`).
 - Establish which signals track points in every band (event-driven, minutes-independent) versus only at 60+ (accumulation/defensive, minutes-dependent).
 - *(No classification/verdict here; minutes-adjusted explanation — partial rho — is deferred, §5.)*
@@ -85,8 +85,8 @@ three build on.
 - **Base population:** `minutes > 0` participation (the player featured), **not** a
   performance gate — the 60-minute mark is the *object of study* here, not a
   pre-imposed filter. Double-gameweeks are **excluded for now** (`is_dgw == False`;
-  see DGW bullet). `scope_sensitivity` derives both scopes (`>= 60` and `> 0`)
-  internally from the (DGW-excluded) minutes axis.
+  see DGW bullet). `association_by_minutes_band` slices by the three minutes-bands
+  (`1-29 / 30-59 / 60+`) within the same (DGW-excluded) population.
 - **Minutes-bands** (`signals_by_minutes_band`, `points_by_minutes_band`): `1-29 /
   30-59 / 60+` — collapsed at 60 because FPL's scoring rules do not distinguish
   60-89 from 90 (same appearance / clean-sheet regime), so `60+` is the
@@ -96,7 +96,7 @@ three build on.
 - **DGW:** **excluded for now** (`is_dgw == False`) — this drops the
   fixture-doubling confound (the ~180-minute rows) cleanly rather than pooling and
   flagging it. Per-fixture DGW treatment is the `fixture/` layer's job.
-- **Signal universe** (`signals_by_minutes_band`, `scope_sensitivity`): raw
+- **Signal universe** (`signals_by_minutes_band`, `association_by_minutes_band`): raw
   per-GW numeric signals, excluding `starts` (a minutes proxy; deferred axis) and
   the **exact composites** `ict_index` (= influence+creativity+threat) and `xgi`
   (= xg+xa) — these are perfect functions of signals we keep, so dropping them
@@ -106,12 +106,12 @@ three build on.
 
 ## 5. Deferred — the Diagnostic-tier follow-up (not built)
 
-`scope_sensitivity.ipynb` *describes* (as EDA) how the signal→points rank-association
+`association_by_minutes_band.ipynb` *describes* (as EDA) how the signal→points rank-association
 varies **across minutes-bands**: event-driven signals (`goals_scored`, `assists`,
 `bps`, `bonus`) track points in every band (minutes-independent), while
 accumulation/defensive signals (`defensive_contribution`, CBI, tackles,
 `clean_sheets`) only relate to points at 60+ (minutes-dependent).
-`signals_by_minutes_band.ipynb` separately *describes* that those same accumulating
+`signals_by_minutes_band.ipynb` separately *describes* (as EDA) that those same accumulating
 signals sit higher in higher-minute bands. (Signal-universe exclusions — `starts`,
 exact composites `ict_index` / `xgi` — are in §4.)
 
@@ -125,7 +125,7 @@ tooling already exists:
   `bootstrap_partial_rho`);
 - per-90 normalisation of counts;
 - formal conditioning / heterogeneity *testing* of the within-band association
-  (the *descriptive* within-band rho is now shown in `scope_sensitivity.ipynb`) —
+  (the *descriptive* within-band rho is now shown in `association_by_minutes_band.ipynb`) —
   `research/kernels/diagnostic/conditioning.py` (`compute_conditional_rho`,
   `classify_heterogeneity`).
 
@@ -133,12 +133,9 @@ tooling already exists:
 rung 2) and is out of scope for the whole layer — exposure is confounded with
 player quality; minutes-adjustment yields an *association*, not causation.
 
-## 6. Supporting module
+## 6. Supporting modules
 
-`research/foundation/population/robustness.py` — relocated from the retired
-`foundation/scope/` (its sibling `eda_04` was deleted). Tested by
-`tests/test_signals_population.py`. **No longer used by `scope_sensitivity.ipynb`**
-after its EDA reframe (which dropped the dual-scope rho + `{stable,
-scope_sensitive, untested}` classification in favour of within-band rho). Retained
-and tested for now; candidate for relocation/removal, or reuse if a later
-Diagnostic-tier notebook wants `compute_dual_scope_rho`.
+No supporting modules remain in `population/`. `robustness.py`
+(`compute_dual_scope_rho`, `classify_population_robustness`) was removed after the
+EDA reframe of `association_by_minutes_band.ipynb` made it unused; its test file
+`tests/test_signals_population.py` was removed with it.

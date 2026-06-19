@@ -96,16 +96,22 @@ three build on.
 - **DGW:** **excluded for now** (`is_dgw == False`) — this drops the
   fixture-doubling confound (the ~180-minute rows) cleanly rather than pooling and
   flagging it. Per-fixture DGW treatment is the `fixture/` layer's job.
+- **Signal universe** (`signals_by_minutes_band`, `scope_sensitivity`): raw
+  per-GW numeric signals, excluding `starts` (a minutes proxy; deferred axis) and
+  the **exact composites** `ict_index` (= influence+creativity+threat) and `xgi`
+  (= xg+xa) — these are perfect functions of signals we keep, so dropping them
+  loses no information while avoiding double-counting. `defensive_contribution`
+  and its parts (CBI / tackles / recoveries) are **all kept** — DC is not an exact
+  sum (r ≈ 0.81), so each carries independent signal.
 
 ## 5. Deferred — the Diagnostic-tier follow-up (not built)
 
 `scope_sensitivity.ipynb` *describes* that the signal→points association shifts
-across the two population definitions for many raw single-game stats (41/80
+across the two population definitions for many raw single-game stats (36/72
 testable pairs shift, up to 0.40; movers are the per-match accumulating stats —
-defensive counts, `goals_conceded`, ICT totals; sparse/rate-like stats barely
-move). `starts` is excluded from the signal set as a near-mechanical minutes
-proxy (it would top the shift table by construction); the starts axis is
-deferred.
+defensive counts, `goals_conceded`, involvement signals `creativity` / `xa`;
+sparse/rate-like stats barely move). Signal-universe exclusions (`starts`, exact
+composites `ict_index` / `xgi`) are described in §4.
 `signals_by_minutes_band.ipynb` separately *describes* that those same accumulating stats
 sit higher in higher-minute bands.
 

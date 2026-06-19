@@ -57,7 +57,7 @@ three build on.
 | `minutes_distribution.ipynb` | Establish the minutes axis — spike-and-tail shape + where the band edges sit | univariate (axis setup) |
 | `points_by_minutes_band.ipynb` | How Y sits across minutes-bands (bands × Y) | relational |
 | `signals_by_minutes_band.ipynb` | How each signal X sits across minutes-bands (bands × X) | relational |
-| `scope_sensitivity.ipynb` | Whether the population definition shifts the signal→points association | relational (association readout) |
+| `scope_sensitivity.ipynb` | How the signal→points rank-association (rho) varies across minutes-bands — EDA, visualised | relational (association readout) |
 
 ## 3. Directive questions
 
@@ -74,10 +74,10 @@ three build on.
 - Determine how each signal's typical level sits across minutes-bands — does it rise with minutes on the pitch or stay flat?
 - Establish which signals move most from cameo to full-game appearances and which barely move.
 
-**`scope_sensitivity.ipynb`**
-- Determine whether re-scoping `minutes > 0` → `minutes >= 60` changes each signal's rank-correlation with points (a per-position shift).
-- Establish which (signal, position) pairs are unaffected by the cutoff and which shift a lot.
-- *(Explaining the shift is deferred — §5.)*
+**`scope_sensitivity.ipynb`** *(EDA — visualisation + understanding, not classification)*
+- Determine, per (signal, position), how the Spearman rho between the signal and points varies across the minutes-bands (`1-29 / 30-59 / 60+`).
+- Establish which signals track points in every band (event-driven, minutes-independent) versus only at 60+ (accumulation/defensive, minutes-dependent).
+- *(No classification/verdict here; minutes-adjusted explanation — partial rho — is deferred, §5.)*
 
 ## 4. Shared method
 
@@ -106,14 +106,14 @@ three build on.
 
 ## 5. Deferred — the Diagnostic-tier follow-up (not built)
 
-`scope_sensitivity.ipynb` *describes* that the signal→points association shifts
-across the two population definitions for many raw single-game stats (36/72
-testable pairs shift, up to 0.40; movers are the per-match accumulating stats —
-defensive counts, `goals_conceded`, involvement signals `creativity` / `xa`;
-sparse/rate-like stats barely move). Signal-universe exclusions (`starts`, exact
-composites `ict_index` / `xgi`) are described in §4.
-`signals_by_minutes_band.ipynb` separately *describes* that those same accumulating stats
-sit higher in higher-minute bands.
+`scope_sensitivity.ipynb` *describes* (as EDA) how the signal→points rank-association
+varies **across minutes-bands**: event-driven signals (`goals_scored`, `assists`,
+`bps`, `bonus`) track points in every band (minutes-independent), while
+accumulation/defensive signals (`defensive_contribution`, CBI, tackles,
+`clean_sheets`) only relate to points at 60+ (minutes-dependent).
+`signals_by_minutes_band.ipynb` separately *describes* that those same accumulating
+signals sit higher in higher-minute bands. (Signal-universe exclusions — `starts`,
+exact composites `ict_index` / `xgi` — are in §4.)
 
 **It deliberately stops at description.** *Explaining* the shift — whether minutes
 drives it, what the association looks like once minutes is adjusted for — is the
@@ -124,7 +124,8 @@ tooling already exists:
   `research/kernels/inferential/resampling.py` (`partial_spearman`,
   `bootstrap_partial_rho`);
 - per-90 normalisation of counts;
-- association within minutes-bands —
+- formal conditioning / heterogeneity *testing* of the within-band association
+  (the *descriptive* within-band rho is now shown in `scope_sensitivity.ipynb`) —
   `research/kernels/diagnostic/conditioning.py` (`compute_conditional_rho`,
   `classify_heterogeneity`).
 
@@ -136,7 +137,8 @@ player quality; minutes-adjustment yields an *association*, not causation.
 
 `research/foundation/population/robustness.py` — relocated from the retired
 `foundation/scope/` (its sibling `eda_04` was deleted). Tested by
-`tests/test_signals_population.py`. Backs `scope_sensitivity.ipynb`
-(`compute_dual_scope_rho`, `classify_population_robustness`). Vocabulary
-`{stable, scope_sensitive, untested}`; thresholds are operational heuristics, not
-significance tests.
+`tests/test_signals_population.py`. **No longer used by `scope_sensitivity.ipynb`**
+after its EDA reframe (which dropped the dual-scope rho + `{stable,
+scope_sensitive, untested}` classification in favour of within-band rho). Retained
+and tested for now; candidate for relocation/removal, or reuse if a later
+Diagnostic-tier notebook wants `compute_dual_scope_rho`.

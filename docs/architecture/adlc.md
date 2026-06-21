@@ -127,7 +127,7 @@ Higher rungs are **gated, not foreclosed** (framed like the §7 "build it only w
 **Two methodological tripwires this tag exists to catch:**
 
 1. **`descriptive` ≠ `causal`.** The 60-minute boundary analysis
-   (`research/foundation/population/population_boundary.ipynb`) shows that the points distribution shifts across the 60-min
+   (`research/foundation/exposure/population_boundary.ipynb`) shows that the points distribution shifts across the 60-min
    line. That is `descriptive`. "An extra 30 minutes *causes* +X points" is `causal` (Pearl rung 2)
    and is **deliberately never studied** — this project stays on rungs 1 and prediction. The tag
    makes that boundary impossible to cross by accident.
@@ -159,7 +159,7 @@ its mode, its stage, its verdict, and the test contract that guards it.
 | D | **minutes-stability conditioning of xGI** — `research/families/form/explore/minutes_stability_study.py` | predictive/conditioning | validate | **REJECTED** — FRINGE > STABLE | study-logic: 31 tests (the template) |
 | E | **signal integration** — `model/assemble/composition_study.py` | assemble | model | **partially set** — see note | registry contract (weights sum, lifecycle) |
 | F | **signal ledger** — `signals/characterisation/` + `signals/governance/weight_registry.yaml` | govern | model | **the ledger** | governance consistency, traceability |
-| G | **60-min boundary** — `research/foundation/population/population_boundary.ipynb` | descriptive | explore | **describes a regime shift** | explicitly NOT causal; notebook retired to informative population layer |
+| G | **60-min boundary** — `research/foundation/exposure/population_boundary.ipynb` | descriptive | explore | **describes a regime shift** | explicitly NOT causal; notebook retired to informative exposure layer |
 | — | rolling-xGI window choice — `research/families/form/explore/rolling_xgi_study.py` | predictive | validate | (window selection) | study-logic + leakage |
 | — | fixture/market lenses — `research/families/fixture/validate/`, `research/families/market/validate/` | predictive | validate | (per verdict) | study-logic |
 | — | season **backtest** — `archive/monitor/phase9_backtest.py` | operational | monitor | **design/partial** | the backtest *is* the test artifact |

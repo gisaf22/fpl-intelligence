@@ -270,9 +270,9 @@ invalidates all downstream results.
 
 ---
 
-*`research/foundation/population/robustness.py` — removed. Dual-scope rho
+*`research/foundation/exposure/robustness.py` — removed. Dual-scope rho
 classification (`stable`/`scope_sensitive`/`untested`) was superseded by the
-within-band rho EDA in `association_by_minutes_band.ipynb`.*
+within-band rho EDA in `signal_target_association.ipynb`.*
 
 ---
 
@@ -429,7 +429,7 @@ Pre-statistical
 
 Descriptive / Diagnostic (foundation)
   kernels/distribution.py           ← signal shapes
-  association_by_minutes_band.ipynb   ← within-band rho (signal↔points) EDA
+  signal_target_association.ipynb   ← within-band rho (signal↔points) EDA
   foundation/joint/association.py   ← full structural characterisation
 
 Inferential / Qualification (families)

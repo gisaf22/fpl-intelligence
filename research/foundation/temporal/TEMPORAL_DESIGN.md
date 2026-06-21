@@ -1,14 +1,14 @@
 # Temporal layer — design and intent
 
 **Status:** intent doc for the informative `temporal/` layer
-**Produced:** 2026-06-16
+**Produced:** 2026-06-16 (updated 2026-06-19 — descriptive-layer redesign)
 **Class:** read-only informative artifact (no gate decisions, no PROCEED/STOP verdict)
 
 ---
 
 ## 1. Purpose
 
-The `structure/` layer answered *what the target and each signal look like at
+The `composition/` layer answered *what the target and each signal look like at
 rest*, season-pooled. The `temporal/` layer asks the next question on one more
 axis: **does that picture hold across the season, or does it move?** If a
 signal's or the target's distribution drifts from the early third to the late
@@ -26,15 +26,16 @@ downstream is blocked by an `unstable` verdict here.
 |---|---|---|
 | `target_stability.ipynb` | Does `total_points` (Y) drift across the season? Is a position more/less volatile at different points? | (position × block) |
 | `signal_stability.ipynb` | Does each X signal drift across the season? Which (signal, position) pairs are poolable vs must be read within-block? | (signal × position × block) |
-| `serial_dependence.ipynb` | *(stub — deferred)* Does a player's own last-GW value predict this-GW value (within-player autocorrelation)? | within-player |
 
-`serial_dependence.ipynb` is a deliberate stub: within-player week-to-week
-dynamics are a distinct treatment, deferred. Its verdict is not required for the
-block-pooled stability read the other two notebooks provide.
+Within-player week-to-week dynamics (serial dependence / autocorrelation) are
+deliberately **out of scope** for this layer — they are a within-player /
+longitudinal treatment that belongs to the diagnostic layer, not the
+cross-sectional block-pooled stability read. The former `serial_dependence.ipynb`
+stub has been removed; the two active notebooks do not depend on it.
 
 ## 3. Shared method (both active notebooks)
 
-Inherited from the informative-EDA conventions established in `structure/`:
+Inherited from the informative-EDA conventions established in `composition/`:
 
 - **GW range:** whole completed season, `GW 1 .. data_cutoff_gw` (dynamic from
   the mart). No early-GW lower bound — the GW-6 cut in the older EDA-1 record
@@ -42,7 +43,7 @@ Inherited from the informative-EDA conventions established in `structure/`:
   characterisation.
 - **Population:** `minutes > 0` — a **participation** filter (the player
   appeared), not a performance gate. The 60-minute boundary is deferred to the
-  `population/` layer.
+  `exposure/` layer.
 - **Temporal unit:** three contiguous, near-equal GW **blocks** (early / mid /
   late), computed dynamically as thirds of the live GW range. Boundaries are
   editorial thirds, **not** data-driven regime change-points (see
@@ -67,8 +68,9 @@ late-block shift on an additive signal with this confound in mind.
 
 ## 5. Signal set for `signal_stability.ipynb` (design decision)
 
-`structure/signal.ipynb` selects signals dynamically; `signal_stability.ipynb`
-narrows to a curated set. The rule is simple: **study the composite, not its
+The descriptive layer selects its signal universe dynamically (now via
+`research/kernels/descriptive/relevance.py` and `composition/signal_taxonomy.ipynb`);
+`signal_stability.ipynb` narrows that to a curated set. The rule is simple: **study the composite, not its
 parts.** For each composite family we keep only the parent (`xgi`, `ict_index`,
 `defensive_contribution`) and drop its components — never both, since a
 composite and its parts carry the same information. Standalone signals that
@@ -105,8 +107,8 @@ the other.
 
 **Excluded by design:**
 - `own_goals`, `penalties_missed` — near-degenerate at every position (99%+
-  zero-mass per `structure/signal.ipynb`); a stability verdict on a signal that
-  fires in <1% of appearances is not a meaningful drift claim.
+  zero-mass per `exposure/signal_presence_by_band.ipynb`); a stability verdict
+  on a signal that fires in <1% of appearances is not a meaningful drift claim.
 - Discrete count outcomes (`goals_scored`, `assists`, `clean_sheets`,
   `goals_conceded`, `saves`, `penalties_saved`, `starts`, cards) — these are the
   target's *components*, studied as outcomes elsewhere; the temporal layer reads

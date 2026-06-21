@@ -22,7 +22,7 @@ gameweek-summed `defensive_contribution` count is exact for single-fixture
 gameweeks, but can disagree with FPL's true per-fixture-then-summed points for
 the small population of double-gameweek rows where the per-fixture and summed
 thresholds land on opposite sides of the boundary — see
-research/foundation/structure/target.ipynb section (d) for this caveat in a
+research/foundation/composition/scoring_engine.ipynb section (d) for this caveat in a
 total_points reconstruction.
 """
 
@@ -72,7 +72,7 @@ GOALS_CONCEDED_PENALTY_POINTS: int = -1  # UNVERIFIED
 # ---------------------------------------------------------------------------
 
 # UNVERIFIED — cross-checked empirically via the total_points reconstruction in
-# target.ipynb (raises DEF/MID exact-match rate close to the GK/FWD baseline),
+# scoring_engine.ipynb (raises DEF/MID exact-match rate close to the GK/FWD baseline),
 # not yet cross-checked directly against bootstrap-static.
 DC_CBIT_THRESHOLD_DEF: int = 10  # UNVERIFIED — CBIT (tackles+CBI) threshold for DEF
 DC_CBIRT_THRESHOLD_MID_FWD: int = 12  # UNVERIFIED — CBIRT (CBIT+recoveries) threshold for MID/FWD
@@ -86,7 +86,7 @@ def defensive_contribution_points(position: str, defensive_contribution: int) ->
     subject to this rule. Applying this to a gameweek-summed
     `defensive_contribution` count is exact for single-fixture gameweeks, but
     can disagree with FPL's true per-fixture-then-summed points for the small
-    population of double-gameweek rows — see target.ipynb section (d).
+    population of double-gameweek rows — see scoring_engine.ipynb section (d).
     """
     if position == "DEF":
         return DC_POINTS if defensive_contribution >= DC_CBIT_THRESHOLD_DEF else 0
@@ -135,3 +135,65 @@ GK_PENALTY_SAVE_POINTS: int = 5  # VERIFIED 2025/26
 BPS_BONUS_FIRST: int = 3  # VERIFIED 2025/26
 BPS_BONUS_SECOND: int = 2  # VERIFIED 2025/26
 BPS_BONUS_THIRD: int = 1  # VERIFIED 2025/26
+
+
+# ---------------------------------------------------------------------------
+# Total-points reconstruction
+# ---------------------------------------------------------------------------
+
+
+def decompose_total_points(
+    position: str,
+    minutes: int,
+    goals_scored: int,
+    assists: int,
+    clean_sheets: int,
+    goals_conceded: int,
+    saves: int,
+    penalties_saved: int,
+    bonus: int,
+    yellow_cards: int,
+    red_cards: int,
+    own_goals: int,
+    penalties_missed: int,
+    defensive_contribution: int,
+) -> dict[str, int]:
+    """Per-component point contributions for one player-gameweek (pure formula).
+
+    Scalars in, ``{component: points}`` out; the values sum to the FPL
+    ``total_points`` for single-fixture gameweeks. Exact for SGW rows; for the
+    small population of double-gameweek rows the ``defensive_contribution``
+    component can disagree with FPL's per-fixture-then-summed points (see
+    ``defensive_contribution_points`` and composition/scoring_engine.ipynb
+    section (d)). No pandas — vectorise by mapping over rows.
+    """
+    goal_points = {
+        "GK": GOAL_POINTS_GK, "DEF": GOAL_POINTS_DEF,
+        "MID": GOAL_POINTS_MID, "FWD": GOAL_POINTS_FWD,
+    }
+    clean_sheet_points = {
+        "GK": CLEAN_SHEET_POINTS_GK, "DEF": CLEAN_SHEET_POINTS_DEF,
+        "MID": CLEAN_SHEET_POINTS_MID, "FWD": CLEAN_SHEET_POINTS_FWD,
+    }
+    appearance = (
+        FULL_APPEARANCE_POINTS if minutes >= FULL_APPEARANCE_MIN_MINUTES
+        else SHORT_APPEARANCE_POINTS
+    )
+    conceded = (
+        (goals_conceded // GOALS_CONCEDED_PER_PENALTY) * GOALS_CONCEDED_PENALTY_POINTS
+        if position in ("GK", "DEF") else 0
+    )
+    return {
+        "appearance": appearance,
+        "goals": goals_scored * goal_points[position],
+        "assists": assists * ASSIST_POINTS,
+        "clean_sheets": clean_sheets * clean_sheet_points[position],
+        "saves": (saves // GK_SAVES_PER_POINT) if position == "GK" else 0,
+        "penalties_saved": penalties_saved * GK_PENALTY_SAVE_POINTS,
+        "bonus": bonus,
+        "defensive_contribution": defensive_contribution_points(position, defensive_contribution),
+        "goals_conceded": conceded,
+        "cards": yellow_cards * YELLOW_CARD_POINTS + red_cards * RED_CARD_POINTS,
+        "own_goals": own_goals * OWN_GOAL_POINTS,
+        "penalties_missed": penalties_missed * PENALTY_MISS_POINTS,
+    }

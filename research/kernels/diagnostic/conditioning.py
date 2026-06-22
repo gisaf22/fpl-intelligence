@@ -67,11 +67,7 @@ def compute_conditional_rho(
         n = len(pair)
         rho: float | None = np.nan
         p_value: float | None = np.nan
-        if (
-            n >= MIN_N_PER_STRATUM
-            and pair[signal_col].nunique() > 1
-            and pair[target_col].nunique() > 1
-        ):
+        if n >= MIN_N_PER_STRATUM and pair[signal_col].nunique() > 1 and pair[target_col].nunique() > 1:
             r, p = stats.spearmanr(pair[signal_col], pair[target_col])
             rho = round(float(r), 4)
             p_value = round(float(p), 4)

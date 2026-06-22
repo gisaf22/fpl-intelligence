@@ -45,8 +45,9 @@ def test_constant_residual_returns_zero() -> None:
 
 def test_bootstrap_partial_rho_is_seed_deterministic() -> None:
     x, y = _design()
-    assert bootstrap_partial_rho(x, y, 0, partial_spearman, n_samples=300, seed=42) == \
-           bootstrap_partial_rho(x, y, 0, partial_spearman, n_samples=300, seed=42)
+    assert bootstrap_partial_rho(x, y, 0, partial_spearman, n_samples=300, seed=42) == bootstrap_partial_rho(
+        x, y, 0, partial_spearman, n_samples=300, seed=42
+    )
 
 
 def test_bootstrap_partial_rho_interval_brackets_estimate() -> None:

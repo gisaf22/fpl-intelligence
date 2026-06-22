@@ -13,8 +13,8 @@ from research.families.evidence_record import build_signal_verdict, decision_cla
 # decision_class_for
 # ---------------------------------------------------------------------------
 
-class TestDecisionClassFor:
 
+class TestDecisionClassFor:
     def test_informative_maps_to_informative(self):
         assert decision_class_for("informative") == "informative"
 
@@ -33,6 +33,7 @@ class TestDecisionClassFor:
 # ---------------------------------------------------------------------------
 # write_evidence — helpers
 # ---------------------------------------------------------------------------
+
 
 def _row(signal: str, position: str, decision_class: str = "informative") -> dict:
     return {
@@ -54,8 +55,8 @@ def _run_meta(ts: str = "20260607_120000") -> dict:
 # write_evidence tests
 # ---------------------------------------------------------------------------
 
-class TestWriteEvidence:
 
+class TestWriteEvidence:
     def test_output_path_is_evidence_yaml(self, tmp_path):
         rows = [_row("xgi_roll3", "DEF")]
         result = write_evidence(tmp_path, "form", "total_points", rows, _run_meta())
@@ -111,8 +112,7 @@ class TestWriteEvidence:
         assert "decision_class" in entry
 
     def test_decision_class_written_correctly(self, tmp_path):
-        rows = [_row("xgi_roll3", "DEF", "informative"),
-                _row("xgi_roll3", "MID", "uninformative")]
+        rows = [_row("xgi_roll3", "DEF", "informative"), _row("xgi_roll3", "MID", "uninformative")]
         write_evidence(tmp_path, "form", "total_points", rows, _run_meta())
         payload = yaml.safe_load((tmp_path / "evidence.yaml").read_text())
         assert payload["signals"]["xgi_roll3"]["DEF"]["decision_class"] == "informative"
@@ -137,9 +137,13 @@ class TestWriteEvidence:
 
     def test_rho_values_preserved(self, tmp_path):
         row = {
-            "signal": "xgi_roll3", "position": "DEF",
-            "rho_pooled": 0.1234, "rho_ci_lower": 0.0859, "rho_ci_upper": 0.1598,
-            "block_stability_count": 3, "decision_class": "informative",
+            "signal": "xgi_roll3",
+            "position": "DEF",
+            "rho_pooled": 0.1234,
+            "rho_ci_lower": 0.0859,
+            "rho_ci_upper": 0.1598,
+            "block_stability_count": 3,
+            "decision_class": "informative",
         }
         write_evidence(tmp_path, "form", "total_points", [row], _run_meta())
         payload = yaml.safe_load((tmp_path / "evidence.yaml").read_text())
@@ -150,9 +154,13 @@ class TestWriteEvidence:
 
     def test_none_rho_preserved(self, tmp_path):
         row = {
-            "signal": "xgi_roll3", "position": "FWD",
-            "rho_pooled": None, "rho_ci_lower": None, "rho_ci_upper": None,
-            "block_stability_count": None, "decision_class": "uninformative",
+            "signal": "xgi_roll3",
+            "position": "FWD",
+            "rho_pooled": None,
+            "rho_ci_lower": None,
+            "rho_ci_upper": None,
+            "block_stability_count": None,
+            "decision_class": "uninformative",
         }
         write_evidence(tmp_path, "form", "total_points", [row], _run_meta())
         payload = yaml.safe_load((tmp_path / "evidence.yaml").read_text())
@@ -182,21 +190,24 @@ class TestWriteEvidence:
 # build_signal_verdict
 # ---------------------------------------------------------------------------
 
+
 def _qualification(lens_status: str, signal: str = "xgi_roll3", position: str = "DEF") -> dict:
-    return {"signal_id": "FORM-001", "signal": signal, "position": position,
-            "lens_status": lens_status, "rationale": "test"}
+    return {
+        "signal_id": "FORM-001",
+        "signal": signal,
+        "position": position,
+        "lens_status": lens_status,
+        "rationale": "test",
+    }
 
 
 def _gw_window_assoc(excludes_zero: bool) -> dict:
-    return {"rho": 0.12, "ci_lower": 0.03, "ci_upper": 0.21, "n": 100,
-            "ci_excludes_zero": excludes_zero}
+    return {"rho": 0.12, "ci_lower": 0.03, "ci_upper": 0.21, "n": 100, "ci_excludes_zero": excludes_zero}
 
 
 class TestBuildSignalVerdict:
-
     def test_full_corr_fields_projected(self):
-        full_assoc = {"rho": 0.15, "ci_lower": 0.05, "ci_upper": 0.25, "n": 200,
-                      "ci_excludes_zero": True}
+        full_assoc = {"rho": 0.15, "ci_lower": 0.05, "ci_upper": 0.25, "n": 200, "ci_excludes_zero": True}
         verdict = build_signal_verdict("xgi_roll3", "DEF", full_assoc, [], _qualification("informative"))
         assert verdict["signal"] == "xgi_roll3"
         assert verdict["position"] == "DEF"
@@ -206,15 +217,13 @@ class TestBuildSignalVerdict:
 
     def test_block_stability_count_aggregated(self):
         gw_window_assocs = [_gw_window_assoc(True), _gw_window_assoc(True), _gw_window_assoc(False)]
-        full_assoc = {"rho": 0.15, "ci_lower": 0.05, "ci_upper": 0.25, "n": 200,
-                      "ci_excludes_zero": True}
+        full_assoc = {"rho": 0.15, "ci_lower": 0.05, "ci_upper": 0.25, "n": 200, "ci_excludes_zero": True}
         verdict = build_signal_verdict("xgi_roll3", "DEF", full_assoc, gw_window_assocs, _qualification("informative"))
         assert verdict["block_stability_count"] == 2
 
     def test_block_stability_count_none_blocks_ignored(self):
         gw_window_assocs = [_gw_window_assoc(True), None, _gw_window_assoc(False)]
-        full_assoc = {"rho": 0.15, "ci_lower": 0.05, "ci_upper": 0.25, "n": 200,
-                      "ci_excludes_zero": True}
+        full_assoc = {"rho": 0.15, "ci_lower": 0.05, "ci_upper": 0.25, "n": 200, "ci_excludes_zero": True}
         verdict = build_signal_verdict("xgi_roll3", "DEF", full_assoc, gw_window_assocs, _qualification("informative"))
         assert verdict["block_stability_count"] == 1
 
@@ -226,8 +235,7 @@ class TestBuildSignalVerdict:
         assert verdict["block_stability_count"] is None
 
     def test_informative_status_maps_to_informative_class(self):
-        full_assoc = {"rho": 0.15, "ci_lower": 0.05, "ci_upper": 0.25, "n": 200,
-                      "ci_excludes_zero": True}
+        full_assoc = {"rho": 0.15, "ci_lower": 0.05, "ci_upper": 0.25, "n": 200, "ci_excludes_zero": True}
         verdict = build_signal_verdict("xgi_roll3", "DEF", full_assoc, [], _qualification("informative"))
         assert verdict["decision_class"] == "informative"
 
@@ -236,20 +244,26 @@ class TestBuildSignalVerdict:
         assert verdict["decision_class"] == "uninformative"
 
     def test_unstable_status_maps_to_uninformative_class(self):
-        full_assoc = {"rho": 0.15, "ci_lower": 0.05, "ci_upper": 0.25, "n": 200,
-                      "ci_excludes_zero": True}
-        verdict = build_signal_verdict("xgi_roll3", "DEF", full_assoc, [_gw_window_assoc(True)],
-                                       _qualification("unstable"))
+        full_assoc = {"rho": 0.15, "ci_lower": 0.05, "ci_upper": 0.25, "n": 200, "ci_excludes_zero": True}
+        verdict = build_signal_verdict(
+            "xgi_roll3", "DEF", full_assoc, [_gw_window_assoc(True)], _qualification("unstable")
+        )
         assert verdict["decision_class"] == "uninformative"
 
     def test_output_has_all_required_fields(self):
         verdict = build_signal_verdict("xgi_roll3", "DEF", None, [], _qualification("uninformative"))
-        required = {"signal", "position", "rho_pooled", "rho_ci_lower", "rho_ci_upper",
-                    "block_stability_count", "decision_class"}
+        required = {
+            "signal",
+            "position",
+            "rho_pooled",
+            "rho_ci_lower",
+            "rho_ci_upper",
+            "block_stability_count",
+            "decision_class",
+        }
         assert required == set(verdict.keys())
 
     def test_empty_block_list_gives_zero_stability_count(self):
-        full_assoc = {"rho": 0.10, "ci_lower": 0.01, "ci_upper": 0.19, "n": 150,
-                      "ci_excludes_zero": True}
+        full_assoc = {"rho": 0.10, "ci_lower": 0.01, "ci_upper": 0.19, "n": 150, "ci_excludes_zero": True}
         verdict = build_signal_verdict("xgi_roll3", "DEF", full_assoc, [], _qualification("unstable"))
         assert verdict["block_stability_count"] == 0

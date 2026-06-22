@@ -168,20 +168,22 @@ def decompose_total_points(
     section (d)). No pandas — vectorise by mapping over rows.
     """
     goal_points = {
-        "GK": GOAL_POINTS_GK, "DEF": GOAL_POINTS_DEF,
-        "MID": GOAL_POINTS_MID, "FWD": GOAL_POINTS_FWD,
+        "GK": GOAL_POINTS_GK,
+        "DEF": GOAL_POINTS_DEF,
+        "MID": GOAL_POINTS_MID,
+        "FWD": GOAL_POINTS_FWD,
     }
     clean_sheet_points = {
-        "GK": CLEAN_SHEET_POINTS_GK, "DEF": CLEAN_SHEET_POINTS_DEF,
-        "MID": CLEAN_SHEET_POINTS_MID, "FWD": CLEAN_SHEET_POINTS_FWD,
+        "GK": CLEAN_SHEET_POINTS_GK,
+        "DEF": CLEAN_SHEET_POINTS_DEF,
+        "MID": CLEAN_SHEET_POINTS_MID,
+        "FWD": CLEAN_SHEET_POINTS_FWD,
     }
-    appearance = (
-        FULL_APPEARANCE_POINTS if minutes >= FULL_APPEARANCE_MIN_MINUTES
-        else SHORT_APPEARANCE_POINTS
-    )
+    appearance = FULL_APPEARANCE_POINTS if minutes >= FULL_APPEARANCE_MIN_MINUTES else SHORT_APPEARANCE_POINTS
     conceded = (
         (goals_conceded // GOALS_CONCEDED_PER_PENALTY) * GOALS_CONCEDED_PENALTY_POINTS
-        if position in ("GK", "DEF") else 0
+        if position in ("GK", "DEF")
+        else 0
     )
     return {
         "appearance": appearance,

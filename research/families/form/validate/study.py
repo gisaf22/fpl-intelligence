@@ -24,48 +24,48 @@ from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 from research.families.evidence_record import build_signal_verdict, write_evidence
 from research.families.population_gate import assert_population_gate
-from research.kernels.inferential.resampling import bootstrap_spearman_ci
 from research.kernels.hypothesis.stratification import quintile_stratification
+from research.kernels.inferential.resampling import bootstrap_spearman_ci
 
 RUNS_DIR = Path(__file__).resolve().parents[4] / "research" / "runs"
 VALIDATE_DIR = Path(__file__).parent
 LENS = "form"
-TARGET = "total_points_next_gw"   # lag-1: signal at GW N predicts points at GW N+1
+TARGET = "total_points_next_gw"  # lag-1: signal at GW N predicts points at GW N+1
 
 # LENS_DESIGN.md §2 — registered signals, valid positions, GW lower bounds
 # Position label from DAL is 'GKP', not 'GK'
 SIGNALS: dict[str, dict] = {
-    "xgi_roll3":          {"positions": ["DEF", "MID", "FWD"], "gw_min": 3},
-    "xgi_roll5":          {"positions": ["DEF", "MID", "FWD"], "gw_min": 6},
+    "xgi_roll3": {"positions": ["DEF", "MID", "FWD"], "gw_min": 3},
+    "xgi_roll5": {"positions": ["DEF", "MID", "FWD"], "gw_min": 6},
     "goals_scored_roll3": {"positions": ["DEF", "MID", "FWD"], "gw_min": 3},
-    "points_roll3":       {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
-    "points_roll5":       {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 6},
-    "minutes_roll3":      {"positions": ["DEF", "MID", "FWD"], "gw_min": 3},
+    "points_roll3": {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
+    "points_roll5": {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 6},
+    "minutes_roll3": {"positions": ["DEF", "MID", "FWD"], "gw_min": 3},
 }
 
 SIGNAL_IDS: dict[str, str] = {
-    "xgi_roll3":          "FORM-001",
-    "xgi_roll5":          "FORM-002",
+    "xgi_roll3": "FORM-001",
+    "xgi_roll5": "FORM-002",
     "goals_scored_roll3": "FORM-003",
-    "points_roll3":       "FORM-004",
-    "points_roll5":       "FORM-005",
-    "minutes_roll3":      "FORM-006",
+    "points_roll3": "FORM-004",
+    "points_roll5": "FORM-005",
+    "minutes_roll3": "FORM-006",
 }
 
 # points_roll3/5 are included only as a bar-to-beat, not as governed signals.
 # Any other signal must post rho > naive_rho to be considered practically useful.
 NAIVE_BASELINES = {"points_roll3", "points_roll5"}
 
-MINUTES_THRESHOLD = 60     # LENS_DESIGN.md §4, G-EDA1-04
-GW_MAX = 38                # LENS_DESIGN.md §5, G-EDA1-02
+MINUTES_THRESHOLD = 60  # LENS_DESIGN.md §4, G-EDA1-04
+GW_MAX = 38  # LENS_DESIGN.md §5, G-EDA1-02
 
-GW_WINDOWS: dict[str, tuple[int, int]] = {   # LENS_DESIGN.md §6, G-EDA5-01
+GW_WINDOWS: dict[str, tuple[int, int]] = {  # LENS_DESIGN.md §6, G-EDA5-01
     "early": (3, 12),
-    "mid":   (13, 26),
-    "late":  (27, 38),
+    "mid": (13, 26),
+    "late": (27, 38),
 }
 
-N_BOOTSTRAP = 2000         # LENS_DESIGN.md §7
+N_BOOTSTRAP = 2000  # LENS_DESIGN.md §7
 BOOTSTRAP_SEED = 42
 CI_LEVEL = 0.95
 QUINTILE_GAP_THRESHOLD = 1.0  # LENS_DESIGN.md §9 — minimum Q5-Q1 gap in points
@@ -82,6 +82,7 @@ LENS_STATUS_LEGEND = {
 # ---------------------------------------------------------------------------
 # Pre-run assertion
 # ---------------------------------------------------------------------------
+
 
 def _assert_lag_alignment(state: pd.DataFrame, out_dir: Path) -> None:
     """Assert lag-1 alignment: signal at GW N must use only data from GWs 1..N-1.
@@ -106,10 +107,7 @@ def _assert_lag_alignment(state: pd.DataFrame, out_dir: Path) -> None:
     # total_points_next_gw at GW N must equal total_points at GW N+1.
     # Sample up to 5 players that have at least 3 GW rows to provide population-level coverage.
     all_player_ids = state["player_id"].unique()
-    sample_ids = [
-        pid for pid in sorted(all_player_ids)
-        if len(state[state["player_id"] == pid]) >= 3
-    ][:5]
+    sample_ids = [pid for pid in sorted(all_player_ids) if len(state[state["player_id"] == pid]) >= 3][:5]
     total_mismatches = 0
     checked_players = 0
     for pid in sample_ids:
@@ -158,14 +156,13 @@ def _assert_lag_alignment(state: pd.DataFrame, out_dir: Path) -> None:
     (out_dir / "lag_alignment_check.txt").write_text(header + "\n".join(lines) + "\n")
 
     if failed:
-        raise AssertionError(
-            f"Lag alignment check FAILED. See {out_dir / 'lag_alignment_check.txt'}."
-        )
+        raise AssertionError(f"Lag alignment check FAILED. See {out_dir / 'lag_alignment_check.txt'}.")
 
 
 # ---------------------------------------------------------------------------
 # Per-slice computation helpers
 # ---------------------------------------------------------------------------
+
 
 def _measure_rank_association(
     df: pd.DataFrame,
@@ -222,14 +219,20 @@ def _stratify_by_quintile(
 ) -> dict | None:
     """Split the population slice into signal quintiles and measure target mean per group."""
     return quintile_stratification(
-        df, signal, signal_id, position, gw_window,
-        target=target, bidirectional=False,
+        df,
+        signal,
+        signal_id,
+        position,
+        gw_window,
+        target=target,
+        bidirectional=False,
     )
 
 
 # ---------------------------------------------------------------------------
 # Signal qualification gates  (LENS_DESIGN.md §8)
 # ---------------------------------------------------------------------------
+
 
 def _apply_signal_qualification_gates(
     full_window_assoc: dict | None,
@@ -263,14 +266,21 @@ def _apply_signal_qualification_gates(
         clears_naive = bool(full_window_assoc["rho"] > naive_rho)
 
     if full_window_assoc is None:
-        return {**base, "lens_status": "uninformative",
-                "rationale": "insufficient observations", "clears_naive_baseline": clears_naive}
+        return {
+            **base,
+            "lens_status": "uninformative",
+            "rationale": "insufficient observations",
+            "clears_naive_baseline": clears_naive,
+        }
 
     # Gate 1: CI gate
     if not full_window_assoc["ci_excludes_zero"]:
-        return {**base, "lens_status": "uninformative",
-                "rationale": f"CI crosses zero [{full_window_assoc['ci_lower']:.3f}, {full_window_assoc['ci_upper']:.3f}]",
-                "clears_naive_baseline": clears_naive}
+        return {
+            **base,
+            "lens_status": "uninformative",
+            "rationale": f"CI crosses zero [{full_window_assoc['ci_lower']:.3f}, {full_window_assoc['ci_upper']:.3f}]",
+            "clears_naive_baseline": clears_naive,
+        }
 
     # Gate 2: decision relevance gate
     decision_relevant = (
@@ -281,9 +291,12 @@ def _apply_signal_qualification_gates(
     if not decision_relevant:
         gap = f"{full_window_quintile['q5_q1_gap']:.2f}" if full_window_quintile else "N/A"
         mono = full_window_quintile["is_monotonic"] if full_window_quintile else "N/A"
-        return {**base, "lens_status": "uninformative",
-                "rationale": f"CI excludes zero but fails decision relevance (Q5-Q1={gap}, monotonic={mono})",
-                "clears_naive_baseline": clears_naive}
+        return {
+            **base,
+            "lens_status": "uninformative",
+            "rationale": f"CI excludes zero but fails decision relevance (Q5-Q1={gap}, monotonic={mono})",
+            "clears_naive_baseline": clears_naive,
+        }
 
     # Gate 3: GW-window stability gate
     n_stable_windows = sum(1 for b in gw_window_assocs if b and b["ci_excludes_zero"])
@@ -294,13 +307,13 @@ def _apply_signal_qualification_gates(
         status = "unstable"
         rationale = f"CI excludes zero in aggregate but passes only {n_stable_windows}/3 GW windows"
 
-    return {**base, "lens_status": status, "rationale": rationale,
-            "clears_naive_baseline": clears_naive}
+    return {**base, "lens_status": status, "rationale": rationale, "clears_naive_baseline": clears_naive}
 
 
 # ---------------------------------------------------------------------------
 # Main run entry point
 # ---------------------------------------------------------------------------
+
 
 def run(db_path: Path = DB_PATH) -> Path:
     """Run the full FORM lens validation study.
@@ -344,9 +357,7 @@ def run(db_path: Path = DB_PATH) -> Path:
     print("  Assertion passed.")
 
     # Study population: players who started (≥60 min), within the governed GW range.
-    population = state[
-        (state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)
-    ].copy()
+    population = state[(state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)].copy()
     assert_population_gate(population, GW_WINDOWS)
 
     # ------------------------------------------------------------------
@@ -408,20 +419,21 @@ def run(db_path: Path = DB_PATH) -> Path:
             # ------------------------------------------------------------------
             naive_rho = naive_rho_by_position.get(pos) if signal not in NAIVE_BASELINES else None
             qualification = _apply_signal_qualification_gates(
-                full_assoc, full_quintile, gw_window_assocs,
-                signal, signal_id, pos, naive_rho,
+                full_assoc,
+                full_quintile,
+                gw_window_assocs,
+                signal,
+                signal_id,
+                pos,
+                naive_rho,
             )
             qualification_rows.append(qualification)
-            evidence_rows.append(
-                build_signal_verdict(signal, pos, full_assoc, gw_window_assocs, qualification)
-            )
+            evidence_rows.append(build_signal_verdict(signal, pos, full_assoc, gw_window_assocs, qualification))
 
     # ------------------------------------------------------------------
     # Phase 3 (global): Persist artefacts  (LENS_DESIGN.md §10)
     # ------------------------------------------------------------------
-    pd.DataFrame(full_assoc_rows + window_assoc_rows).to_csv(
-        out_dir / "correlation_results.csv", index=False
-    )
+    pd.DataFrame(full_assoc_rows + window_assoc_rows).to_csv(out_dir / "correlation_results.csv", index=False)
     pd.DataFrame(window_assoc_rows).to_csv(out_dir / "block_results.csv", index=False)
     pd.DataFrame(stratification_rows).to_csv(out_dir / "quintile_results.csv", index=False)
     pd.DataFrame(qualification_rows).to_csv(out_dir / "classification_summary.csv", index=False)
@@ -446,7 +458,10 @@ def run(db_path: Path = DB_PATH) -> Path:
     # Evidence verdict record (ADR-009 Phase C): the committed machine half consumed by
     # model/governance/generate_evaluation_metadata.py. Judgment lives in annotations.yaml.
     write_evidence(
-        VALIDATE_DIR, LENS, TARGET, evidence_rows,
+        VALIDATE_DIR,
+        LENS,
+        TARGET,
+        evidence_rows,
         evidence_run={"source": f"LENS-FORM-{ts}", "produced": ts, "db_path": str(db_path)},
     )
 

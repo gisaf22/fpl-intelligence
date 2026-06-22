@@ -22,7 +22,7 @@ def measure_tail_event_dependence(
     min_n_haul: int = 30,
     haul_drop_material: float = HAUL_DROP_MATERIAL,
 ) -> dict[str, Any]:
-    """Measure how much of the observed signal–target association is driven by haul events.
+    """Measure how much of the observed signal-target association is driven by haul events.
 
     A haul event is a high-scoring GW (target > haul_threshold). If removing hauls
     collapses the correlation, the signal is only useful for predicting exceptional
@@ -71,11 +71,7 @@ def measure_tail_event_dependence(
     n_haul = int(haul_mask.sum())
     haul_pct = round(n_haul / n * 100, 2)
 
-    rho_drop = (
-        round(float(rho_full) - float(rho_no_haul), 4)
-        if not np.isnan(rho_no_haul)
-        else np.nan
-    )
+    rho_drop = round(float(rho_full) - float(rho_no_haul), 4) if not np.isnan(rho_no_haul) else np.nan
     if np.isnan(rho_drop):
         tail_sensitive = None  # too few haul events to assess — not confirmed safe
     else:
@@ -83,9 +79,7 @@ def measure_tail_event_dependence(
 
     return {
         "rho_full": round(float(rho_full), 4),
-        "rho_no_haul": round(float(rho_no_haul), 4)
-        if not np.isnan(rho_no_haul)
-        else np.nan,
+        "rho_no_haul": round(float(rho_no_haul), 4) if not np.isnan(rho_no_haul) else np.nan,
         "rho_drop": rho_drop,
         "haul_pct": haul_pct,
         "n_haul": n_haul,

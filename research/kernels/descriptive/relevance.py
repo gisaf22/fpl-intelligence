@@ -38,8 +38,8 @@ from research.kernels.descriptive.distribution import compute_distribution_stats
 POSITIONS: tuple[str, ...] = ("GK", "DEF", "MID", "FWD")
 
 # Liveness heuristic — preserved verbatim from the deleted signal.ipynb.
-NEAR_ZERO_VARIANCE: float = 2e-4   # catches xg/xa/xgi at GK (all components degenerate -> composite too)
-HIGH_ZERO_MASS_PCT: float = 93.0   # data-calibrated: above this = structural absence by football logic
+NEAR_ZERO_VARIANCE: float = 2e-4  # catches xg/xa/xgi at GK (all components degenerate -> composite too)
+HIGH_ZERO_MASS_PCT: float = 93.0  # data-calibrated: above this = structural absence by football logic
 
 # Relevance classes.
 FORMULA_INPUT = "formula_input"
@@ -67,11 +67,7 @@ def formula_input_signals() -> set[str]:
     distribution / frequency / decomposition only — never for association with
     the target.
     """
-    return {
-        sig
-        for sig, meta in SIGNAL_LAYER_MAPPING.items()
-        if meta["layer_role"] in TAUTOLOGICAL_LAYER_ROLES
-    }
+    return {sig for sig, meta in SIGNAL_LAYER_MAPPING.items() if meta["layer_role"] in TAUTOLOGICAL_LAYER_ROLES}
 
 
 def leading_indicator_signals(*, drop_exact_composites: bool = False) -> set[str]:

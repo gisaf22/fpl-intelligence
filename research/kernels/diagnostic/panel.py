@@ -55,9 +55,7 @@ def split_between_within_player_rho(
         "support_flag": "insufficient_support",
     }
 
-    subset = (
-        df[df["position"] == position][[player_col, signal, target]].dropna().copy()
-    )
+    subset = df[df["position"] == position][[player_col, signal, target]].dropna().copy()
     n = len(subset)
 
     if n < min_n_shape:
@@ -116,18 +114,12 @@ def split_between_within_player_rho(
             decomposition_flag = "unstable_ratio"
         else:
             within_share = round(float(raw_ratio), 3)
-            panel_class = next(
-                label
-                for threshold, label in panel_class_thresholds
-                if within_share >= threshold
-            )
+            panel_class = next(label for threshold, label in panel_class_thresholds if within_share >= threshold)
 
     return {
         "rho_pooled": round(float(rho_pooled), 4),
         "rho_between": round(float(rho_between), 4),
-        "rho_within": round(float(rho_within_val), 4)
-        if not np.isnan(rho_within_val)
-        else np.nan,
+        "rho_within": round(float(rho_within_val), 4) if not np.isnan(rho_within_val) else np.nan,
         "within_share": within_share,
         "panel_class": panel_class,
         "decomposition_flag": decomposition_flag,

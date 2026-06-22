@@ -23,13 +23,9 @@ from itertools import combinations
 import numpy as np
 import pandas as pd
 
-BLOCK_HOMOGENEITY_VALUES: frozenset[str] = frozenset(
-    {"stable", "moderate_shift", "unstable"}
-)
+BLOCK_HOMOGENEITY_VALUES: frozenset[str] = frozenset({"stable", "moderate_shift", "unstable"})
 
-POOLING_DECISION_VALUES: frozenset[str] = frozenset(
-    {"pool_confirmed", "pool_with_caveat", "restrict_to_midseason"}
-)
+POOLING_DECISION_VALUES: frozenset[str] = frozenset({"pool_confirmed", "pool_with_caveat", "restrict_to_midseason"})
 
 STABLE_THRESHOLD: float = 0.5
 UNSTABLE_THRESHOLD: float = 1.5
@@ -68,7 +64,7 @@ def assess_distribution_stability(block_stats: pd.DataFrame) -> str:
     iqrs = valid["iqr"].to_numpy(dtype=float)
 
     max_shift = 0.0
-    for (i, j) in combinations(range(len(medians)), 2):
+    for i, j in combinations(range(len(medians)), 2):
         pooled_iqr = (iqrs[i] + iqrs[j]) / 2.0
         normalized_shift = abs(medians[i] - medians[j]) / (pooled_iqr + EPSILON)
         if normalized_shift > max_shift:
@@ -85,8 +81,7 @@ def resolve_pooling_strategy(stability_verdict: str) -> str:
     """Map a distribution stability verdict to a season-pooling decision."""
     if stability_verdict not in BLOCK_HOMOGENEITY_VALUES:
         raise ValueError(
-            f"unrecognized stability verdict {stability_verdict!r}; "
-            f"expected one of {sorted(BLOCK_HOMOGENEITY_VALUES)}"
+            f"unrecognized stability verdict {stability_verdict!r}; expected one of {sorted(BLOCK_HOMOGENEITY_VALUES)}"
         )
     return _HOMOGENEITY_TO_POOLING[stability_verdict]
 
@@ -102,9 +97,7 @@ def stability_classify(
 
     Returns one of: stable | moderate_shift | unstable | insufficient_data
     """
-    valid_gaps = [
-        v for v in block_gaps.values() if v is not None and not np.isnan(v)
-    ]
+    valid_gaps = [v for v in block_gaps.values() if v is not None and not np.isnan(v)]
 
     if len(valid_gaps) < 2 or np.isnan(pooled_gap):
         return "insufficient_data"

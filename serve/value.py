@@ -94,7 +94,9 @@ def rank_value_players(
         raise IntelligenceInputError(f"rank_value_players: no data for gw={target_gw}")
 
     eligible = gw_df[
-        (gw_df["purchase_price"] >= _MIN_PRICE) & (~gw_df["is_warmup_gw"]) & (gw_df["minutes_roll5"] >= _MIN_MINUTES_ROLL5)
+        (gw_df["purchase_price"] >= _MIN_PRICE)
+        & (~gw_df["is_warmup_gw"])
+        & (gw_df["minutes_roll5"] >= _MIN_MINUTES_ROLL5)
     ].copy()
 
     if max_price is not None:

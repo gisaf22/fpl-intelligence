@@ -42,14 +42,14 @@ OUTCOME_COMPONENT_LAYER_ROLES: frozenset[str] = frozenset({"contribution_index"}
 # formula decomposition; not valid for association analysis with total_points.
 TAUTOLOGICAL_LAYER_ROLES: frozenset[str] = frozenset(
     {
-        "points_component",          # bonus — direct additive scoring component
-        "contribution_index",        # bps — determines bonus allocation
-        "scoring_event",             # goals_scored — position-weighted goal points
-        "creation_event",            # assists — fixed assist points
+        "points_component",  # bonus — direct additive scoring component
+        "contribution_index",  # bps — determines bonus allocation
+        "scoring_event",  # goals_scored — position-weighted goal points
+        "creation_event",  # assists — fixed assist points
         "defensive_points_context",  # clean_sheets — GK/DEF/MID clean sheet points
-        "goalkeeper_action",         # saves, penalties_saved — GK-specific point rules
-        "negative_event",            # yellow_cards, red_cards, own_goals, penalties_missed
-        "defensive_outcome_context", # goals_conceded — GK/DEF concession penalty
+        "goalkeeper_action",  # saves, penalties_saved — GK-specific point rules
+        "negative_event",  # yellow_cards, red_cards, own_goals, penalties_missed
+        "defensive_outcome_context",  # goals_conceded — GK/DEF concession penalty
     }
 )
 

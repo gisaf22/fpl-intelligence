@@ -24,8 +24,11 @@ FAMILIES_DIR = Path(__file__).resolve().parents[1] / "research" / "families"
 VALID_DECISION_CLASSES = {"informative", "uninformative"}
 VALID_TOP_LEVEL_KEYS = {"lens", "target", "evidence_run", "signals"}
 REQUIRED_ENTRY_FIELDS = {
-    "rho_pooled", "rho_ci_lower", "rho_ci_upper",
-    "block_stability_count", "decision_class",
+    "rho_pooled",
+    "rho_ci_lower",
+    "rho_ci_upper",
+    "block_stability_count",
+    "decision_class",
 }
 
 
@@ -58,9 +61,7 @@ def _assert_decision_class_vocab(payload: dict) -> None:
     for signal, positions in payload["signals"].items():
         for pos, entry in positions.items():
             dc = entry["decision_class"]
-            assert dc in VALID_DECISION_CLASSES, (
-                f"{signal}/{pos}: unexpected decision_class '{dc}'"
-            )
+            assert dc in VALID_DECISION_CLASSES, f"{signal}/{pos}: unexpected decision_class '{dc}'"
 
 
 # ---------------------------------------------------------------------------
@@ -70,31 +71,30 @@ def _assert_decision_class_vocab(payload: dict) -> None:
 FORM_EXPECTED_VERDICTS: dict[tuple[str, str], str] = {
     # Study-emitted decision_class (machine half). Note: annotations.yaml may override
     # some uninformative entries to informative in evaluation_metadata.yaml.
-    ("xgi_roll3", "DEF"):           "informative",
-    ("xgi_roll3", "MID"):           "informative",
-    ("xgi_roll3", "FWD"):           "uninformative",
-    ("xgi_roll5", "DEF"):           "uninformative",
-    ("xgi_roll5", "MID"):           "informative",
-    ("xgi_roll5", "FWD"):           "uninformative",
-    ("goals_scored_roll3", "DEF"):  "uninformative",
-    ("goals_scored_roll3", "MID"):  "uninformative",
-    ("goals_scored_roll3", "FWD"):  "uninformative",
-    ("points_roll3", "GK"):         "uninformative",
-    ("points_roll3", "DEF"):        "uninformative",
-    ("points_roll3", "MID"):        "uninformative",
-    ("points_roll3", "FWD"):        "uninformative",
-    ("points_roll5", "GK"):         "uninformative",
-    ("points_roll5", "DEF"):        "uninformative",
-    ("points_roll5", "MID"):        "uninformative",
-    ("points_roll5", "FWD"):        "uninformative",
-    ("minutes_roll3", "DEF"):       "uninformative",
-    ("minutes_roll3", "MID"):       "uninformative",
-    ("minutes_roll3", "FWD"):       "uninformative",
+    ("xgi_roll3", "DEF"): "informative",
+    ("xgi_roll3", "MID"): "informative",
+    ("xgi_roll3", "FWD"): "uninformative",
+    ("xgi_roll5", "DEF"): "uninformative",
+    ("xgi_roll5", "MID"): "informative",
+    ("xgi_roll5", "FWD"): "uninformative",
+    ("goals_scored_roll3", "DEF"): "uninformative",
+    ("goals_scored_roll3", "MID"): "uninformative",
+    ("goals_scored_roll3", "FWD"): "uninformative",
+    ("points_roll3", "GK"): "uninformative",
+    ("points_roll3", "DEF"): "uninformative",
+    ("points_roll3", "MID"): "uninformative",
+    ("points_roll3", "FWD"): "uninformative",
+    ("points_roll5", "GK"): "uninformative",
+    ("points_roll5", "DEF"): "uninformative",
+    ("points_roll5", "MID"): "uninformative",
+    ("points_roll5", "FWD"): "uninformative",
+    ("minutes_roll3", "DEF"): "uninformative",
+    ("minutes_roll3", "MID"): "uninformative",
+    ("minutes_roll3", "FWD"): "uninformative",
 }
 
 
 class TestFormEvidenceFreeze:
-
     def setup_method(self):
         self.payload = _load_evidence("form")
 
@@ -112,9 +112,9 @@ class TestFormEvidenceFreeze:
         expected_signals = {s for s, _ in FORM_EXPECTED_VERDICTS}
         assert expected_signals <= signals
 
-    @pytest.mark.parametrize("signal,position,expected_class", [
-        (s, p, dc) for (s, p), dc in FORM_EXPECTED_VERDICTS.items()
-    ])
+    @pytest.mark.parametrize(
+        "signal,position,expected_class", [(s, p, dc) for (s, p), dc in FORM_EXPECTED_VERDICTS.items()]
+    )
     def test_verdict_frozen(self, signal, position, expected_class):
         actual = self.payload["signals"][signal][position]["decision_class"]
         assert actual == expected_class, (
@@ -128,15 +128,15 @@ class TestFormEvidenceFreeze:
 # ---------------------------------------------------------------------------
 
 AVAIL_EXPECTED_VERDICTS: dict[tuple[str, str], str] = {
-    ("minutes_roll3", "GK"):  "uninformative",
+    ("minutes_roll3", "GK"): "uninformative",
     ("minutes_roll3", "DEF"): "uninformative",
     ("minutes_roll3", "MID"): "informative",
     ("minutes_roll3", "FWD"): "uninformative",
-    ("minutes_roll5", "GK"):  "uninformative",
+    ("minutes_roll5", "GK"): "uninformative",
     ("minutes_roll5", "DEF"): "uninformative",
     ("minutes_roll5", "MID"): "informative",
     ("minutes_roll5", "FWD"): "informative",
-    ("minutes_roll8", "GK"):  "uninformative",
+    ("minutes_roll8", "GK"): "uninformative",
     ("minutes_roll8", "DEF"): "uninformative",
     ("minutes_roll8", "MID"): "informative",
     ("minutes_roll8", "FWD"): "uninformative",
@@ -144,7 +144,6 @@ AVAIL_EXPECTED_VERDICTS: dict[tuple[str, str], str] = {
 
 
 class TestAvailEvidenceFreeze:
-
     def setup_method(self):
         self.payload = _load_evidence("availability")
 
@@ -157,9 +156,9 @@ class TestAvailEvidenceFreeze:
     def test_decision_class_vocab(self):
         _assert_decision_class_vocab(self.payload)
 
-    @pytest.mark.parametrize("signal,position,expected_class", [
-        (s, p, dc) for (s, p), dc in AVAIL_EXPECTED_VERDICTS.items()
-    ])
+    @pytest.mark.parametrize(
+        "signal,position,expected_class", [(s, p, dc) for (s, p), dc in AVAIL_EXPECTED_VERDICTS.items()]
+    )
     def test_verdict_frozen(self, signal, position, expected_class):
         actual = self.payload["signals"][signal][position]["decision_class"]
         assert actual == expected_class, (
@@ -173,23 +172,22 @@ class TestAvailEvidenceFreeze:
 # ---------------------------------------------------------------------------
 
 MARKET_EXPECTED_VERDICTS: dict[tuple[str, str], str] = {
-    ("transfers_in", "GK"):      "uninformative",
-    ("transfers_in", "DEF"):     "informative",
-    ("transfers_in", "MID"):     "informative",
-    ("transfers_in", "FWD"):     "uninformative",
-    ("ownership_count", "GK"):   "uninformative",
-    ("ownership_count", "DEF"):  "informative",
-    ("ownership_count", "MID"):  "informative",
-    ("ownership_count", "FWD"):  "uninformative",
-    ("purchase_price", "GK"):    "uninformative",
-    ("purchase_price", "DEF"):   "informative",
-    ("purchase_price", "MID"):   "uninformative",
-    ("purchase_price", "FWD"):   "uninformative",
+    ("transfers_in", "GK"): "uninformative",
+    ("transfers_in", "DEF"): "informative",
+    ("transfers_in", "MID"): "informative",
+    ("transfers_in", "FWD"): "uninformative",
+    ("ownership_count", "GK"): "uninformative",
+    ("ownership_count", "DEF"): "informative",
+    ("ownership_count", "MID"): "informative",
+    ("ownership_count", "FWD"): "uninformative",
+    ("purchase_price", "GK"): "uninformative",
+    ("purchase_price", "DEF"): "informative",
+    ("purchase_price", "MID"): "uninformative",
+    ("purchase_price", "FWD"): "uninformative",
 }
 
 
 class TestMarketEvidenceFreeze:
-
     def setup_method(self):
         self.payload = _load_evidence("market")
 
@@ -202,9 +200,9 @@ class TestMarketEvidenceFreeze:
     def test_decision_class_vocab(self):
         _assert_decision_class_vocab(self.payload)
 
-    @pytest.mark.parametrize("signal,position,expected_class", [
-        (s, p, dc) for (s, p), dc in MARKET_EXPECTED_VERDICTS.items()
-    ])
+    @pytest.mark.parametrize(
+        "signal,position,expected_class", [(s, p, dc) for (s, p), dc in MARKET_EXPECTED_VERDICTS.items()]
+    )
     def test_verdict_frozen(self, signal, position, expected_class):
         actual = self.payload["signals"][signal][position]["decision_class"]
         assert actual == expected_class, (
@@ -218,21 +216,20 @@ class TestMarketEvidenceFreeze:
 # ---------------------------------------------------------------------------
 
 FIXTURE_EXPECTED_VERDICTS: dict[tuple[str, str], str] = {
-    ("fdr_avg", "GK"):        "uninformative",
-    ("fdr_avg", "DEF"):       "uninformative",
-    ("fdr_avg", "MID"):       "uninformative",
-    ("fdr_avg", "FWD"):       "uninformative",
-    ("was_home", "GK"):       "uninformative",
-    ("was_home", "DEF"):      "uninformative",
-    ("was_home", "MID"):      "uninformative",
-    ("was_home", "FWD"):      "uninformative",
+    ("fdr_avg", "GK"): "uninformative",
+    ("fdr_avg", "DEF"): "uninformative",
+    ("fdr_avg", "MID"): "uninformative",
+    ("fdr_avg", "FWD"): "uninformative",
+    ("was_home", "GK"): "uninformative",
+    ("was_home", "DEF"): "uninformative",
+    ("was_home", "MID"): "uninformative",
+    ("was_home", "FWD"): "uninformative",
     ("fixture_count", "DEF"): "uninformative",
     ("fixture_count", "MID"): "uninformative",
 }
 
 
 class TestFixtureEvidenceFreeze:
-
     def setup_method(self):
         self.payload = _load_evidence("fixture")
 
@@ -245,9 +242,9 @@ class TestFixtureEvidenceFreeze:
     def test_decision_class_vocab(self):
         _assert_decision_class_vocab(self.payload)
 
-    @pytest.mark.parametrize("signal,position,expected_class", [
-        (s, p, dc) for (s, p), dc in FIXTURE_EXPECTED_VERDICTS.items()
-    ])
+    @pytest.mark.parametrize(
+        "signal,position,expected_class", [(s, p, dc) for (s, p), dc in FIXTURE_EXPECTED_VERDICTS.items()]
+    )
     def test_verdict_frozen(self, signal, position, expected_class):
         actual = self.payload["signals"][signal][position]["decision_class"]
         assert actual == expected_class, (

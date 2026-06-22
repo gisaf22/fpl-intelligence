@@ -8,17 +8,15 @@ outcome (Gate 1: CI, Gate 2: decision relevance, Gate 3: GW-window stability).
 All tests use synthetic dicts — no database dependency.
 """
 
-import pytest
-
-from research.families.form.validate.study import _apply_signal_qualification_gates as form_qualify
 from research.families.availability.validate.study import _apply_signal_qualification_gates as avail_qualify
-from research.families.market.validate.study import _apply_signal_qualification_gates as market_qualify
 from research.families.fixture.validate.study import _apply_signal_qualification_gates as fixture_qualify
-
+from research.families.form.validate.study import _apply_signal_qualification_gates as form_qualify
+from research.families.market.validate.study import _apply_signal_qualification_gates as market_qualify
 
 # ---------------------------------------------------------------------------
 # Helpers — synthetic input builders
 # ---------------------------------------------------------------------------
+
 
 def _corr(rho: float, ci_lo: float, ci_hi: float, n: int = 200) -> dict:
     return {
@@ -32,7 +30,10 @@ def _corr(rho: float, ci_lo: float, ci_hi: float, n: int = 200) -> dict:
 
 def _quint(gap: float, monotonic: bool) -> dict:
     return {
-        "q1_mean": 2.0, "q2_mean": 2.5, "q3_mean": 3.0, "q4_mean": 3.5,
+        "q1_mean": 2.0,
+        "q2_mean": 2.5,
+        "q3_mean": 3.0,
+        "q4_mean": 3.5,
         "q5_mean": 2.0 + gap,
         "q5_q1_gap": gap,
         "is_monotonic": monotonic,
@@ -41,7 +42,10 @@ def _quint(gap: float, monotonic: bool) -> dict:
 
 def _quint_avail(gap: float, monotonic: bool) -> dict:
     return {
-        "q1_mean": 0.60, "q2_mean": 0.65, "q3_mean": 0.70, "q4_mean": 0.75,
+        "q1_mean": 0.60,
+        "q2_mean": 0.65,
+        "q3_mean": 0.70,
+        "q4_mean": 0.75,
         "q5_mean": 0.60 + gap,
         "q5_q1_gap": gap,
         "is_monotonic": monotonic,
@@ -66,8 +70,8 @@ BASE = ("xgi_roll3", "FORM-001", "DEF")
 # FORM study
 # ===========================================================================
 
-class TestFormClassify:
 
+class TestFormClassify:
     def test_insufficient_observations_returns_uninformative(self):
         result = form_qualify(None, None, [], *BASE, naive_rho=None)
         assert result["lens_status"] == "uninformative"
@@ -164,7 +168,6 @@ AVAIL_BASE = ("minutes_roll3", "AVAIL-001", "DEF")
 
 
 class TestAvailClassify:
-
     def test_insufficient_observations(self):
         result = avail_qualify(None, None, [], *AVAIL_BASE)
         assert result["lens_status"] == "uninformative"
@@ -218,7 +221,6 @@ MARKET_BASE = ("transfers_in", "MARKET-001", "DEF")
 
 
 class TestMarketClassify:
-
     def test_insufficient_observations(self):
         result = market_qualify(None, None, [], *MARKET_BASE)
         assert result["lens_status"] == "uninformative"
@@ -279,12 +281,11 @@ def _quint_fixture_negative(gap: float) -> dict:
         "q4_mean": base_mean - 1.5,
         "q5_mean": base_mean + gap,  # gap is negative, so q5 < q1
         "q5_q1_gap": gap,
-        "is_monotonic": True,        # bidirectional: monotone decreasing
+        "is_monotonic": True,  # bidirectional: monotone decreasing
     }
 
 
 class TestFixtureClassify:
-
     def test_insufficient_observations(self):
         result = fixture_qualify(None, None, [], *FIXTURE_BASE)
         assert result["lens_status"] == "uninformative"

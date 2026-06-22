@@ -49,7 +49,6 @@ EQUAL_WEIGHT_IMPROVEMENT_THRESHOLD = 0.02
 FDR_MODERATION_THRESHOLD = 0.15
 
 
-
 def _moderation_instability_rate(orderings: list[list[str]]) -> float:
     """Fraction of FDR strata where signal rank ordering differs from the baseline stratum.
 
@@ -69,36 +68,42 @@ def _moderation_instability_rate(orderings: list[list[str]]) -> float:
 # ---------------------------------------------------------------------------
 
 GROUPS: list[dict] = [
-    dict(position="DEF", lens="form",
-         signals=["xgi_roll3", "xgi_roll5"],
-         target="total_points_next_gw", gw_min=6),
-    dict(position="DEF", lens="avail",
-         signals=["minutes_roll8"],
-         target="played_next_gw", gw_min=9),
-    dict(position="DEF", lens="market",
-         signals=["transfers_in", "ownership_count", "purchase_price"],
-         target="total_points_next_gw", gw_min=1),
-    dict(position="MID", lens="form",
-         signals=["xgi_roll3", "xgi_roll5"],
-         target="total_points_next_gw", gw_min=6),
-    dict(position="MID", lens="avail",
-         signals=["minutes_roll3", "minutes_roll5", "minutes_roll8"],
-         target="played_next_gw", gw_min=9),
-    dict(position="MID", lens="market",
-         signals=["transfers_in", "ownership_count"],
-         target="total_points_next_gw", gw_min=1),
+    dict(position="DEF", lens="form", signals=["xgi_roll3", "xgi_roll5"], target="total_points_next_gw", gw_min=6),
+    dict(position="DEF", lens="avail", signals=["minutes_roll8"], target="played_next_gw", gw_min=9),
+    dict(
+        position="DEF",
+        lens="market",
+        signals=["transfers_in", "ownership_count", "purchase_price"],
+        target="total_points_next_gw",
+        gw_min=1,
+    ),
+    dict(position="MID", lens="form", signals=["xgi_roll3", "xgi_roll5"], target="total_points_next_gw", gw_min=6),
+    dict(
+        position="MID",
+        lens="avail",
+        signals=["minutes_roll3", "minutes_roll5", "minutes_roll8"],
+        target="played_next_gw",
+        gw_min=9,
+    ),
+    dict(
+        position="MID",
+        lens="market",
+        signals=["transfers_in", "ownership_count"],
+        target="total_points_next_gw",
+        gw_min=1,
+    ),
 ]
 
 # MID naive baseline (points_roll5 MID) — excluded from composition, used for validation only
 MID_NAIVE_BASELINE_RHO = 0.158
 
-HIGH_REDUNDANCY_PAIRS = {("DEF", "ownership_count", "transfers_in"),
-                         ("MID", "ownership_count", "transfers_in")}
+HIGH_REDUNDANCY_PAIRS = {("DEF", "ownership_count", "transfers_in"), ("MID", "ownership_count", "transfers_in")}
 
 
 # ---------------------------------------------------------------------------
 # Weight derivation with bootstrap CIs
 # ---------------------------------------------------------------------------
+
 
 def _normalize_weights(partial_rhos: dict[str, float]) -> dict[str, float]:
     """Normalize |partial_rho| → weights summing to 1.0, cap each at MAX_WEIGHT."""
@@ -146,8 +151,7 @@ def _bootstrap_weights(
 
     alpha = 1.0 - CI_LEVEL
     return {
-        s: (float(np.percentile(vs, 100 * alpha / 2)),
-            float(np.percentile(vs, 100 * (1.0 - alpha / 2))))
+        s: (float(np.percentile(vs, 100 * alpha / 2)), float(np.percentile(vs, 100 * (1.0 - alpha / 2))))
         for s, vs in boot_weights.items()
     }
 
@@ -156,9 +160,8 @@ def _bootstrap_weights(
 # Composite rho (for equal-weight sanity check and baseline comparison)
 # ---------------------------------------------------------------------------
 
-def _composite_rho(
-    data: pd.DataFrame, signals: list[str], weights: dict[str, float], target: str
-) -> float:
+
+def _composite_rho(data: pd.DataFrame, signals: list[str], weights: dict[str, float], target: str) -> float:
     """Spearman rho of weighted composite against target."""
     valid = data[[*signals, target]].dropna()
     if len(valid) < 10:
@@ -171,9 +174,8 @@ def _composite_rho(
 # FDR moderation sensitivity check
 # ---------------------------------------------------------------------------
 
-def _fdr_moderation_check(
-    pop: pd.DataFrame, retained: list[tuple[str, str, str]]
-) -> dict:
+
+def _fdr_moderation_check(pop: pd.DataFrame, retained: list[tuple[str, str, str]]) -> dict:
     """
     For each (position, target) group of retained signals, split population by
     FDR quartile and check whether signal rank ordering (by rho) changes across
@@ -187,8 +189,7 @@ def _fdr_moderation_check(
         return {"material": False, "verdict": "SKIPPED — fdr_avg not available", "detail": []}
 
     pop["fdr_quartile"] = pd.qcut(
-        pop["fdr_avg"].rank(method="first", na_option="keep"), 4,
-        labels=["Q1", "Q2", "Q3", "Q4"]
+        pop["fdr_avg"].rank(method="first", na_option="keep"), 4, labels=["Q1", "Q2", "Q3", "Q4"]
     )
 
     groups: dict[tuple[str, str], list[str]] = {}
@@ -221,13 +222,15 @@ def _fdr_moderation_check(
         fraction = _moderation_instability_rate(quartile_orders)
         is_material = fraction > FDR_MODERATION_THRESHOLD
 
-        detail.append({
-            "position": pos,
-            "target": tgt,
-            "signals": signals,
-            "fraction_rank_changed": round(fraction, 3),
-            "material": is_material,
-        })
+        detail.append(
+            {
+                "position": pos,
+                "target": tgt,
+                "signals": signals,
+                "fraction_rank_changed": round(fraction, 3),
+                "material": is_material,
+            }
+        )
         if is_material:
             n_material += 1
 
@@ -236,8 +239,11 @@ def _fdr_moderation_check(
         "material": overall,
         "n_material_groups": n_material,
         "n_groups_checked": len(detail),
-        "verdict": ("MATERIAL — flag for Phase 8 moderator implementation"
-                    if overall else "NOT MATERIAL — no FDR moderation required"),
+        "verdict": (
+            "MATERIAL — flag for Phase 8 moderator implementation"
+            if overall
+            else "NOT MATERIAL — no FDR moderation required"
+        ),
         "detail": detail,
     }
 
@@ -245,6 +251,7 @@ def _fdr_moderation_check(
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def run(db_path: Path = DB_PATH) -> Path:
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -257,14 +264,9 @@ def run(db_path: Path = DB_PATH) -> Path:
     state = state.sort_values(["player_id", "gw"]).copy()
     state["total_points_next_gw"] = state.groupby("player_id")["total_points"].shift(-1)
     state["minutes_next_gw"] = state.groupby("player_id")["minutes"].shift(-1)
-    state["played_next_gw"] = (
-        state["minutes_next_gw"].ge(60).astype(float)
-        .where(state["minutes_next_gw"].notna())
-    )
+    state["played_next_gw"] = state["minutes_next_gw"].ge(60).astype(float).where(state["minutes_next_gw"].notna())
 
-    pop = state[
-        (state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)
-    ].copy()
+    pop = state[(state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)].copy()
 
     # Composite finding-key grammar (ADR-003) is built by domain.registry.finding_key.
     # The synth lead-target column (total_points_next_gw) maps to the finding-key target
@@ -298,15 +300,19 @@ def run(db_path: Path = DB_PATH) -> Path:
         partial_results: dict[str, tuple[float, float, float]] = {}
         for i, sig in enumerate(signals):
             rho, ci_lo, ci_hi = bootstrap_partial_rho(
-                X, y, i, partial_spearman,
-                n_samples=N_BOOTSTRAP, ci_level=CI_LEVEL, seed=BOOTSTRAP_SEED,
+                X,
+                y,
+                i,
+                partial_spearman,
+                n_samples=N_BOOTSTRAP,
+                ci_level=CI_LEVEL,
+                seed=BOOTSTRAP_SEED,
             )
             partial_results[sig] = (rho, ci_lo, ci_hi)
             print(f"  {sig:20s} partial_rho={rho:+.4f}  CI=[{ci_lo:.4f}, {ci_hi:.4f}]")
 
         # --- Marginal gain classification ---
-        retained_sigs = [s for s, (r, _, _) in partial_results.items()
-                         if abs(r) >= MARGINAL_GAIN_THRESHOLD]
+        retained_sigs = [s for s, (r, _, _) in partial_results.items() if abs(r) >= MARGINAL_GAIN_THRESHOLD]
         excluded_sigs = [s for s in signals if s not in retained_sigs]
 
         # --- Weight derivation ---
@@ -329,9 +335,13 @@ def run(db_path: Path = DB_PATH) -> Path:
             if improvement < EQUAL_WEIGHT_IMPROVEMENT_THRESHOLD:
                 equal_weight_preferred = True
                 weights = eq_w
-                print(f"  Equal-weight preferred: evidence composite rho={rho_ev:.4f} vs equal-weight rho={rho_eq:.4f} (improvement={improvement:.4f} < {EQUAL_WEIGHT_IMPROVEMENT_THRESHOLD})")
+                print(
+                    f"  Equal-weight preferred: evidence composite rho={rho_ev:.4f} vs equal-weight rho={rho_eq:.4f} (improvement={improvement:.4f} < {EQUAL_WEIGHT_IMPROVEMENT_THRESHOLD})"
+                )
             else:
-                print(f"  Evidence weights preferred: composite rho={rho_ev:.4f} vs equal-weight rho={rho_eq:.4f} (improvement={improvement:.4f})")
+                print(
+                    f"  Evidence weights preferred: composite rho={rho_ev:.4f} vs equal-weight rho={rho_eq:.4f} (improvement={improvement:.4f})"
+                )
 
         # --- Baseline comparison ---
         baseline_note = ""
@@ -345,13 +355,9 @@ def run(db_path: Path = DB_PATH) -> Path:
                 )
                 print(f"  {baseline_note}")
             elif position == "DEF" and retained_sigs:
-                perm_rho = estimate_chance_correlation(
-                    valid[retained_sigs[0]].to_numpy(), valid[target].to_numpy()
-                )
+                perm_rho = estimate_chance_correlation(valid[retained_sigs[0]].to_numpy(), valid[target].to_numpy())
                 comp_rho = _composite_rho(valid, retained_sigs, weights, target)
-                baseline_note = (
-                    f"DEF composite rho={comp_rho:.4f} vs permutation baseline rho≈{perm_rho:.4f}"
-                )
+                baseline_note = f"DEF composite rho={comp_rho:.4f} vs permutation baseline rho≈{perm_rho:.4f}"
                 print(f"  {baseline_note}")
 
         # --- Rank retained for primary/secondary ---
@@ -364,8 +370,9 @@ def run(db_path: Path = DB_PATH) -> Path:
 
             if sig in excluded_sigs:
                 absorbing = [s for s in retained_sigs]
-                is_hr = (position, sig, absorbing[0] if absorbing else "") in HIGH_REDUNDANCY_PAIRS or \
-                        any((position, sig, a) in HIGH_REDUNDANCY_PAIRS for a in absorbing)
+                is_hr = (position, sig, absorbing[0] if absorbing else "") in HIGH_REDUNDANCY_PAIRS or any(
+                    (position, sig, a) in HIGH_REDUNDANCY_PAIRS for a in absorbing
+                )
                 decision_str = "EXCLUDED-REDUNDANT"
                 weight_val = 0.0
                 contrib = "redundant"
@@ -381,10 +388,7 @@ def run(db_path: Path = DB_PATH) -> Path:
                 decision_str = "APPROVED-PRIMARY" if contrib == "primary" else "APPROVED-SECONDARY"
                 weight_val = weights.get(sig, 0.0)
                 w_ci = weight_cis.get(sig, (None, None))
-                notes = (
-                    f"|partial_rho|={abs(rho):.4f} >= {MARGINAL_GAIN_THRESHOLD} threshold. "
-                    f"Weight={weight_val:.4f}"
-                )
+                notes = f"|partial_rho|={abs(rho):.4f} >= {MARGINAL_GAIN_THRESHOLD} threshold. Weight={weight_val:.4f}"
                 if equal_weight_preferred:
                     notes += " (equal-weight: evidence composite did not improve by >=0.02 rho units)."
                 if w_ci[0] is not None:
@@ -421,32 +425,36 @@ def run(db_path: Path = DB_PATH) -> Path:
 
             all_recommendations.append(entry)
 
-        group_summaries.append({
-            "group": f"{position} × {lens}",
-            "n": n,
-            "retained": retained_sigs,
-            "excluded": excluded_sigs,
-            "weights": {s: round(weights.get(s, 0.0), 4) for s in retained_sigs},
-            "equal_weight_preferred": equal_weight_preferred,
-            "baseline_note": baseline_note,
-        })
+        group_summaries.append(
+            {
+                "group": f"{position} × {lens}",
+                "n": n,
+                "retained": retained_sigs,
+                "excluded": excluded_sigs,
+                "weights": {s: round(weights.get(s, 0.0), 4) for s in retained_sigs},
+                "equal_weight_preferred": equal_weight_preferred,
+                "baseline_note": baseline_note,
+            }
+        )
 
     # --- FWD single-signal recommendation ---
-    all_recommendations.append({
-        "key": _composite_key("purchase_price", "market", "total_points_next_gw", "FWD"),
-        "signal": "purchase_price",
-        "position": "FWD",
-        "lens": "market",
-        "partial_rho": 0.155,
-        "partial_ci_lower": 0.077,
-        "partial_ci_upper": 0.237,
-        "marginal_gain": 0.155,
-        "evidence": "Sole FWD candidate. No composite synthesis — single-signal qualified score. bivariate rho=0.155 from LENS-MARKET evaluation_metadata.yaml.",
-        "notes": "G3-WEAK: 2/3 temporal blocks. Intelligence consumers must acknowledge caveat. Not evaluated by partial rho (no other FWD candidates to control for).",
-        "recommended_decision": "FWD-SINGLE-SIGNAL",
-        "recommended_weight": 1.0,
-        "recommended_contribution_class": "primary",
-    })
+    all_recommendations.append(
+        {
+            "key": _composite_key("purchase_price", "market", "total_points_next_gw", "FWD"),
+            "signal": "purchase_price",
+            "position": "FWD",
+            "lens": "market",
+            "partial_rho": 0.155,
+            "partial_ci_lower": 0.077,
+            "partial_ci_upper": 0.237,
+            "marginal_gain": 0.155,
+            "evidence": "Sole FWD candidate. No composite synthesis — single-signal qualified score. bivariate rho=0.155 from LENS-MARKET evaluation_metadata.yaml.",
+            "notes": "G3-WEAK: 2/3 temporal blocks. Intelligence consumers must acknowledge caveat. Not evaluated by partial rho (no other FWD candidates to control for).",
+            "recommended_decision": "FWD-SINGLE-SIGNAL",
+            "recommended_weight": 1.0,
+            "recommended_contribution_class": "primary",
+        }
+    )
 
     # --- FDR moderation check ---
     print("\nFDR moderation sensitivity check ...")

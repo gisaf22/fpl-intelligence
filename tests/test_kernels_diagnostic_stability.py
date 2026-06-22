@@ -94,8 +94,7 @@ def test_stable_threshold_less_than_unstable():
 def test_output_has_required_columns():
     df = _make_df()
     result = compute_signal_block_distributions(df, signals=["xg"], positions=["MID"], gw_blocks=DEFAULT_GW_BLOCKS)
-    expected_cols = {"signal", "position", "block", "n", "median", "q1", "q3", "iqr",
-                     "p90", "p99", "min_gw", "max_gw"}
+    expected_cols = {"signal", "position", "block", "n", "median", "q1", "q3", "iqr", "p90", "p99", "min_gw", "max_gw"}
     assert expected_cols.issubset(set(result.columns))
 
 

@@ -67,17 +67,40 @@ def compute_signal_block_distributions(
             n = len(s)
             min_gw, max_gw = gw_blocks[block_name]
             if n < MIN_N_FOR_BLOCK_STATS:
-                rows.append({"signal": signal, "position": position, "block": block_name,
-                             "n": n, "median": float("nan"), "q1": float("nan"),
-                             "q3": float("nan"), "iqr": float("nan"),
-                             "p90": float("nan"), "p99": float("nan"),
-                             "min_gw": min_gw, "max_gw": max_gw})
+                rows.append(
+                    {
+                        "signal": signal,
+                        "position": position,
+                        "block": block_name,
+                        "n": n,
+                        "median": float("nan"),
+                        "q1": float("nan"),
+                        "q3": float("nan"),
+                        "iqr": float("nan"),
+                        "p90": float("nan"),
+                        "p99": float("nan"),
+                        "min_gw": min_gw,
+                        "max_gw": max_gw,
+                    }
+                )
             else:
                 q1, q3 = float(np.percentile(s, 25)), float(np.percentile(s, 75))
                 p90, p99 = float(np.percentile(s, 90)), float(np.percentile(s, 99))
-                rows.append({"signal": signal, "position": position, "block": block_name,
-                             "n": n, "median": float(np.median(s)), "q1": q1, "q3": q3,
-                             "iqr": q3 - q1, "p90": p90, "p99": p99,
-                             "min_gw": min_gw, "max_gw": max_gw})
+                rows.append(
+                    {
+                        "signal": signal,
+                        "position": position,
+                        "block": block_name,
+                        "n": n,
+                        "median": float(np.median(s)),
+                        "q1": q1,
+                        "q3": q3,
+                        "iqr": q3 - q1,
+                        "p90": p90,
+                        "p99": p99,
+                        "min_gw": min_gw,
+                        "max_gw": max_gw,
+                    }
+                )
 
     return pd.DataFrame(rows)

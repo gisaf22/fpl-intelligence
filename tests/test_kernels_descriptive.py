@@ -11,6 +11,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from research.kernels.descriptive.distribution import (
+    compare_cohorts,
+    compute_distribution_stats,
+)
 from tests.helpers.metrics import (
     downside_rate,
     hit_rate,
@@ -20,22 +24,20 @@ from tests.helpers.metrics import (
     return_variance,
     top1_return,
 )
-from research.kernels.descriptive.distribution import (
-    compute_distribution_stats,
-    compare_cohorts,
-)
 
 # ===========================================================================
 # metrics.py
 # ===========================================================================
 
-class TestMeanReturn:
 
+class TestMeanReturn:
     def setup_method(self):
-        self.outcomes = pd.DataFrame({
-            "player_id": [1, 2, 3, 4],
-            "total_points": [12.0, 6.0, 8.0, 4.0],
-        })
+        self.outcomes = pd.DataFrame(
+            {
+                "player_id": [1, 2, 3, 4],
+                "total_points": [12.0, 6.0, 8.0, 4.0],
+            }
+        )
 
     def test_basic_mean(self):
         result = mean_return([1, 2], self.outcomes)
@@ -60,12 +62,13 @@ class TestMeanReturn:
 
 
 class TestTop1Return:
-
     def setup_method(self):
-        self.outcomes = pd.DataFrame({
-            "player_id": [1, 2, 3],
-            "total_points": [10.0, 7.0, float("nan")],
-        })
+        self.outcomes = pd.DataFrame(
+            {
+                "player_id": [1, 2, 3],
+                "total_points": [10.0, 7.0, float("nan")],
+            }
+        )
 
     def test_returns_correct_points(self):
         assert top1_return(1, self.outcomes) == pytest.approx(10.0)
@@ -79,7 +82,6 @@ class TestTop1Return:
 
 
 class TestHitRate:
-
     def test_hit_when_in_ranked_ids(self):
         assert hit_rate([1, 2, 3], 2) == 1
 
@@ -94,7 +96,6 @@ class TestHitRate:
 
 
 class TestRegret:
-
     def test_zero_regret_when_optimal(self):
         assert regret(12.0, 12.0) == pytest.approx(0.0)
 
@@ -110,7 +111,6 @@ class TestRegret:
 
 
 class TestRankCorrelation:
-
     def test_perfect_positive_correlation(self):
         predicted = pd.Series([1, 2, 3, 4, 5], index=[1, 2, 3, 4, 5])
         actual = pd.Series([10, 20, 30, 40, 50], index=[1, 2, 3, 4, 5])
@@ -154,7 +154,6 @@ class TestRankCorrelation:
 
 
 class TestReturnVariance:
-
     def test_zero_variance_constant_series(self):
         s = pd.Series([5.0, 5.0, 5.0, 5.0])
         result = return_variance(s)
@@ -180,7 +179,6 @@ class TestReturnVariance:
 
 
 class TestDownsideRate:
-
     def test_all_above_threshold(self):
         s = pd.Series([8.0, 10.0, 12.0])
         assert downside_rate(s, threshold=4.0) == pytest.approx(0.0)
@@ -210,13 +208,26 @@ class TestDownsideRate:
 # distribution.py
 # ===========================================================================
 
-class TestComputeDistributionStats:
 
+class TestComputeDistributionStats:
     def test_returns_all_expected_keys(self):
         s = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0])
         result = compute_distribution_stats(s)
-        expected_keys = {"count", "mean", "median", "std", "min", "max",
-                         "p25", "p75", "p90", "p99", "skew", "kurtosis", "variance"}
+        expected_keys = {
+            "count",
+            "mean",
+            "median",
+            "std",
+            "min",
+            "max",
+            "p25",
+            "p75",
+            "p90",
+            "p99",
+            "skew",
+            "kurtosis",
+            "variance",
+        }
         assert expected_keys <= set(result.keys())
 
     def test_known_values(self):
@@ -243,7 +254,6 @@ class TestComputeDistributionStats:
 
 
 class TestCompareCohorts:
-
     def test_returns_dataframe_indexed_by_cohort(self):
         cohorts = {
             "gkp": pd.DataFrame({"total_points": [5.0, 6.0, 7.0]}),
@@ -264,22 +274,24 @@ class TestCompareCohortsByColumn:
     """compare_cohorts with a caller-owned groupby split — replaces the deleted analyze_by_group."""
 
     def test_groups_correctly(self):
-        df = pd.DataFrame({
-            "position": ["GK", "GK", "DEF", "DEF"],
-            "total_points": [5.0, 7.0, 3.0, 4.0],
-        })
+        df = pd.DataFrame(
+            {
+                "position": ["GK", "GK", "DEF", "DEF"],
+                "total_points": [5.0, 7.0, 3.0, 4.0],
+            }
+        )
         cohorts = {pos: grp for pos, grp in df.groupby("position")}
         result = compare_cohorts(cohorts, value_col="total_points")
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 2
 
     def test_mean_correct_per_group(self):
-        df = pd.DataFrame({
-            "pos": ["A", "A", "B", "B"],
-            "pts": [10.0, 20.0, 5.0, 15.0],
-        })
+        df = pd.DataFrame(
+            {
+                "pos": ["A", "A", "B", "B"],
+                "pts": [10.0, 20.0, 5.0, 15.0],
+            }
+        )
         cohorts = {pos: grp for pos, grp in df.groupby("pos")}
         result = compare_cohorts(cohorts, value_col="pts")
         assert result.loc["A", "mean"] == pytest.approx(15.0)
-
-

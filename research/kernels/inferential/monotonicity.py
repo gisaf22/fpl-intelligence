@@ -46,12 +46,13 @@ def monotonicity_confidence(
     attempts = 0
 
     for _ in range(n_bootstrap):
-        sample = subset.sample(
-            frac=1.0, replace=True, random_state=int(rng.integers(1_000_000))
-        )
+        sample = subset.sample(frac=1.0, replace=True, random_state=int(rng.integers(1_000_000)))
         bs_stats, _ = bin_analysis(
             sample.assign(position=position),
-            signal, target, position, scheme,
+            signal,
+            target,
+            position,
+            scheme,
         )
         if bs_stats is None or len(bs_stats) < 2:
             continue

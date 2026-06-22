@@ -38,7 +38,11 @@ SYNTH_DECISIONS_PATH = Path("model/assemble/synth01_decisions.yaml")
 
 # Per-position field order, matching the historical hand-authored layout.
 _ANNOTATION_ORDER = (
-    "lifecycle_state", "downstream_status", "leakage_risk", "behavioral_reason", "source_gate_decisions",
+    "lifecycle_state",
+    "downstream_status",
+    "leakage_risk",
+    "behavioral_reason",
+    "source_gate_decisions",
 )
 _SYNTH_ORDER = ("synth01_decision", "composition_weight", "composition_role")
 
@@ -145,15 +149,15 @@ def build_findings(lenses: list[LensVerdict], synth_by_key: dict[str, dict[str, 
     findings: list[dict[str, Any]] = []
     for lens in lenses:
         for signal, positions in lens.annotations.items():
-            findings.append({
-                "key": build_key(signal, lens.lens, lens.target),
-                "signal": signal,
-                "lens": lens.lens,
-                "target": lens.target,
-                "per_position": {
-                    pos: _per_position(signal, pos, lens, synth_by_key) for pos in positions
-                },
-            })
+            findings.append(
+                {
+                    "key": build_key(signal, lens.lens, lens.target),
+                    "signal": signal,
+                    "lens": lens.lens,
+                    "target": lens.target,
+                    "per_position": {pos: _per_position(signal, pos, lens, synth_by_key) for pos in positions},
+                }
+            )
     return findings
 
 

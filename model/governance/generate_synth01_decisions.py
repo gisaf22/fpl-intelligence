@@ -32,16 +32,32 @@ OUT_PATH = Path("model/assemble/synth01_decisions.yaml")
 
 # Top-level study metadata carried through from the recommendation artifact.
 _CARRIED_TOP_LEVEL = (
-    "version", "produced", "authority", "candidate_registry", "design_doc",
-    "fdr_moderation_check", "group_summary",
+    "version",
+    "produced",
+    "authority",
+    "candidate_registry",
+    "design_doc",
+    "fdr_moderation_check",
+    "group_summary",
 )
 
 # Decision-record field order (matches the historical synth01_decisions.yaml layout).
 _DECISION_ORDER = (
-    "key", "signal", "position", "lens", "decision",
-    "partial_rho", "partial_ci_lower", "partial_ci_upper",
-    "composition_weight", "contribution_class", "marginal_gain", "evidence", "notes",
-    "weight_ci_lower", "weight_ci_upper",
+    "key",
+    "signal",
+    "position",
+    "lens",
+    "decision",
+    "partial_rho",
+    "partial_ci_lower",
+    "partial_ci_upper",
+    "composition_weight",
+    "contribution_class",
+    "marginal_gain",
+    "evidence",
+    "notes",
+    "weight_ci_lower",
+    "weight_ci_upper",
 )
 
 _BANNER = (

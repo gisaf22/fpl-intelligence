@@ -58,9 +58,14 @@ def decompose_variance(
     n_players = data[group_col].nunique()
     if n_obs == 0:
         return {
-            "n_players": 0, "n_obs": 0, "grand_mean": float("nan"),
-            "ss_total": float("nan"), "ss_between": float("nan"), "ss_within": float("nan"),
-            "pct_between": float("nan"), "pct_within": float("nan"),
+            "n_players": 0,
+            "n_obs": 0,
+            "grand_mean": float("nan"),
+            "ss_total": float("nan"),
+            "ss_between": float("nan"),
+            "ss_within": float("nan"),
+            "pct_between": float("nan"),
+            "pct_within": float("nan"),
         }
 
     grand_mean = float(data[value_col].mean())

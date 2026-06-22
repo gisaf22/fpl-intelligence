@@ -22,8 +22,8 @@ from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
 from research.families.evidence_record import build_signal_verdict, write_evidence
 from research.families.population_gate import assert_population_gate
-from research.kernels.inferential.resampling import bootstrap_spearman_ci
 from research.kernels.hypothesis.stratification import quintile_stratification
+from research.kernels.inferential.resampling import bootstrap_spearman_ci
 
 RUNS_DIR = Path(__file__).resolve().parents[4] / "research" / "runs"
 VALIDATE_DIR = Path(__file__).parent
@@ -52,15 +52,15 @@ GW_MAX = 38
 
 GW_WINDOWS: dict[str, tuple[int, int]] = {
     "early": (3, 12),
-    "mid":   (13, 26),
-    "late":  (27, 38),
+    "mid": (13, 26),
+    "late": (27, 38),
 }
 
 N_BOOTSTRAP = 2000
 BOOTSTRAP_SEED = 42
 CI_LEVEL = 0.95
 # Binary target has range [0,1]; a meaningful Q5-Q1 gap is ≥10 percentage points.
-QUINTILE_GAP_THRESHOLD_PRIMARY = 0.10    # LENS_DESIGN.md §8
+QUINTILE_GAP_THRESHOLD_PRIMARY = 0.10  # LENS_DESIGN.md §8
 QUINTILE_GAP_THRESHOLD_SECONDARY = 1.0  # continuous points target uses standard threshold
 
 LENS_STATUS_LEGEND = {
@@ -73,6 +73,7 @@ LENS_STATUS_LEGEND = {
 # ---------------------------------------------------------------------------
 # Per-slice computation helpers
 # ---------------------------------------------------------------------------
+
 
 def _measure_rank_association(
     df: pd.DataFrame,
@@ -106,10 +107,16 @@ def _measure_rank_association(
     if ci is None:
         return None
     return {
-        "signal_id": signal_id, "signal": signal, "position": position,
-        "gw_window": gw_window, "target": target,
-        "rho": ci["rho"], "ci_lower": ci["ci_lower"], "ci_upper": ci["ci_upper"],
-        "n": ci["n"], "ci_excludes_zero": bool(ci["ci_lower"] > 0 or ci["ci_upper"] < 0),
+        "signal_id": signal_id,
+        "signal": signal,
+        "position": position,
+        "gw_window": gw_window,
+        "target": target,
+        "rho": ci["rho"],
+        "ci_lower": ci["ci_lower"],
+        "ci_upper": ci["ci_upper"],
+        "n": ci["n"],
+        "ci_excludes_zero": bool(ci["ci_lower"] > 0 or ci["ci_upper"] < 0),
     }
 
 
@@ -123,14 +130,20 @@ def _stratify_by_quintile(
 ) -> dict | None:
     """Split the population slice into signal quintiles and measure target mean per group."""
     return quintile_stratification(
-        df, signal, signal_id, position, gw_window,
-        target=target, bidirectional=False,
+        df,
+        signal,
+        signal_id,
+        position,
+        gw_window,
+        target=target,
+        bidirectional=False,
     )
 
 
 # ---------------------------------------------------------------------------
 # Signal qualification gates
 # ---------------------------------------------------------------------------
+
 
 def _apply_signal_qualification_gates(
     full_window_assoc: dict | None,
@@ -156,8 +169,11 @@ def _apply_signal_qualification_gates(
     if full_window_assoc is None:
         return {**base, "lens_status": "uninformative", "rationale": "insufficient observations"}
     if not full_window_assoc["ci_excludes_zero"]:
-        return {**base, "lens_status": "uninformative",
-                "rationale": f"CI crosses zero [{full_window_assoc['ci_lower']:.3f}, {full_window_assoc['ci_upper']:.3f}]"}
+        return {
+            **base,
+            "lens_status": "uninformative",
+            "rationale": f"CI crosses zero [{full_window_assoc['ci_lower']:.3f}, {full_window_assoc['ci_upper']:.3f}]",
+        }
     decision_relevant = (
         full_window_quintile is not None
         and full_window_quintile["q5_q1_gap"] >= QUINTILE_GAP_THRESHOLD_PRIMARY
@@ -166,19 +182,29 @@ def _apply_signal_qualification_gates(
     if not decision_relevant:
         gap = f"{full_window_quintile['q5_q1_gap']:.3f}" if full_window_quintile else "N/A"
         mono = full_window_quintile["is_monotonic"] if full_window_quintile else "N/A"
-        return {**base, "lens_status": "uninformative",
-                "rationale": f"CI excludes zero but fails decision relevance (Q5-Q1={gap}, monotonic={mono})"}
+        return {
+            **base,
+            "lens_status": "uninformative",
+            "rationale": f"CI excludes zero but fails decision relevance (Q5-Q1={gap}, monotonic={mono})",
+        }
     n_stable_windows = sum(1 for b in gw_window_assocs if b and b["ci_excludes_zero"])
     if n_stable_windows >= 2:
-        return {**base, "lens_status": "informative",
-                "rationale": f"CI excludes zero, decision relevant, passes {n_stable_windows}/3 GW windows"}
-    return {**base, "lens_status": "unstable",
-            "rationale": f"CI excludes zero in aggregate but passes only {n_stable_windows}/3 GW windows"}
+        return {
+            **base,
+            "lens_status": "informative",
+            "rationale": f"CI excludes zero, decision relevant, passes {n_stable_windows}/3 GW windows",
+        }
+    return {
+        **base,
+        "lens_status": "unstable",
+        "rationale": f"CI excludes zero in aggregate but passes only {n_stable_windows}/3 GW windows",
+    }
 
 
 # ---------------------------------------------------------------------------
 # Main run entry point
 # ---------------------------------------------------------------------------
+
 
 def run(db_path: Path = DB_PATH) -> Path:
     """Run the full AVAIL lens validation study.
@@ -207,14 +233,9 @@ def run(db_path: Path = DB_PATH) -> Path:
     state["total_points_next_gw"] = state.groupby("player_id")["total_points"].shift(-1)
     state["minutes_next_gw"] = state.groupby("player_id")["minutes"].shift(-1)
     # played_next_gw: 1 if the player started the following GW (≥60 min), else 0.
-    state["played_next_gw"] = (
-        state["minutes_next_gw"].ge(60).astype(float)
-        .where(state["minutes_next_gw"].notna())
-    )
+    state["played_next_gw"] = state["minutes_next_gw"].ge(60).astype(float).where(state["minutes_next_gw"].notna())
 
-    population = state[
-        (state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)
-    ].copy()
+    population = state[(state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)].copy()
     assert_population_gate(population, GW_WINDOWS)
 
     # ------------------------------------------------------------------
@@ -259,14 +280,17 @@ def run(db_path: Path = DB_PATH) -> Path:
             for window_name, (wlo, whi) in GW_WINDOWS.items():
                 effective_lo = max(gw_min, wlo)
                 window_df = pos_pop[pos_pop["gw"].between(effective_lo, whi)]
-                w_assoc = _measure_rank_association(
-                    window_df, signal, signal_id, pos, window_name, PRIMARY_TARGET
-                )
+                w_assoc = _measure_rank_association(window_df, signal, signal_id, pos, window_name, PRIMARY_TARGET)
                 gw_window_assocs.append(w_assoc)
                 if w_assoc:
                     window_assoc_rows.append(w_assoc)
                 w_quintile = _stratify_by_quintile(
-                    window_df, signal, signal_id, pos, window_name, PRIMARY_TARGET,
+                    window_df,
+                    signal,
+                    signal_id,
+                    pos,
+                    window_name,
+                    PRIMARY_TARGET,
                 )
                 if w_quintile:
                     stratification_rows.append(w_quintile)
@@ -275,41 +299,51 @@ def run(db_path: Path = DB_PATH) -> Path:
             # Phase 3 (per-slice): Qualify on primary target + build evidence
             # ------------------------------------------------------------------
             primary_full = next(
-                (r for r in full_assoc_rows
-                 if r["signal"] == signal and r["position"] == pos
-                 and r["gw_window"] == "full" and r["target"] == PRIMARY_TARGET),
+                (
+                    r
+                    for r in full_assoc_rows
+                    if r["signal"] == signal
+                    and r["position"] == pos
+                    and r["gw_window"] == "full"
+                    and r["target"] == PRIMARY_TARGET
+                ),
                 None,
             )
             primary_quintile = next(
-                (r for r in stratification_rows
-                 if r["signal"] == signal and r["position"] == pos
-                 and r["block"] == "full" and r["target"] == PRIMARY_TARGET),
+                (
+                    r
+                    for r in stratification_rows
+                    if r["signal"] == signal
+                    and r["position"] == pos
+                    and r["block"] == "full"
+                    and r["target"] == PRIMARY_TARGET
+                ),
                 None,
             )
             qualification = _apply_signal_qualification_gates(
                 primary_full, primary_quintile, gw_window_assocs, signal, signal_id, pos
             )
             qualification_rows.append(qualification)
-            evidence_rows.append(
-                build_signal_verdict(signal, pos, primary_full, gw_window_assocs, qualification)
-            )
+            evidence_rows.append(build_signal_verdict(signal, pos, primary_full, gw_window_assocs, qualification))
 
     # ------------------------------------------------------------------
     # Phase 3 (global): Persist artefacts
     # ------------------------------------------------------------------
-    pd.DataFrame(full_assoc_rows + window_assoc_rows).to_csv(
-        out_dir / "correlation_results.csv", index=False
-    )
+    pd.DataFrame(full_assoc_rows + window_assoc_rows).to_csv(out_dir / "correlation_results.csv", index=False)
     pd.DataFrame(window_assoc_rows).to_csv(out_dir / "block_results.csv", index=False)
     pd.DataFrame(stratification_rows).to_csv(out_dir / "quintile_results.csv", index=False)
     pd.DataFrame(qualification_rows).to_csv(out_dir / "classification_summary.csv", index=False)
 
     meta = {
-        "timestamp": ts, "db_path": str(db_path),
+        "timestamp": ts,
+        "db_path": str(db_path),
         "db_row_count": len(state),
-        "n_bootstrap": N_BOOTSTRAP, "bootstrap_seed": BOOTSTRAP_SEED,
-        "ci_level": CI_LEVEL, "minutes_threshold": MINUTES_THRESHOLD,
-        "gw_max": GW_MAX, "gw_windows": {k: list(v) for k, v in GW_WINDOWS.items()},
+        "n_bootstrap": N_BOOTSTRAP,
+        "bootstrap_seed": BOOTSTRAP_SEED,
+        "ci_level": CI_LEVEL,
+        "minutes_threshold": MINUTES_THRESHOLD,
+        "gw_max": GW_MAX,
+        "gw_windows": {k: list(v) for k, v in GW_WINDOWS.items()},
         "primary_target": PRIMARY_TARGET,
         "secondary_target": SECONDARY_TARGET,
         "quintile_gap_threshold_primary": QUINTILE_GAP_THRESHOLD_PRIMARY,
@@ -320,7 +354,10 @@ def run(db_path: Path = DB_PATH) -> Path:
     (out_dir / "run_metadata.json").write_text(json.dumps(meta, indent=2))
 
     write_evidence(
-        VALIDATE_DIR, LENS, PRIMARY_TARGET, evidence_rows,
+        VALIDATE_DIR,
+        LENS,
+        PRIMARY_TARGET,
+        evidence_rows,
         evidence_run={"source": f"LENS-AVAIL-{ts}", "produced": ts, "db_path": str(db_path)},
     )
 

@@ -118,9 +118,7 @@ def build_player_gameweek_state(spine: pd.DataFrame) -> pd.DataFrame:
 
     # True on a player's first GW — rolling signals are NaN (no prior history to shift over).
     # Consumers filter ~is_warmup_gw before applying rolling signal eligibility thresholds.
-    df["is_warmup_gw"] = df.groupby("player_id")["gw"].transform(
-        lambda x: x == x.min()
-    ).astype("boolean")
+    df["is_warmup_gw"] = df.groupby("player_id")["gw"].transform(lambda x: x == x.min()).astype("boolean")
 
     # Governance assertion: derived columns must exactly equal _GOVERNED_ROLLING_COLS
     _produced = set(df.columns) - set(spine.columns)

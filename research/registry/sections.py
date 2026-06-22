@@ -13,8 +13,6 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from research.kernels.diagnostic.panel import split_between_within_player_rho
-from research.kernels.diagnostic.tail import measure_tail_event_dependence
 from research.kernels.descriptive.binning import (
     BLOCK_ORDER,
     MATCH_LEVEL_SIGNALS,
@@ -22,6 +20,7 @@ from research.kernels.descriptive.binning import (
     bin_analysis,
     select_bucketing_scheme,
 )
+from research.kernels.diagnostic.panel import split_between_within_player_rho
 from research.kernels.diagnostic.shape import (
     MONO_CONF_HIGH,
     MONO_CONF_LOW,
@@ -29,6 +28,7 @@ from research.kernels.diagnostic.shape import (
     classify_geometry,
 )
 from research.kernels.diagnostic.stability import stability_classify
+from research.kernels.diagnostic.tail import measure_tail_event_dependence
 from research.kernels.inferential.monotonicity import monotonicity_confidence
 
 
@@ -80,9 +80,7 @@ def _preferred_population_lookup(
 
     duplicates = int(signal_metadata[["signal", "position"]].duplicated().sum())
     if duplicates:
-        raise ValueError(
-            f"signal metadata has {duplicates} duplicate signal-position keys"
-        )
+        raise ValueError(f"signal metadata has {duplicates} duplicate signal-position keys")
 
     return {
         (str(row["signal"]), str(row["position"])): str(row["preferred_population"])
@@ -123,24 +121,16 @@ def _geometry_row(
     config: SectionBuildConfig,
     preferred_population: str,
 ) -> dict[str, object]:
-    subset = data[data[config.position_column] == position][
-        [signal, config.target_column]
-    ].dropna()
+    subset = data[data[config.position_column] == position][[signal, config.target_column]].dropna()
     n_records = len(subset)
-    zero_fraction = (
-        round(float((subset[signal].astype(float) == 0).mean()), 3)
-        if n_records
-        else np.nan
-    )
+    zero_fraction = round(float((subset[signal].astype(float) == 0).mean()), 3) if n_records else np.nan
 
     base = {
         "signal": signal,
         "position": position,
         "population_scope": config.population_scope,
         "population_robustness": config.population_robustness,
-        "variable_level": "match_level"
-        if signal in MATCH_LEVEL_SIGNALS
-        else "player_level",
+        "variable_level": "match_level" if signal in MATCH_LEVEL_SIGNALS else "player_level",
         "preferred_population": preferred_population,
         "n_records": n_records,
         "zero_fraction": zero_fraction,
@@ -171,9 +161,7 @@ def _geometry_row(
         scheme=scheme,
     )
     if bin_stats is None:
-        relationship_geometry = (
-            "unassessable" if flag.startswith("insufficient_support") else "indeterminate"
-        )
+        relationship_geometry = "unassessable" if flag.startswith("insufficient_support") else "indeterminate"
         return {
             **base,
             "bucketing_scheme": scheme_type,
@@ -188,9 +176,7 @@ def _geometry_row(
         }
 
     active_bin_count = int((bin_stats["count"] > 0).sum())
-    relationship_geometry = (
-        "unassessable" if flag.startswith("insufficient_support") else classify_geometry(bin_stats)
-    )
+    relationship_geometry = "unassessable" if flag.startswith("insufficient_support") else classify_geometry(bin_stats)
     q1_q5_mean_gap = _q_gap(bin_stats, relationship_geometry)
     mono_confidence = np.nan
     if relationship_geometry in MONOTONIC_GEOMETRIES:
@@ -216,9 +202,7 @@ def _geometry_row(
         "q1_q5_mean_gap": q1_q5_mean_gap,
         "relationship_geometry": relationship_geometry,
         "monotonicity_confidence": mono_confidence,
-        "low_confidence": bool(
-            pd.notna(mono_confidence) and mono_confidence < MONO_CONF_HIGH
-        ),
+        "low_confidence": bool(pd.notna(mono_confidence) and mono_confidence < MONO_CONF_HIGH),
         "support_flags": flag,
         "support_type": _support_type_for_failure(signal, flag),
     }
@@ -325,9 +309,7 @@ def compute_relationship_sections(
                 position=position,
                 player_col=cfg.player_column,
             )
-            decomposition_rows.append(
-                {"signal": signal, "position": position, **decomp}
-            )
+            decomposition_rows.append({"signal": signal, "position": position, **decomp})
 
             haul = measure_tail_event_dependence(
                 work,

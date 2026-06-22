@@ -11,7 +11,7 @@ the research layer).
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 from scipy.stats import rankdata, spearmanr
@@ -149,7 +149,7 @@ def bootstrap_partial_rho(
     X: np.ndarray,
     y: np.ndarray,
     signal_idx: int,
-    partial_fn: "Callable[[np.ndarray, np.ndarray, int], float]",
+    partial_fn: Callable[[np.ndarray, np.ndarray, int], float],
     n_samples: int = 2000,
     ci_level: float = CI_LEVEL,
     seed: int = BOOTSTRAP_SEED,

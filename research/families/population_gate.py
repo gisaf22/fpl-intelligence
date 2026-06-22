@@ -1,10 +1,11 @@
 """Population gate for family lens validate studies.
 
 Asserts that the filtered study population has at least one row in every
-position × GW-window cell before analysis begins. An empty cell means the
+position x GW-window cell before analysis begins. An empty cell means the
 study's inference is undefined for that stratum — it must be caught here,
 not silently propagated into results.
 """
+
 from __future__ import annotations
 
 import pandas as pd
@@ -15,7 +16,7 @@ def assert_population_gate(
     gw_windows: dict[str, tuple[int, int]],
     positions: list[str] | None = None,
 ) -> None:
-    """Raise ValueError if any position × GW-window cell has no rows.
+    """Raise ValueError if any position x GW-window cell has no rows.
 
     Args:
         population:  Filtered study population (minutes >= threshold, gw <= max).

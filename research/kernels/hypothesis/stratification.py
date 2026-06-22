@@ -63,7 +63,8 @@ def quintile_stratification(
     try:
         ranked = valid.copy()
         ranked["quintile"] = pd.qcut(
-            ranked[signal].rank(method="first"), 5,
+            ranked[signal].rank(method="first"),
+            5,
             labels=["Q1", "Q2", "Q3", "Q4", "Q5"],
         )
         means_s = ranked.groupby("quintile", observed=True)[target].mean()

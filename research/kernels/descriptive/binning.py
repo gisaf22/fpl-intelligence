@@ -15,12 +15,8 @@ import numpy as np
 import pandas as pd
 
 # --- inlined from domain.registry.schema ---
-MATCH_LEVEL_SIGNALS: frozenset[str] = frozenset(
-    {"was_home", "goals_conceded", "fixture_count", "fdr_avg", "is_dgw"}
-)
-POPULATION_ROBUSTNESS_VALUES: frozenset[str] = frozenset(
-    {"stable", "scope_sensitive", "untested"}
-)
+MATCH_LEVEL_SIGNALS: frozenset[str] = frozenset({"was_home", "goals_conceded", "fixture_count", "fdr_avg", "is_dgw"})
+POPULATION_ROBUSTNESS_VALUES: frozenset[str] = frozenset({"stable", "scope_sensitive", "untested"})
 POPULATION_SCOPE_VALUES: frozenset[str] = frozenset({"primary", "secondary"})
 
 # --- structural constants ---
@@ -103,7 +99,8 @@ def bin_analysis(
         else:
             n_bins = param
             subset["bin"] = pd.qcut(
-                sig, q=n_bins,
+                sig,
+                q=n_bins,
                 labels=[f"Q{i + 1}" for i in range(n_bins)],
                 duplicates="drop",
             )

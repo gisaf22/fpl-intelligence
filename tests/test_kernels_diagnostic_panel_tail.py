@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-from domain.registry.validation import validate_registry_contract
 from domain.registry.association import assign_association_class, consolidate_flags
+from domain.registry.validation import validate_registry_contract
 from research.kernels.diagnostic.panel import split_between_within_player_rho
 from research.kernels.diagnostic.tail import measure_tail_event_dependence
 from research.registry.assembler import assemble_registry_from_sections

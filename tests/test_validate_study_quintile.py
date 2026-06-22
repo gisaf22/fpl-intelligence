@@ -15,7 +15,6 @@ All tests use synthetic DataFrames; no database dependency.
 from __future__ import annotations
 
 import pandas as pd
-import pytest
 
 from research.families.availability.validate.study import _stratify_by_quintile as avail_quintile
 from research.families.fixture.validate.study import _stratify_by_quintile as fixture_quintile
@@ -23,10 +22,10 @@ from research.families.form.validate.study import _stratify_by_quintile as form_
 from research.families.market.validate.study import _stratify_by_quintile as market_quintile
 from research.kernels.hypothesis.stratification import quintile_stratification
 
-
 # ---------------------------------------------------------------------------
 # DataFrame builders
 # ---------------------------------------------------------------------------
+
 
 def _df_increasing(n: int = 100, target_col: str = "total_points_next_gw") -> pd.DataFrame:
     """Perfectly monotone-increasing: higher signal → higher target."""
@@ -66,8 +65,8 @@ def _df_with_nulls(n: int = 100, target_col: str = "total_points_next_gw") -> pd
 # FORM study — unidirectional, target = total_points_next_gw
 # ===========================================================================
 
-class TestFormQuintile:
 
+class TestFormQuintile:
     def test_increasing_signal_is_monotonic(self):
         df = _df_increasing()
         result = form_quintile(df, "sig", "FORM-001", "DEF", "full", "total_points_next_gw")
@@ -89,10 +88,12 @@ class TestFormQuintile:
 
     def test_small_gap_below_standard_threshold(self):
         # Increasing but tiny gap (target range much less than 1.0)
-        df = pd.DataFrame({
-            "sig": list(range(100)),
-            "total_points_next_gw": [i * 0.005 for i in range(100)],
-        })
+        df = pd.DataFrame(
+            {
+                "sig": list(range(100)),
+                "total_points_next_gw": [i * 0.005 for i in range(100)],
+            }
+        )
         result = form_quintile(df, "sig", "FORM-001", "DEF", "full", "total_points_next_gw")
         assert result is not None
         assert result["is_monotonic"] is True
@@ -119,9 +120,18 @@ class TestFormQuintile:
         result = form_quintile(df, "sig", "FORM-001", "DEF", "full", "total_points_next_gw")
         assert result is not None
         required = {
-            "signal_id", "signal", "position", "block", "target",
-            "q1_mean", "q2_mean", "q3_mean", "q4_mean", "q5_mean",
-            "q5_q1_gap", "is_monotonic",
+            "signal_id",
+            "signal",
+            "position",
+            "block",
+            "target",
+            "q1_mean",
+            "q2_mean",
+            "q3_mean",
+            "q4_mean",
+            "q5_mean",
+            "q5_q1_gap",
+            "is_monotonic",
         }
         assert required == set(result.keys())
 
@@ -136,8 +146,8 @@ class TestFormQuintile:
 # MARKET study — unidirectional, target = total_points_next_gw
 # ===========================================================================
 
-class TestMarketQuintile:
 
+class TestMarketQuintile:
     def test_increasing_signal_is_monotonic(self):
         df = _df_increasing()
         result = market_quintile(df, "sig", "MARKET-001", "DEF", "full")
@@ -165,13 +175,15 @@ class TestMarketQuintile:
 # AVAILABILITY study — unidirectional, target parameterised
 # ===========================================================================
 
-class TestAvailQuintile:
 
+class TestAvailQuintile:
     def test_increasing_binary_target_has_positive_gap(self):
-        df = pd.DataFrame({
-            "sig": list(range(100)),
-            "played_next_gw": [float(i >= 50) for i in range(100)],
-        })
+        df = pd.DataFrame(
+            {
+                "sig": list(range(100)),
+                "played_next_gw": [float(i >= 50) for i in range(100)],
+            }
+        )
         result = avail_quintile(df, "sig", "AVAIL-001", "DEF", "full", "played_next_gw")
         assert result is not None
         assert result["is_monotonic"] is True
@@ -186,10 +198,12 @@ class TestAvailQuintile:
         assert result["q5_q1_gap"] < 0.10  # gate will reject
 
     def test_target_column_parameter_respected(self):
-        df = pd.DataFrame({
-            "sig": list(range(100)),
-            "total_points_next_gw": [float(i) for i in range(100)],
-        })
+        df = pd.DataFrame(
+            {
+                "sig": list(range(100)),
+                "total_points_next_gw": [float(i) for i in range(100)],
+            }
+        )
         result = avail_quintile(df, "sig", "AVAIL-001", "DEF", "full", "total_points_next_gw")
         assert result is not None
         assert result["q5_q1_gap"] > 1.0
@@ -205,8 +219,8 @@ class TestAvailQuintile:
 # FIXTURE study — BIDIRECTIONAL monotonicity, target = total_points
 # ===========================================================================
 
-class TestFixtureQuintile:
 
+class TestFixtureQuintile:
     def test_increasing_signal_is_monotonic(self):
         df = _df_increasing(100, "total_points")
         result = fixture_quintile(df, "sig", "FIXTURE-001", "DEF", "full")
@@ -218,9 +232,9 @@ class TestFixtureQuintile:
         df = _df_decreasing(100, "total_points")
         result = fixture_quintile(df, "sig", "FIXTURE-001", "DEF", "full")
         assert result is not None
-        assert result["is_monotonic"] is True       # bidirectional: decreasing accepted
-        assert result["q5_q1_gap"] < 0              # raw gap is negative
-        assert abs(result["q5_q1_gap"]) > 1.0       # gate uses abs(gap) >= threshold
+        assert result["is_monotonic"] is True  # bidirectional: decreasing accepted
+        assert result["q5_q1_gap"] < 0  # raw gap is negative
+        assert abs(result["q5_q1_gap"]) > 1.0  # gate uses abs(gap) >= threshold
 
     def test_inverted_v_not_monotonic_in_any_direction(self):
         df = _df_inverted_v(100, "total_points")
@@ -235,7 +249,7 @@ class TestFixtureQuintile:
         result = fixture_quintile(df, "sig", "FIXTURE-001", "DEF", "full")
         assert result is not None
         assert result["is_monotonic"] is True
-        assert abs(result["q5_q1_gap"]) < 1.0       # gate will reject
+        assert abs(result["q5_q1_gap"]) < 1.0  # gate will reject
 
     def test_target_column_is_same_gw_total_points(self):
         df = _df_increasing(100, "total_points")
@@ -254,14 +268,15 @@ class TestFixtureQuintile:
         df = pd.DataFrame({"sig": signal, "total_points": target})
         result = fixture_quintile(df, "sig", "FIXTURE-001", "DEF", "full")
         assert result is not None
-        assert result["q5_q1_gap"] < -1.0           # raw gap strongly negative
-        assert result["is_monotonic"] is True        # monotone decreasing
-        assert abs(result["q5_q1_gap"]) > 1.0        # gate uses abs(gap)
+        assert result["q5_q1_gap"] < -1.0  # raw gap strongly negative
+        assert result["is_monotonic"] is True  # monotone decreasing
+        assert abs(result["q5_q1_gap"]) > 1.0  # gate uses abs(gap)
 
 
 # ===========================================================================
 # Kernel parity — quintile_stratification matches all per-study variants
 # ===========================================================================
+
 
 class TestKernelParity:
     """Verify that quintile_stratification() produces identical results to each
@@ -272,9 +287,17 @@ class TestKernelParity:
         if study is None:
             return
         parity_keys = {
-            "signal_id", "signal", "position", "block",
-            "q1_mean", "q2_mean", "q3_mean", "q4_mean", "q5_mean",
-            "q5_q1_gap", "is_monotonic",
+            "signal_id",
+            "signal",
+            "position",
+            "block",
+            "q1_mean",
+            "q2_mean",
+            "q3_mean",
+            "q4_mean",
+            "q5_mean",
+            "q5_q1_gap",
+            "is_monotonic",
         }
         for k in parity_keys:
             assert study[k] == kernel[k], f"Mismatch on {k!r}: study={study[k]!r}, kernel={kernel[k]!r}"
@@ -283,8 +306,13 @@ class TestKernelParity:
         df = _df_increasing()
         study = form_quintile(df, "sig", "FORM-001", "DEF", "full", "total_points_next_gw")
         kernel = quintile_stratification(
-            df, "sig", "FORM-001", "DEF", "full",
-            target="total_points_next_gw", bidirectional=False,
+            df,
+            "sig",
+            "FORM-001",
+            "DEF",
+            "full",
+            target="total_points_next_gw",
+            bidirectional=False,
         )
         self._study_parity_fields(study, kernel)
         assert kernel["target"] == "total_points_next_gw"
@@ -293,8 +321,13 @@ class TestKernelParity:
         df = _df_inverted_v()
         study = form_quintile(df, "sig", "FORM-001", "DEF", "full", "total_points_next_gw")
         kernel = quintile_stratification(
-            df, "sig", "FORM-001", "DEF", "full",
-            target="total_points_next_gw", bidirectional=False,
+            df,
+            "sig",
+            "FORM-001",
+            "DEF",
+            "full",
+            target="total_points_next_gw",
+            bidirectional=False,
         )
         self._study_parity_fields(study, kernel)
 
@@ -302,20 +335,32 @@ class TestKernelParity:
         df = _df_increasing()
         study = market_quintile(df, "sig", "MARKET-001", "DEF", "full")
         kernel = quintile_stratification(
-            df, "sig", "MARKET-001", "DEF", "full",
-            target="total_points_next_gw", bidirectional=False,
+            df,
+            "sig",
+            "MARKET-001",
+            "DEF",
+            "full",
+            target="total_points_next_gw",
+            bidirectional=False,
         )
         self._study_parity_fields(study, kernel)
 
     def test_availability_parity_binary_target(self):
-        df = pd.DataFrame({
-            "sig": list(range(100)),
-            "played_next_gw": [float(i >= 50) for i in range(100)],
-        })
+        df = pd.DataFrame(
+            {
+                "sig": list(range(100)),
+                "played_next_gw": [float(i >= 50) for i in range(100)],
+            }
+        )
         study = avail_quintile(df, "sig", "AVAIL-001", "DEF", "full", "played_next_gw")
         kernel = quintile_stratification(
-            df, "sig", "AVAIL-001", "DEF", "full",
-            target="played_next_gw", bidirectional=False,
+            df,
+            "sig",
+            "AVAIL-001",
+            "DEF",
+            "full",
+            target="played_next_gw",
+            bidirectional=False,
         )
         assert study == kernel
 
@@ -323,8 +368,13 @@ class TestKernelParity:
         df = _df_increasing(100, "total_points")
         study = fixture_quintile(df, "sig", "FIXTURE-001", "DEF", "full")
         kernel = quintile_stratification(
-            df, "sig", "FIXTURE-001", "DEF", "full",
-            target="total_points", bidirectional=True,
+            df,
+            "sig",
+            "FIXTURE-001",
+            "DEF",
+            "full",
+            target="total_points",
+            bidirectional=True,
         )
         self._study_parity_fields(study, kernel)
 
@@ -332,8 +382,13 @@ class TestKernelParity:
         df = _df_decreasing(100, "total_points")
         study = fixture_quintile(df, "sig", "FIXTURE-001", "DEF", "full")
         kernel = quintile_stratification(
-            df, "sig", "FIXTURE-001", "DEF", "full",
-            target="total_points", bidirectional=True,
+            df,
+            "sig",
+            "FIXTURE-001",
+            "DEF",
+            "full",
+            target="total_points",
+            bidirectional=True,
         )
         self._study_parity_fields(study, kernel)
 
@@ -341,15 +396,25 @@ class TestKernelParity:
         df = _df_inverted_v(100, "total_points")
         study = fixture_quintile(df, "sig", "FIXTURE-001", "DEF", "full")
         kernel = quintile_stratification(
-            df, "sig", "FIXTURE-001", "DEF", "full",
-            target="total_points", bidirectional=True,
+            df,
+            "sig",
+            "FIXTURE-001",
+            "DEF",
+            "full",
+            target="total_points",
+            bidirectional=True,
         )
         self._study_parity_fields(study, kernel)
 
     def test_kernel_returns_none_for_insufficient_n(self):
         df = _df_increasing(20)
         result = quintile_stratification(
-            df, "sig", "FORM-001", "DEF", "full",
-            target="total_points_next_gw", bidirectional=False,
+            df,
+            "sig",
+            "FORM-001",
+            "DEF",
+            "full",
+            target="total_points_next_gw",
+            bidirectional=False,
         )
         assert result is None

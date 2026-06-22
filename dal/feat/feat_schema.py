@@ -207,6 +207,6 @@ FEATURE_REGISTRY: dict[str, FeatureRecord] = {
         causality="contemporaneous",
         null_if_no_obs=False,
         note="True on a player's first GW in the data — rolling signals are NaN (no prior history). "
-             "Consumers should filter ~is_warmup_gw before applying rolling signal eligibility thresholds.",
+        "Consumers should filter ~is_warmup_gw before applying rolling signal eligibility thresholds.",
     ),
 }

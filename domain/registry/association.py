@@ -31,12 +31,8 @@ from typing import Any
 import pandas as pd
 
 # Inlined to avoid research.kernels.geometry import dependency.
-_MONOTONIC_GEOMETRIES: frozenset[str] = frozenset(
-    {"monotonic_positive", "monotonic_negative"}
-)
-_UPPER_TAIL_GEOMETRIES: frozenset[str] = frozenset(
-    {"threshold_positive", "threshold_negative", "saturation"}
-)
+_MONOTONIC_GEOMETRIES: frozenset[str] = frozenset({"monotonic_positive", "monotonic_negative"})
+_UPPER_TAIL_GEOMETRIES: frozenset[str] = frozenset({"threshold_positive", "threshold_negative", "saturation"})
 
 # Haul event constants — single source of truth.
 # A haul is a GW where a player scores above HAUL_THRESHOLD_PTS.
@@ -49,9 +45,9 @@ HAUL_DROP_MATERIAL: float = 0.20
 # within_share = abs(rho_within) / abs(rho_pooled).
 # Thresholds are operational heuristics; no statistical derivation.
 PANEL_CLASS_THRESHOLDS: list[tuple[float, str]] = [
-    (0.40, "state_sensitive"),   # within-player dominates — genuine state signal
-    (0.20, "mixed"),             # both identity and state contribute
-    (0.00, "identity_dominant"), # between-player identity dominates
+    (0.40, "state_sensitive"),  # within-player dominates — genuine state signal
+    (0.20, "mixed"),  # both identity and state contribute
+    (0.00, "identity_dominant"),  # between-player identity dominates
 ]
 
 

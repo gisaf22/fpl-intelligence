@@ -20,12 +20,8 @@ GEOMETRY_TAXONOMY: list[str] = [
     "indeterminate",
     "unassessable",
 ]
-MONOTONIC_GEOMETRIES: frozenset[str] = frozenset(
-    {"monotonic_positive", "monotonic_negative"}
-)
-UPPER_TAIL_GEOMETRIES: frozenset[str] = frozenset(
-    {"threshold_positive", "threshold_negative", "saturation"}
-)
+MONOTONIC_GEOMETRIES: frozenset[str] = frozenset({"monotonic_positive", "monotonic_negative"})
+UPPER_TAIL_GEOMETRIES: frozenset[str] = frozenset({"threshold_positive", "threshold_negative", "saturation"})
 ASSOCIATION_CLASS_TAXONOMY: list[str] = [
     "continuous_monotonic",
     "upper_tail_concentrated",
@@ -95,6 +91,4 @@ def classify_geometry(bin_stats: pd.DataFrame) -> str:
 def get_bin_direction(bin_stats: pd.DataFrame) -> tuple[float, ...]:
     """Return signs between adjacent bin means."""
     means = bin_stats["mean"].values
-    return tuple(
-        float(np.sign(means[i + 1] - means[i])) for i in range(len(means) - 1)
-    )
+    return tuple(float(np.sign(means[i + 1] - means[i])) for i in range(len(means) - 1))

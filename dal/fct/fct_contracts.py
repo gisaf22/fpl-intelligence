@@ -45,6 +45,12 @@ SPINE_COLS = [
     "was_home",
     "starts",
     "penalties_saved",
+    "own_goals",
+    "penalties_missed",
+    "tackles",
+    "clearances_blocks_interceptions",
+    "recoveries",
+    "defensive_contribution",
     "influence",
     "creativity",
     "threat",
@@ -111,6 +117,12 @@ SUM_COLS = [
     "away_count",
     "starts",
     "penalties_saved",
+    "own_goals",
+    "penalties_missed",
+    "tackles",
+    "clearances_blocks_interceptions",
+    "recoveries",
+    "defensive_contribution",
 ]
 
 # Columns stored as per-fixture mean across fixtures per (player_id, gw).
@@ -143,6 +155,12 @@ PERFORMANCE_COLS = {
     "xgc",
     "starts",
     "penalties_saved",
+    "own_goals",
+    "penalties_missed",
+    "tackles",
+    "clearances_blocks_interceptions",
+    "recoveries",
+    "defensive_contribution",
     "influence",
     "creativity",
     "threat",
@@ -184,6 +202,12 @@ DTYPES: dict[str, str] = {
     "was_home": "boolean",
     "starts": "Int64",  # nullable: BGW
     "penalties_saved": "Int64",  # nullable: BGW
+    "own_goals": "Int64",  # nullable: BGW
+    "penalties_missed": "Int64",  # nullable: BGW
+    "tackles": "Int64",  # nullable: BGW
+    "clearances_blocks_interceptions": "Int64",  # nullable: BGW
+    "recoveries": "Int64",  # nullable: BGW
+    "defensive_contribution": "Int64",  # nullable: BGW
     "influence": "Float64",  # nullable: BGW; per-fixture mean for DGW
     "creativity": "Float64",  # nullable: BGW; per-fixture mean for DGW
     "threat": "Float64",  # nullable: BGW; per-fixture mean for DGW
@@ -237,6 +261,12 @@ NULL_RULES: dict[str, str] = {
     "fdr_avg": "null_if_bgw",
     "starts": "null_if_bgw",
     "penalties_saved": "null_if_bgw",
+    "own_goals": "null_if_bgw",
+    "penalties_missed": "null_if_bgw",
+    "tackles": "null_if_bgw",
+    "clearances_blocks_interceptions": "null_if_bgw",
+    "recoveries": "null_if_bgw",
+    "defensive_contribution": "null_if_bgw",
     "influence": "null_if_bgw",
     "creativity": "null_if_bgw",
     "threat": "null_if_bgw",

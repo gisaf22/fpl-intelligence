@@ -1,4 +1,4 @@
-lens: FIXTURE-GW
+lens: fixture_gw
 target: total_points
 signals:
   fdr_avg:

@@ -19,7 +19,6 @@ outputs/*
 # Timestamped study run-dirs are throwaway execution churn — durable findings live in
 # the stage artifacts (evaluation_metadata.yaml, research/findings/, the slug log).
 research/runs/
-signals/runs/
 .import_linter_cache/
 .mypy_cache/
 .ruff_cache/

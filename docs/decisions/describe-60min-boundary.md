@@ -1,7 +1,7 @@
 # describe-60min-boundary
 
 **Stage:** explore · **Mode:** descriptive · **Verdict:** accepted · **Date:** 2026-05-22
-**Evidence:** [research/foundation/boundary/eda_pop_boundary_scatter.ipynb](../../research/foundation/boundary/eda_pop_boundary_scatter.ipynb)
+**Evidence:** `research/foundation/exposure/population_boundary.ipynb` — notebook retired; descriptive finding preserved in the informative exposure layer
 
 Describes a regime shift in the points distribution across the 60-minute line — the
 boundary that motivated the population filter. This is **descriptive only**: it records

@@ -78,10 +78,12 @@ _NON_SIGNAL_COLUMNS: dict[str, pa.Column] = {
     # structural flags
     "is_bgw": pa.Column("boolean", nullable=False),
     "is_dgw": pa.Column("boolean", nullable=False),
+    # warmup flag — also in FEATURE_REGISTRY (governance assertion); declared here to enforce boolean dtype
+    "is_warmup_gw": pa.Column("boolean", nullable=False),
 }
 
 MART_SCHEMA = pa.DataFrameSchema(
-    columns={**_NON_SIGNAL_COLUMNS, **_signal_columns()},
+    columns={**_signal_columns(), **_NON_SIGNAL_COLUMNS},
     strict=False,  # allow incidental pass-through columns
     coerce=False,  # detect dtype drift rather than silently fixing it
 )

@@ -126,8 +126,8 @@ Higher rungs are **gated, not foreclosed** (framed like the §7 "build it only w
 
 **Two methodological tripwires this tag exists to catch:**
 
-1. **`descriptive` ≠ `causal`.** The 60-minute boundary notebook
-   (`eda_pop_boundary_scatter.ipynb`) shows that the points distribution shifts across the 60-min
+1. **`descriptive` ≠ `causal`.** The 60-minute boundary analysis
+   (`research/foundation/exposure/population_boundary.ipynb`) shows that the points distribution shifts across the 60-min
    line. That is `descriptive`. "An extra 30 minutes *causes* +X points" is `causal` (Pearl rung 2)
    and is **deliberately never studied** — this project stays on rungs 1 and prediction. The tag
    makes that boundary impossible to cross by accident.
@@ -153,13 +153,13 @@ its mode, its stage, its verdict, and the test contract that guards it.
 
 | # | Analysis (real path) | Mode | Stage | Status | Test contract |
 |---|---|---|---|---|---|
-| A | 60-min **population validity** — `research/foundation/scope/eda_04_population_validity.ipynb` | descriptive/structural | explore | **answered** — filter doesn't distort | framework helpers unit-tested; finding reviewed |
+| A | 60-min **population validity** — `research/findings/FINDINGS.md` (G-EDA4-*) | descriptive/structural | explore | **answered** — filter doesn't distort | framework helpers unit-tested; finding reviewed; notebook retired |
 | B | **rolling xGI as a form signal** — `research/families/form/validate/study.py` (FORM) | predictive | validate | **PARTIAL** — xgi_roll3 (DEF), xgi_roll5 (DEF, MID) approved | study-logic: determinism, leakage, no post-hoc |
 | C | **availability prediction** — `research/families/availability/validate/study.py` (minutes_roll8 → played_next_gw) | predictive | validate | **accepted** — roll8 for DEF/MID | study-logic + lag-1 leakage assertion |
 | D | **minutes-stability conditioning of xGI** — `research/families/form/explore/minutes_stability_study.py` | predictive/conditioning | validate | **REJECTED** — FRINGE > STABLE | study-logic: 31 tests (the template) |
 | E | **signal integration** — `model/assemble/composition_study.py` | assemble | model | **partially set** — see note | registry contract (weights sum, lifecycle) |
 | F | **signal ledger** — `signals/characterisation/` + `signals/governance/weight_registry.yaml` | govern | model | **the ledger** | governance consistency, traceability |
-| G | **60-min boundary** — `research/foundation/boundary/eda_pop_boundary_scatter.ipynb` | descriptive | explore | **describes a regime shift** | helpers unit-tested; explicitly NOT causal |
+| G | **60-min boundary** — `research/foundation/exposure/population_boundary.ipynb` | descriptive | explore | **describes a regime shift** | explicitly NOT causal; notebook retired to informative exposure layer |
 | — | rolling-xGI window choice — `research/families/form/explore/rolling_xgi_study.py` | predictive | validate | (window selection) | study-logic + leakage |
 | — | fixture/market lenses — `research/families/fixture/validate/`, `research/families/market/validate/` | predictive | validate | (per verdict) | study-logic |
 | — | season **backtest** — `archive/monitor/phase9_backtest.py` | operational | monitor | **design/partial** | the backtest *is* the test artifact |

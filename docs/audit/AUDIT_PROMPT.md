@@ -35,8 +35,7 @@ Read each of the following before inspecting any code. Note every design claim t
 
 - `docs/architecture/layer-boundaries.md` — four-layer import hierarchy, layer ownership rules, permitted dependencies
 - `docs/architecture/system-model.md` — conceptual planes (Data, Control, Measurement) and their boundaries
-- `docs/architecture/platform-evaluation-2026.md` — what structural changes are applied vs deferred; Changes 1–8 applied, Change 3 deferred to 2026/27
-- `setup.cfg` — import-linter contracts; run `lint-imports` to check all contracts; these are the structural enforcement mechanism
+- `.importlinter` — import-linter contracts; run `lint-imports` to check all contracts; these are the structural enforcement mechanism
 - `signals/governance/evaluation_metadata.yaml` — signal lifecycle states (approved, evaluation-deferred, excluded, etc.)
 - `signals/governance/weight_registry.yaml` — production weights and their declared evidential basis
 - `signals/characterisation/signal_traceability.yaml` — traceability claims per signal per position group

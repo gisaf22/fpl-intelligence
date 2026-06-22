@@ -50,6 +50,7 @@ def _row(
     purchase_price: float = 7.5,
     goals_scored: float = 1.0,
     team_id: int = 10,
+    is_warmup_gw: bool = False,
 ) -> dict:
     return {
         "player_id": player_id,
@@ -61,6 +62,7 @@ def _row(
         "purchase_price": purchase_price,
         "fdr_avg": fdr_avg,
         "is_bgw": False,
+        "is_warmup_gw": is_warmup_gw,
         "goals_scored": goals_scored,
         "xgi_roll3": xgi_roll3,
         "xgi_roll5": xgi_roll5,

@@ -34,6 +34,7 @@ FEAT_SCHEMA = pa.DataFrameSchema(
         "minutes_roll8": pa.Column(float, nullable=True),
         "minutes_trend": pa.Column(str, nullable=True),
         "fixture_context": pa.Column(str, pa.Check.isin(["BGW", "SGW", "DGW"])),
+        "is_warmup_gw": pa.Column(bool, nullable=False),
     },
     strict=False,
 )
@@ -197,5 +198,15 @@ FEATURE_REGISTRY: dict[str, FeatureRecord] = {
         null_if_no_obs=False,
         values=["BGW", "SGW", "DGW"],
         note="Contemporaneous structural label; not a predictive feature",
+    ),
+    "is_warmup_gw": FeatureRecord(
+        gate="DAL-BOUNDARY",
+        scope="Individual",
+        positions=["DEF", "MID", "FWD", "GK"],
+        status="APPROVED",
+        causality="contemporaneous",
+        null_if_no_obs=False,
+        note="True on a player's first GW in the data — rolling signals are NaN (no prior history). "
+        "Consumers should filter ~is_warmup_gw before applying rolling signal eligibility thresholds.",
     ),
 }

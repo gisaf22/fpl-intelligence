@@ -96,7 +96,7 @@ sits under the object-primary tree.
 | 1 | **Univariate / distributional** | What does this one signal look like — shape, spread, zero-mass, missingness? | `foundation/` (dataset) · `families/<f>/explore/` (per-signal) | descriptive | `distribution` | degenerate: near-constant, near-all-null, or no usable variance |
 | 2 | **Temporal / stability** | Is the signal persistent across GWs, or noise? | `families/<f>/explore/` | descriptive→diagnostic | `stability`, `windows` | non-stationary / unstable across GW blocks — cannot inform next GW |
 | 3 | **Relationship (signal↔target)** | Does it co-move with returns, and in what shape? | `families/<f>/explore/` | diagnostic | `correlation`, `geometry` | no marginal association with returns; no interpretable geometry |
-| 4 | **Redundancy (signal↔signal)** | Is this *new* information or a duplicate? | `families/<f>/explore/` | diagnostic | `redundancy` | collinear with an already-trusted signal; partial-ρ ≈ 0 |
+| 4 | **Redundancy (signal↔signal)** | Is this *new* information or a duplicate? | `families/<f>/explore/` | diagnostic | — | collinear with an already-trusted signal; partial-ρ ≈ 0 |
 | 5 | **Conditioning / heterogeneity** | Does the relationship hold across context, or only in a subgroup? | `families/<f>/explore/` | diagnostic | `conditioning` | effect is a subgroup artifact; reverses or vanishes under a key moderator |
 | 6 | **Predictive validation** | Does it forecast next-GW returns out-of-sample, lag-respecting? | `families/<f>/validate/` | predictive | `metrics`, `windows`, `multiplicity` | OOS rank-correlation fails the **pre-registered** threshold |
 

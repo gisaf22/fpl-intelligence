@@ -1,10 +1,13 @@
 """Do market signals (transfers, ownership, price) predict returns?
 
 Mode: predictive · Stage: validate · Status: PARTIAL — transfers_in (DEF, MID), purchase_price (DEF, FWD†), ownership_count (MID) approved
-Population: minutes>=60; lag-1 respected; GW 3-33
+Population: minutes>=60; lag-1 respected; GW 3-38 (full season — holdout folded in, ADR-010)
 
 ADLC §4 audit (unlettered fixture/market lens row).
-† FWD purchase_price reverses on holdout GW 34-38 — see ENG-02.
+† FWD purchase_price weakens to uninformative once GW34-38 fold in (ENG-02 regime reversal, full-season).
+
+Entry point: ``run()``  — produces correlation_results.csv, block_results.csv,
+quintile_results.csv, classification_summary.csv, run_metadata.json, evidence.yaml.
 """
 
 from __future__ import annotations
@@ -13,199 +16,309 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
 
 from dal.config import DB_PATH
 from dal.pipeline import load as load_mart
-from research.families.evidence_record import decision_class_for, write_evidence
+from research.families.evidence_record import build_signal_verdict, write_evidence
+from research.families.population_gate import assert_population_gate
+from research.kernels.hypothesis.stratification import quintile_stratification
+from research.kernels.inferential.resampling import bootstrap_spearman_ci
 
-RUNS_DIR = Path("research/runs")
+RUNS_DIR = Path(__file__).resolve().parents[4] / "research" / "runs"
 VALIDATE_DIR = Path(__file__).parent
-LENS = "MARKET"
-TARGET_TOKEN = "total_points"
+LENS = "market"
+TARGET = "total_points_next_gw"  # lag-1: signal at GW N predicts points at GW N+1
 
 SIGNALS: dict[str, dict] = {
-    "transfers_in":      {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
-    "ownership_count":   {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
-    "purchase_price":    {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
+    "transfers_in": {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
+    "ownership_count": {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
+    "purchase_price": {"positions": ["GKP", "DEF", "MID", "FWD"], "gw_min": 3},
 }
 
 SIGNAL_IDS: dict[str, str] = {
-    "transfers_in":      "MARKET-001",
-    "ownership_count":   "MARKET-003",
-    "purchase_price":    "MARKET-004",
+    "transfers_in": "MARKET-001",
+    "ownership_count": "MARKET-003",
+    "purchase_price": "MARKET-004",
 }
 
 MINUTES_THRESHOLD = 60
-GW_MAX = 33
-GW_BLOCKS: dict[str, tuple[int, int]] = {
-    "early": (3, 12), "mid": (13, 26), "late": (27, 33),
+GW_MAX = 38
+GW_WINDOWS: dict[str, tuple[int, int]] = {
+    "early": (3, 12),
+    "mid": (13, 26),
+    "late": (27, 38),
 }
 N_BOOTSTRAP = 2000
 BOOTSTRAP_SEED = 42
 CI_LEVEL = 0.95
 QUINTILE_GAP_THRESHOLD = 1.0
 
-
-def _bootstrap_spearman_ci(x, y, n_samples, seed):
-    rho_obs = float(spearmanr(x, y).statistic)
-    rng = np.random.default_rng(seed)
-    boot = np.empty(n_samples)
-    for i in range(n_samples):
-        idx = rng.integers(0, len(x), size=len(x))
-        boot[i] = spearmanr(x[idx], y[idx]).statistic
-    alpha = 1.0 - CI_LEVEL
-    return rho_obs, float(np.percentile(boot, 100 * alpha / 2)), float(np.percentile(boot, 100 * (1 - alpha / 2)))
+LENS_STATUS_LEGEND = {
+    "informative": "passes all 3 qualification gates; recommended for governance inclusion",
+    "uninformative": "failed CI gate or decision-relevance gate",
+    "unstable": "passed CI + relevance but failed 2-of-3 GW-window stability gate",
+}
 
 
-def _correlation_record(df, signal, signal_id, position, block):
-    valid = df[[signal, "total_points_next_gw"]].dropna()
+# ---------------------------------------------------------------------------
+# Per-slice computation helpers
+# ---------------------------------------------------------------------------
+
+
+def _measure_rank_association(
+    df: pd.DataFrame,
+    signal: str,
+    signal_id: str,
+    position: str,
+    gw_window: str,
+    target: str,
+) -> dict | None:
+    """Compute bootstrapped Spearman CI between signal and target for one population slice.
+
+    Args:
+        df:         Population slice (already filtered to position and GW range).
+        signal:     Predictor column name.
+        signal_id:  Registry identifier (e.g. ``"MARKET-001"``).
+        position:   Position label for this slice (e.g. ``"DEF"``).
+        gw_window:  Window label — ``"full"``, ``"early"``, ``"mid"``, ``"late"``,
+                    or ``"full_no_dgw"`` for DGW sensitivity.
+        target:     Outcome column name. Passed explicitly to document whether this
+                    is a lag-1 or same-GW target at the call site.
+
+    Returns:
+        Dict with rho, CI bounds, n, ci_excludes_zero, or None when there are
+        fewer than 10 paired observations or the bootstrap fails.
+    """
+    valid = df[[signal, target]].dropna()
     if len(valid) < 10:
         return None
-    x, y = valid[signal].to_numpy(), valid["total_points_next_gw"].to_numpy()
-    rho, ci_lo, ci_hi = _bootstrap_spearman_ci(x, y, N_BOOTSTRAP, BOOTSTRAP_SEED)
+    x, y = valid[signal].to_numpy(), valid[target].to_numpy()
+    ci = bootstrap_spearman_ci(x, y, n_samples=N_BOOTSTRAP, ci_level=CI_LEVEL, seed=BOOTSTRAP_SEED)
+    if ci is None:
+        return None
     return {
-        "signal_id": signal_id, "signal": signal, "position": position, "block": block,
-        "rho": round(rho, 4), "ci_lower": round(ci_lo, 4), "ci_upper": round(ci_hi, 4),
-        "n": len(valid), "ci_excludes_zero": bool(ci_lo > 0 or ci_hi < 0),
+        "signal_id": signal_id,
+        "signal": signal,
+        "position": position,
+        "gw_window": gw_window,
+        "target": target,
+        "rho": ci["rho"],
+        "ci_lower": ci["ci_lower"],
+        "ci_upper": ci["ci_upper"],
+        "n": ci["n"],
+        "ci_excludes_zero": bool(ci["ci_lower"] > 0 or ci["ci_upper"] < 0),
     }
 
 
-def _quintile_record(df, signal, signal_id, position, block):
-    valid = df[[signal, "total_points_next_gw"]].dropna()
-    if len(valid) < 25:
-        return None
-    try:
-        ranked = valid.copy()
-        ranked["quintile"] = pd.qcut(ranked[signal].rank(method="first"), 5, labels=["Q1","Q2","Q3","Q4","Q5"])
-        means_s = ranked.groupby("quintile", observed=True)["total_points_next_gw"].mean()
-        if not all(f"Q{i}" in means_s.index for i in range(1, 6)):
-            return None
-        means = [float(means_s[f"Q{i}"]) for i in range(1, 6)]
-        gap = means[4] - means[0]
-        is_monotonic = all(means[i] <= means[i + 1] for i in range(4))
-        return {
-            "signal_id": signal_id, "signal": signal, "position": position, "block": block,
-            "q1_mean": round(means[0], 3), "q2_mean": round(means[1], 3),
-            "q3_mean": round(means[2], 3), "q4_mean": round(means[3], 3),
-            "q5_mean": round(means[4], 3), "q5_q1_gap": round(gap, 3),
-            "is_monotonic": is_monotonic,
-            "decision_relevant": bool(gap >= QUINTILE_GAP_THRESHOLD and is_monotonic),
-        }
-    except Exception:
-        return None
+def _stratify_by_quintile(
+    df: pd.DataFrame,
+    signal: str,
+    signal_id: str,
+    position: str,
+    gw_window: str,
+) -> dict | None:
+    """Split the population slice into signal quintiles and measure target mean per group.
+
+    Used to decide whether a signal's association has practical decision relevance
+    (Q5-Q1 gap ≥ QUINTILE_GAP_THRESHOLD and monotone-increasing).
+    """
+    return quintile_stratification(
+        df,
+        signal,
+        signal_id,
+        position,
+        gw_window,
+        target=TARGET,
+        bidirectional=False,
+    )
 
 
-def _evidence_row(signal, position, full_corr, block_corrs, cls):
-    """Project this slice's computed statistics into an evidence.yaml row (ADR-009 Phase C)."""
-    n_passing = sum(1 for b in block_corrs if b and b["ci_excludes_zero"])
-    return {
-        "signal": signal, "position": position,
-        "rho_pooled": full_corr["rho"] if full_corr else None,
-        "rho_ci_lower": full_corr["ci_lower"] if full_corr else None,
-        "rho_ci_upper": full_corr["ci_upper"] if full_corr else None,
-        "block_stability_count": n_passing if full_corr else None,
-        "decision_class": decision_class_for(cls["lens_status"]),
-    }
+# ---------------------------------------------------------------------------
+# Signal qualification gates
+# ---------------------------------------------------------------------------
 
 
-def _classify(full_corr, full_quint, block_corrs, signal, signal_id, position):
+def _apply_signal_qualification_gates(
+    full_window_assoc: dict | None,
+    full_window_quintile: dict | None,
+    gw_window_assocs: list[dict | None],
+    signal: str,
+    signal_id: str,
+    position: str,
+) -> dict:
+    """Apply the three-gate decision protocol to determine a signal's qualification verdict.
+
+    Gate 1 — CI gate: the bootstrapped Spearman CI for the full study window must
+             exclude zero. Failure → uninformative.
+    Gate 2 — Decision relevance gate: quintile stratification must show a Q5-Q1 gap
+             ≥ QUINTILE_GAP_THRESHOLD and monotone-increasing pattern.
+             Failure → uninformative.
+    Gate 3 — GW-window stability gate: the CI must exclude zero in ≥ 2 of the 3
+             seasonal windows (early/mid/late). Failure → unstable.
+    """
     base = {"signal_id": signal_id, "signal": signal, "position": position}
-    if full_corr is None:
+    if full_window_assoc is None:
         return {**base, "lens_status": "uninformative", "rationale": "insufficient observations"}
-    if not full_corr["ci_excludes_zero"]:
-        return {**base, "lens_status": "uninformative",
-                "rationale": f"CI crosses zero [{full_corr['ci_lower']:.3f}, {full_corr['ci_upper']:.3f}]"}
-    if full_quint is None or not full_quint["decision_relevant"]:
-        gap = f"{full_quint['q5_q1_gap']:.3f}" if full_quint else "N/A"
-        mono = full_quint["is_monotonic"] if full_quint else "N/A"
-        return {**base, "lens_status": "uninformative",
-                "rationale": f"CI excludes zero but fails decision relevance (Q5-Q1={gap}, monotonic={mono})"}
-    n_passing = sum(1 for b in block_corrs if b and b["ci_excludes_zero"])
-    if n_passing >= 2:
-        return {**base, "lens_status": "informative",
-                "rationale": f"CI excludes zero, decision relevant, passes {n_passing}/3 GW blocks"}
-    return {**base, "lens_status": "unstable",
-            "rationale": f"CI excludes zero in aggregate but passes only {n_passing}/3 GW blocks"}
+    if not full_window_assoc["ci_excludes_zero"]:
+        return {
+            **base,
+            "lens_status": "uninformative",
+            "rationale": f"CI crosses zero [{full_window_assoc['ci_lower']:.3f}, {full_window_assoc['ci_upper']:.3f}]",
+        }
+    decision_relevant = (
+        full_window_quintile is not None
+        and full_window_quintile["q5_q1_gap"] >= QUINTILE_GAP_THRESHOLD
+        and full_window_quintile["is_monotonic"]
+    )
+    if not decision_relevant:
+        gap = f"{full_window_quintile['q5_q1_gap']:.3f}" if full_window_quintile else "N/A"
+        mono = full_window_quintile["is_monotonic"] if full_window_quintile else "N/A"
+        return {
+            **base,
+            "lens_status": "uninformative",
+            "rationale": f"CI excludes zero but fails decision relevance (Q5-Q1={gap}, monotonic={mono})",
+        }
+    n_stable_windows = sum(1 for b in gw_window_assocs if b and b["ci_excludes_zero"])
+    if n_stable_windows >= 2:
+        return {
+            **base,
+            "lens_status": "informative",
+            "rationale": f"CI excludes zero, decision relevant, passes {n_stable_windows}/3 GW windows",
+        }
+    return {
+        **base,
+        "lens_status": "unstable",
+        "rationale": f"CI excludes zero in aggregate but passes only {n_stable_windows}/3 GW windows",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Main run entry point
+# ---------------------------------------------------------------------------
 
 
 def run(db_path: Path = DB_PATH) -> Path:
+    """Run the full MARKET lens validation study.
+
+    Phase 1 — Load data, derive lag-1 target (total_points_next_gw).
+    Phase 2 — For each (signal, position) slice: compute full-window and GW-window
+               rank associations, quintile stratification, and DGW sensitivity.
+    Phase 3 — Apply qualification gates, write evidence verdict, persist all CSVs.
+
+    Returns the timestamped run output directory.
+    """
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = RUNS_DIR / f"LENS-MARKET-{ts}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # ------------------------------------------------------------------
+    # Phase 1: Load + derive lag-1 target
+    # ------------------------------------------------------------------
     print(f"Loading DAL data from {db_path}...")
     state = load_mart(db_path=db_path).mart
-
     state = state.sort_values(["player_id", "gw"]).copy()
     state["total_points_next_gw"] = state.groupby("player_id")["total_points"].shift(-1)
 
-    pop = state[(state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)].copy()
+    population = state[(state["minutes"] >= MINUTES_THRESHOLD) & (state["gw"] <= GW_MAX)].copy()
+    assert_population_gate(population, GW_WINDOWS)
 
-    corr_rows, block_rows, quint_rows, classify_rows = [], [], [], []
+    # ------------------------------------------------------------------
+    # Phase 2: Per-(signal, position) rank association + stratification
+    # ------------------------------------------------------------------
+    full_assoc_rows: list[dict] = []
+    window_assoc_rows: list[dict] = []
+    stratification_rows: list[dict] = []
+    qualification_rows: list[dict] = []
     evidence_rows: list[dict] = []
 
     for signal, cfg in SIGNALS.items():
         signal_id = SIGNAL_IDS[signal]
         for pos in cfg["positions"]:
-            pos_pop = pop[(pop["position_label"] == pos) & (pop["gw"] >= cfg["gw_min"])]
+            pos_pop = population[(population["position_label"] == pos) & (population["gw"] >= cfg["gw_min"])]
 
-            full_corr = _correlation_record(pos_pop, signal, signal_id, pos, "full")
-            if full_corr:
-                corr_rows.append(full_corr)
-            full_quint = _quintile_record(pos_pop, signal, signal_id, pos, "full")
-            if full_quint:
-                quint_rows.append(full_quint)
+            full_assoc = _measure_rank_association(pos_pop, signal, signal_id, pos, "full", TARGET)
+            if full_assoc:
+                full_assoc_rows.append(full_assoc)
+            full_quintile = _stratify_by_quintile(pos_pop, signal, signal_id, pos, "full")
+            if full_quintile:
+                stratification_rows.append(full_quintile)
 
-            if full_corr and "is_dgw" in pos_pop.columns:
-                dgw_rec = _correlation_record(pos_pop[~pos_pop["is_dgw"]], signal, signal_id, pos, "full_no_dgw")
-                if dgw_rec:
-                    corr_rows.append(dgw_rec)
+            if full_assoc and "is_dgw" in pos_pop.columns:
+                no_dgw_assoc = _measure_rank_association(
+                    pos_pop[~pos_pop["is_dgw"]], signal, signal_id, pos, "full_no_dgw", TARGET
+                )
+                if no_dgw_assoc:
+                    full_assoc_rows.append(no_dgw_assoc)
 
-            block_corrs = []
-            for block_name, (blo, bhi) in GW_BLOCKS.items():
-                block_df = pos_pop[pos_pop["gw"].between(max(cfg["gw_min"], blo), bhi)]
-                b = _correlation_record(block_df, signal, signal_id, pos, block_name)
-                block_corrs.append(b)
-                if b:
-                    block_rows.append(b)
-                q = _quintile_record(block_df, signal, signal_id, pos, block_name)
-                if q:
-                    quint_rows.append(q)
+            gw_window_assocs: list[dict | None] = []
+            for window_name, (wlo, whi) in GW_WINDOWS.items():
+                window_df = pos_pop[pos_pop["gw"].between(max(cfg["gw_min"], wlo), whi)]
+                w_assoc = _measure_rank_association(window_df, signal, signal_id, pos, window_name, TARGET)
+                gw_window_assocs.append(w_assoc)
+                if w_assoc:
+                    window_assoc_rows.append(w_assoc)
+                w_quintile = _stratify_by_quintile(window_df, signal, signal_id, pos, window_name)
+                if w_quintile:
+                    stratification_rows.append(w_quintile)
 
-            cls = _classify(full_corr, full_quint, block_corrs, signal, signal_id, pos)
-            classify_rows.append(cls)
-            evidence_rows.append(_evidence_row(signal, pos, full_corr, block_corrs, cls))
+            # ------------------------------------------------------------------
+            # Phase 3 (per-slice): Qualify + build evidence
+            # ------------------------------------------------------------------
+            qualification = _apply_signal_qualification_gates(
+                full_assoc, full_quintile, gw_window_assocs, signal, signal_id, pos
+            )
+            qualification_rows.append(qualification)
+            evidence_rows.append(build_signal_verdict(signal, pos, full_assoc, gw_window_assocs, qualification))
 
-    pd.DataFrame(corr_rows).to_csv(out_dir / "correlation_results.csv", index=False)
-    pd.DataFrame(block_rows).to_csv(out_dir / "block_results.csv", index=False)
-    pd.DataFrame(quint_rows).to_csv(out_dir / "quintile_results.csv", index=False)
-    pd.DataFrame(classify_rows).to_csv(out_dir / "classification_summary.csv", index=False)
-    (out_dir / "run_metadata.json").write_text(json.dumps({
-        "timestamp": ts, "db_path": str(db_path), "n_bootstrap": N_BOOTSTRAP,
-        "bootstrap_seed": BOOTSTRAP_SEED, "ci_level": CI_LEVEL,
-        "minutes_threshold": MINUTES_THRESHOLD, "gw_max": GW_MAX,
-        "gw_blocks": {k: list(v) for k, v in GW_BLOCKS.items()},
-        "quintile_gap_threshold": QUINTILE_GAP_THRESHOLD,
-    }, indent=2))
+    # ------------------------------------------------------------------
+    # Phase 3 (global): Persist artefacts
+    # ------------------------------------------------------------------
+    pd.DataFrame(full_assoc_rows + window_assoc_rows).to_csv(out_dir / "correlation_results.csv", index=False)
+    pd.DataFrame(window_assoc_rows).to_csv(out_dir / "block_results.csv", index=False)
+    pd.DataFrame(stratification_rows).to_csv(out_dir / "quintile_results.csv", index=False)
+    pd.DataFrame(qualification_rows).to_csv(out_dir / "classification_summary.csv", index=False)
+    (out_dir / "run_metadata.json").write_text(
+        json.dumps(
+            {
+                "timestamp": ts,
+                "db_path": str(db_path),
+                "db_row_count": len(state),
+                "n_bootstrap": N_BOOTSTRAP,
+                "bootstrap_seed": BOOTSTRAP_SEED,
+                "ci_level": CI_LEVEL,
+                "minutes_threshold": MINUTES_THRESHOLD,
+                "gw_max": GW_MAX,
+                "gw_windows": {k: list(v) for k, v in GW_WINDOWS.items()},
+                "quintile_gap_threshold": QUINTILE_GAP_THRESHOLD,
+                "target": TARGET,
+                "signals": {s: {**cfg, "signal_id": SIGNAL_IDS[s]} for s, cfg in SIGNALS.items()},
+                "lens_status_legend": LENS_STATUS_LEGEND,
+            },
+            indent=2,
+        )
+    )
 
     write_evidence(
-        VALIDATE_DIR, LENS, TARGET_TOKEN, evidence_rows,
+        VALIDATE_DIR,
+        LENS,
+        TARGET,
+        evidence_rows,
         evidence_run={"source": f"LENS-MARKET-{ts}", "produced": ts, "db_path": str(db_path)},
     )
 
     print(f"\nRun complete: {out_dir}")
     print(f"\n{'Signal':<20} {'Pos':<5} {'rho':>7}  {'95% CI':^17}  {'CI_excl0':>8}  {'Status'}")
     print("-" * 78)
-    full_corrs = {(r["signal"], r["position"]): r for r in corr_rows if r["block"] == "full"}
-    for cls in classify_rows:
-        corr = full_corrs.get((cls["signal"], cls["position"]))
-        if corr:
-            print(f"{cls['signal']:<20} {cls['position']:<5} {corr['rho']:>7.4f}  "
-                  f"[{corr['ci_lower']:>6.3f},{corr['ci_upper']:>6.3f}]  "
-                  f"{'Yes' if corr['ci_excludes_zero'] else 'No':>8}  {cls['lens_status']}")
+    full_assoc_index = {(r["signal"], r["position"]): r for r in full_assoc_rows if r["gw_window"] == "full"}
+    for q in qualification_rows:
+        assoc = full_assoc_index.get((q["signal"], q["position"]))
+        if assoc:
+            print(
+                f"{q['signal']:<20} {q['position']:<5} {assoc['rho']:>7.4f}  "
+                f"[{assoc['ci_lower']:>6.3f},{assoc['ci_upper']:>6.3f}]  "
+                f"{'Yes' if assoc['ci_excludes_zero'] else 'No':>8}  {q['lens_status']}"
+            )
     return out_dir
 
 

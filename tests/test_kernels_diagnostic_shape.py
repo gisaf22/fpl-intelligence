@@ -1,0 +1,78 @@
+import numpy as np
+import pandas as pd
+import pytest
+
+from research.kernels.descriptive.binning import (
+    FDR_ORDINAL_BINS,
+    FDR_ORDINAL_LABELS,
+    bin_analysis,
+    select_bucketing_scheme,
+)
+from research.kernels.diagnostic.shape import classify_geometry
+from research.kernels.diagnostic.stability import stability_classify
+
+pytestmark = pytest.mark.unit
+
+
+def _bin_stats(means: list[float]) -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "bin": [f"b{i}" for i in range(len(means))],
+            "mean": means,
+            "count": [25] * len(means),
+        }
+    )
+
+
+def test_select_bucketing_scheme_routes_fdr_to_ordinal_before_discrete():
+    series = pd.Series([1, 2, 3, 4, 5] * 25)
+
+    scheme_type, param = select_bucketing_scheme(series, signal_name="fdr_avg")
+
+    assert scheme_type == "ordinal"
+    assert param == (FDR_ORDINAL_BINS, FDR_ORDINAL_LABELS)
+
+
+def test_select_bucketing_scheme_handles_sparse_and_quantile_cases():
+    sparse = pd.Series([0, 1, 2] * 40)
+    continuous = pd.Series(np.arange(120))
+
+    assert select_bucketing_scheme(sparse)[0] == "discrete"
+    assert select_bucketing_scheme(continuous)[0] == "quantile"
+
+
+def test_bin_analysis_uses_scheme_specific_active_bin_thresholds():
+    df = pd.DataFrame(
+        {
+            "position": ["MID"] * 120,
+            "signal": [0] * 40 + [1] * 40 + [2] * 40,
+            "target": [1] * 40 + [2] * 40 + [3] * 40,
+        }
+    )
+
+    bin_stats, flag = bin_analysis(
+        df,
+        signal="signal",
+        target="target",
+        position="MID",
+        scheme=select_bucketing_scheme(df["signal"]),
+    )
+
+    assert flag == ""
+    assert bin_stats is not None
+    assert len(bin_stats) == 3
+
+
+def test_classify_geometry_controlled_shapes():
+    assert classify_geometry(_bin_stats([1, 2, 3, 4])) == "monotonic_positive"
+    assert classify_geometry(_bin_stats([4, 3, 2, 1])) == "monotonic_negative"
+    assert classify_geometry(_bin_stats([1, 1, 1, 4])) == "threshold_positive"
+    assert classify_geometry(_bin_stats([1, 4, 4, 4])) == "threshold_negative"
+    assert classify_geometry(_bin_stats([1, 4, 2, 5])) == "non_monotonic"
+
+
+def test_stability_classify_gap_patterns():
+    assert stability_classify(2.0, {"early": 2.0, "mid": 1.5, "late": 2.5}) == "stable"
+    assert stability_classify(2.0, {"early": 2.0, "mid": 0.5, "late": 2.5}) == "moderate_shift"
+    assert stability_classify(2.0, {"early": 2.0, "mid": -1.0, "late": 2.5}) == "unstable"
+    assert stability_classify(np.nan, {"early": 2.0, "mid": None, "late": None}) == "insufficient_data"

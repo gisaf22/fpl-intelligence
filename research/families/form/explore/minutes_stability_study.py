@@ -23,8 +23,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from research.kernels.metrics import downside_rate, rank_correlation
-from research.kernels.windows import assert_no_future_leakage, evaluation_gameweeks
+from tests.helpers.metrics import downside_rate, rank_correlation
+from tests.helpers.windows import assert_no_future_leakage, evaluation_gameweeks
 
 _POSITION_FWD = "FWD"
 _MIN_GW = 6
@@ -32,7 +32,7 @@ _MAX_GW = 33
 _MIN_POPULATION = 5  # players per cohort per GW to compute metrics
 
 # Stability cohort thresholds — fixed a priori, not optimized
-_STABLE_THRESHOLD = 60.0    # minutes_roll5 >= 60 → STABLE
+_STABLE_THRESHOLD = 60.0  # minutes_roll5 >= 60 → STABLE
 _ROTATION_THRESHOLD = 30.0  # minutes_roll5 >= 30 → ROTATION; < 30 → FRINGE
 
 _COHORT_STABLE = "STABLE"
@@ -50,10 +50,10 @@ _DOWNSIDE_THRESHOLD = 4.0  # < 4 pts is a damaging captain outcome
 
 # Pre-committed success thresholds — locked before execution
 _THRESHOLDS = {
-    "cohort_min_gws": 15,            # STABLE viable in >= 15 GWs
-    "primary_differential": 0.04,    # delta_stable_fringe (roll3) > 0.04
-    "horizon_interaction": 0.02,     # |delta_roll8 - delta_roll3| > 0.02
-    "downside_improvement": 0.10,    # downside[STABLE, roll3] < full_fwd - 0.10
+    "cohort_min_gws": 15,  # STABLE viable in >= 15 GWs
+    "primary_differential": 0.04,  # delta_stable_fringe (roll3) > 0.04
+    "horizon_interaction": 0.02,  # |delta_roll8 - delta_roll3| > 0.02
+    "downside_improvement": 0.10,  # downside[STABLE, roll3] < full_fwd - 0.10
 }
 
 
@@ -270,9 +270,7 @@ def evaluate_minutes_stability_conditioning(
     roll8_delta = differential.get("xgi_roll8", {}).get("delta_stable_fringe")
     stable_gws = cohort_gw_counts.get(_COHORT_STABLE, 0)
 
-    stable_downside = (
-        cohort_results.get(_COHORT_STABLE, {}).get("xgi_roll3", {}).get("downside_rate")
-    )
+    stable_downside = cohort_results.get(_COHORT_STABLE, {}).get("xgi_roll3", {}).get("downside_rate")
     full_downside = full_fwd_results.get("xgi_roll3", {}).get("downside_rate")
 
     horizon_interaction = None
@@ -300,19 +298,13 @@ def evaluate_minutes_stability_conditioning(
             "criterion": "|delta_roll8 - delta_roll3| > 0.02",
             "threshold": _THRESHOLDS["horizon_interaction"],
             "value": horizon_interaction,
-            "met": (
-                horizon_interaction is not None
-                and horizon_interaction > _THRESHOLDS["horizon_interaction"]
-            ),
+            "met": (horizon_interaction is not None and horizon_interaction > _THRESHOLDS["horizon_interaction"]),
         },
         "downside_improvement": {
             "criterion": "downside_rate[STABLE, roll3] < full_fwd_downside - 0.10",
             "threshold": _THRESHOLDS["downside_improvement"],
             "value": downside_improvement,
-            "met": (
-                downside_improvement is not None
-                and downside_improvement > _THRESHOLDS["downside_improvement"]
-            ),
+            "met": (downside_improvement is not None and downside_improvement > _THRESHOLDS["downside_improvement"]),
         },
     }
 

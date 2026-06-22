@@ -49,6 +49,7 @@ def _state_row(
         "fdr_max": fdr_avg + 0.5,
         "is_bgw": False,
         "is_dgw": False,
+        "is_warmup_gw": False,
         "goals_scored": 0.3,
         "total_points": total_points,
         "minutes": 90.0,

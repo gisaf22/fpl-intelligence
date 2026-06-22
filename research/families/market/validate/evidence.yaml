@@ -1,106 +1,82 @@
-lens: MARKET
+lens: market
 target: total_points
 evidence_run:
-  source: backfill:evaluation_metadata.yaml@v3.0
-  produced: '3.0'
+  source: LENS-MARKET-20260606_151111
+  produced: '20260606_151111'
+  db_path: /Users/safarifgisa/.fpl/fpl.db
 signals:
   transfers_in:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1448
+      rho_ci_lower: 0.0703
+      rho_ci_upper: 0.2215
+      block_stability_count: 2
       decision_class: uninformative
     DEF:
-      rho_pooled: 0.187
-      rho_ci_lower: 0.146
-      rho_ci_upper: 0.226
+      rho_pooled: 0.1921
+      rho_ci_lower: 0.1557
+      rho_ci_upper: 0.2286
       block_stability_count: 3
       decision_class: informative
     MID:
-      rho_pooled: 0.19
-      rho_ci_lower: 0.153
-      rho_ci_upper: 0.23
+      rho_pooled: 0.1841
+      rho_ci_lower: 0.1474
+      rho_ci_upper: 0.219
       block_stability_count: 3
       decision_class: informative
     FWD:
-      rho_pooled: 0.127
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
-      decision_class: uninformative
-  transfers_balance:
-    GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
-      decision_class: uninformative
-    DEF:
-      rho_pooled: 0.066
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
-      decision_class: uninformative
-    MID:
-      rho_pooled: 0.102
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
-      decision_class: uninformative
-    FWD:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1183
+      rho_ci_lower: 0.0421
+      rho_ci_upper: 0.191
+      block_stability_count: 1
       decision_class: uninformative
   ownership_count:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1205
+      rho_ci_lower: 0.0453
+      rho_ci_upper: 0.1946
+      block_stability_count: 2
       decision_class: uninformative
     DEF:
-      rho_pooled: 0.156
-      rho_ci_lower: 0.117
-      rho_ci_upper: 0.196
+      rho_pooled: 0.1447
+      rho_ci_lower: 0.1086
+      rho_ci_upper: 0.1801
       block_stability_count: 3
       decision_class: informative
     MID:
-      rho_pooled: 0.168
-      rho_ci_lower: 0.13
-      rho_ci_upper: 0.205
+      rho_pooled: 0.162
+      rho_ci_lower: 0.1243
+      rho_ci_upper: 0.1953
       block_stability_count: 3
       decision_class: informative
     FWD:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
+      rho_pooled: 0.1232
+      rho_ci_lower: 0.0488
+      rho_ci_upper: 0.1994
       block_stability_count: 1
       decision_class: uninformative
   purchase_price:
     GK:
-      rho_pooled: null
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1044
+      rho_ci_lower: 0.0235
+      rho_ci_upper: 0.1816
+      block_stability_count: 1
       decision_class: uninformative
     DEF:
-      rho_pooled: 0.121
-      rho_ci_lower: 0.082
-      rho_ci_upper: 0.162
+      rho_pooled: 0.1126
+      rho_ci_lower: 0.075
+      rho_ci_upper: 0.1498
       block_stability_count: 2
       decision_class: informative
     MID:
-      rho_pooled: 0.121
-      rho_ci_lower: null
-      rho_ci_upper: null
-      block_stability_count: null
+      rho_pooled: 0.1113
+      rho_ci_lower: 0.0748
+      rho_ci_upper: 0.1479
+      block_stability_count: 3
       decision_class: uninformative
     FWD:
-      rho_pooled: 0.155
-      rho_ci_lower: 0.077
-      rho_ci_upper: 0.237
+      rho_pooled: 0.1222
+      rho_ci_lower: 0.0478
+      rho_ci_upper: 0.2024
       block_stability_count: 2
-      decision_class: informative
+      decision_class: uninformative

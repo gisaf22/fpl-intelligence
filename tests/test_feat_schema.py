@@ -32,6 +32,7 @@ _FEAT_COLUMNS = {
     "minutes_roll8": [58.0, None],
     "minutes_trend": ["stable", None],
     "fixture_context": ["SGW", "DGW"],
+    "is_warmup_gw": [False, False],
 }
 
 

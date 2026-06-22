@@ -187,8 +187,8 @@ def test_minutes_roll3_collision_resolves_to_opposite_verdicts_by_key():
     form = get_signal_governance_by_key("minutes_roll3@form:total_points#MID")
     avail = get_signal_governance_by_key("minutes_roll3@avail:played_next_gw#MID")
 
-    assert form.lens == "FORM" and form.lifecycle_state == "excluded"
-    assert avail.lens == "AVAIL" and avail.lifecycle_state == "approved"
+    assert form.lens == "form" and form.lifecycle_state == "excluded"
+    assert avail.lens == "avail" and avail.lifecycle_state == "approved"
     assert form.signal == avail.signal == "minutes_roll3"
     assert form.key != avail.key
 

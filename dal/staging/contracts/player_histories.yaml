@@ -187,6 +187,26 @@ columns:
     dtype: int64
     nullable: false
     description: Net transfers (in minus out) in the gameweek
+  - source: tackles
+    canonical: tackles
+    dtype: int64
+    nullable: false
+    description: Tackles made in this fixture
+  - source: clearances_blocks_interceptions
+    canonical: clearances_blocks_interceptions
+    dtype: int64
+    nullable: false
+    description: Clearances, blocks and interceptions in this fixture
+  - source: recoveries
+    canonical: recoveries
+    dtype: int64
+    nullable: false
+    description: Ball recoveries in this fixture
+  - source: defensive_contribution
+    canonical: defensive_contribution
+    dtype: int64
+    nullable: false
+    description: FPL-computed defensive contribution count (CBIT for DEF, CBIRT for MID/FWD/GK) in this fixture
 
 # team_id is not a source column in player_histories; it is joined from players.team
 # during get_player_gw_analytics() enrichment.

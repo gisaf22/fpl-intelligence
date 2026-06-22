@@ -36,6 +36,8 @@ def _valid_mart_df() -> pd.DataFrame:
             df[name] = rec.values[1]
         elif name == "minutes_trend":  # categorical-ish, nullable, no enum
             df[name] = pd.Series(["stable", "stable"], dtype="object")
+        elif name == "is_warmup_gw":  # boolean structural flag
+            df[name] = pd.array([False, False], dtype="boolean")
         else:  # numeric rolling signal
             df[name] = pd.array([1.0, 1.0], dtype="Float64")
     return df

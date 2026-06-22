@@ -3,7 +3,12 @@
 score_provenance() returns a complete audit trail for any player's score from
 any intelligence module: which signals contributed, what weights they received,
 which governance entry authorised those weights, what STATE values the player
-had, and any caveats from signal_traceability.yaml at the player's position.
+had, and any caveats from the canonical decision-of-record at the player's position.
+
+Caveats are read from evaluation_metadata.yaml via the domain governance read model
+(ADR-010 ruling b), not from the retired signal_traceability.yaml — serve no longer
+consumes governance state from that hand-maintained matrix (serve ↛ model is preserved:
+the read model lives in the domain leaf).
 
 Does not modify any production code path — callable independently with a
 features DataFrame as input.
@@ -11,16 +16,13 @@ features DataFrame as input.
 
 from __future__ import annotations
 
-import functools
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import yaml
 
+from domain.registry.governance_lookup import get_signal_governance
+from domain.registry.governance_types import GovernanceMetadataError
 from serve.weight_registry import get_module_weights, get_weight_metadata
-
-_TRACEABILITY_PATH = Path("model/governance/signal_traceability.yaml")
 
 # Map from module name → component → list of STATE columns that feed the component.
 # Encodes the computational relationship between weight components and STATE values.
@@ -52,30 +54,24 @@ _MODULE_SIGNAL_MAP: dict[str, dict[str, list[str]]] = {
 _VALID_MODULES = frozenset(_MODULE_SIGNAL_MAP.keys())
 
 
-@functools.lru_cache(maxsize=1)
-def _load_traceability() -> list[dict]:
-    """Load and cache signal_traceability.yaml entries."""
-    path = _TRACEABILITY_PATH
-    if not path.exists():
-        raise FileNotFoundError(f"Signal traceability not found at {path}. Run from the project root directory.")
-    with path.open() as fh:
-        data = yaml.safe_load(fh)
-    if not isinstance(data, dict):
-        raise ValueError(f"Signal traceability at {path} must be a YAML mapping, got {type(data).__name__}")
-    entries: list[dict] = data.get("entries", [])
-    return entries
-
-
 def _get_caveats_for(signal: str, position: str) -> list[str]:
-    """Return caveats from signal_traceability.yaml for a signal at a position."""
-    entries = _load_traceability()
-    caveats = []
-    for entry in entries:
-        if entry.get("signal") == signal and entry.get("position") == position:
-            caveat = entry.get("caveat")
-            if caveat and str(caveat).strip():
-                caveats.append(str(caveat).strip())
-    return caveats
+    """Return caveats for a signal at a position from the canonical decision-of-record.
+
+    ADR-010 ruling (b): caveats are derived from evaluation_metadata.yaml (via the domain
+    governance read model), not from the retired signal_traceability.yaml. A caveat is
+    surfaced when the canonical verdict documents a limitation — downstream_status
+    'caveated' or lifecycle_state excluded/not_applicable — using its behavioral_reason.
+    Signals with no lens record (e.g. STATE-only columns like fixture_context) carry none.
+    """
+    try:
+        gov = get_signal_governance(signal, position)
+    except GovernanceMetadataError:
+        return []
+    if gov.downstream_status == "caveated" or gov.lifecycle_state in {"excluded", "not_applicable"}:
+        reason = (gov.behavioral_reason or "").strip()
+        if reason:
+            return [reason]
+    return []
 
 
 def score_provenance(
@@ -110,7 +106,7 @@ def score_provenance(
           registry_source — exact registry path for this weight,
           signal_id     — evaluation study signal ID (or null),
           provenance    — registry note text,
-          caveats       — list of caveats from signal_traceability.yaml at position,
+          caveats       — list of caveats from the canonical decision-of-record at position,
       }
 
     Raises

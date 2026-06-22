@@ -48,6 +48,7 @@ def _base_row(
     minutes_trend: str = "stable",
     is_dgw: bool = False,
     fixture_context: str = "SGW",
+    is_warmup_gw: bool = False,
 ) -> dict:
     """Produce a single row with all required intelligence columns."""
     return {
@@ -62,6 +63,7 @@ def _base_row(
         "fdr_min": fdr_avg - 0.5,
         "is_bgw": False,
         "is_dgw": is_dgw,
+        "is_warmup_gw": is_warmup_gw,
         "goals_scored": goals_scored,
         "points_roll3": points_roll3,
         "points_roll5": points_roll5,

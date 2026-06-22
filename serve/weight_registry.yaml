@@ -3,6 +3,12 @@
 # Produced: 2026-05-27
 # Revised: 2026-05-27 — registry rebuild; the synthesis study composition weights in synth01_decisions.yaml
 #
+# WEIGHTING AUTHORITY (ADR-010 ruling a): model/assemble/synth01_decisions.yaml is the single
+# weighting authority (Model owns weighting). This registry DERIVES FROM or DEFERS TO it and does
+# not originate study-derived weighting. Every signal_id / derived_from.findings key referenced
+# below must be a finding the authority evaluated (enforced by tests/test_weighting_authority.py).
+# Components that make no study-derivation claim are PROVISIONAL-EDITORIAL (signal_id: null).
+#
 # IMPORTANT: Intelligence module weights (captain, value, transfers, fixtures) remain
 # PROVISIONAL-EDITORIAL. They are editorial judgments set before the lens-study methodology
 # was established. the synthesis study produced composition weights for DEF/MID signal groups, stored in

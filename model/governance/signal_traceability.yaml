@@ -1,7 +1,7 @@
-# GENERATED / READ-ONLY — governance lineage projection.
-# A read-only view that projects state owned elsewhere (the decision of record is
-# model/governance/evaluation_metadata.yaml). Housed in model/governance/ as a
-# lineage projection; do not hand-edit as a source of truth.
+# MANUAL / INTERIM — hand-maintained, NON-AUTHORITATIVE. Pending retirement (ADR-010 ruling b).
+# The decision of record is model/governance/evaluation_metadata.yaml; this matrix is a
+# hand-kept descriptive view, scheduled to be retired as a source (serve/provenance.py will
+# read the canonical decision-of-record). No writer reproduces this file.
 # Signal Traceability Matrix — Machine-Readable
 # Version: 1.1
 # Produced: 2026-06-01
@@ -38,10 +38,10 @@ source_of_truth:
   state_inventory: docs/archive/state-representation-inventory.md
   threshold_registry: docs/governance/threshold-registry.md
 analysis_paths:
-  FORM: research/families/form/validate/study.py
-  AVAIL: research/families/availability/validate/study.py
-  MARKET: research/families/market/validate/study.py
-  FIXTURE-GW: research/families/fixture/validate/study.py
+  form: research/families/form/validate/study.py
+  avail: research/families/availability/validate/study.py
+  market: research/families/market/validate/study.py
+  fixture_gw: research/families/fixture/validate/study.py
   STATE-ONLY: null
 
 entries:
@@ -56,7 +56,7 @@ entries:
     position: DEF
     meaning: "3-GW rolling mean of expected goal involvement (xG + xA) per player"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-001
     evaluation_target: total_points
     lifecycle_state: approved
@@ -79,7 +79,7 @@ entries:
     position: MID
     meaning: "3-GW rolling mean of expected goal involvement (xG + xA) per player"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-001
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -102,7 +102,7 @@ entries:
     position: FWD
     meaning: "3-GW rolling mean of expected goal involvement (xG + xA) per player"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-001
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -123,7 +123,7 @@ entries:
     position: GK
     meaning: "3-GW rolling mean of expected goal involvement (xG + xA) per player"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-001
     evaluation_target: total_points
     lifecycle_state: not_applicable
@@ -143,7 +143,7 @@ entries:
     position: DEF
     meaning: "5-GW rolling mean of expected goal involvement (xG + xA) per player"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-002
     evaluation_target: total_points
     lifecycle_state: approved
@@ -166,7 +166,7 @@ entries:
     position: MID
     meaning: "5-GW rolling mean of expected goal involvement (xG + xA) per player"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-002
     evaluation_target: total_points
     lifecycle_state: approved
@@ -189,7 +189,7 @@ entries:
     position: FWD
     meaning: "5-GW rolling mean of expected goal involvement (xG + xA) per player"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-002
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -210,7 +210,7 @@ entries:
     position: GK
     meaning: "5-GW rolling mean of expected goal involvement (xG + xA) per player"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-002
     evaluation_target: total_points
     lifecycle_state: not_applicable
@@ -230,7 +230,7 @@ entries:
     position: DEF
     meaning: "3-GW rolling mean of individual goals scored"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-003
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -248,7 +248,7 @@ entries:
     position: MID
     meaning: "3-GW rolling mean of individual goals scored"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-003
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -266,7 +266,7 @@ entries:
     position: FWD
     meaning: "3-GW rolling mean of individual goals scored"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-003
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -284,7 +284,7 @@ entries:
     position: GK
     meaning: "3-GW rolling mean of individual goals scored"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-003
     evaluation_target: total_points
     lifecycle_state: not_applicable
@@ -304,7 +304,7 @@ entries:
     position: GK
     meaning: "3-GW rolling mean of total FPL points (lagged evaluation target)"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-004
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -322,7 +322,7 @@ entries:
     position: DEF
     meaning: "3-GW rolling mean of total FPL points (lagged evaluation target)"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-004
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -340,7 +340,7 @@ entries:
     position: MID
     meaning: "3-GW rolling mean of total FPL points (lagged evaluation target)"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-004
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -358,7 +358,7 @@ entries:
     position: FWD
     meaning: "3-GW rolling mean of total FPL points (lagged evaluation target)"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-004
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -378,7 +378,7 @@ entries:
     position: GK
     meaning: "5-GW rolling mean of total FPL points (lagged evaluation target)"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-005
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -396,7 +396,7 @@ entries:
     position: DEF
     meaning: "5-GW rolling mean of total FPL points (lagged evaluation target)"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-005
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -414,7 +414,7 @@ entries:
     position: MID
     meaning: "5-GW rolling mean of total FPL points (lagged evaluation target)"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-005
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -432,7 +432,7 @@ entries:
     position: FWD
     meaning: "5-GW rolling mean of total FPL points (lagged evaluation target)"
     scope: individual
-    evaluation_lens: FORM
+    evaluation_lens: form
     signal_id: FORM-005
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -458,7 +458,7 @@ entries:
     position: GK
     meaning: "3-GW rolling mean of minutes played — short-term participation proxy"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-001
     evaluation_target: played_next_gw
     lifecycle_state: excluded
@@ -479,7 +479,7 @@ entries:
     position: DEF
     meaning: "3-GW rolling mean of minutes played — short-term participation proxy"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-001
     evaluation_target: played_next_gw
     lifecycle_state: excluded
@@ -502,7 +502,7 @@ entries:
     position: MID
     meaning: "3-GW rolling mean of minutes played — short-term participation proxy"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-001
     evaluation_target: played_next_gw
     lifecycle_state: approved
@@ -527,7 +527,7 @@ entries:
     position: FWD
     meaning: "3-GW rolling mean of minutes played — short-term participation proxy"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-001
     evaluation_target: played_next_gw
     lifecycle_state: excluded
@@ -552,7 +552,7 @@ entries:
     position: GK
     meaning: "5-GW rolling mean of minutes played — medium-term participation proxy"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-002
     evaluation_target: played_next_gw
     lifecycle_state: excluded
@@ -571,7 +571,7 @@ entries:
     position: DEF
     meaning: "5-GW rolling mean of minutes played — medium-term participation proxy"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-002
     evaluation_target: played_next_gw
     lifecycle_state: excluded
@@ -596,7 +596,7 @@ entries:
     position: MID
     meaning: "5-GW rolling mean of minutes played — medium-term participation proxy"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-002
     evaluation_target: played_next_gw
     lifecycle_state: excluded
@@ -623,7 +623,7 @@ entries:
     position: FWD
     meaning: "5-GW rolling mean of minutes played — medium-term participation proxy"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-002
     evaluation_target: played_next_gw
     lifecycle_state: excluded
@@ -650,7 +650,7 @@ entries:
     position: GK
     meaning: "8-GW rolling mean of minutes played — baseline participation stability"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-003
     evaluation_target: played_next_gw
     lifecycle_state: excluded
@@ -668,7 +668,7 @@ entries:
     position: DEF
     meaning: "8-GW rolling mean of minutes played — baseline participation stability"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-003
     evaluation_target: played_next_gw
     lifecycle_state: approved
@@ -689,7 +689,7 @@ entries:
     position: MID
     meaning: "8-GW rolling mean of minutes played — baseline participation stability"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-003
     evaluation_target: played_next_gw
     lifecycle_state: approved
@@ -710,7 +710,7 @@ entries:
     position: FWD
     meaning: "8-GW rolling mean of minutes played — baseline participation stability"
     scope: individual
-    evaluation_lens: AVAIL
+    evaluation_lens: avail
     signal_id: AVAIL-003
     evaluation_target: played_next_gw
     lifecycle_state: excluded
@@ -734,7 +734,7 @@ entries:
     position: GK
     meaning: "GW transfer inflows — FPL market demand signal"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-001
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -752,7 +752,7 @@ entries:
     position: DEF
     meaning: "GW transfer inflows — FPL market demand signal"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-001
     evaluation_target: total_points
     lifecycle_state: approved
@@ -772,7 +772,7 @@ entries:
     position: MID
     meaning: "GW transfer inflows — FPL market demand signal"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-001
     evaluation_target: total_points
     lifecycle_state: approved
@@ -792,7 +792,7 @@ entries:
     position: FWD
     meaning: "GW transfer inflows — FPL market demand signal"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-001
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -812,7 +812,7 @@ entries:
     position: GK
     meaning: "Net transfer balance (transfers_in minus transfers_out)"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-002
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -830,7 +830,7 @@ entries:
     position: DEF
     meaning: "Net transfer balance (transfers_in minus transfers_out)"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-002
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -848,7 +848,7 @@ entries:
     position: MID
     meaning: "Net transfer balance (transfers_in minus transfers_out)"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-002
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -866,7 +866,7 @@ entries:
     position: FWD
     meaning: "Net transfer balance (transfers_in minus transfers_out)"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-002
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -886,7 +886,7 @@ entries:
     position: GK
     meaning: "Total FPL managers owning the player — market consensus signal"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-003
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -904,7 +904,7 @@ entries:
     position: DEF
     meaning: "Total FPL managers owning the player — market consensus signal"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-003
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -924,7 +924,7 @@ entries:
     position: MID
     meaning: "Total FPL managers owning the player — market consensus signal"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-003
     evaluation_target: total_points
     lifecycle_state: approved
@@ -944,7 +944,7 @@ entries:
     position: FWD
     meaning: "Total FPL managers owning the player — market consensus signal"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-003
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -964,7 +964,7 @@ entries:
     position: GK
     meaning: "FPL acquisition price in £m — player quality tier proxy"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-004
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -982,7 +982,7 @@ entries:
     position: DEF
     meaning: "FPL acquisition price in £m — player quality tier proxy"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-004
     evaluation_target: total_points
     lifecycle_state: approved
@@ -1003,7 +1003,7 @@ entries:
     position: MID
     meaning: "FPL acquisition price in £m — player quality tier proxy"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-004
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1022,7 +1022,7 @@ entries:
     position: FWD
     meaning: "FPL acquisition price in £m — player quality tier proxy"
     scope: market
-    evaluation_lens: MARKET
+    evaluation_lens: market
     signal_id: MARKET-004
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1049,7 +1049,7 @@ entries:
     position: GK
     meaning: "Mean fixture difficulty rating (FDR) for the evaluated gameweek"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-001
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1067,7 +1067,7 @@ entries:
     position: DEF
     meaning: "Mean fixture difficulty rating (FDR) for the evaluated gameweek"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-001
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1085,7 +1085,7 @@ entries:
     position: MID
     meaning: "Mean fixture difficulty rating (FDR) for the evaluated gameweek"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-001
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1103,7 +1103,7 @@ entries:
     position: FWD
     meaning: "Mean fixture difficulty rating (FDR) for the evaluated gameweek"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-001
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1123,7 +1123,7 @@ entries:
     position: GK
     meaning: "Binary flag indicating home fixture (1 = home, 0 = away)"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-002
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1141,7 +1141,7 @@ entries:
     position: DEF
     meaning: "Binary flag indicating home fixture (1 = home, 0 = away)"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-002
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1159,7 +1159,7 @@ entries:
     position: MID
     meaning: "Binary flag indicating home fixture (1 = home, 0 = away)"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-002
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1177,7 +1177,7 @@ entries:
     position: FWD
     meaning: "Binary flag indicating home fixture (1 = home, 0 = away)"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-002
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1197,7 +1197,7 @@ entries:
     position: GK
     meaning: "Number of fixtures in the gameweek (1 = SGW, 2 = DGW)"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-003
     evaluation_target: total_points
     lifecycle_state: not_applicable
@@ -1215,7 +1215,7 @@ entries:
     position: DEF
     meaning: "Number of fixtures in the gameweek (1 = SGW, 2 = DGW)"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-003
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1233,7 +1233,7 @@ entries:
     position: MID
     meaning: "Number of fixtures in the gameweek (1 = SGW, 2 = DGW)"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-003
     evaluation_target: total_points
     lifecycle_state: excluded
@@ -1251,7 +1251,7 @@ entries:
     position: FWD
     meaning: "Number of fixtures in the gameweek (1 = SGW, 2 = DGW)"
     scope: schedule_context
-    evaluation_lens: FIXTURE-GW
+    evaluation_lens: fixture_gw
     signal_id: FIXTURE-003
     evaluation_target: total_points
     lifecycle_state: not_applicable
@@ -1652,4 +1652,92 @@ entries:
     consumer_modules:
       - serve/captain.py
     consumer_note: "captain.py consumes fixture_context for DGW fixture_score component."
+    threshold_dependencies: []
+
+  - signal: is_warmup_gw
+    position: DEF
+    meaning: "True on a player's first GW in the data — rolling signals are NaN. Structural eligibility guard."
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Not an analytical signal — structural flag derived from player GW history. Consumers filter ~is_warmup_gw before applying rolling signal eligibility thresholds."
+    redundancy: null
+    operational_role: eligibility_guard
+    consumer_modules:
+      - serve/captain.py
+      - serve/transfers.py
+      - serve/fixtures.py
+      - serve/value.py
+    consumer_note: "Replaces fillna(0) eligibility gate pattern across serve layer."
+    threshold_dependencies: []
+
+  - signal: is_warmup_gw
+    position: MID
+    meaning: "True on a player's first GW in the data — rolling signals are NaN. Structural eligibility guard."
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Not an analytical signal — structural flag. Same caveat as DEF entry."
+    redundancy: null
+    operational_role: eligibility_guard
+    consumer_modules:
+      - serve/captain.py
+      - serve/transfers.py
+      - serve/fixtures.py
+      - serve/value.py
+    consumer_note: "Replaces fillna(0) eligibility gate pattern across serve layer."
+    threshold_dependencies: []
+
+  - signal: is_warmup_gw
+    position: FWD
+    meaning: "True on a player's first GW in the data — rolling signals are NaN. Structural eligibility guard."
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Not an analytical signal — structural flag. Same caveat as DEF entry."
+    redundancy: null
+    operational_role: eligibility_guard
+    consumer_modules:
+      - serve/captain.py
+      - serve/transfers.py
+      - serve/fixtures.py
+      - serve/value.py
+    consumer_note: "Replaces fillna(0) eligibility gate pattern across serve layer."
+    threshold_dependencies: []
+
+  - signal: is_warmup_gw
+    position: GK
+    meaning: "True on a player's first GW in the data — rolling signals are NaN. Structural eligibility guard."
+    scope: individual
+    evaluation_lens: STATE-ONLY
+    signal_id: null
+    evaluation_target: null
+    lifecycle_state: candidate
+    downstream_status: eligible
+    rho_pooled: null
+    rejection_basis: null
+    caveat: "Not an analytical signal — structural flag. Same caveat as DEF entry."
+    redundancy: null
+    operational_role: eligibility_guard
+    consumer_modules:
+      - serve/captain.py
+      - serve/transfers.py
+      - serve/fixtures.py
+      - serve/value.py
+    consumer_note: "Replaces fillna(0) eligibility gate pattern across serve layer."
     threshold_dependencies: []

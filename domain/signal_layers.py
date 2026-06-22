@@ -25,6 +25,34 @@ SIGNAL_LAYER_VALUES: frozenset[str] = frozenset(
     }
 )
 
+# Leakage classification (ADR-010 ruling d): the ontology owns *which* layer_role values
+# constitute target leakage / outcome-component. Serve enforces these at scoring time but
+# does not re-list them — it imports these sets so the classification has one home.
+#
+# LEAKAGE_LAYER_ROLES        — signal IS or directly encodes the scoring target (e.g. bonus).
+# OUTCOME_COMPONENT_LAYER_ROLES — signal is mechanistically tautological with FPL points
+#                                 (e.g. bps, a descriptive contribution index).
+LEAKAGE_LAYER_ROLES: frozenset[str] = frozenset({"points_component"})
+OUTCOME_COMPONENT_LAYER_ROLES: frozenset[str] = frozenset({"contribution_index"})
+
+# Signals whose same-gameweek association with total_points is tautological:
+# total_points is a deterministic function of FPL's scoring rules, so correlating
+# these layer_role values with total_points within the same gameweek measures the
+# formula, not player quality. Valid for distribution/frequency description and
+# formula decomposition; not valid for association analysis with total_points.
+TAUTOLOGICAL_LAYER_ROLES: frozenset[str] = frozenset(
+    {
+        "points_component",  # bonus — direct additive scoring component
+        "contribution_index",  # bps — determines bonus allocation
+        "scoring_event",  # goals_scored — position-weighted goal points
+        "creation_event",  # assists — fixed assist points
+        "defensive_points_context",  # clean_sheets — GK/DEF/MID clean sheet points
+        "goalkeeper_action",  # saves, penalties_saved — GK-specific point rules
+        "negative_event",  # yellow_cards, red_cards, own_goals, penalties_missed
+        "defensive_outcome_context",  # goals_conceded — GK/DEF concession penalty
+    }
+)
+
 SIGNAL_LAYER_MAPPING: dict[str, dict[str, Any]] = {
     "minutes": {
         "signal_layer": "exposure",
@@ -199,5 +227,47 @@ SIGNAL_LAYER_MAPPING: dict[str, dict[str, Any]] = {
         "layer_role": "negative_event",
         "feature_candidate_eligible": True,
         "interpretation_caveat": "sparse/low-frequency caveats apply",
+    },
+    "own_goals": {
+        "signal_layer": "discipline",
+        "layer_role": "negative_event",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "sparse/low-frequency caveats apply",
+    },
+    "penalties_missed": {
+        "signal_layer": "discipline",
+        "layer_role": "negative_event",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "sparse/low-frequency caveats apply",
+    },
+    "penalties_saved": {
+        "signal_layer": "defensive_context",
+        "layer_role": "goalkeeper_action",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "GK-specific; sparse event caveats apply",
+    },
+    "tackles": {
+        "signal_layer": "defensive_context",
+        "layer_role": "defensive_action",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "position-dependent; DEF/MID-relevant",
+    },
+    "clearances_blocks_interceptions": {
+        "signal_layer": "defensive_context",
+        "layer_role": "defensive_action",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "position-dependent; DEF-relevant",
+    },
+    "recoveries": {
+        "signal_layer": "defensive_context",
+        "layer_role": "defensive_action",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "position-dependent; DEF/MID-relevant",
+    },
+    "defensive_contribution": {
+        "signal_layer": "defensive_context",
+        "layer_role": "defensive_contribution_index",
+        "feature_candidate_eligible": True,
+        "interpretation_caveat": "FPL CBIT/CBIRT count; drives DC bonus (2025/26 rule); non-linear at DGW",
     },
 }

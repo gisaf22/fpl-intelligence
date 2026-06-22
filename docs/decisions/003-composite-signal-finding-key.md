@@ -50,8 +50,17 @@ position-scoped key    =  signal @ lens : target # POSITION
 
 **Token normalisation (deterministic, so the key is derivable, not hand-typed):**
 
-- lens token = `lens.lower().replace("-", "_")` → `FORM`→`form`, `AVAIL`→`avail`,
-  `MARKET`→`market`, `FIXTURE-GW`→`fixture_gw`.
+> **Amendment (2026-06-05, ADR-010 follow-up):** the lens *label* is now the canonical
+> lowercase token itself (`form`, `avail`, `market`, `fixture_gw`) — there is no separate
+> uppercase display label and no `lens.lower().replace("-","_")` transform. `lens_token()`
+> is retired; `build_key`/`parse_key` carry the lens verbatim and *validate* (fail-closed)
+> that it is already canonical rather than silently normalising it. The original
+> uppercase-label → lowercase-token split below is superseded; the worked examples'
+> keys are unchanged (they were already lowercase).
+
+- lens token = the `lens` field verbatim — required to be canonical lowercase
+  (`[a-z0-9_]`), e.g. `form`, `avail`, `market`, `fixture_gw`. (Superseded: was
+  `lens.lower().replace("-", "_")` over an uppercase label.)
 - target = the `target` field verbatim (`total_points`, `played_next_gw`).
 - position = the position label verbatim (`GK`/`DEF`/`MID`/`FWD`).
 

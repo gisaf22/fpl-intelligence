@@ -34,7 +34,7 @@ from typing import Any
 
 import yaml
 
-from domain.registry.finding_key import FindingKeyError, lens_token, parse_key
+from domain.registry.finding_key import FindingKeyError, parse_key
 from domain.registry.governance_types import GovernanceMetadata, GovernanceMetadataError
 
 _EVAL_METADATA_PATH = Path("model/governance/evaluation_metadata.yaml")
@@ -51,9 +51,8 @@ _LIFECYCLE_PRIORITY: dict[str, int] = {
 def _load_findings() -> list[dict[str, Any]]:
     """Load and cache the evaluation_metadata.yaml findings list.
 
-    Each entry's lens label is normalised to its key token once here, stored as
-    ``entry["lens_token"]``, so key-based lookups compare a pre-computed token
-    instead of re-normalising every entry on every call.
+    The lens is the canonical lowercase token itself (ADR-003 amendment), so key-based
+    lookups compare ``entry["lens"]`` directly — no per-entry normalisation step.
     """
     path = _EVAL_METADATA_PATH
     if not path.exists():
@@ -63,8 +62,6 @@ def _load_findings() -> list[dict[str, Any]]:
     if not isinstance(data, dict):
         raise ValueError(f"Evaluation metadata at {path} must be a YAML mapping, got {type(data).__name__}")
     findings: list[dict[str, Any]] = data["evaluation_findings"]
-    for entry in findings:
-        entry["lens_token"] = lens_token(entry["lens"])
     return findings
 
 
@@ -196,17 +193,17 @@ def get_signal_governance_by_key(key: str) -> GovernanceMetadata:
         parsed = parse_key(key)
     except FindingKeyError as exc:
         raise GovernanceMetadataError(str(exc)) from exc
-    signal, token, target, position = parsed.signal, parsed.lens_token, parsed.target, parsed.position
+    signal, lens, target, position = parsed.signal, parsed.lens, parsed.target, parsed.position
 
     for entry in _load_findings():
-        if entry["signal"] != signal or entry["lens_token"] != token or entry["target"] != target:
+        if entry["signal"] != signal or entry["lens"] != lens or entry["target"] != target:
             continue
         per_position = entry.get("per_position", {})
         if position:
             if position not in per_position:
                 raise GovernanceMetadataError(
                     f"Composite key {key!r} names position {position!r} with no record in "
-                    f"finding {signal}@{token}:{target}. Add it to model/governance/evaluation_metadata.yaml."
+                    f"finding {signal}@{lens}:{target}. Add it to model/governance/evaluation_metadata.yaml."
                 )
             return _build_metadata(entry, position, per_position[position])
         # No position suffix: the finding exists; return its first studied position.

@@ -69,7 +69,7 @@ REQUIRED_COLUMNS: tuple[str, ...] = (
     "haul_pct",
     "n_haul",
     "tail_sensitive",
-    # registry-build computed — research.kernels.association.assign_association_class
+    # registry-build computed — domain.registry.association.assign_association_class
     "association_class",
     # promotion class — model.governance.promotion.assign_promotion_class
     "promotion_class",

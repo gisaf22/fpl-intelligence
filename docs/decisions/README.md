@@ -14,6 +14,7 @@ Formal, durable design choices. Full Context / Decision / Alternatives / Consequ
 - [ADR-005 — System-model vocabulary reconciliation](005-system-model-vocabulary-reconciliation.md)
 - [ADR-008 — Mode vocabulary](008-mode-vocabulary.md)
 - [ADR-009 — Unified evaluation provenance](009-unified-evaluation-provenance.md)
+- [ADR-010 — Layered decision authority model](010-layered-decision-model.md)
 
 *(ADR-006, 007 remain reserved for later phases — see `docs/implementation-plan.md`
 "Pending ADRs".)*
@@ -38,6 +39,9 @@ edit-in-place. **Documentation only: nothing in the code parses these files.**
 | [set-synth-weights](set-synth-weights.md) | model | partial |
 | [govern-signal-ledger](govern-signal-ledger.md) | model | accepted |
 | [backtest-synth-recommendations](backtest-synth-recommendations.md) | monitor | deferred |
+| [downgrade-xgi-roll5-def-fullseason](downgrade-xgi-roll5-def-fullseason.md) | monitor | downgrade — proposed |
+| [downgrade-minutes-roll8-def-fullseason](downgrade-minutes-roll8-def-fullseason.md) | monitor | downgrade — proposed |
+| [reopen-minutes-roll5-fwd-fullseason](reopen-minutes-roll5-fwd-fullseason.md) | monitor | re-open — proposed |
 
 ## Which do I write?
 

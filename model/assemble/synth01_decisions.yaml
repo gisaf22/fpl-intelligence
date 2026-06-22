@@ -1,5 +1,9 @@
+# GENERATED — DO NOT EDIT BY HAND (ADR-010 ruling c).
+# Regenerate with: python -m model.governance.generate_synth01_decisions
+# Source: model/assemble/synth01_recommendations.yaml
+#       + model/governance/synth01_annotations.yaml
 version: synth01
-produced: '2026-05-27'
+produced: '2026-06-06'
 authority: Operational Convergence Plan Phase 7
 candidate_registry: model/assemble/synth01_candidates.yaml
 design_doc: docs/governance/synth01-design.md
@@ -16,7 +20,6 @@ fdr_moderation_check:
     target: total_points_next_gw
     signals:
     - xgi_roll3
-    - xgi_roll5
     - transfers_in
     - purchase_price
     fraction_rank_changed: 1.0
@@ -37,19 +40,18 @@ fdr_moderation_check:
     fraction_rank_changed: 1.0
     material: true
 group_summary:
-- group: DEF × FORM
-  n: 2169
+- group: DEF × form
+  n: 2471
   retained:
   - xgi_roll3
+  excluded:
   - xgi_roll5
-  excluded: []
   weights:
-    xgi_roll3: 0.5
-    xgi_roll5: 0.5
-  equal_weight_preferred: true
-  baseline_note: DEF composite rho=0.1191 vs permutation baseline rho≈0.0166
-- group: DEF × AVAIL
-  n: 1936
+    xgi_roll3: 1.0
+  equal_weight_preferred: false
+  baseline_note: DEF composite rho=0.1190 vs permutation baseline rho≈0.0164
+- group: DEF × avail
+  n: 2238
   retained:
   - minutes_roll8
   excluded: []
@@ -57,8 +59,8 @@ group_summary:
     minutes_roll8: 1.0
   equal_weight_preferred: false
   baseline_note: ''
-- group: DEF × MARKET
-  n: 2568
+- group: DEF × market
+  n: 2870
   retained:
   - transfers_in
   - purchase_price
@@ -68,9 +70,9 @@ group_summary:
     transfers_in: 0.5
     purchase_price: 0.5
   equal_weight_preferred: true
-  baseline_note: DEF composite rho=0.1719 vs permutation baseline rho≈0.0161
-- group: MID × FORM
-  n: 2360
+  baseline_note: DEF composite rho=0.1779 vs permutation baseline rho≈0.0153
+- group: MID × form
+  n: 2666
   retained:
   - xgi_roll5
   excluded:
@@ -78,10 +80,10 @@ group_summary:
   weights:
     xgi_roll5: 1.0
   equal_weight_preferred: false
-  baseline_note: MID composite rho=0.1571 vs naive baseline rho=0.158 — DOES NOT CLEAR
+  baseline_note: MID composite rho=0.1580 vs naive baseline rho=0.158 — DOES NOT CLEAR
     baseline
-- group: MID × AVAIL
-  n: 2095
+- group: MID × avail
+  n: 2401
   retained:
   - minutes_roll3
   - minutes_roll8
@@ -92,8 +94,8 @@ group_summary:
     minutes_roll8: 0.5
   equal_weight_preferred: true
   baseline_note: ''
-- group: MID × MARKET
-  n: 2806
+- group: MID × market
+  n: 3112
   retained:
   - transfers_in
   - ownership_count
@@ -102,229 +104,222 @@ group_summary:
     transfers_in: 0.5
     ownership_count: 0.5
   equal_weight_preferred: true
-  baseline_note: MID composite rho=0.1725 vs naive baseline rho=0.158 — CLEARS baseline
+  baseline_note: MID composite rho=0.1662 vs naive baseline rho=0.158 — CLEARS baseline
 decisions:
 - key: xgi_roll3@form:total_points#DEF
   signal: xgi_roll3
   position: DEF
-  lens: FORM
+  lens: form
   decision: APPROVED-PRIMARY
-  partial_rho: 0.0401
-  partial_ci_lower: -0.0014
-  partial_ci_upper: 0.0796
+  partial_rho: 0.048
+  partial_ci_lower: 0.0091
+  partial_ci_upper: 0.0869
   composition_weight: 0.5
   contribution_class: primary
-  marginal_gain: 0.0401
-  evidence: partial_rho=0.0401; CI=[-0.0014, 0.0796]; controlling for ['xgi_roll5'];
-    n=2169
-  notes: '|partial_rho|=0.0401 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
-    composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
-  weight_ci_lower: 0.4
-  weight_ci_upper: 0.6
+  marginal_gain: 0.048
+  evidence: partial_rho=0.0480; CI=[0.0091, 0.0869]; controlling for ['xgi_roll5'];
+    n=2471
+  notes: '|partial_rho|=0.0480 >= 0.02 threshold. Weight=1.0000'
 - key: xgi_roll5@form:total_points#DEF
   signal: xgi_roll5
   position: DEF
-  lens: FORM
+  lens: form
   decision: APPROVED-SECONDARY
-  partial_rho: 0.0271
-  partial_ci_lower: -0.0141
-  partial_ci_upper: 0.0699
+  partial_rho: 0.018
+  partial_ci_lower: -0.0199
+  partial_ci_upper: 0.0558
   composition_weight: 0.5
   contribution_class: secondary
-  marginal_gain: 0.0271
-  evidence: partial_rho=0.0271; CI=[-0.0141, 0.0699]; controlling for ['xgi_roll3'];
-    n=2169
-  notes: '|partial_rho|=0.0271 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
-    composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
-  weight_ci_lower: 0.4
-  weight_ci_upper: 0.6
+  marginal_gain: 0.018
+  evidence: partial_rho=0.0180; CI=[-0.0199, 0.0558]; controlling for ['xgi_roll3'];
+    n=2471
+  notes: '|partial_rho|=0.0180 < 0.02 threshold. Absorbed by: [''xgi_roll3''].'
 - key: minutes_roll8@avail:played_next_gw#DEF
   signal: minutes_roll8
   position: DEF
-  lens: AVAIL
+  lens: avail
   decision: APPROVED-PRIMARY
-  partial_rho: 0.2188
-  partial_ci_lower: 0.174
+  partial_rho: 0.2169
+  partial_ci_lower: 0.1764
   partial_ci_upper: 0.2614
   composition_weight: 1.0
   contribution_class: primary
-  marginal_gain: 0.2188
-  evidence: partial_rho=0.2188; CI=[0.1740, 0.2614]; controlling for none (singleton);
-    n=1936
-  notes: '|partial_rho|=0.2188 >= 0.02 threshold. Weight=1.0000'
+  marginal_gain: 0.2169
+  evidence: partial_rho=0.2169; CI=[0.1764, 0.2614]; controlling for none (singleton);
+    n=2238
+  notes: '|partial_rho|=0.2169 >= 0.02 threshold. Weight=1.0000'
 - key: transfers_in@market:total_points#DEF
   signal: transfers_in
   position: DEF
-  lens: MARKET
+  lens: market
   decision: APPROVED-PRIMARY
-  partial_rho: 0.0831
-  partial_ci_lower: 0.0449
-  partial_ci_upper: 0.1202
+  partial_rho: 0.1063
+  partial_ci_lower: 0.0696
+  partial_ci_upper: 0.1433
   composition_weight: 0.5
   contribution_class: primary
-  marginal_gain: 0.0831
-  evidence: partial_rho=0.0831; CI=[0.0449, 0.1202]; controlling for ['ownership_count',
-    'purchase_price']; n=2568
-  notes: '|partial_rho|=0.0831 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
-    composite did not improve by >=0.02 rho units). Weight CI=[0.5114, 0.6000].'
-  weight_ci_lower: 0.5114
+  marginal_gain: 0.1063
+  evidence: partial_rho=0.1063; CI=[0.0696, 0.1433]; controlling for ['ownership_count',
+    'purchase_price']; n=2870
+  notes: '|partial_rho|=0.1063 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
+    composite did not improve by >=0.02 rho units). Weight CI=[0.5974, 0.6000].'
+  weight_ci_lower: 0.5974
   weight_ci_upper: 0.6
 - key: ownership_count@market:total_points#DEF
   signal: ownership_count
   position: DEF
-  lens: MARKET
+  lens: market
   decision: EXCLUDED-REDUNDANT
-  partial_rho: 0.009
-  partial_ci_lower: -0.0299
-  partial_ci_upper: 0.0469
+  partial_rho: -0.0123
+  partial_ci_lower: -0.0473
+  partial_ci_upper: 0.0244
   composition_weight: 0.0
   contribution_class: redundant
-  marginal_gain: 0.009
-  evidence: partial_rho=0.0090; CI=[-0.0299, 0.0469]; controlling for ['transfers_in',
-    'purchase_price']; n=2568
-  notes: '|partial_rho|=0.0090 < 0.02 threshold. Absorbed by: [''transfers_in'', ''purchase_price''].
+  marginal_gain: 0.0123
+  evidence: partial_rho=-0.0123; CI=[-0.0473, 0.0244]; controlling for ['transfers_in',
+    'purchase_price']; n=2870
+  notes: '|partial_rho|=0.0123 < 0.02 threshold. Absorbed by: [''transfers_in'', ''purchase_price''].
     Confirms HIGH REDUNDANCY SUBSTITUTE resolution from synth01_candidates.yaml.'
 - key: purchase_price@market:total_points#DEF
   signal: purchase_price
   position: DEF
-  lens: MARKET
+  lens: market
   decision: APPROVED-SECONDARY
-  partial_rho: 0.055
-  partial_ci_lower: 0.0142
-  partial_ci_upper: 0.0948
+  partial_rho: 0.0499
+  partial_ci_lower: 0.0119
+  partial_ci_upper: 0.0857
   composition_weight: 0.5
   contribution_class: secondary
-  marginal_gain: 0.055
-  evidence: partial_rho=0.0550; CI=[0.0142, 0.0948]; controlling for ['transfers_in',
-    'ownership_count']; n=2568
-  notes: '|partial_rho|=0.0550 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
-    composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.4886].'
+  marginal_gain: 0.0499
+  evidence: partial_rho=0.0499; CI=[0.0119, 0.0857]; controlling for ['transfers_in',
+    'ownership_count']; n=2870
+  notes: '|partial_rho|=0.0499 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
+    composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.4026].'
   weight_ci_lower: 0.4
-  weight_ci_upper: 0.4886
+  weight_ci_upper: 0.4026
 - key: xgi_roll3@form:total_points#MID
   signal: xgi_roll3
   position: MID
-  lens: FORM
+  lens: form
   decision: EXCLUDED-REDUNDANT
-  partial_rho: 0.0089
-  partial_ci_lower: -0.0304
-  partial_ci_upper: 0.052
+  partial_rho: 0.0125
+  partial_ci_lower: -0.0262
+  partial_ci_upper: 0.0485
   composition_weight: 0.0
   contribution_class: redundant
-  marginal_gain: 0.0089
-  evidence: partial_rho=0.0089; CI=[-0.0304, 0.0520]; controlling for ['xgi_roll5'];
-    n=2360
-  notes: '|partial_rho|=0.0089 < 0.02 threshold. Absorbed by: [''xgi_roll5''].'
+  marginal_gain: 0.0125
+  evidence: partial_rho=0.0125; CI=[-0.0262, 0.0485]; controlling for ['xgi_roll5'];
+    n=2666
+  notes: '|partial_rho|=0.0125 < 0.02 threshold. Absorbed by: [''xgi_roll5''].'
 - key: xgi_roll5@form:total_points#MID
   signal: xgi_roll5
   position: MID
-  lens: FORM
+  lens: form
   decision: APPROVED-PRIMARY
-  partial_rho: 0.0643
-  partial_ci_lower: 0.0241
-  partial_ci_upper: 0.1052
+  partial_rho: 0.0619
+  partial_ci_lower: 0.0252
+  partial_ci_upper: 0.0994
   composition_weight: 1.0
   contribution_class: primary
-  marginal_gain: 0.0643
-  evidence: partial_rho=0.0643; CI=[0.0241, 0.1052]; controlling for ['xgi_roll3'];
-    n=2360
-  notes: '|partial_rho|=0.0643 >= 0.02 threshold. Weight=1.0000'
+  marginal_gain: 0.0619
+  evidence: partial_rho=0.0619; CI=[0.0252, 0.0994]; controlling for ['xgi_roll3'];
+    n=2666
+  notes: '|partial_rho|=0.0619 >= 0.02 threshold. Weight=1.0000'
 - key: minutes_roll3@avail:played_next_gw#MID
   signal: minutes_roll3
   position: MID
-  lens: AVAIL
+  lens: avail
   decision: APPROVED-PRIMARY
-  partial_rho: 0.0512
-  partial_ci_lower: 0.0103
-  partial_ci_upper: 0.0912
+  partial_rho: 0.0464
+  partial_ci_lower: 0.0051
+  partial_ci_upper: 0.0827
   composition_weight: 0.5
   contribution_class: primary
-  marginal_gain: 0.0512
-  evidence: partial_rho=0.0512; CI=[0.0103, 0.0912]; controlling for ['minutes_roll5',
-    'minutes_roll8']; n=2095
-  notes: '|partial_rho|=0.0512 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
+  marginal_gain: 0.0464
+  evidence: partial_rho=0.0464; CI=[0.0051, 0.0827]; controlling for ['minutes_roll5',
+    'minutes_roll8']; n=2401
+  notes: '|partial_rho|=0.0464 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
 - key: minutes_roll5@avail:played_next_gw#MID
   signal: minutes_roll5
   position: MID
-  lens: AVAIL
+  lens: avail
   decision: EXCLUDED-REDUNDANT
-  partial_rho: 0.0118
-  partial_ci_lower: -0.0283
-  partial_ci_upper: 0.0488
+  partial_rho: 0.0151
+  partial_ci_lower: -0.0227
+  partial_ci_upper: 0.0536
   composition_weight: 0.0
   contribution_class: redundant
-  marginal_gain: 0.0118
-  evidence: partial_rho=0.0118; CI=[-0.0283, 0.0488]; controlling for ['minutes_roll3',
-    'minutes_roll8']; n=2095
-  notes: '|partial_rho|=0.0118 < 0.02 threshold. Absorbed by: [''minutes_roll3'',
+  marginal_gain: 0.0151
+  evidence: partial_rho=0.0151; CI=[-0.0227, 0.0536]; controlling for ['minutes_roll3',
+    'minutes_roll8']; n=2401
+  notes: '|partial_rho|=0.0151 < 0.02 threshold. Absorbed by: [''minutes_roll3'',
     ''minutes_roll8''].'
 - key: minutes_roll8@avail:played_next_gw#MID
   signal: minutes_roll8
   position: MID
-  lens: AVAIL
+  lens: avail
   decision: APPROVED-SECONDARY
-  partial_rho: 0.0461
-  partial_ci_lower: 0.0086
-  partial_ci_upper: 0.0867
+  partial_rho: 0.0428
+  partial_ci_lower: 0.0057
+  partial_ci_upper: 0.0797
   composition_weight: 0.5
   contribution_class: secondary
-  marginal_gain: 0.0461
-  evidence: partial_rho=0.0461; CI=[0.0086, 0.0867]; controlling for ['minutes_roll3',
-    'minutes_roll5']; n=2095
-  notes: '|partial_rho|=0.0461 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
+  marginal_gain: 0.0428
+  evidence: partial_rho=0.0428; CI=[0.0057, 0.0797]; controlling for ['minutes_roll3',
+    'minutes_roll5']; n=2401
+  notes: '|partial_rho|=0.0428 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
 - key: transfers_in@market:total_points#MID
   signal: transfers_in
   position: MID
-  lens: MARKET
+  lens: market
   decision: APPROVED-PRIMARY
-  partial_rho: 0.0747
-  partial_ci_lower: 0.0381
-  partial_ci_upper: 0.1109
+  partial_rho: 0.0744
+  partial_ci_lower: 0.0371
+  partial_ci_upper: 0.1113
   composition_weight: 0.5
   contribution_class: primary
-  marginal_gain: 0.0747
-  evidence: partial_rho=0.0747; CI=[0.0381, 0.1109]; controlling for ['ownership_count'];
-    n=2806
-  notes: '|partial_rho|=0.0747 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
+  marginal_gain: 0.0744
+  evidence: partial_rho=0.0744; CI=[0.0371, 0.1113]; controlling for ['ownership_count'];
+    n=3112
+  notes: '|partial_rho|=0.0744 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
 - key: ownership_count@market:total_points#MID
   signal: ownership_count
   position: MID
-  lens: MARKET
+  lens: market
   decision: APPROVED-SECONDARY
-  partial_rho: 0.0348
-  partial_ci_lower: -0.0026
-  partial_ci_upper: 0.0728
+  partial_rho: 0.0311
+  partial_ci_lower: -0.0065
+  partial_ci_upper: 0.0673
   composition_weight: 0.5
   contribution_class: secondary
-  marginal_gain: 0.0348
-  evidence: partial_rho=0.0348; CI=[-0.0026, 0.0728]; controlling for ['transfers_in'];
-    n=2806
-  notes: '|partial_rho|=0.0348 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
+  marginal_gain: 0.0311
+  evidence: partial_rho=0.0311; CI=[-0.0065, 0.0673]; controlling for ['transfers_in'];
+    n=3112
+  notes: '|partial_rho|=0.0311 >= 0.02 threshold. Weight=0.5000 (equal-weight: evidence
     composite did not improve by >=0.02 rho units). Weight CI=[0.4000, 0.6000].'
   weight_ci_lower: 0.4
   weight_ci_upper: 0.6
 - key: purchase_price@market:total_points#FWD
   signal: purchase_price
   position: FWD
-  lens: MARKET
+  lens: market
   decision: FWD-SINGLE-SIGNAL
   partial_rho: 0.155
   partial_ci_lower: 0.077
   partial_ci_upper: 0.237
-  composition_weight: 0.0
-  contribution_class: null
+  composition_weight: 1.0
+  contribution_class: primary
   marginal_gain: 0.155
   evidence: Sole FWD candidate. No composite synthesis — single-signal qualified score.
-    bivariate rho=0.155 from the market lens finding purchase_price@market:total_points.
-  notes: 'G3-WEAK: 2/3 temporal blocks. REMOVED FROM SCORING: Phase 9 holdout GW
-    34-38 rho=-0.095 (p=0.374, reversed). ENG-02: pending SYNTH-02 phase-conditional
-    evaluation. lifecycle_state set to excluded in evaluation_metadata.yaml.'
+    bivariate rho=0.155 from LENS-MARKET evaluation_metadata.yaml.
+  notes: 'G3-WEAK: 2/3 temporal blocks. Intelligence consumers must acknowledge caveat.
+    Not evaluated by partial rho (no other FWD candidates to control for).'

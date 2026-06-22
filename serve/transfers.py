@@ -99,7 +99,7 @@ def rank_transfer_targets(
         if gw_df.empty:
             return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    eligible = gw_df[gw_df["minutes_roll5"].fillna(0) >= _MIN_MINUTES_ROLL5].copy()
+    eligible = gw_df[~gw_df["is_warmup_gw"] & (gw_df["minutes_roll5"] >= _MIN_MINUTES_ROLL5)].copy()
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
@@ -108,8 +108,8 @@ def rank_transfer_targets(
     # EXCLUDED-REDUNDANT vs xgi_roll5). Zeroed groups return 0.5 from normalization.
     fwd_mask = eligible["position_label"] == "FWD"
     mid_mask = eligible["position_label"] == "MID"
-    xgi_roll3_scored = eligible["xgi_roll3"].fillna(0).where(~(fwd_mask | mid_mask), 0.0)
-    xgi_roll5_scored = eligible["xgi_roll5"].fillna(0).where(~fwd_mask, 0.0)
+    xgi_roll3_scored = eligible["xgi_roll3"].where(~(fwd_mask | mid_mask), 0.0)
+    xgi_roll5_scored = eligible["xgi_roll5"].where(~fwd_mask, 0.0)
 
     eligible["_xgi_roll3_scored"] = xgi_roll3_scored
     eligible["_xgi_roll5_scored"] = xgi_roll5_scored
@@ -122,7 +122,7 @@ def rank_transfer_targets(
     eligible.loc[mid_mask, "_momentum"] = 0.0
 
     # Binary DGW flag from STATE fixture_context column.
-    eligible["_fixture_context_dgw"] = (eligible["fixture_context"].fillna("SGW") == "DGW").astype(float)
+    eligible["_fixture_context_dgw"] = (eligible["fixture_context"] == "DGW").astype(float)
 
     eligible["recent_form_score"] = normalize_within_position(eligible, "_xgi_roll3_scored")
     eligible["form_momentum_score"] = normalize_within_position(eligible, "_momentum")

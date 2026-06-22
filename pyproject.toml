@@ -34,6 +34,7 @@ markers = [
 [dependency-groups]
 dev = [
     "hatchling>=1.29.0",
+    "import-linter>=2.0",
     "mypy>=1.10.0",
     "pre-commit>=3.7.0",
     "pytest>=9.0.3",
@@ -84,7 +85,7 @@ select = ["E", "F", "I", "UP", "RUF"]
 [tool.mypy]
 python_version = "3.12"
 # Scope: production modules + examples/ (kept lint-clean so the quickstart can't silently rot). archive/ excluded.
-files = ["dal", "serve", "domain", "examples"]
+files = ["dal", "serve", "domain", "examples", "research"]
 explicit_package_bases = true
 ignore_missing_imports = true
 disallow_untyped_defs = true

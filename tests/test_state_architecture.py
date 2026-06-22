@@ -113,18 +113,16 @@ def test_non_minutes_roll8_absent():
 # ---------------------------------------------------------------------------
 
 
-def test_derived_column_count_is_13():
-    """STATE must produce exactly 13 derived columns.
+def test_derived_column_count_is_14():
+    """STATE must produce exactly 14 derived columns.
 
     5 approved signals x 2 windows (roll3, roll5) = 10
-    + minutes_roll8 + minutes_trend + fixture_context = 13
-
-    Phase 3 lock: 16 REJECTED-BEHAVIORAL columns removed.
+    + minutes_roll8 + minutes_trend + fixture_context + is_warmup_gw = 14
     """
     spine = _make_spine()
     state = build_player_gameweek_state(spine)
     derived = set(state.columns) - set(spine.columns)
-    assert len(derived) == 13, f"Expected 13 derived columns, got {len(derived)}.\nDerived columns: {sorted(derived)}"
+    assert len(derived) == 14, f"Expected 14 derived columns, got {len(derived)}.\nDerived columns: {sorted(derived)}"
 
 
 # ---------------------------------------------------------------------------

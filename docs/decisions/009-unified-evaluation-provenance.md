@@ -118,7 +118,7 @@ lossless backfill of the prior hand-authored YAML (`_backfill_verdict_records.py
 studies to refresh evidence is a research process (deferred). Hand-authoring retired.
 
 **Phase D — kernels for composition stats (merged):** the statistical primitives moved into
-`research.kernels` — `partial_spearman` + `bootstrap_partial_rho` (`redundancy.py`),
+`research.kernels` — `partial_spearman` + `bootstrap_partial_rho` (→ `composition_study.py` / `resampling.py`),
 `permutation_rho_baseline` (`resampling.py`), `fraction_rank_order_changed` (`stability.py`),
 each unit-tested — and `composition_study.py` imports them (kernels are import-linter exempt for
 `model`). The study stays in `model/assemble` and continues to own weight derivation

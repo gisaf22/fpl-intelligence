@@ -1,0 +1,44 @@
+"""FPL signal composition rules — algebraic identities between mart fields.
+
+These are definitional rules from the FPL API, not empirical findings.
+They hold in every season by construction.
+
+Consequence for analysis: including a composite and its components together
+double-counts the same underlying information. Choose one representation
+per analysis (composite or components).
+"""
+
+# xgi = xg + xa by FPL definition.
+# Expected goal involvements is the sum of expected goals (xg) and expected
+# assists (xa). All three fields are present in the mart.
+XGI_COMPONENTS: tuple[str, ...] = ("xg", "xa")
+
+# ict_index is a composite of influence, creativity, and threat — aggregated
+# by FPL's internal formula (not a simple sum; the exact weighting is
+# unpublished). All four fields are present in the mart.
+ICT_COMPONENTS: tuple[str, ...] = ("influence", "creativity", "threat")
+
+# defensive_contribution is the FPL-computed Defensive Contribution count
+# (2025/26 rule). It aggregates raw defensive actions, position-dependently:
+#   DEF:      CBIT  = clearances_blocks_interceptions + tackles
+#   MID/FWD:  CBIRT = clearances_blocks_interceptions + tackles + recoveries
+# GK are not subject to the rule (the field is structurally 0 for GK). Unlike
+# xgi/ict_index this is a *precomputed* mart field rather than a sum we
+# reconstruct, and `recoveries` only contributes at MID/FWD — but it carries
+# the same parent->components redundancy (including the count alongside its raw
+# actions double-counts at the positions where they apply), so the same
+# "pick one representation" rule applies. All four fields are present in the mart.
+DC_COMPONENTS: tuple[str, ...] = (
+    "clearances_blocks_interceptions",
+    "tackles",
+    "recoveries",
+)
+
+# Canonical composites: the recommended single representative when components
+# and composite are both available. Prefer the composite when you want a single
+# summary; prefer the components when you need separable contributions.
+COMPOSITE_SIGNALS: dict[str, tuple[str, ...]] = {
+    "xgi": XGI_COMPONENTS,
+    "ict_index": ICT_COMPONENTS,
+    "defensive_contribution": DC_COMPONENTS,
+}

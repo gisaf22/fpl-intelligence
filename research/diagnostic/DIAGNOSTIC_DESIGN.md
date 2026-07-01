@@ -235,7 +235,20 @@ Inherited from the informative-EDA conventions established in `foundation/`:
 
 - **GW range:** whole completed season, `GW 1 .. data_cutoff_gw` (dynamic from the mart).
 - **Base population:** `minutes > 0` participation (the player featured), **not** a performance
-  gate.
+  gate. The minutes confound is examined explicitly in Q2, not pre-filtered here.
+
+  > **Diagnostic vs registry population — deliberately different, do not "fix" by aligning them.**
+  > These notebooks describe structure on the broad participation population (`minutes > 0`, whole
+  > season) — the exploratory read. The **registry** (governance evidence) instead builds on the
+  > scoring-homogeneous population **`minutes >= 60`** (`research/registry/population_builder.py`,
+  > `CLEAN_SHEET_MIN_MINUTES`): below 60, `total_points` has a *different* generating process
+  > (appearance / clean-sheet / BPS baselines all break at 60), so the registry pools one regime.
+  > Consequently a signal's `panel_class` **can differ between the notebook and the registry by
+  > construction** — the registry build is authoritative for governance; the notebook is the
+  > broader exploratory view. This is a purpose difference, not an inconsistency to reconcile.
+  > (The registry's historical GW6–33 span is *not* a governance window — the upper bound is the
+  > `data_cutoff_gw` snapshot at build time and the lower bound is only a parity-test fixture
+  > filter; a live full-season build has no lower trim.)
 - **Positions:** GK / DEF / MID / FWD; every read is **per-position** (never pooled across
   positions — structural point differences make pooled statistics uninterpretable).
 - **DGW:** excluded (`is_dgw == False`) on the same grounds as `foundation/` — fixture doubling

@@ -4,7 +4,11 @@ import pytest
 
 from domain.registry.association import assign_association_class, consolidate_flags
 from domain.registry.validation import validate_registry_contract
-from research.kernels.diagnostic.panel import bootstrap_panel_decomposition, split_between_within_player_rho
+from research.kernels.diagnostic.panel import (
+    _dominance_class,
+    bootstrap_panel_decomposition,
+    split_between_within_player_rho,
+)
 from research.kernels.diagnostic.tail import measure_tail_event_dependence
 from research.registry.assembler import assemble_registry_from_sections
 from research.registry.sections import SectionBuildConfig, compute_relationship_sections
@@ -76,9 +80,37 @@ def test_bootstrap_brackets_point_and_returns_cis():
     assert plo < phi  # player resampling produced genuine spread (clusters vary the result)
 
 
+@pytest.mark.parametrize(
+    "pooled_ci, diff_ci, between_ci, within_ci, expected",
+    [
+        # pooled CI includes 0 -> no association to split
+        ((-0.1, 0.3), (0.2, 0.5), (0.3, 0.6), (0.0, 0.2), "undecomposable"),
+        # dominance CI wholly > 0 -> between decisively larger
+        ((0.3, 0.7), (0.1, 0.4), (0.4, 0.7), (0.1, 0.3), "identity_dominant"),
+        # dominance CI wholly < 0 -> within decisively larger
+        ((0.3, 0.7), (-0.4, -0.1), (0.1, 0.3), (0.4, 0.7), "state_sensitive"),
+        # dominance CI straddles 0, both axis CIs exclude 0 -> mixed
+        ((0.3, 0.7), (-0.1, 0.1), (0.2, 0.5), (0.2, 0.5), "mixed"),
+        # dominance CI straddles 0, within CI includes 0 -> indeterminate
+        ((0.2, 0.6), (-0.2, 0.2), (0.2, 0.5), (-0.1, 0.2), "indeterminate"),
+        # dominance CI straddles 0, between CI includes 0 -> indeterminate
+        ((0.2, 0.6), (-0.2, 0.2), (-0.1, 0.2), (0.2, 0.5), "indeterminate"),
+    ],
+)
+def test_dominance_class_branches(pooled_ci, diff_ci, between_ci, within_ci, expected):
+    assert _dominance_class(pooled_ci, diff_ci, between_ci, within_ci) == expected
+
+
+def test_dominance_class_undecomposable_takes_priority_over_direction():
+    # even with a decisive-looking dominance CI, a pooled CI through 0 abstains.
+    assert _dominance_class((-0.1, 0.2), (0.3, 0.6), (0.4, 0.7), (0.1, 0.3)) == "undecomposable"
+
+
 def test_bootstrap_identity_dominant_when_between_drives():
     out = bootstrap_panel_decomposition(_between_dominated_panel(), "signal", "target", "MID", n_boot=300, seed=0)
-    assert out["within_share"] < 0.20  # within is genuinely small
+    # class is now driven by the dominance CI, not within_share (retained as descriptive only).
+    assert out["dominance"] > 0  # |rho_between| > |rho_within|
+    assert out["dominance_ci"][0] > 0.0  # dominance CI wholly above 0
     assert out["panel_class"] == "identity_dominant"
 
 
@@ -110,7 +142,7 @@ def test_bootstrap_point_fields_match_split_between_within():
     df = _between_dominated_panel()
     point = split_between_within_player_rho(df, "signal", "target", "MID")
     out = bootstrap_panel_decomposition(df, "signal", "target", "MID", n_boot=50, seed=0)
-    for key in ("rho_pooled", "rho_between", "rho_within", "within_share", "n_records", "n_players"):
+    for key in ("rho_pooled", "rho_between", "rho_within", "within_share", "dominance", "n_records", "n_players"):
         assert out[key] == point[key] or (pd.isna(out[key]) and pd.isna(point[key]))
 
 

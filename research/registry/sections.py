@@ -55,6 +55,11 @@ class SectionBuildConfig:
     population_robustness: str = "untested"
     default_preferred_population: str = "both"
     n_bootstrap: int = 200
+    # Between/within panel decomposition (Q1b): its own bootstrap count, kept separate from
+    # n_bootstrap so raising it touches only the decomposition's panel_class. 1000 removes the
+    # Monte-Carlo class jitter that flips ~1 borderline cell across seeds at 200 (rho is a
+    # deterministic point estimate, so this does not change rho_* — golden parity holds).
+    panel_n_bootstrap: int = 1000
 
 
 @dataclass(frozen=True)
@@ -308,6 +313,7 @@ def compute_relationship_sections(
                 target=cfg.target_column,
                 position=position,
                 player_col=cfg.player_column,
+                n_boot=cfg.panel_n_bootstrap,
             )
             # The registry schema persists only the four PANEL_CLASS_VALUES; collapse the kernel's
             # internal abstentions (undecomposable / insufficient_support) to indeterminate.

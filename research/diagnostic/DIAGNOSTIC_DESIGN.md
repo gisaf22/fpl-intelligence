@@ -152,6 +152,32 @@ produces. Shared conventions (GW range, `minutes > 0`, per-position, DGW exclude
   this is a contract-visible change consumed by `model/governance/semantics.py` and the registry, and
   must land through staged cross-layer review — not a silent kernel edit. Q1b is **not closeable**, and
   the notebook stays **provisional**, until that lands.
+- **Classifier (implemented — pending review).** `panel_class` is derived from the dominance
+  contrast, first match wins:
+
+  | Priority | Condition | Label |
+  |---|---|---|
+  | 1 | below sample floors | `insufficient_support` → collapses to `indeterminate` at the registry |
+  | 2 | pooled ρ CI includes 0 | `undecomposable` → collapses to `indeterminate` at the registry |
+  | 3 | dominance CI wholly > 0 | `identity_dominant` |
+  | 4 | dominance CI wholly < 0 | `state_sensitive` |
+  | 5 | dominance CI crosses 0 **and** both axis CIs exclude 0 | `mixed` |
+  | 6 | dominance CI crosses 0 **and** an axis CI includes 0 | `indeterminate` |
+
+  Directional classes (3/4) come from the paired difference-CI in `bootstrap_panel_decomposition`;
+  the tied region (5/6) is split by axis existence. The **point** `split_between_within_player_rho`
+  emits only the *sign* of `dominance` (no CI, no abstention) — a direction indicator for the
+  notebook's Kendall cross-check. The registry (`research/registry/sections.py`) now consumes the
+  **bootstrap** (CI-gated) class, collapsing the two kernel-internal abstentions to `indeterminate`
+  so only the four `PANEL_CLASS_VALUES` persist (no schema migration). Governance code is unchanged —
+  only the label *values* flowing in change: ~22 of 29 decided cells move `state_sensitive →
+  identity_dominant`, i.e. from `continuous_monotonic` (useful) to `weak_association`
+  (`assign_association_class`) — the corrected, framework-consistent (Gap 8) routing.
+  **Edges pinned:** opposite-sign axes (Simpson) are out of scope here (Q2/conditioning owns
+  sign-heterogeneity); the registry decomposition keeps its existing population floor
+  (`min_appearances = 1`) — aligning it to the diagnostic's ≥ 10 shifts the persisted `rho`
+  evidence and requires regenerating the golden registry (`research/findings/records/
+  eda_03_joint_registry.csv`), so it is deferred as a separate reviewed change.
 
 **Q2 — Just minutes?** *(minutes_adjusted_association)*
 - **Data:** per (signal, position) — signal + `total_points` + `minutes`.

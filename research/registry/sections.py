@@ -20,7 +20,7 @@ from research.kernels.descriptive.binning import (
     bin_analysis,
     select_bucketing_scheme,
 )
-from research.kernels.diagnostic.panel import split_between_within_player_rho
+from research.kernels.diagnostic.panel import bootstrap_panel_decomposition
 from research.kernels.diagnostic.shape import (
     MONO_CONF_HIGH,
     MONO_CONF_LOW,
@@ -302,13 +302,17 @@ def compute_relationship_sections(
                 )
             )
 
-            decomp = split_between_within_player_rho(
+            decomp = bootstrap_panel_decomposition(
                 work,
                 signal=signal,
                 target=cfg.target_column,
                 position=position,
                 player_col=cfg.player_column,
             )
+            # The registry schema persists only the four PANEL_CLASS_VALUES; collapse the kernel's
+            # internal abstentions (undecomposable / insufficient_support) to indeterminate.
+            if decomp["panel_class"] in ("undecomposable", "insufficient_support"):
+                decomp = {**decomp, "panel_class": "indeterminate"}
             decomposition_rows.append({"signal": signal, "position": position, **decomp})
 
             haul = measure_tail_event_dependence(

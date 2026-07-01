@@ -140,19 +140,16 @@ produces. Shared conventions (GW range, `minutes > 0`, per-position, DGW exclude
   `state_sensitive` / `mixed` when the contrast is decided by its own CI, and `undecomposable` /
   `indeterminate` / `insufficient_support` when it is not. Because governance consumes this label, it
   must denote **measured dominance of the named axis**.
-- **Open (correctness).** The v1 `within_share = |rho_within|/|rho_pooled|` classifier is structurally
-  biased (pooled ≈ within by row count, so `rho_between` never enters). A Phase-1 disagreement test on
-  the 2025-26 mart **confirmed this empirically at maximal severity**: `within_share` labelled 29/29
-  FDR-significant cells `state_sensitive`, while `|rho_between| > |rho_within|` held on 28/29 — a 97%
-  disagreement with the committed dominance estimand, i.e. the live verdicts are **systematically
-  inverted**. Closure now requires re-deriving `panel_class` from the dominance contrast above (a CI
-  on `|rho_between| − |rho_within|`, computable from the existing paired bootstrap draws), demoting
-  `within_share` to a reported descriptive component, and re-pointing the Kendall cross-check at the
-  new object. Because the emitted label **values** will change (many `state_sensitive → identity_dominant`),
-  this is a contract-visible change consumed by `model/governance/semantics.py` and the registry, and
-  must land through staged cross-layer review — not a silent kernel edit. Q1b is **not closeable**, and
-  the notebook stays **provisional**, until that lands.
-- **Classifier (implemented — pending review).** `panel_class` is derived from the dominance
+- **Correctness — resolved.** The v1 `within_share = |rho_within|/|rho_pooled|` classifier was
+  structurally biased (pooled ≈ within by row count, so `rho_between` never entered). A Phase-1
+  disagreement test on the 2025-26 mart confirmed it empirically at maximal severity: `within_share`
+  labelled 29/29 FDR-significant cells `state_sensitive` while `|rho_between| > |rho_within|` held on
+  28/29 — 97% disagreement with the dominance estimand, i.e. the old verdicts were **systematically
+  inverted**. This is now **fixed**: `panel_class` is re-derived from the CI on the dominance contrast
+  (below), `within_share` is demoted to a descriptive column, and the Kendall cross-check reads the
+  new point dominance. The classifier axis of Q1b is **closed**; the one remaining thread is the
+  registry population/golden-registry regeneration (deferred, see the *Classifier* note below).
+- **Classifier (implemented).** `panel_class` is derived from the dominance
   contrast, first match wins:
 
   | Priority | Condition | Label |

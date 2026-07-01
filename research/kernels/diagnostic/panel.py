@@ -11,7 +11,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from research.kernels.diagnostic._rankcorr import _METHODS
 from research.kernels.diagnostic._rankcorr import rank_corr as _rank_corr
 
 # Bootstrap defaults — mirror inferential.resampling so studies quote comparable
@@ -58,9 +57,9 @@ def split_between_within_player_rho(
                           abs(rho_within) > abs(rho_pooled) (descriptive note on within_share).
       support_flag:       'insufficient_support' when n < min_n_records or
                           n_players < min_n_players; empty string otherwise.
+
+    An unknown ``method`` is rejected by ``rank_corr`` on the first correlation call.
     """
-    if method not in _METHODS:
-        raise ValueError(f"method must be one of {_METHODS}, got {method!r}")
 
     empty = {
         "rho_pooled": np.nan,
@@ -147,13 +146,6 @@ def split_between_within_player_rho(
         "n_players": n_players,
         "support_flag": "",
     }
-
-
-def _safe_rank_corr(a: np.ndarray, b: np.ndarray, method: str) -> float:
-    """Rank correlation, or NaN when either side is constant (avoids scipy's warning/NaN noise)."""
-    if np.unique(a).size <= 1 or np.unique(b).size <= 1:
-        return np.nan
-    return _rank_corr(a, b, method)
 
 
 def _percentile_ci(values: list[float], ci_level: float) -> tuple[float, float]:
@@ -321,10 +313,10 @@ def bootstrap_panel_decomposition(
     boot = {"pooled": [], "between": [], "within": [], "share": [], "diff": []}
     for _ in range(n_boot):
         drawn = rng.integers(0, n_players, size=n_players)
-        rho_b = _safe_rank_corr(mean_sig[drawn], mean_tgt[drawn], method)
+        rho_b = _rank_corr(mean_sig[drawn], mean_tgt[drawn], method)
         rows = np.concatenate([row_index_by_player[d] for d in drawn])
-        rho_p = _safe_rank_corr(sig[rows], tgt[rows], method)
-        rho_w = _safe_rank_corr(sig_dm[rows], tgt_dm[rows], method)
+        rho_p = _rank_corr(sig[rows], tgt[rows], method)
+        rho_w = _rank_corr(sig_dm[rows], tgt_dm[rows], method)
         share = abs(rho_w) / abs(rho_p) if (abs(rho_p) > 0.01 and not np.isnan(rho_w)) else np.nan
         # Paired dominance contrast: same resample for both axes, so its CI reflects their
         # covariance (subtracting the marginal CIs would not).

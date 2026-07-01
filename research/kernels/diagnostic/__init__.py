@@ -5,12 +5,20 @@ Why did this happen? Classifies structure and causes within the data.
   stability.py   — distribution stability and pooling decisions
   shape.py       — relationship shape classification from bin stats
   panel.py       — between-player vs within-player rho decomposition
+  serial.py      — within-player serial dependence (autocorrelation, post-event outcome rate)
   tail.py        — tail event concentration analysis
   conditioning.py — cross-stratum association consistency
 """
 
 from research.kernels.diagnostic.conditioning import classify_heterogeneity, compute_conditional_rho
-from research.kernels.diagnostic.panel import split_between_within_player_rho
+from research.kernels.diagnostic.panel import bootstrap_panel_decomposition, split_between_within_player_rho
+from research.kernels.diagnostic.serial import (
+    MIN_N_EVENTS,
+    MIN_N_PAIRS,
+    MIN_N_PLAYERS,
+    post_event_outcome_rate,
+    within_player_autocorr,
+)
 from research.kernels.diagnostic.shape import (
     ASSOCIATION_CLASS_TAXONOMY,
     GEOMETRY_TAXONOMY,
@@ -41,8 +49,11 @@ __all__ = [
     "BLOCK_HOMOGENEITY_VALUES",
     "EPSILON",
     "GEOMETRY_TAXONOMY",
+    "MIN_N_EVENTS",
     "MIN_N_HAUL",
+    "MIN_N_PAIRS",
     "MIN_N_PANEL_PLAYERS",
+    "MIN_N_PLAYERS",
     "MONOTONIC_GEOMETRIES",
     "MONO_CONF_HIGH",
     "MONO_CONF_LOW",
@@ -52,12 +63,15 @@ __all__ = [
     "UNSTABLE_THRESHOLD",
     "UPPER_TAIL_GEOMETRIES",
     "assess_distribution_stability",
+    "bootstrap_panel_decomposition",
     "classify_geometry",
     "classify_heterogeneity",
     "compute_conditional_rho",
     "get_bin_direction",
     "measure_tail_event_dependence",
+    "post_event_outcome_rate",
     "resolve_pooling_strategy",
     "split_between_within_player_rho",
     "stability_classify",
+    "within_player_autocorr",
 ]

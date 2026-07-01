@@ -49,9 +49,9 @@ def compute_conditional_rho(
         moderator_col: Pre-discretised moderator column; each distinct value is a stratum.
 
     Returns:
-        One row per stratum with columns [stratum, n, rho, p_value], ordered by
-        stratum value. Strata with fewer than MIN_N_PER_STRATUM usable rows, or a
-        constant signal/target, yield rho = NaN (and are excluded from classification).
+        One row per stratum with columns [stratum, n, rho], ordered by stratum value.
+        Strata with fewer than MIN_N_PER_STRATUM usable rows, or a constant
+        signal/target, yield rho = NaN (and are excluded from classification).
 
     Raises:
         ValueError: if any required column is missing from df.
@@ -66,14 +66,12 @@ def compute_conditional_rho(
         pair = group[[signal_col, target_col]].dropna()
         n = len(pair)
         rho: float | None = np.nan
-        p_value: float | None = np.nan
         if n >= MIN_N_PER_STRATUM and pair[signal_col].nunique() > 1 and pair[target_col].nunique() > 1:
-            r, p = stats.spearmanr(pair[signal_col], pair[target_col])
+            r, _ = stats.spearmanr(pair[signal_col], pair[target_col])
             rho = round(float(r), 4)
-            p_value = round(float(p), 4)
-        records.append({"stratum": stratum, "n": n, "rho": rho, "p_value": p_value})
+        records.append({"stratum": stratum, "n": n, "rho": rho})
 
-    return pd.DataFrame.from_records(records, columns=["stratum", "n", "rho", "p_value"])
+    return pd.DataFrame.from_records(records, columns=["stratum", "n", "rho"])
 
 
 def classify_heterogeneity(conditional_rho: pd.DataFrame) -> str:

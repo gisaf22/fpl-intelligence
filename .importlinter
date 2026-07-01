@@ -35,6 +35,15 @@ forbidden_modules =
     research
     model
 
+[importlinter:contract:no_diagnostic_to_predictive_layers]
+name = Diagnostic (Rung 2) must not import predictive/operational research layers
+type = forbidden
+source_modules =
+    research.diagnostic
+forbidden_modules =
+    research.families
+    research.findings
+
 [importlinter:contract:no_model_to_research_analysis]
 name = Model must not import research analysis or findings (kernels exempt)
 type = forbidden
@@ -42,6 +51,7 @@ source_modules =
     model
 forbidden_modules =
     research.foundation
+    research.diagnostic
     research.families
     research.findings
 

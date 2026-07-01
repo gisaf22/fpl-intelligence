@@ -1,9 +1,12 @@
 """Player-level variance decomposition.
 
-ANOVA-style split of a season-pooled target into between-player and
+Between/within sum-of-squares partition (descriptive) of a season-pooled target
+into between-player and
 within-player components. Used in foundation EDA to characterise whether a
-target's spread is mostly persistent player quality or week-to-week
-variation.
+target's observed spread sits mostly between players (level differences) or
+within a player (week-to-week movement). It describes the spread actually
+observed in this sample — not an estimate of durable player quality — and is
+sensitive to the qualified population and to playing-time embedded in the target.
 
 ``DEFAULT_MIN_APPEARANCES = 10`` excludes players whose own mean/variance
 would be unreliable on too few observations. It is an operational choice, not
@@ -18,13 +21,8 @@ import pandas as pd
 DEFAULT_MIN_APPEARANCES = 10
 
 
-def decompose_variance(
-    df: pd.DataFrame,
-    value_col: str = "total_points",
-    group_col: str = "player_id",
-    min_appearances: int = DEFAULT_MIN_APPEARANCES,
-) -> dict[str, float]:
-    """ANOVA-style decomposition of total variance into between/within components.
+def decompose_variance(df: pd.DataFrame, value_col: str = "total_points", group_col: str = "player_id", min_appearances: int = DEFAULT_MIN_APPEARANCES) -> dict[str, float]:
+    """Between/within sum-of-squares partition (descriptive) of total variance into between/within components.
 
     SS_total is split as SS_total = SS_between + SS_within, where SS_between
     measures dispersion of group means around the grand mean and SS_within

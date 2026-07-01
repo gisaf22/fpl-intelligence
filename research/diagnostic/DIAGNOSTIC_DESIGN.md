@@ -174,10 +174,14 @@ produces. Shared conventions (GW range, `minutes > 0`, per-position, DGW exclude
   identity_dominant`, i.e. from `continuous_monotonic` (useful) to `weak_association`
   (`assign_association_class`) — the corrected, framework-consistent (Gap 8) routing.
   **Edges pinned:** opposite-sign axes (Simpson) are out of scope here (Q2/conditioning owns
-  sign-heterogeneity); the registry decomposition keeps its existing population floor
-  (`min_appearances = 1`) — aligning it to the diagnostic's ≥ 10 shifts the persisted `rho`
-  evidence and requires regenerating the golden registry (`research/findings/records/
-  eda_03_joint_registry.csv`), so it is deferred as a separate reviewed change.
+  sign-heterogeneity). The registry decomposition sets `panel_n_bootstrap = 1000` (removes the
+  Monte-Carlo class jitter that flips ~1 borderline cell across seeds at 200; `rho` is a
+  deterministic point estimate so this does not shift `rho_*` and golden parity holds).
+  **Deferred:** aligning the population to the estimand (`min_appearances = 10`, on top of the
+  registry's existing `minutes ≥ 60` filter) shifts the persisted `rho` evidence and so requires
+  regenerating the golden registry (`research/findings/records/eda_03_joint_registry.csv`) — and
+  that must go through the real build pipeline, not a raw rewrite, because the registry contract
+  forbids null booleans (`tail_sensitive` = None must be coerced on save). Tracked as its own task.
 
 **Q2 — Just minutes?** *(minutes_adjusted_association)*
 - **Data:** per (signal, position) — signal + `total_points` + `minutes`.

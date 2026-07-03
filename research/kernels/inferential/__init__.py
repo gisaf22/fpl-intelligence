@@ -14,6 +14,7 @@ from research.kernels.inferential.resampling import (
     N_BOOTSTRAP,
     bootstrap_partial_rho,
     bootstrap_spearman_ci,
+    cluster_bootstrap_minutes_adjusted_rho,
     estimate_chance_correlation,
 )
 
@@ -24,6 +25,7 @@ __all__ = [
     "N_BOOTSTRAP",
     "bootstrap_partial_rho",
     "bootstrap_spearman_ci",
+    "cluster_bootstrap_minutes_adjusted_rho",
     "estimate_chance_correlation",
     "monotonicity_confidence",
 ]

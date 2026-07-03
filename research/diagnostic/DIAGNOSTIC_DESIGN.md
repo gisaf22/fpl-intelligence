@@ -63,6 +63,11 @@ the model path, the exact failure §5.2 forbids.
 > possible, with an explicit null. Q4 needs a `serial.py` extension (detrend + decay curve + noise
 > null) not yet built; the other four reuse existing kernels. Per-question data and method rationale
 > are in §3.
+>
+> **Progress (2026-07-02).** Q1, Q1b, Q2 complete (executed, player-clustered CIs, CI-gated verdicts).
+> Q2 adds a paired minutes-shrinkage CI + FDR + players-per-band guard; result: discard `recoveries`(DEF)
+> and `tackles`(FWD) as minutes proxies, `defensive_contribution` is a vetted regime trap, the rest carry
+> information beyond minutes. Q3 pending; Q4 blocked on the `serial.py` extension; Q5 not started.
 
 Each read completes a deferred `§5` thread from a foundation design doc and/or a named gap in the
 statistical framework, and sorts a signal into one slot of a manager's triage —

@@ -187,3 +187,120 @@ def bootstrap_partial_rho(
         float(np.percentile(boot, 100 * alpha / 2)),
         float(np.percentile(boot, 100 * (1.0 - alpha / 2))),
     )
+
+
+def _spearman_or_nan(a: np.ndarray, b: np.ndarray) -> float:
+    """Spearman rho, NaN when either side is constant (correlation undefined)."""
+    if np.unique(a).size <= 1 or np.unique(b).size <= 1:
+        return float("nan")
+    return float(spearmanr(a, b).statistic)
+
+
+def _percentile_ci(draws: np.ndarray, ci_level: float) -> tuple[float, float]:
+    """Two-sided percentile CI over the non-NaN draws, rounded to 4 dp."""
+    arr = draws[~np.isnan(draws)]
+    if arr.size == 0:
+        return (float("nan"), float("nan"))
+    alpha = 1.0 - ci_level
+    lo = float(np.percentile(arr, 100 * alpha / 2))
+    hi = float(np.percentile(arr, 100 * (1 - alpha / 2)))
+    return (round(lo, 4), round(hi, 4))
+
+
+def _two_sided_p(draws: np.ndarray) -> float:
+    """Two-sided bootstrap p-value for H0: statistic = 0, over the non-NaN draws.
+
+    Uses the ``(1 + k) / (1 + n)`` plug-in so the p-value is never exactly 0. Mirrors the
+    player-clustered p in ``diagnostic/panel.py`` so the two decomposition notebooks quote
+    comparable, cluster-respecting significance.
+    """
+    arr = draws[~np.isnan(draws)]
+    if arr.size == 0:
+        return float("nan")
+    tail = min(int(np.sum(arr <= 0.0)), int(np.sum(arr >= 0.0)))
+    return round(min(1.0, 2.0 * (1 + tail) / (1 + arr.size)), 4)
+
+
+def cluster_bootstrap_minutes_adjusted_rho(
+    signal: np.ndarray,
+    control: np.ndarray,
+    target: np.ndarray,
+    cluster_ids: np.ndarray,
+    n_samples: int = N_BOOTSTRAP,
+    ci_level: float = CI_LEVEL,
+    seed: int = BOOTSTRAP_SEED,
+) -> dict | None:
+    """Player-clustered bootstrap of a signal→target association before and after controlling.
+
+    Answers Q2: does ``signal``'s rank association with ``target`` survive once ``control``
+    (playing time) is held equal? Reports three quantities from **one shared set of cluster
+    resamples**, so the shrinkage interval is properly paired:
+
+      * ``rho_raw``   — bivariate Spearman(signal, target).
+      * ``rho_adj``   — partial Spearman(signal, target) controlling for ``control``.
+      * ``shrinkage`` — ``rho_raw - rho_adj`` (how much of the raw link was playing time).
+
+    Resampling is clustered by **player, not row** (``cluster_ids``): rows within a player are
+    not independent (the same player recurs every gameweek), so a row bootstrap understates the
+    uncertainty. A player drawn twice contributes all their rows twice — matching the clustering
+    contract of ``diagnostic/panel.py``.
+
+    Args:
+        signal, control, target: Paired observation arrays of equal length (no NaNs).
+        cluster_ids: Player id per row; distinct values define the resampled clusters.
+        n_samples:   Number of cluster resamples.
+        ci_level:    Two-sided coverage (e.g. 0.95).
+        seed:        RNG seed for reproducibility.
+
+    Returns:
+        Dict ``{rho_raw, raw_ci, rho_adj, adj_ci, shrinkage, shrinkage_ci, adj_p, n, n_players}``
+        where each ``*_ci`` is a ``(lo, hi)`` tuple and ``adj_p`` is the clustered two-sided
+        p-value for ``rho_adj != 0`` (feeds a BH-FDR screen). ``None`` when there are fewer than
+        ``MIN_N`` pairs, fewer than 2 clusters, or a constant signal/target.
+    """
+    signal = np.asarray(signal, dtype=float)
+    control = np.asarray(control, dtype=float)
+    target = np.asarray(target, dtype=float)
+    cluster_ids = np.asarray(cluster_ids)
+    n = signal.size
+    if not (control.size == target.size == cluster_ids.size == n):
+        raise ValueError("signal, control, target, cluster_ids must share length")
+    if n < MIN_N or np.unique(signal).size <= 1 or np.unique(target).size <= 1:
+        return None
+
+    _, inv = np.unique(cluster_ids, return_inverse=True)
+    n_players = int(inv.max()) + 1
+    if n_players < 2:
+        return None
+    rows_by_cluster = [np.flatnonzero(inv == k) for k in range(n_players)]
+
+    def _adj(sig: np.ndarray, ctrl: np.ndarray, tgt: np.ndarray) -> float:
+        return partial_spearman(np.column_stack([sig, ctrl]), tgt, 0)
+
+    rho_raw = _spearman_or_nan(signal, target)
+    rho_adj = _adj(signal, control, target)
+
+    rng = np.random.default_rng(seed)
+    raw_draws = np.empty(n_samples)
+    adj_draws = np.empty(n_samples)
+    shr_draws = np.empty(n_samples)
+    for i in range(n_samples):
+        drawn = rng.integers(0, n_players, size=n_players)
+        rows = np.concatenate([rows_by_cluster[d] for d in drawn])
+        r = _spearman_or_nan(signal[rows], target[rows])
+        a = _adj(signal[rows], control[rows], target[rows])
+        raw_draws[i] = r
+        adj_draws[i] = a
+        shr_draws[i] = r - a
+
+    return {
+        "rho_raw": round(rho_raw, 4),
+        "raw_ci": _percentile_ci(raw_draws, ci_level),
+        "rho_adj": round(rho_adj, 4),
+        "adj_ci": _percentile_ci(adj_draws, ci_level),
+        "shrinkage": round(rho_raw - rho_adj, 4),
+        "shrinkage_ci": _percentile_ci(shr_draws, ci_level),
+        "adj_p": _two_sided_p(adj_draws),
+        "n": int(n),
+        "n_players": n_players,
+    }

@@ -80,3 +80,61 @@ def test_permutation_baseline_near_zero_for_strong_signal() -> None:
 
 def test_permutation_baseline_too_few_observations_returns_zero() -> None:
     assert estimate_chance_correlation(np.arange(MIN_N - 1.0), np.arange(MIN_N - 1.0)) == 0.0
+
+
+# --- cluster_bootstrap_minutes_adjusted_rho (Q2) -------------------------------
+
+from research.kernels.inferential.resampling import cluster_bootstrap_minutes_adjusted_rho  # noqa: E402
+
+
+def _panel(n_players: int, n_gw: int, seed: int, mediated: bool) -> dict[str, np.ndarray]:
+    """Build a player panel. mediated=True: signal→target link runs entirely through
+    the control (minutes), so the minutes-adjusted rho should collapse toward 0."""
+    rng = np.random.default_rng(seed)
+    sig, ctrl, tgt, pid = [], [], [], []
+    for p in range(n_players):
+        minutes = rng.uniform(0, 90, size=n_gw)
+        if mediated:
+            s = minutes + rng.normal(0, 1, size=n_gw)      # signal driven by minutes
+            y = minutes + rng.normal(0, 1, size=n_gw)      # target driven by minutes only
+        else:
+            s = rng.normal(0, 1, size=n_gw)                # signal independent of minutes
+            y = 2 * s + minutes * 0.1 + rng.normal(0, 1, size=n_gw)  # target tracks signal
+        sig.append(s)
+        ctrl.append(minutes)
+        tgt.append(y)
+        pid.append(np.full(n_gw, p))
+    return {
+        "signal": np.concatenate(sig), "control": np.concatenate(ctrl),
+        "target": np.concatenate(tgt), "cluster_ids": np.concatenate(pid),
+    }
+
+
+def test_cluster_boot_is_deterministic() -> None:
+    d = _panel(20, 10, seed=1, mediated=False)
+    a = cluster_bootstrap_minutes_adjusted_rho(**d, seed=0, n_samples=300)
+    b = cluster_bootstrap_minutes_adjusted_rho(**d, seed=0, n_samples=300)
+    assert a == b
+
+
+def test_genuine_signal_survives_adjustment() -> None:
+    d = _panel(40, 12, seed=2, mediated=False)
+    out = cluster_bootstrap_minutes_adjusted_rho(**d, seed=0, n_samples=400)
+    assert out is not None
+    assert out["adj_ci"][0] > 0                    # adjusted rho stays clear of 0
+    assert out["adj_p"] < 0.05
+    assert out["n_players"] == 40
+
+
+def test_minutes_proxy_collapses_after_adjustment() -> None:
+    d = _panel(40, 12, seed=3, mediated=True)
+    out = cluster_bootstrap_minutes_adjusted_rho(**d, seed=0, n_samples=400)
+    assert out is not None
+    assert out["rho_raw"] > 0.3                    # raw link is real...
+    assert out["adj_ci"][0] <= 0 <= out["adj_ci"][1]  # ...but vanishes once minutes held equal
+    assert out["shrinkage"] > 0.2
+
+
+def test_returns_none_below_floor() -> None:
+    d = _panel(1, 5, seed=4, mediated=False)       # 1 cluster, too few pairs
+    assert cluster_bootstrap_minutes_adjusted_rho(**d, seed=0, n_samples=50) is None

@@ -309,15 +309,31 @@ def bootstrap_panel_decomposition(
     row_index_by_player = [groups.indices[p] for p in pmeans.index]
     n_players = len(pmeans)
 
+    # Generates a random number
     rng = np.random.default_rng(seed)
+
     boot = {"pooled": [], "between": [], "within": [], "share": [], "diff": []}
+
+    # cluster bootstrap: resample players (with replacement) and recompute all three axes per draw
     for _ in range(n_boot):
+
+        # sample player positional indices with replacement/independently
         drawn = rng.integers(0, n_players, size=n_players)
+
+        # calculate rho between
         rho_b = _rank_corr(mean_sig[drawn], mean_tgt[drawn], method)
+
+        # flattened array of rows of all drawn players(player drawn twice enters twice)
         rows = np.concatenate([row_index_by_player[d] for d in drawn])
+
+        # pooled correlation — raw signal vs. raw target across all resampled rows, no demeaning
         rho_p = _rank_corr(sig[rows], tgt[rows], method)
+
+        # within-player: correlation of each player's deviations around their own mean
         rho_w = _rank_corr(sig_dm[rows], tgt_dm[rows], method)
+
         share = abs(rho_w) / abs(rho_p) if (abs(rho_p) > 0.01 and not np.isnan(rho_w)) else np.nan
+
         # Paired dominance contrast: same resample for both axes, so its CI reflects their
         # covariance (subtracting the marginal CIs would not).
         diff = abs(rho_b) - abs(rho_w) if not (np.isnan(rho_b) or np.isnan(rho_w)) else np.nan

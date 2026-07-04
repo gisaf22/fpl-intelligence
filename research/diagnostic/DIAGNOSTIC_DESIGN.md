@@ -37,9 +37,10 @@ kernels → foundation (what) → diagnostic (why) → families (validate) → f
    out of scope. Where a notebook claims a pattern is real *beyond sampling noise*, it must
    carry a bootstrap CI (Rung 3 machinery) — it does not get that claim for free.
 2. **No predictive language.** "Predicts", "forecasts next week", "expected next GW" belong to
-   the `families/` validate stage (lagged design + inference + the three gates). Even
-   the gameweek-spanning reads (Q4 form persistence, Q5 post-spike reversion) are framed as *serial dependence observed within
-   this season* — a structural fact, not a forecast.
+   the `families/` validate stage (lagged design + inference + the three gates). Any question with a
+   week-to-week lag (form persistence, post-spike reversion) is a *predictive* claim by construction
+   and therefore lives in `families/`, **not** here — the earlier attempt to keep them as
+   "serial dependence within the season" (ex-Q4/Q5) is retired; see §2.
 
 This layer produces **no governance verdict**. Like `foundation/`, it is informative EDA: its
 outputs characterise structure so a later predictive/governance stage can act on it.
@@ -50,48 +51,53 @@ reader sees — tables, plots, prose. It **never emits a structured finding into
 signal. The pipeline arrow above is one-directional and production-fed: a diagnostic read becomes
 model-consumable *only* by being re-derived in a `families/` validate study (lagged design +
 inference + gates) and, if it earns persistence, recorded as a separate DAL decision (§5.2). Any
-"emit the verdict so the model can route on it" step is therefore out of scope **for every question
-Q1–Q5**, not just deferred — it would smuggle an un-validated, single-season notebook estimate into
+"emit the verdict so the model can route on it" step is therefore out of scope **for every diagnostic
+question**, not just deferred — it would smuggle an un-validated, single-season notebook estimate into
 the model path, the exact failure §5.2 forbids.
 
 ## 2. Questions
 
-> **Revision (2026-06-25) — Rung-2 question redesign.** The original four-notebook set is superseded
-> by the five questions below. The old `form_persistence` read fused two distinct estimands — a
-> continuous form autocorrelation and a binary post-spike transition — and is split into **Q4 + Q5**.
-> Each question now carries **one estimand and one manager-read**, anchored to `total_points` where
-> possible, with an explicit null. Q4 needs a `serial.py` extension (detrend + decay curve + noise
-> null) not yet built; the other four reuse existing kernels. Per-question data and method rationale
-> are in §3.
+> **Revision (2026-06-25) — Rung-2 question redesign.** The original four-notebook set was superseded
+> by a five-question set (Q1, Q1b, Q2, Q3, Q4, Q5). Each question carries **one estimand and one
+> manager-read**, anchored to `total_points` where possible, with an explicit null. Per-question data
+> and method rationale are in §3.
 >
-> **Progress (2026-07-02).** Q1, Q1b, Q2 complete (executed, player-clustered CIs, CI-gated verdicts).
-> Q2 adds a paired minutes-shrinkage CI + FDR + players-per-band guard; result: discard `recoveries`(DEF)
-> and `tackles`(FWD) as minutes proxies, `defensive_contribution` is a vetted regime trap, the rest carry
-> information beyond minutes. Q3 pending; Q4 blocked on the `serial.py` extension; Q5 not started.
+> **Revision (2026-07-03) — layer closed at Q1/Q1b/Q2.** The diagnostic layer is now scoped to the
+> three association-structure questions below. The rest are resolved as follows:
+> - **Q3 (tail vs body) — dropped.** Off the critical path: it characterises a surviving signal
+>   (captaincy texture) but gates nothing downstream, and abstains for thin-haul positions (FWD/GK).
+>   The tail idea is revived only *inside* a haul-probability model, if one is built.
+> - **Q4 (form persistence) + Q5 (post-spike reversion) — relocated to `families/`.** Both carry a
+>   week-to-week lag, which makes them *predictive* claims (Rung 4) outside this layer's
+>   association-only boundary. They belong in the `form` family, done with lagged design + gates. The
+>   `serial.py` kernel (`within_player_autocorr`, `post_event_outcome_rate`) is **retained** as the
+>   reusable primitive that the families study will call — no diagnostic `serial.py` extension will be built.
+>
+> **Progress.** Q1, Q1b, Q2 complete (executed, player-clustered CIs, CI-gated verdicts). Q2 adds a
+> paired minutes-shrinkage CI + FDR + players-per-band guard; result: discard `recoveries`(DEF) and
+> `tackles`(FWD) as minutes proxies, `defensive_contribution` is a vetted regime trap, the rest carry
+> information beyond minutes. **Layer closed.**
 
 Each read completes a deferred `§5` thread from a foundation design doc and/or a named gap in the
-statistical framework, and sorts a signal into one slot of a manager's triage —
-**own / discard / style / time / fade**.
+statistical framework, and sorts a signal into one slot of a manager's triage — **own / discard**.
 
 | # | Question | Manager use | Owns |
 |---|---|---|---|
 | Q1 | Before any signal, how much of weekly `total_points` variation sits *between* players vs *within* a player? | descriptive **preamble** Q1b reads against | the points between/within partition |
 | Q1b | Given a signal links to points, is that link *identity*-driven or *state*-driven? | **own** vs **time** | the per-signal identity-vs-state split |
 | Q2 | Does a signal still track points once playing time is held equal? | **discard** (minutes proxy) | the minutes-confound adjustment |
-| Q3 | Does a signal's association ride on rare hauls, or the steady body too? | **style** (punt vs template) | the tail-vs-body decomposition |
-| Q4 | Stripping level **and** season trend, does a player's *form* carry to the next week — and for how long? | **time** (hold a hot player) | within-player form persistence (rebuilt) |
-| Q5 | After an exceptional week, does a player continue or regress to the mean? | **fade** (sell-high vs hold) | post-spike reversion |
+| ~~Q3~~ | ~~tail vs body~~ — **dropped** (off critical path) | — | folds into a haul-probability model if built |
+| ~~Q4~~ | ~~form persistence~~ — **relocated → `families/form`** | **time** | lagged/predictive; reuses `serial.py` |
+| ~~Q5~~ | ~~post-spike reversion~~ — **relocated → `families/`** | **fade** | lagged/predictive |
 
 Q1 is a **points-only descriptive preamble** — a single between/within partition with no signals in it —
 that Q1b reads against: where a position shows little within-player movement this season, there is little
 within-player variation for a signal to track. It describes the observed spread; it does not estimate
 durable player quality or set a hard bound on what is findable.
-Q1b (between/within of a signal's link) and Q3 (full/no-haul) are **two orthogonal decompositions of
-the same pooled association** — keep them cross-referenced, not merged. Q4 is the temporal complement
-to Q1b: one asks whether within-player state *exists*, the other whether it *persists*. Q5 is the discrete, output-side
-counterpart to Q4 (a thresholded spike, not a graded signal) and is framed as **regression to the
-mean**, not persistence — the two pull in opposite directions and must never be fused (the exact error
-the original `form_persistence` made).
+The temporal complement to Q1b — whether within-player state, once shown to *exist*, also *persists*
+(ex-Q4) or *reverts* after a spike (ex-Q5) — is a lagged/predictive question and now lives in
+`families/`, not here. Q1b establishes existence; persistence and prediction are a `families/form`
+concern, done with lagged design and gates.
 
 ## 3. Directive questions
 
@@ -196,40 +202,22 @@ produces. Shared conventions (GW range, `minutes > 0`, per-position, DGW exclude
   inside a band (a trap).
 - **Manager-read:** collapses toward 0 → **discard** (a playing-time proxy); survives → real information.
 
-**Q3 — Boom-bust or steady?** *(tail_dependence)*
-- **Data:** per (signal, position) — signal + `total_points`; each week flagged haul/not by **that
-  position's own** big-week line (position-relative p95, *not* a league-wide cut).
-- **Method (why):** the association computed twice — all weeks vs haul weeks removed
-  (`measure_tail_event_dependence`) — and compared (`tail_sensitive`), read against haul frequency
-  (`haul_pct`, `n_haul`); `tail_sensitive = None` (too few hauls) is shown distinctly and never read
-  as "safe". A signal can correlate with points only because it spikes in a handful of explosive
-  weeks; deleting those weeks asks whether it still pays on a normal week. Same statistic, two samples.
-- **Manager-read:** collapses without hauls → **style: boom-bust** (captaincy gamble); holds → steady floor (template).
+**Q3 — Boom-bust or steady? — DROPPED (2026-07-03).**
+Off the critical path: it characterises a signal that already survived Q1b/Q2 (captaincy texture) but
+gates nothing downstream, and it abstains for thin-haul positions (FWD/GK) where boom-bust matters
+most. The tail-vs-body idea is revived only *inside* a haul-probability model, if one is built. (The
+registry `haul` decomposition section is unaffected — that is separate production machinery, not this
+notebook.)
 
-**Q4 — Does form stick?** *(form_persistence, rebuilt — diagnostic framing only, no predictive claim)*
-- **Data:** per (signal, position) — **process signals** (`xg`, `xa`, shots, box touches), *not*
-  `total_points` (kept only as a noisy-output contrast); consecutive gameweeks per player, with enough
-  gameweeks per player to fit a trend.
-- **Method (why):** for each player remove their **level** (own mean) *and* their **season trend** (a
-  fitted slope), leaving the week-to-week **deviation** = form; correlate this week's deviation with
-  the next, swept over **lags 1, 2, 3…** (a decay curve), judged against a **no-persistence null** (the
-  autocorrelation pure noise produces — slightly negative, ≈ −1/(T−1), not zero). "In form and will it
-  last?" is about the *deviation*, not the player's class or season arc — so strip level and trend
-  first, then ask whether the deviation repeats, and call it "sticky" only if it beats chance. Process
-  signals because `total_points` is too noisy to see the deviation (xG persists, goals don't).
-  **Extends `serial.py`** (adds detrend, the lag sweep, the null); **scope the first build to lag-1 on
-  process signals vs the null**, deferring the full decay curve + detrend as explicit extensions.
-- **Manager-read:** beats the null and decays slowly → **time** (a hot player's form has legs); fast
-  decay / at-null → each week roughly independent.
-
-**Q5 — Hold or fade after a spike?** *(post-spike reversion — framed as regression to the mean)*
-- **Data:** per position — `total_points` (output is what a manager reacts to); an exceptional week
-  flagged by **that position's own** line (position-relative p95); the following gameweek's points.
-- **Method (why):** the average outcome the gameweek **after** an exceptional week vs the player's
-  baseline (`transition_rate`, read as **regression to the mean**, position base-rate-relative). A
-  single huge week is part skill, part luck; luck doesn't repeat, so spikes usually drift back. The
-  gap between the post-spike rate and baseline is how much of the spike was repeatable.
-- **Manager-read:** drifts back to baseline → **fade** (sell high); stays elevated → a genuine new level.
+**Q4 — Does form stick? / Q5 — Hold or fade after a spike? — RELOCATED to `families/` (2026-07-03).**
+Both correlate a value at week *t* with an outcome at week *t+1*; a week-to-week lag is a *predictive*
+claim (Rung 4) and sits outside this layer's association-only boundary. The earlier attempt to keep
+them here as "serial dependence within the season" is retired. They belong in the `form` family, done
+with lagged design + inference + gates, where `total_points` form (Q5) is admissible and prediction is
+legitimate. The `serial.py` kernel (`within_player_autocorr`, `post_event_outcome_rate`) is retained
+as the reusable primitive that study will call; no diagnostic `serial.py` extension will be built.
+Q1b already answers the diagnostic half — whether within-player *state exists*; persistence and
+reversion are the predictive half.
 
 ## 4. Shared method
 

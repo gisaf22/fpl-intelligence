@@ -10,10 +10,16 @@ Metrics (headline is ranking, because FPL is won by ranking players, not by
 hitting exact scores — and the target is zero-inflated / right-skewed, which
 makes squared-error metrics haul-dominated and misleading):
 
-  * ``spearman_mean``    — mean per-GW rank correlation (primary).
-  * ``precision_at_k``   — mean per-GW share of the actual top-K in the predicted top-K (decision-relevant).
-  * ``ndcg_at_k``        — mean per-GW NDCG@K, points as gains (rewards ranking real scorers high).
-  * ``mae``              — mean absolute error (secondary, robust point-accuracy sanity).
+  * ``spearman_pos``   — mean within-(GW, position) rank correlation (the benchmark).
+  * ``precision_at_k`` — per-position, tie-aware share of the actual top-K in the predicted top-K.
+  * ``ndcg_at_k``      — per-position NDCG@K, points as gains (rewards ranking real scorers high).
+  * ``mae``            — mean absolute error (secondary, robust point-accuracy sanity).
+
+**Ranking is always within-position.** Squads fill under position quotas (2 GK /
+5 DEF / 5 MID / 3 FWD), so ranking a keeper against a forward is meaningless.
+Cross-position pooling is therefore abolished — there is no ``spearman_mean`` and no
+cross-position top-K. ``walk_forward_by_position`` is the benchmark;
+``walk_forward_baselines`` reports the within-position average as a one-line summary.
 
 RMSE is deliberately omitted: on this skewed target it is dominated by rare hauls.
 Proper scoring for the distributional models (Poisson deviance, CRPS) arrives in
@@ -29,11 +35,8 @@ computed over players who *actually featured* that gameweek — availability is 
 as known. These numbers are therefore "ranking accuracy **given** the player played",
 a valid sub-problem; jointly predicting who plays is the availability family's job and
 is out of scope here. Do not read the benchmark as end-to-end forecast accuracy.
-
-**Ranking is pooled AND per-position.** ``spearman_mean`` ranks all positions together
-(a summary); ``spearman_pos`` ranks within each position (the decision-relevant view,
-since squads are filled under position quotas). ``precision_at_k`` is tie-aware on the
-actual side (the target is heavily tied — 36% of returns are exactly 1 point).
+``precision_at_k`` is tie-aware on the actual side (the target is heavily tied — 36%
+of returns are exactly 1 point).
 """
 
 from __future__ import annotations
@@ -115,44 +118,32 @@ def score_predictions(
                    common evaluation set; when given, scoring is restricted to it.
 
     Returns:
-        Dict ``{spearman_mean, spearman_pos, precision_at_k, ndcg_at_k, mae, n}`` —
-        ``spearman_mean`` pools positions within a GW; ``spearman_pos`` averages
-        within-(GW, position) rank correlations (the decision-relevant view).
+        Dict ``{spearman_pos, mae, n}`` — ``spearman_pos`` averages within-(GW, position)
+        rank correlations (there is no cross-position ranking). Per-position precision /
+        NDCG live in :func:`walk_forward_by_position`.
     """
     ev = features[features["gw"] > WARMUP_GW]
     if eval_mask is not None:
         ev = ev[eval_mask.loc[ev.index]]
     ev = ev.dropna(subset=[pred_col, target_col])
     if ev.empty:
-        return {"spearman_mean": np.nan, "spearman_pos": np.nan, "precision_at_k": np.nan,
-                "ndcg_at_k": np.nan, "mae": np.nan, "n": 0}
+        return {"spearman_pos": np.nan, "mae": np.nan, "n": 0}
 
     mae = float((ev[pred_col] - ev[target_col]).abs().mean())
-    sp, pk, nd = [], [], []
-    for _, g in ev.groupby("gw"):
-        if len(g) < MIN_ROWS_PER_GW or g[pred_col].nunique() <= 1 or g[target_col].nunique() <= 1:
-            continue
-        p, a = g[pred_col].to_numpy(), g[target_col].to_numpy()
-        sp.append(float(spearmanr(p, a).statistic))
-        pk.append(_precision_at_k(p, a, TOP_K))
-        nd.append(_ndcg_at_k(p, a, TOP_K))
     return {
-        "spearman_mean": round(float(np.mean(sp)), 4) if sp else np.nan,
         "spearman_pos": round(_grouped_spearman(ev, pred_col, target_col, ["gw", "position"], MIN_ROWS_PER_POS), 4),
-        "precision_at_k": round(float(np.mean(pk)), 4) if pk else np.nan,
-        "ndcg_at_k": round(float(np.mean(nd)), 4) if nd else np.nan,
         "mae": round(mae, 4),
         "n": len(ev),
     }
 
 
 def walk_forward_baselines(mart: pd.DataFrame) -> pd.DataFrame:
-    """Score every baseline on the leakage-checked, **coverage-matched** walk-forward.
+    """Within-position summary per baseline (one line each) on the coverage-matched set.
 
-    All baselines are scored on the common evaluation set (rows post-warmup where
-    every baseline is defined), so the comparison is not confounded by unequal
-    history requirements. ``coverage`` reports each baseline's applicability over
-    all post-warmup rows. Sorted by ``spearman_mean`` (primary) — the frozen benchmark.
+    A compact leaderboard: ``spearman_pos`` (within-position average) and ``mae`` over
+    the common evaluation set, with ``coverage``. The per-position detail — and the
+    actual bars Phase 1 must beat — is in :func:`walk_forward_by_position`. There is no
+    cross-position ranking here. Sorted by ``spearman_pos``.
     """
     features = build_baseline_features(mart)
     _assert_no_leakage(features)
@@ -167,7 +158,7 @@ def walk_forward_baselines(mart: pd.DataFrame) -> pd.DataFrame:
         coverage = float(post[col].notna().mean())
         rows.append({"baseline": label, **score_predictions(features, col, eval_mask=common_mask),
                      "coverage": round(coverage, 3)})
-    return pd.DataFrame(rows).set_index("baseline").sort_values("spearman_mean", ascending=False)
+    return pd.DataFrame(rows).set_index("baseline").sort_values("spearman_pos", ascending=False)
 
 
 # Squads fill under position quotas (2 GK / 5 DEF / 5 MID / 3 FWD), so the shortlist
@@ -202,15 +193,18 @@ def walk_forward_by_position(mart: pd.DataFrame) -> pd.DataFrame:
             continue
         k = _position_k(int(sub.groupby("gw").size().median()))
         for col, label in BASELINES.items():
-            pk = [
-                _precision_at_k(g[col].to_numpy(), g["total_points"].to_numpy(), k)
-                for _, g in sub.groupby("gw")
-                if len(g) >= MIN_ROWS_PER_POS and g[col].nunique() > 1 and g["total_points"].nunique() > 1
-            ]
+            pk, nd = [], []
+            for _, g in sub.groupby("gw"):
+                if len(g) < MIN_ROWS_PER_POS or g[col].nunique() <= 1 or g["total_points"].nunique() <= 1:
+                    continue
+                p, a = g[col].to_numpy(), g["total_points"].to_numpy()
+                pk.append(_precision_at_k(p, a, k))
+                nd.append(_ndcg_at_k(p, a, k))
             rows.append({
                 "position": pos, "baseline": label,
                 "spearman": round(_grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
                 "precision_at_k": round(float(np.mean(pk)), 4) if pk else np.nan,
+                "ndcg_at_k": round(float(np.mean(nd)), 4) if nd else np.nan,
                 "k": k, "n_gw": len(sub["gw"].unique()),
             })
     out = pd.DataFrame(rows)

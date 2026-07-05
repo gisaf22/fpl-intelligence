@@ -54,19 +54,19 @@ def test_population_excludes_dgw_and_non_players() -> None:
 
 def test_persistent_skill_makes_season_avg_rank_well() -> None:
     # With persistent player skill, the expanding season average should track the
-    # true ranking (positive within-week Spearman).
-    feats = build_baseline_features(_panel(n_players=30, n_gw=15, seed=3))
+    # true ranking within position (positive within-position Spearman).
+    feats = build_baseline_features(_panel(n_players=60, n_gw=15, seed=3))
     out = score_predictions(feats, "base_season")
-    assert out["spearman_mean"] > 0.3
+    assert out["spearman_pos"] > 0.3
     assert out["n"] > 0
 
 
 def test_walk_forward_returns_all_baselines_ranked() -> None:
-    res = walk_forward_baselines(_panel(n_players=30, n_gw=14))
+    res = walk_forward_baselines(_panel(n_players=60, n_gw=14))
     assert set(res.index) == set(BASELINES.values())
-    assert list(res.columns) == ["spearman_mean", "spearman_pos", "precision_at_k", "ndcg_at_k", "mae", "n", "coverage"]
-    # sorted by spearman_mean descending
-    sp = res["spearman_mean"].dropna().to_numpy()
+    assert list(res.columns) == ["spearman_pos", "mae", "n", "coverage"]
+    # sorted by within-position spearman descending (no cross-position ranking)
+    sp = res["spearman_pos"].dropna().to_numpy()
     assert (np.diff(sp) <= 1e-9).all()
 
 
@@ -86,7 +86,7 @@ def test_by_position_structure_and_posmean_constant() -> None:
     from model.eval.walkforward import walk_forward_by_position
     res = walk_forward_by_position(_panel(n_players=60, n_gw=16))
     assert res.index.names == ["position", "baseline"]
-    assert list(res.columns) == ["spearman", "precision_at_k", "k", "n_gw"]
+    assert list(res.columns) == ["spearman", "precision_at_k", "ndcg_at_k", "k", "n_gw"]
     # position mean is constant within a position -> spearman is undefined (NaN).
     posmean = res.xs("position mean (sanity floor)", level="baseline")
     assert posmean["spearman"].isna().all()

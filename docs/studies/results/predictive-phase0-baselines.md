@@ -9,20 +9,34 @@
 
 All baselines scored on the **same rows** (the common set where every baseline is defined; n = 8728),
 so the comparison is not a sampling artifact. `coverage` = share of post-warmup rows on which the
-baseline is defined at all. Headline metric is **ranking** (Spearman / precision@20 / NDCG@20); the
-target is zero-inflated and right-skewed, so squared error is haul-dominated — **RMSE is omitted**;
-MAE is a secondary sanity number. Proper scoring (Poisson deviance, CRPS) arrives in Phase 4.
+baseline is defined at all. Headline metric is **ranking**; the target is zero-inflated and
+right-skewed, so squared error is haul-dominated — **RMSE is omitted**; MAE is a secondary sanity
+number. Proper scoring (Poisson deviance, CRPS) arrives in Phase 4.
 
-| baseline | spearman_mean | precision@20 | ndcg@20 | mae | coverage |
-|---|---|---|---|---|---|
-| expanding season avg | **0.245** | **0.150** | **0.377** | 2.193 | 0.984 |
-| rolling avg (5) | 0.217 | 0.136 | 0.351 | 2.284 | 0.849 |
-| rolling avg (3) | 0.196 | 0.132 | 0.335 | 2.378 | 0.940 |
-| last-GW points | 0.174 | 0.112 | 0.313 | 2.703 | 0.984 |
-| position mean (sanity floor) | 0.011 | 0.070 | 0.288 | 2.229 | 1.000 |
+| baseline | spearman_mean | spearman_pos | precision@20 | ndcg@20 | mae | coverage |
+|---|---|---|---|---|---|---|
+| expanding season avg | 0.245 | **0.205** | 0.171 | 0.377 | 2.193 | 0.984 |
+| rolling avg (5) | 0.217 | 0.202 | 0.153 | 0.351 | 2.284 | 0.849 |
+| rolling avg (3) | 0.196 | 0.177 | 0.149 | 0.335 | 2.378 | 0.940 |
+| last-GW points | 0.174 | 0.163 | 0.126 | 0.313 | 2.703 | 0.984 |
+| position mean (sanity floor) | 0.011 | NaN | 0.080 | 0.288 | 2.229 | 1.000 |
 
-**The bar to beat:** spearman **0.245** / precision@20 **0.150** / ndcg@20 **0.377** (expanding season
-avg). Any later model that does not clear these on the same harness adds nothing.
+**The bar to beat:** **spearman_pos = 0.205** (within-position — the decision-relevant view), with
+spearman_mean 0.245 pooled and precision@20 0.171 (expanding season avg). Any later model that does
+not clear these on the same harness adds nothing.
+
+- `spearman_pos` < `spearman_mean` because pooled ranking gets free credit from trivial position-level
+  differences (FWDs outscore GKs); ranking *within* a position is the harder, actionable task.
+- `position mean` has `spearman_pos = NaN` by construction — it is constant within a position, so it
+  has zero within-position ranking ability, confirming it is a pure position-level floor.
+
+### Framing — conditional on appearance (important)
+
+The population is `minutes > 0`, so every metric is computed over players who **actually featured**.
+Availability is treated as known: the benchmark is *"ranking accuracy given the player played"*, a
+valid sub-problem, **not** end-to-end forecast accuracy. Jointly predicting who plays belongs to the
+availability family (later phase). Read every downstream model's score under the same caveat.
+`precision@20` is tie-aware on the actual side (36% of returns are exactly 1 point).
 
 ## What it establishes
 
@@ -50,5 +64,16 @@ These are deliberate simplifications of the Phase-0 floor, named here rather tha
 
 Baselines produce reproducible per-GW scores (deterministic); the walk-forward harness passes its
 no-future-rows leakage assertion (`_assert_no_leakage`); baselines compared on a coverage-matched
-common set with ranking-appropriate metrics. Phase 1 (hierarchical/ICC) may open — its promotion test
-is to beat spearman 0.245 on this harness.
+common set with ranking-appropriate, tie-aware, per-position metrics, framed as conditional on
+appearance. Phase 1 (hierarchical/ICC) may open — its promotion test is to beat **spearman_pos 0.205**
+(and spearman_mean 0.245) on this harness.
+
+## Board stress-test (2026-07-05) — verified
+
+Feature construction and leakage clean: `shift(1)` uses the prior gameweek (not row order), `posmean`
+excludes the current GW, no `(player_id,gw)` duplicates, GW monotonic per player, no feature
+suspiciously correlated with target, deterministic on re-run. Issues found and resolved: fair common
+set (A), ranking/tie-aware/per-position metrics with RMSE dropped (B), conditional-on-appearance
+framing (the benchmark selects on realised availability — a valid sub-problem, now documented).
+Deferred with cause: joint availability modelling, DGW targets, calendar-vs-appearance windows,
+cold-start coverage.

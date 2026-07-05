@@ -64,7 +64,7 @@ def test_persistent_skill_makes_season_avg_rank_well() -> None:
 def test_walk_forward_returns_all_baselines_ranked() -> None:
     res = walk_forward_baselines(_panel(n_players=30, n_gw=14))
     assert set(res.index) == set(BASELINES.values())
-    assert list(res.columns) == ["spearman_mean", "precision_at_k", "ndcg_at_k", "mae", "n", "coverage"]
+    assert list(res.columns) == ["spearman_mean", "spearman_pos", "precision_at_k", "ndcg_at_k", "mae", "n", "coverage"]
     # sorted by spearman_mean descending
     sp = res["spearman_mean"].dropna().to_numpy()
     assert (np.diff(sp) <= 1e-9).all()

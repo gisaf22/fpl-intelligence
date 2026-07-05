@@ -23,7 +23,7 @@ BASELINES: dict[str, str] = {
     "base_roll3": "rolling avg (3)",
     "base_roll5": "rolling avg (5)",
     "base_season": "expanding season avg",
-    "base_posmean": "position mean (identity-free)",
+    "base_posmean": "position mean (sanity floor)",
 }
 
 

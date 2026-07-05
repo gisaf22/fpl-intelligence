@@ -62,12 +62,18 @@ def test_persistent_skill_makes_season_avg_rank_well() -> None:
 
 
 def test_walk_forward_returns_all_baselines_ranked() -> None:
-    res = walk_forward_baselines(_panel(n_players=8, n_gw=14))
+    res = walk_forward_baselines(_panel(n_players=30, n_gw=14))
     assert set(res.index) == set(BASELINES.values())
-    assert list(res.columns) == ["mae", "rmse", "spearman_mean", "n"]
+    assert list(res.columns) == ["spearman_mean", "precision_at_k", "ndcg_at_k", "mae", "n", "coverage"]
     # sorted by spearman_mean descending
     sp = res["spearman_mean"].dropna().to_numpy()
     assert (np.diff(sp) <= 1e-9).all()
+
+
+def test_common_eval_set_scores_all_baselines_on_equal_n() -> None:
+    # Fix A: with a common evaluation set, every baseline is scored on the same rows.
+    res = walk_forward_baselines(_panel(n_players=30, n_gw=16))
+    assert res["n"].nunique() == 1  # equal n across baselines
 
 
 def test_scoring_respects_warmup() -> None:

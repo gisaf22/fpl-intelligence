@@ -6,11 +6,12 @@ only strictly-prior gameweeks (shift(1) before any rolling/expanding window).
 """
 
 from model.eval.baselines import BASELINES, build_baseline_features
-from model.eval.walkforward import score_predictions, walk_forward_baselines
+from model.eval.walkforward import score_predictions, walk_forward_baselines, walk_forward_by_position
 
 __all__ = [
     "BASELINES",
     "build_baseline_features",
     "score_predictions",
     "walk_forward_baselines",
+    "walk_forward_by_position",
 ]

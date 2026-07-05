@@ -30,6 +30,26 @@ not clear these on the same harness adds nothing.
 - `position mean` has `spearman_pos = NaN` by construction — it is constant within a position, so it
   has zero within-position ranking ability, confirming it is a pure position-level floor.
 
+### Per-position bars (the decision-relevant gate for Phase 1)
+
+Squads fill under position quotas, so ranking that matters is *within* position. The pooled
+`spearman_pos = 0.205` masks a ~5× spread (`walk_forward_by_position`; `k` scaled to each pool):
+
+| position | ~players/GW | best baseline | spearman | precision@k |
+|---|---|---|---|---|
+| GK | 18 | rolling avg (5) | **0.06** (≈ chance) | 0.28 @4 |
+| DEF | 94 | expanding season avg | 0.167 | 0.35 @20 |
+| MID | 128 | expanding season avg | **0.311** | 0.30 @20 |
+| FWD | 34 | rolling avg (5) | **0.334** | 0.48 @8 |
+
+- **GK is near-unrankable from scoring history** (≈ chance) — clean-sheet/team/fixture driven, not
+  player persistence. Corroborates the diagnostic layer's GK abstentions.
+- **MID and FWD are the rankable positions**; FWD has the highest top-of-list precision (elite forwards
+  reliably return). **FWD is the one position where rolling-5 beats season-avg** — recent form carries a
+  little more for forwards.
+- **Phase 1 is gated per position**, not on the pooled number: a model must beat **GK ~0.06 · DEF 0.167
+  · MID 0.311 · FWD 0.334**. A pooled win can be an artifact of easy position-level structure.
+
 ### Framing — conditional on appearance (important)
 
 The population is `minutes > 0`, so every metric is computed over players who **actually featured**.

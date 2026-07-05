@@ -168,3 +168,51 @@ def walk_forward_baselines(mart: pd.DataFrame) -> pd.DataFrame:
         rows.append({"baseline": label, **score_predictions(features, col, eval_mask=common_mask),
                      "coverage": round(coverage, 3)})
     return pd.DataFrame(rows).set_index("baseline").sort_values("spearman_mean", ascending=False)
+
+
+# Squads fill under position quotas (2 GK / 5 DEF / 5 MID / 3 FWD), so the shortlist
+# size that matters scales with the position's pool — not a flat top-20.
+POSITIONS = ("GK", "DEF", "MID", "FWD")
+
+
+def _position_k(players_per_gw: int) -> int:
+    """Decision-relevant shortlist size for a position: ~top quartile, in [3, TOP_K]."""
+    return min(TOP_K, max(3, players_per_gw // 4))
+
+
+def walk_forward_by_position(mart: pd.DataFrame) -> pd.DataFrame:
+    """Per-(position, baseline) ranking on the common eval set — the decision-relevant view.
+
+    Pooled ``spearman_pos`` masks large heterogeneity (GK ranks near chance; MID/FWD
+    rank well), so Phase 1+ models must be judged against the *per-position* bars here.
+    ``k`` is the position-scaled shortlist size (``precision_at_k`` uses it).
+
+    Returns a frame indexed by (position, baseline) with spearman / precision_at_k /
+    k / n_gw, positions ordered GK→DEF→MID→FWD and baselines by spearman within each.
+    """
+    features = build_baseline_features(mart)
+    _assert_no_leakage(features)
+    post = features[features["gw"] > WARMUP_GW]
+    ev = post[post[list(BASELINES)].notna().all(axis=1).to_numpy()]
+
+    rows = []
+    for pos in POSITIONS:
+        sub = ev[ev["position"] == pos]
+        if sub.empty:
+            continue
+        k = _position_k(int(sub.groupby("gw").size().median()))
+        for col, label in BASELINES.items():
+            pk = [
+                _precision_at_k(g[col].to_numpy(), g["total_points"].to_numpy(), k)
+                for _, g in sub.groupby("gw")
+                if len(g) >= MIN_ROWS_PER_POS and g[col].nunique() > 1 and g["total_points"].nunique() > 1
+            ]
+            rows.append({
+                "position": pos, "baseline": label,
+                "spearman": round(_grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
+                "precision_at_k": round(float(np.mean(pk)), 4) if pk else np.nan,
+                "k": k, "n_gw": len(sub["gw"].unique()),
+            })
+    out = pd.DataFrame(rows)
+    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
+    return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "baseline"])

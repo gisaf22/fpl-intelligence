@@ -80,3 +80,13 @@ def test_scoring_respects_warmup() -> None:
     feats = build_baseline_features(_panel())
     ev = feats[feats["gw"] > WARMUP_GW]
     assert len(ev) < len(feats)  # warmup rows are excluded from evaluation
+
+
+def test_by_position_structure_and_posmean_constant() -> None:
+    from model.eval.walkforward import walk_forward_by_position
+    res = walk_forward_by_position(_panel(n_players=60, n_gw=16))
+    assert res.index.names == ["position", "baseline"]
+    assert list(res.columns) == ["spearman", "precision_at_k", "k", "n_gw"]
+    # position mean is constant within a position -> spearman is undefined (NaN).
+    posmean = res.xs("position mean (sanity floor)", level="baseline")
+    assert posmean["spearman"].isna().all()

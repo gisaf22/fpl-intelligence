@@ -39,7 +39,7 @@ Two options were considered:
 This respects the data-generating process instead of flattening it, and each component's zero-inflation
 is modeled where it lives.
 
-## 3. Components, families, and the exposure offset
+## 3. Components, families, and how minutes enter
 
 Per position, the components that carry the points (start with the big three; expand only if the gate needs it):
 
@@ -49,11 +49,27 @@ Per position, the components that carry the points (start with the big three; ex
 | Assists | `assists` | NB or ZIP | MID, FWD, DEF |
 | Clean sheet | `clean_sheets` | Bernoulli (logistic) | GK, DEF, (MID) |
 
-**Minutes as exposure (the key GLM move).** A player who plays 30 minutes has less opportunity than
-one who plays 90. Counts enter with a **log-minutes offset** (`offset=log(minutes)`), so the model
-estimates a *rate per minute* and scales it by realized minutes — the textbook exposure treatment,
-and a strong recruiter signal. Clean sheet is not a rate; minutes enters as a covariate / a
-played-60 gate there.
+Clean sheet is a **binary** outcome (a team either conceded 0 or it didn't — no "rate"), so it is
+Bernoulli/logistic and yields `P(clean sheet)` directly; only the *count* components (goals, assists,
+goals-conceded) take a Poisson/NB family. Match the family to the outcome's support.
+
+**Minutes — a validated decision, NOT a hard-coded offset.** The tempting move is a log-minutes
+*offset* (coefficient forced to 1), which asserts a *constant per-minute scoring rate* — "3× minutes
+⇒ 3× goals". That proportionality is an **unvalidated assumption and is probably false**: goals cluster
+late in matches (fatigue, chasing, opening up), substitutes are a selected population correlated with
+game state, and FPL's own rules kink the curve at 60' (appearance 1→2 pts; clean-sheet needs 60'). So
+proportional exposure must **earn** offset status, per position:
+
+1. **Estimate, don't assert.** Enter `log(minutes)` as a covariate with a *freely estimated*
+   coefficient β. Only if β ≈ 1 (proportional) do we lock it as an offset; otherwise keep the free term.
+2. **Inspect the empirical shape.** Plot the per-minute component rate across minutes bands
+   (0–30 / 30–60 / 60–90) per position — does the rate actually hold constant, or rise late / differ for subs?
+3. **Escalate to non-linear if the data demands it.** Minutes-band dummies or a spline to capture the
+   60' kink and late-game effect, rather than a single log term.
+
+Proportional exposure is a reasonable *starting hypothesis* and clean baseline — but it clears its own
+check (β test + band inspection) before it is trusted. Clean sheet is not a rate at all; minutes enters
+there as a covariate / played-60 gate.
 
 Saves, bonus, cards, goals-conceded deductions are **out of scope for 2.1's fit** — folded in as
 fixed scoring arithmetic or deferred, so the first build stays legible. Documented, not hidden.
@@ -125,6 +141,9 @@ is the survival family's job (Phase 6), explicitly out of scope.
 
 - **Component→points map approximations** — saves/bonus/cards deferred; the composed points is an
   approximation, stated. Refine only if the gate needs it.
+- **Minutes proportionality is not assumed** — the constant per-minute-rate (offset) hypothesis is
+  tested (§3), not baked in; if β ≠ 1 or the band rates are non-constant, a free coefficient or spline
+  is used instead. A recorded finding either way.
 - **Conditional on appearance** — inherited; the model ranks players who played.
 - **Thin positions** — GK clean-sheet and DEF goals are sparse; per-position floors apply, and a null
   for a thin position is reported, not forced.

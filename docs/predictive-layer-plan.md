@@ -1,215 +1,208 @@
-# Predictive-Layer Plan — Modeling, Forecasting & Decision Machinery
+# Predictive Layer — Master Plan & Status
 
-**Authority:** review-board plan (panel-data statistician · ML forecasting engineer · FPL domain analyst · skeptical reviewer)
-**Date authored:** 2026-07-04
-**Scope:** Sequence the machinery that turns validated signals into gated forecasts and decisions. Prescribe-only: this document plans the work; it moves no code until a phase is opened.
-**Precondition:** the diagnostic layer is closed at Q1/Q1b/Q2 (see [research/diagnostic/DIAGNOSTIC_DESIGN.md](../research/diagnostic/DIAGNOSTIC_DESIGN.md)); the four LENS families (form/fixture/availability/market) are locked and run.
+**Single source of truth** for the predictive layer: phased plan, live status, claims discipline,
+assumptions register, and data inventory. Supersedes and folds in the former `predictive-phase1-design`,
+`predictive-phase2-design`, `analysis-strategy-review`, and `predictive-plan-assumptions-audit` docs.
+Frozen per-phase *results* live separately (linked in §1) and are the immutable evidence trail.
 
----
-
-## 0. How to read this plan
-
-Each **item** carries a fixed template — *What · Why · Where · Machinery · Recruiter signal · Prereq · Gate*.
-Each **phase** carries a **promotion gate**: the measurable condition that must pass before the next phase opens. A phase without a passing gate does not advance.
-
-**Ordering rule:** dependency + de-risking — benchmarks and the validation harness before any model; calibration before decisions. Never ordered by sophistication.
-
-**Hard constraints (every item must honor):**
-- **Rung boundaries** — association vs predictive kept distinct; predictive claims require lagged design.
-- **Lag / leakage discipline** — lag-1 minimum, `.shift(1)` before `.rolling()`; every model asserts no-future-rows before scoring.
-- **Locked LENS designs** — form/fixture/availability/market `validate/` designs are immutable; new family work lands in that family's **`explore/`** dir.
-- **Notebooks-don't-emit** — a notebook never writes into `findings → registry → model`; promotion is a code+gate path.
-- **Import-linter contracts** — layer order `dal → research → model → serve` preserved.
-- **Dedup** — extend `research/kernels/inferential/variance_components.py` and `research/kernels/diagnostic/panel.py`; never rebuild them.
-
-**Board recommendation (single, not consensus):** build **Phase 0 (baselines + harness)** and **Phase 1 (hierarchical/ICC)** first. They are cheap, low-risk, and *everything downstream is measured against them*. Phase 1 also formalizes work already done (Q1/Q1b), so it raises rigor without new surface area. Defer all glamour (simulation, Bayesian) until the benchmark and the correct target-distribution are locked.
+**Last updated:** 2026-07-06 · **Now at:** Phase 1 complete → Phase 2 (designed, not built).
 
 ---
 
-## Phase 0 — Benchmarks everything is measured against
+## 1. Status dashboard
 
-*Nothing downstream is claimable without these. Build first.*
+| Phase | Item | Status | Gate result | Evidence |
+|---|---|---|---|---|
+| 0.1 | Baseline suite | ✅ complete | reproducible per-GW scores | [results](studies/results/predictive-phase0-baselines.md) |
+| 0.2 | Walk-forward harness | ✅ complete | leakage assertion passes | same |
+| pre-1 | Point-estimate (level) study | ✅ complete | shrink toward the **mean** | [results](studies/results/predictive-level-estimators.md) |
+| 1 · D1 | ICC / variance components | ✅ **shipped** | reconciles w/ Q1; σ²_between real (LRT) | [results](studies/results/predictive-phase1-icc-shrinkage.md) |
+| 1 · D2 | EB shrinkage ranker | ✅ built, ⛔ **null** | does NOT out-rank raw mean → shelved | same |
+| 2.1 | Count models (NB/ZIP/Bernoulli) | 📐 designed, not built | — | §3 |
+| 2.2 | Regularized signal combination | 📐 planned | — | §3 |
+| 3.1 | Monte-Carlo simulator | 🗒 planned | — | §3 |
+| 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
+| 4.1 | Calibration + proper scoring | 🗒 planned | — | §3 |
+| 5.1 | Decision evaluation | 🗒 planned (build gap) | — | §3 |
+| 6.x | Survival / drift / PyMC | 🗒 planned (6.2 data-blocked) | — | §3 |
 
-### 0.1 — Baseline suite
-- **What:** season-avg, rolling-avg, last-GW, position-mean predictors of next-GW points.
-- **Why:** no model or signal can be said to "add value" without the naive floor; also *verifies* the unproven hypotheses "level persists / deviations mean-revert."
-- **Where:** `model/eval/baselines.py` (new).
-- **Machinery:** simple estimators + lag-1 alignment.
-- **Recruiter signal:** defines the null before modeling — senior discipline.
-- **Prereq:** current single-season mart suffices.
-- **Gate:** reproducible per-GW scores on the harness.
+Legend: ✅ done · 📐 designed · 🗒 planned · 🚧/⛔ blocked/null.
 
-### 0.2 — Walk-forward / expanding-window harness
-- **What:** temporal CV substrate (train ≤ GW *t*, test *t+1*), reused by every later model.
-- **Why:** random splits leak; expanding-window is the only valid evaluation for time series.
-- **Where:** `model/eval/walkforward.py` (new).
-- **Machinery:** expanding/rolling windows, per-GW scoring, leakage assertion.
-- **Recruiter signal:** understands temporal validation — the top forecasting-credibility marker.
-- **Prereq:** single-season suffices; more seasons strengthen it.
-- **Gate:** passes a no-future-rows leakage assertion on every fold.
-
-> **Phase 0 promotion gate:** baselines produce reproducible next-GW scores; harness passes the leakage assertion. **Baseline numbers frozen as the benchmark** for all later phases.
-
----
-
-## Phase 1 — Formalize what we already found
-
-*Cheap, low-risk, highest single credibility gain. The concrete first modeling piece.*
-
-### 1.1 — Hierarchical / mixed-effects + ICC + partial-pooling shrinkage ⭐
-- **What:** random-intercept model for points; ICC; shrunken player estimates.
-- **Why:** correct model class for panel data; formalizes Q1/Q1b's between/within split; regularizes small-sample players (thin FWD/GK, ≥10-game floors).
-- **Where:** extend `research/kernels/inferential/variance_components.py` (`mixed_effects_icc()` beside `decompose_variance()`); consume from a notebook augmenting `points_variance_ceiling.ipynb`.
-- **Machinery:** `statsmodels` MixedLM (or `pymer4`); ICC from variance components; empirical-Bayes `u_i`.
-- **Recruiter signal:** knows the data isn't iid — the strongest single maturity marker.
-- **Prereq:** single-season, within-season panel suffices (no cross-season pooling here).
-- **Gate:** see phase gate.
-
-> **Phase 1 promotion gate:** ICC point estimate reconciles with Q1's bootstrap between-share; **σ²_between CI excludes 0**; shrunken player estimates beat raw player means on held-out weeks (walk-forward). See §Concrete first piece.
+**Open debt on shipped work:** D1's ICC uses a Gaussian LMM on a count target — variance *share* holds,
+but its CIs/LRT assume normality (X2). Marked 🔴 **must-fix before Phase 2 opens** (§4) — Phase 2
+reconciles against D1's numbers, so the debt cannot be carried silently.
 
 ---
 
-## Phase 2 — Model the target correctly
+## 2. Claims discipline (the language guardrail — check every notebook / results doc / commit)
 
-### 2.1 — Count models: NB / Hurdle / ZIP (with overdispersion diagnosis)
-- **What:** model point-components (goals ~ Poisson(xG), assists ~ Poisson(xA), CS ~ Bernoulli) with the right count family.
-- **Why:** the target is zero-inflated, over-dispersed counts — Poisson is wrong; diagnosing that is the maturity move.
-- **Where:** `model/forecast/count_models.py` (new).
-- **Machinery:** `statsmodels` GLM (NB), hurdle/ZIP; dispersion test.
-- **Recruiter signal:** fits distributions to data, not habit.
-- **Prereq:** component columns (goals/assists/CS/xG/xA) present in mart — verify before build.
-- **Gate:** overdispersion test justifies NB/hurdle over Poisson.
+The most repeated error is over-claiming the *rung*. Match the verb to what was actually done.
 
-### 2.2 — Regularized signal combination (elastic net)
-- **What:** penalized fit combining the families' *informative* signals into one predictor.
-- **Why:** signals are collinear (documented in `signal_correlation`); EN/LASSO handles it principledly; supersedes ad-hoc composition weights.
-- **Where:** extend `model/assemble/composition_study.py`.
-- **Machinery:** `sklearn` ElasticNetCV inside the walk-forward harness.
-- **Recruiter signal:** principled feature selection under collinearity.
-- **Prereq:** Phase 0 harness + the families' informative-signal set.
-- **Gate:** beats baseline and the single best signal on held-out GWs.
+| Verb / claim | Means | Allowed only when | Tempting WRONG use → RIGHT use |
+|---|---|---|---|
+| **associate / correlate** | X and Y move together | any rung; contemporaneous OK | — |
+| **explain / decompose** | partition observed variance (descriptive/inferential) | e.g. ICC, between/within | "identity *predicts* points" → "identity *explains* a share of points variance" |
+| **rank** | order units by a score; metric = Spearman/precision@k | within-position; conditional on appearance | "we *predict* his score" → "we *rank* players who played, within position" |
+| **predict / forecast** | estimate a *future* value from strictly-prior data | lagged design + P(play) modeled (end-to-end) | calling a walk-forward *ranker* a *forecaster* → say "rank, given played" until P(play) is modeled |
+| **cause / drive** | intervention would change Y | **never** (we stay at Pearl rung 1) | "form *drives* returns" → "form *is associated with* returns" |
 
-> **Phase 2 promotion gate:** overdispersion test justifies the chosen count family; the combined model beats **P0 baseline AND best single signal** on walk-forward.
+**Standing caveats to attach, not assume away:**
+- **Conditional on appearance** — every metric so far is "given the player featured" (see A-X1). Not end-to-end forecast skill.
+- **Contemporaneous ≠ lagged** — Q1/Q1b/D1 are same-week *descriptions/associations*, not predictions.
+- **Variance-share ≠ prediction** — ICC says how much is durable level, not how well we predict it.
+- **"Beats baseline" is a claim** — only after clearing the per-position walk-forward gate, with uncertainty.
 
 ---
 
-## Phase 3 — Distributions & uncertainty
+## 3. Phases — goal · done · left · gate · key decisions
 
-*The distinctive, FPL-native layer.*
+**Ordering rule:** dependency + de-risking (benchmarks → target shape → uncertainty → calibration →
+decisions). Never ordered by sophistication. **Build order:** `0.1→0.2→1.1→[pre-2 sprint]→2.1→2.2→3.1→(3.2 if odds)→4.1→5.1→6.x`.
 
-### 3.1 — Generative component model + Monte-Carlo simulator
-- **What:** simulate components through the real scoring rules → full points distribution, haul probability, captaincy ceiling.
-- **Why:** decisions need distributions, not point estimates; mirrors the true data-generating process.
-- **Where:** `model/forecast/simulator.py` (new); reuses `domain/fpl_scoring.py`.
-- **Machinery:** Monte-Carlo sampling from the Phase-2 component models.
-- **Recruiter signal:** probabilistic thinking + simulation — rare and distinctive.
-- **Prereq:** Phase 2 component models fitted.
-- **Gate:** simulated mean reconciles with the direct point forecast (sanity).
+**Hard constraints (every item):** rung boundaries (assoc vs predictive); lag/leakage (`.shift(1)` before
+`.rolling()`, no-future-rows assertion); locked LENS `validate/` designs immutable (new work in `explore/`);
+notebooks-don't-emit; import-linter `dal→research→model→serve`; extend kernels, don't rebuild.
 
-### 3.2 — Bookmaker odds as external benchmark & signal
-- **What:** convert odds → implied returns; use as both a signal and a yardstick.
-- **Why:** the market is the sharpest external baseline; if you can't beat it, learn early.
-- **Where:** `model/eval/` (benchmark) + `research/families/fixture/explore/` (as signal — explore dir is unlocked).
-- **Machinery:** odds de-vig; calibration vs realized.
-- **Recruiter signal:** benchmarks against the strongest external predictor.
-- **Prereq:** **odds data required — flag as blocker if absent.**
-- **Gate:** none (comparator).
+Each item carries the full build spec: **Goal · Where (module) · Machinery · Key decisions · Prereq · Gate · Risks**, plus **Done/Left** for shipped phases.
 
-> **Phase 3 promotion gate:** simulator mean reconciles with the point forecast; haul-probability has face validity; bookmaker comparison computed if odds data present.
+### Phase 0 — Benchmarks ✅
+- **Goal:** the naive floor every model must beat, and a leak-proof temporal-CV harness reused by every later phase.
+- **Where:** `model/eval/baselines.py`, `model/eval/walkforward.py`.
+- **Machinery:** expanding-window walk-forward (train ≤ GW *t*, test *t+1*); within-player `.shift(1)` before rolling; per-GW scoring; leakage assertion.
+- **Done:** baselines `base_last`, `base_roll3`, `base_roll5`, `base_season`, `base_posmean`; per-position walk-forward; **frozen bars** GK ~0.06, DEF 0.17, MID 0.31, FWD 0.33 (within-position Spearman). Findings: *level persists* (season-avg best), *deviations mean-revert* (last-GW worst), *identity dominates* (position-mean can't rank within position).
+- **Key decisions:** ranking metrics not RMSE (zero-inflated/haul-dominated target); **within-position only** (cross-position pooling abolished — squads fill under quotas); common evaluation set (rows where all baselines defined) so comparisons aren't a coverage artifact; tie-aware precision@k; `WARMUP_GW=3`, `MIN_ROWS_PER_POS=10`, `TOP_K=20` (operational — A0.2).
+- **Prereq:** single-season mart. **Gate (met):** reproducible per-GW scores; no-future-rows assertion passes on every fold. **Risks:** A0.2 arbitrary thresholds; conditional-on-appearance (X1) inherited by everything downstream.
 
----
+### Phase 1 — Formalize identity ✅ (D1 ships, D2 null)
+Two deliverables sharing a model but computed differently — must not be conflated:
 
-## Phase 4 — Trust the probabilities
+| | **D1 — ICC inference** | **D2 — shrunk ranker** |
+|---|---|---|
+| Question | is between-player variance real, how big? | does shrinkage out-rank the raw mean? |
+| Fit | whole-season, per position, one shot | walk-forward, strictly-prior only |
+| Estimator | statsmodels MixedLM (REML) | closed-form empirical-Bayes |
+| Output | σ²_between, σ²_within, ICC+CI, LRT | `lvl_shrunk` scored on the harness |
 
-### 4.1 — Calibration + proper scoring rules
-- **What:** Brier, log-loss, reliability diagrams (haul prob); CRPS (full distribution).
-- **Why:** a probability is only useful if calibrated; point-accuracy can't reveal miscalibration.
-- **Where:** `model/eval/calibration.py` (new).
-- **Machinery:** reliability curves; isotonic/Platt recalibration; CRPS.
-- **Recruiter signal:** evaluates uncertainty honestly — most projects never do.
-- **Prereq:** Phase 3 probabilistic outputs.
-- **Gate:** reliability within tolerance (recalibrate if not); CRPS beats baseline.
+- **Model (per position):** `points_{i,t} = β0 + u_i + ε_{i,t}`, `u_i ~ N(0,σ²_between)`, `ε ~ N(0,σ²_within)`, `ICC = σ²_between/(σ²_between+σ²_within)`. ICC **is** Q1's between-share as a parameter with an SE.
+- **D2 formula:** `lvl_shrunk = μ_pos + λ·(mean_i − μ_pos)`, `λ = n_i/(n_i + σ²_within/σ²_between)` — all from strictly-prior rows; variance ratio by method-of-moments per evaluated GW (no MixedLM refit in the loop). Few games ⇒ λ→0 ⇒ shrink to position mean; many ⇒ λ→1 ⇒ trust the player.
+- **Where:** `research/kernels/inferential/variance_components.py` (`mixed_effects_icc` — D1); `model/eval/shrinkage.py` (`lvl_shrunk` — D2). Both tested.
+- **Population parity (D1↔Q1):** `minutes>0`, DGW excluded, `min_appearances=10`, per position, whole season. ICC = SS-share only for a balanced panel; ours is unbalanced → reconcile to *tolerance*, not equality.
+- **Done — D1:** ICC ~0.06–0.10 outfield, ~0 GK; small but **statistically real** (LRT decisive DEF/MID/FWD; GK null p=0.5); reconciles with Q1 SS-share (ICC slightly below — expected unbalanced-panel gap).
+- **Done — D2:** **null** — slightly *worse* than raw mean at every position (thin between-slice + player-specific λ reorders by games-played, adding sample-size noise to the rank). Shelved, kept in-repo for a cross-season re-run.
+- **Left:** the **X2 count-GLMM sensitivity** check on D1 (ICC via NB-GLMM / distribution-free bootstrap — the shipped CIs/LRT assume normality).
+- **Gate (met, D1):** reconciles with Q1; σ²_between real where Q1 found it. **Failed (D2):** doesn't out-rank → pre-registered fallback = ship D1, record D2 null. **Risks:** X2 (Gaussian-on-counts debt), X5 (movers break the fixed intercept).
 
-> **Phase 4 promotion gate (hard):** probabilities pass calibration tolerance. **No decisions built on miscalibrated probabilities.**
+### Phase 2.1 — Count models 📐 (next)
+- **Goal:** model the target's true shape — the **first phase with features (X)**.
+- **Where:** `model/forecast/count_models.py` (new); scored on the Phase-0 harness unchanged; notebook `model/forecast/phase2_count_models.ipynb`.
+- **Machinery:** statsmodels GLM (Poisson/NB), hurdle/ZIP, logistic; Cameron–Trivedi / LRT dispersion test; component→points composition via `domain/fpl_scoring.py`.
+- **Decision — components→points map (NOT direct `total_points`).** Model the point-*drivers* and compose via the known FPL scoring rule. *Why:* respects the zero-inflated data-generating process (each component's zeros modeled where they live); interpretable; position-aware scoring falls out of the map. *Cost:* several models + the map; errors compound; more tests.
 
----
+  | Component | Column | Family (confirm by test) | Positions |
+  |---|---|---|---|
+  | Goals | `goals_scored` | NB or ZIP (rare, over-dispersed) | MID, FWD (DEF secondary) |
+  | Assists | `assists` | NB or ZIP | MID, FWD, DEF |
+  | Clean sheet | `clean_sheets` | **Bernoulli/logistic** (binary — no rate) | GK, DEF, (MID) |
 
-## Phase 5 — Decision-level value
+  Only *count* components take Poisson/NB; a binary outcome (conceded 0 or not) is Bernoulli and yields `P(clean sheet)` directly. Saves/bonus/cards deferred as fixed scoring arithmetic — **quantify the un-modeled points share** (A2.2) before "good enough".
+- **Minutes — TESTED, not a hard-coded offset.** A log-minutes offset (coef=1) *asserts* a constant per-minute rate — likely false (late-game clustering, subs = selected population, the 60′ appearance/CS kink). Procedure: (1) enter `log(minutes)` with a **freely estimated** coefficient β → lock as offset only if β≈1; (2) inspect empirical per-minute component rate across bands 0–30/30–60/60–90 per position; (3) escalate to minutes-band dummies or a spline if non-proportional.
+- **Features (X):** minimal, **strictly-prior** process stats — goals rate ← lagged `xgi`/`xg`; assists ← lagged `xa`/`creativity`; clean sheet ← `fixture_context`, lagged `goals_conceded_roll3`, `was_home`. `.shift(1)` enforced; component-target leakage assertion added to the harness contract.
+- **Folded-in read:** the never-run **autocorrelation / form-persistence** study (via `research/kernels/diagnostic/serial.py`) enters here as a *gated* question — report within-player lag-1 autocorrelation per position, and test whether a lagged-form feature earns its place over the level-only baseline.
+- **Prereq (verified):** component columns present in mart. **Gate:** (1) over-dispersion test justifies NB/ZIP over Poisson; (2) composed E[points] beats the Phase-0 baseline **and** (3) the best single signal, per position, walk-forward. Else ship the dispersion diagnosis as an honest null.
+- **Risks:** X6 (xG>goals unproven — one sub-question), A2.1 (component independence — mean OK, haul-prob wrong), A2.2 (deferred bonus caps accuracy), X1 (conditional on appearance).
 
-*The only metric that ultimately matters.*
+### Phase 2.2 — Regularized signal combination 📐
+- **Goal:** combine the families' *informative* signals into one predictor, handling collinearity principledly (supersedes ad-hoc composition weights).
+- **Where:** extend `model/assemble/composition_study.py`. **Machinery:** `sklearn` ElasticNetCV inside the walk-forward harness.
+- **Key decision:** EN/LASSO assumes linear-additive combination — **probe against a non-linear reference** (gradient boosting) as a ceiling check for missed interactions (A2.3), not necessarily to ship.
+- **Prereq:** Phase-0 harness + families' informative-signal set. **Gate:** beats baseline **and** the single best signal on held-out GWs. **Risks:** A2.3 non-linearity.
 
-### 5.1 — Decision evaluation
-- **What:** captain success, transfer gain, ranking quality (NDCG/Spearman), chip value — vs baseline.
-- **Why:** RMSE ≠ FPL usefulness; this is what a manager (and a hiring manager) cares about.
-- **Where:** `serve/eval/decisions.py` (new).
-- **Machinery:** backtested decision rules over walk-forward; ranking metrics.
-- **Recruiter signal:** connects models to business value — the strongest senior signal.
-- **Prereq:** Phases 0–4 complete.
-- **Gate:** decision rules beat baseline decisions.
+### Phase 3 — Distributions & uncertainty 🗒
+- **3.1 Monte-Carlo simulator.** *Goal:* simulate components through the real scoring rules → full points distribution, haul probability, captaincy ceiling. *Where:* `model/forecast/simulator.py` (new), reuses `domain/fpl_scoring.py`. *Machinery:* MC sampling from the Phase-2 component models. *Prereq:* Phase-2 components fitted.
+  - **Amendment (audit):** the original "simulated mean ≈ point forecast" gate is **circular** (validates a sim against its own centre, ignoring the tails that are the whole point) → **move the distributional validation into Phase 4** (PIT/haul-rate). *Risk:* A2.1 — independent components mis-estimate haul probability (hauls co-move); model the dependence.
+- **3.2 Bookmaker odds.** *Goal:* odds → implied returns as both a signal and an external yardstick. *Where:* `model/eval/` (benchmark) + `research/families/fixture/explore/` (as signal). *Machinery:* odds de-vig, calibration vs realized. *Prereq:* **odds data — 🚧 hard blocker if absent.** *Gate:* comparator only.
 
-> **Phase 5 promotion gate:** captain/transfer/ranking rules beat baseline decisions; only then is a model promoted to `serve/`.
+### Phase 4 — Trust the probabilities 🗒 (hard gate)
+- **Goal:** a probability is only useful if calibrated; point-accuracy can't reveal miscalibration.
+- **Where:** `model/eval/calibration.py` (new). **Machinery:** reliability diagrams, Brier/log-loss (haul prob), CRPS (full distribution), isotonic/Platt recalibration.
+- **Key decisions:** **pre-register the calibration tolerance** (A4.1); recalibrate via CV — isotonic/Platt **overfit on ~35 GWs**. Absorbs Phase-3's distributional validation.
+- **Prereq:** Phase-3 probabilistic outputs. **Gate (hard):** reliability within the pre-registered tolerance (recalibrate if not); CRPS beats baseline. **No decisions on miscalibrated probabilities.**
 
----
+### Phase 5 — Decision value 🗒 (build gap, not data gap)
+- **Goal:** the only metric that matters — captain success, transfer gain, ranking quality, chip value, vs baseline decisions.
+- **Where:** `serve/eval/decisions.py` (new). **Machinery:** backtested decision rules over walk-forward; ranking metrics; block bootstrap over GWs.
+- **Key decisions:** **needs P(play) first** (X1) — decisions can't condition on realized minutes; **single-season backtest is one path** → attach block-bootstrap error bars, **don't rank rules on a point estimate** (A5.1); handle DGWs (X4) as sum-of-two-single-GW forecasts.
+- **Data:** present (`purchase_price`, `ownership_count`, `transfers_in/out`) — this is an **un-built decision layer, not a data block**. **Prereq:** Phases 0–4 + P(play). **Gate:** decision rules beat baseline decisions (with uncertainty); only then promote to `serve/`.
 
-## Phase 6 — Situational / advanced
-
-*Build only if data supports; several are single-season-blocked.*
-
-### 6.1 — Survival / hazard for availability
-- **What / Why:** time-to-injury / minutes as time-to-event; correct framing for availability.
-- **Where:** `research/families/availability/explore/` (explore dir unlocked).
-- **Machinery:** Kaplan-Meier / Cox.
-- **Recruiter signal:** right framing for time-to-event.
-- **Prereq:** sufficient event counts — verify first.
-- **Gate:** event count adequate; beats a naive availability baseline.
-
-### 6.2 — Cross-season drift
-- **What / Why:** season-to-season change in feature relationships / meta drift.
-- **Where:** `research/foundation/temporal/`.
-- **Machinery:** rolling-relationship comparison across seasons.
-- **Recruiter signal:** assesses stability across eras.
-- **Prereq:** **≥ 2 seasons — BLOCKED on single-season data.**
-- **Gate:** ≥ 2 seasons present before run.
-
-### 6.3 — Full Bayesian hierarchical (PyMC)
-- **What / Why:** showcase upgrade of 1.1 with full posterior uncertainty.
-- **Where:** `model/forecast/` (optional).
-- **Machinery:** PyMC / Stan.
-- **Recruiter signal:** full probabilistic modeling.
-- **Prereq:** empirical-Bayes version (1.1) proven out first.
-- **Gate:** posterior predictive checks pass; matches 1.1 on the shared estimand.
-
-### 6.4 — Mutual information / transfer entropy — **DROP**
-- Monotone associations are already captured by Spearman/partial; MI adds nothing interpretable here. Transfer entropy for market lead-lag is exotic overkill. Not built.
-
-> **Phase 6 promotion gate:** each item's data prerequisite verified met before it runs.
+### Phase 6 — Situational 🗒
+- **6.1 Survival / hazard for availability.** Time-to-injury / minutes as time-to-event (Kaplan–Meier / Cox). Where: `research/families/availability/explore/`. Prereq: adequate event counts — **verify first**. Gate: beats a naive availability baseline. *(Also the P(play) source X1 wants earlier.)*
+- **6.2 Cross-season drift.** Season-to-season change in relationships. Where: `research/foundation/temporal/`. Prereq: **≥2 seasons — 🚧 data-blocked.** Gate: ≥2 seasons present.
+- **6.3 Full Bayesian hierarchical (PyMC).** Posterior-uncertainty upgrade of Phase 1. Prereq: EB (Phase 1) proven. Gate: posterior predictive checks pass; matches Phase-1 on the shared estimand.
+- **6.4 Mutual information / transfer entropy — DROPPED** (Spearman/partial already capture monotone association; adds nothing interpretable).
 
 ---
 
-## Concrete first piece — hierarchical / ICC vs Q1/Q1b
+## 4. Assumptions register (living — a schedule with teeth)
 
-**Estimand.** Q1 asked how much points variance is between-player vs within-player and answered it by a **sum-of-squares partition** (`variance_components.decompose_variance`) with a **cluster bootstrap** for uncertainty. The hierarchical model reframes that as a **variance-components model** and reads the same split off fitted parameters.
+Board = panel-data econometrician · ML forecasting engineer · FPL analyst · skeptical statistician · pipeline engineer.
+**Rule (enforced):** a phase does not open until every assumption whose **Due-by** is that phase is
+resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) · `accepted-deferred`
+(a *deliberate* decision to carry it, with a due-by) · `tested-holds` · `tested-fails`.
 
-**Model (per position):**
-```
-points_{i,t} = β0 + u_i + ε_{i,t}
-u_i    ~ N(0, σ²_between)   # player random intercept
-ε_{i,t} ~ N(0, σ²_within)   # week-to-week residual
-ICC = σ²_between / (σ²_between + σ²_within)
-```
-`ICC` **is** Q1's between-share — now a **model parameter with a standard error**, not a bootstrap percentile.
+| ID | Assumption baked in | Sev | Test / mitigation | Due-by (gate) | Status |
+|---|---|---|---|---|---|
+| **X2** | **Gaussian LMM on a count target** (debt on shipped D1 — CIs/LRT assume normality) | High | refit ICC via NB-GLMM or distribution-free bootstrap; caveat D1 | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
+| X6 | **Process (xG) forecasts components better than realized (goals)** — *goals are equation-inputs, excluded as contemporaneous signals but are Phase-2 targets; real test = lagged xG vs lagged goals → future component (a sub-question, not the main bet); xG same-match → leak risk* | Med | `.shift(1)`; head-to-head test; coverage check | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
+| A2.2 | **Deferred scoring parts (bonus/cards/saves) are minor** | Med | quantify un-modeled points share before "good enough" | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
+| A2.1 | **Component independence** in the points map | Med | test residual cross-correlation; joint model in Phase 3 | Phase 3 | accepted-deferred |
+| A2.3 | **Linear-additive signal combination** (EN) | Low-Med | non-linear ceiling probe (gradient boosting) | Phase 2.2 | accepted-deferred |
+| A4.1 | **Calibration tolerance unspecified** | Med | pre-register tolerance; CV recalibration | Phase 4 | accepted-deferred |
+| X1 | **Conditional-on-appearance is the right target** | High | score the unconditional (incl. DNP=0) gap; model P(play) | **Phase 5** (P(play) required) | accepted-deferred |
+| X4 | **DGW exclusion is harmless** (product gap) | Med | state gap; DGW = sum of two single-GW forecasts | Phase 5 | accepted-deferred |
+| A5.1 | **Single-season decision backtest is enough** | High | block-bootstrap error bars on every decision claim | Phase 5 | accepted-deferred |
+| X3 | **Single-season stationarity** | Med | rolling-block stability read | Phase 3 (or when 2nd season lands) | accepted-deferred |
+| X5 | **Player identity stable within season** | Low-Med | flag movers; ICC robustness excl. them | opportunistic (with X2 refit) | accepted-deferred |
+| A0.2 | **Operational thresholds** (warmup=3, k=20, floors) | Low | ±1 sensitivity check once | opportunistic | accepted-deferred |
 
-**What it adds beyond Q1 (why it's worth doing):**
-1. **Inference on the components** — likelihood-based SE/CI and an LRT on σ²_between ("is between-player variance significantly non-zero"), which the SS partition only approximated.
-2. **Shrunken player estimates** — `u_i` are partial-pooled (empirical-Bayes) skill estimates that regularize small-sample players — a *new artifact* Q1 could not produce.
-3. **Extensible** — adding signals as fixed effects yields Q1b/Q2 inside one model (`points ~ signal + minutes + (1|player)`), unifying three diagnostic reads under one estimator.
+🔴 **must-fix before Phase 2 opens:** X2, X6, A2.2 — these are exactly the pre-build validation sprint (§6).
+All others are *deliberately carried* with a named due-by, not forgotten.
 
-**Where / dedup:** add `mixed_effects_icc()` beside `decompose_variance()` in `research/kernels/inferential/variance_components.py` (keep both — SS partition = descriptive read, ICC = inferential read); consume from a notebook that augments `points_variance_ceiling.ipynb`, not replaces it.
-
-**Validation / gate:** ICC reconciles with Q1's bootstrap between-share (agreement check); σ²_between CI excludes 0; shrunken `u_i` predict held-out player weeks better than raw player means on the walk-forward harness.
+**Main Phase-2 bet (the headline, stated plainly):** *do situation features improve within-position
+ranking over the identity-only baseline, on held-out GWs, conditional on appearance?* Everything
+downstream rests on this being yes.
 
 ---
 
-## Build order (one line)
+## 5. Data inventory & strategy
 
-`0.1 → 0.2 → 1.1 → 2.1 → 2.2 → 3.1 → (3.2 if odds) → 4.1 → 5.1 → 6.x as data permits`
+**Have (verified in mart):** points + components (`goals_scored`, `assists`, `clean_sheets`,
+`goals_conceded`, `saves`, `bonus`, `bps`), process (`xg`, `xa`, `xgi`, `ict_index`, + roll3/roll5),
+minutes (+trend/roll), fixture context, `was_home`, **market** (`purchase_price`, `ownership_count`,
+`transfers_in`, `transfers_out` — validated weak: ownership rho≈0.16 MID/DEF, price≈0.12 DEF).
+
+**Don't have / need:** **≥2 seasons** (biggest unlock — cross-season drift, cohorts, D2 re-run,
+out-of-season validation); **bookmaker odds** (Phase 3.2); explicit **price-change / chip** state (light
+derivation from per-GW price).
+
+**Segmentation vs cohort:** segmentation is pervasive (per-position, minutes-bands, quintiles). **Cohort
+/ longitudinal analysis has never been done** — blocked mainly by single-season data; a genuine gap.
+
+**Anti-sprawl / discipline:** tie every analysis to a **gate or a decision**, not curiosity. The risk is
+breadth creep, not over-reach — the gate system already prevents building glamour prematurely.
+
+**Highest joint FPL × recruiter × practice value:** count/GLM target (Phase 2) · calibration (Phase 4) ·
+survival-for-availability (Phase 6.1). Reserve "reach" for the rare muscles (survival, calibration).
+
+---
+
+## 6. Immediate next — pre-Phase-2 validation sprint
+
+This sprint **is** the 🔴 must-fix gate (§4): the three items below block Phase 2 from opening.
+Small, cheap code that tests the biggest baked-in bets *before* writing the count models:
+1. **X2** (must-fix) — count-GLMM (or bootstrap) ICC sensitivity: does D1's split/ordering survive dropping normality? Caveat/annotate the frozen D1 results either way.
+2. **X6** (must-fix) — lagged xG vs lagged goals as predictors of the *future* component (per position).
+3. **A2.2** (must-fix) — quantify the deferred-points share (bonus/cards/saves).
+4. Add a **component-target leakage assertion** to the Phase-2 harness contract.
+
+**Gate to open Phase 2:** items 1–3 resolved to `tested-holds`/`tested-fails` (not `open`), and #4 in place.
+Then build 2.1. Prove the hypotheses, then model.

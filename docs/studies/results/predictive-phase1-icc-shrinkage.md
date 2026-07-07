@@ -1,6 +1,6 @@
 # Phase 1 — ICC inference + EB shrinkage (frozen)
 
-**Design:** [docs/predictive-phase1-design.md](../../predictive-phase1-design.md)
+**Plan/design:** [docs/predictive-layer-plan.md](../../predictive-layer-plan.md) (§3 Phase 1)
 **Produced:** 2026-07-06
 **Code:** `research/kernels/inferential/variance_components.py` (D1) ·
 `model/eval/shrinkage.py` (D2)

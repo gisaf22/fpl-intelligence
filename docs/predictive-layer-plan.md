@@ -29,7 +29,8 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 Legend: ✅ done · 📐 designed · 🗒 planned · 🚧/⛔ blocked/null.
 
 **Open debt on shipped work:** D1's ICC uses a Gaussian LMM on a count target — variance *share* holds,
-but its CIs/LRT assume normality (see A-X2). Sensitivity check owed before the ICC p-values are cited.
+but its CIs/LRT assume normality (X2). Marked 🔴 **must-fix before Phase 2 opens** (§4) — Phase 2
+reconciles against D1's numbers, so the debt cannot be carried silently.
 
 ---
 
@@ -141,23 +142,30 @@ Two deliverables sharing a model but computed differently — must not be confla
 
 ---
 
-## 4. Assumptions register (living — each: `open / tested-holds / tested-fails / accepted`)
+## 4. Assumptions register (living — a schedule with teeth)
 
 Board = panel-data econometrician · ML forecasting engineer · FPL analyst · skeptical statistician · pipeline engineer.
-No phase promotes with an unresolved assumption it depends on.
+**Rule (enforced):** a phase does not open until every assumption whose **Due-by** is that phase is
+resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) · `accepted-deferred`
+(a *deliberate* decision to carry it, with a due-by) · `tested-holds` · `tested-fails`.
 
-| ID | Assumption baked in | Phase | Risk | Test / mitigation | Sev | Status |
-|---|---|---|---|---|---|---|
-| X1 | **Conditional-on-appearance is the right target** | all | manager picks *before* kickoff; flatters accuracy | score the unconditional (incl. DNP=0) gap; model P(play) before Phase 5 | High | open |
-| X2 | **Gaussian LMM on a count target** | 1 (shipped) | ICC CIs/LRT assume normality the target violates | refit ICC via NB-GLMM or distribution-free bootstrap; caveat D1 | High | open (debt) |
-| X3 | **Single-season stationarity** | all | regime breaks (managers, winter, congestion) | rolling-block stability read | Med | open |
-| X4 | **DGW exclusion is harmless** | all | DGWs are the highest-value moments; stack is silent there | state gap; scope DGW = sum of two single-GW forecasts before Phase 5 | Med | open (product gap) |
-| X5 | **Player identity stable within season** | 1 | transfers / role changes break the fixed intercept | flag movers; ICC robustness excl. them | Low-Med | open |
-| X6 | **Process (xG) forecasts components better than realized (goals)** | 2 | *goals are equation-inputs (excluded as contemporaneous signals) but Phase-2 targets;* real test = lagged xG vs lagged goals → future component (one sub-question, not the main bet). xG same-match → leak risk | `.shift(1)`; head-to-head test; coverage check | Med | open |
-| A2.1 | **Component independence** in the points map | 2/3 | mean OK, but haul-probability/variance wrong (components co-move) | test residual cross-correlation; joint model in Phase 3 | Med | open |
-| A2.2 | **Deferred scoring parts (bonus/cards/saves) are minor** | 2 | bonus is a large, correlated share of premium points | quantify un-modeled points share before "good enough" | Med | open |
-| A5.1 | **Single-season decision backtest is enough** | 5 | one path → overfits the season's meta | block-bootstrap error bars on every decision claim | High | open |
-| A0.2 | **Operational thresholds** (warmup=3, k=20, floors) | 0 | arbitrary; shape every comparison | ±1 sensitivity check once | Low | open |
+| ID | Assumption baked in | Sev | Test / mitigation | Due-by (gate) | Status |
+|---|---|---|---|---|---|
+| **X2** | **Gaussian LMM on a count target** (debt on shipped D1 — CIs/LRT assume normality) | High | refit ICC via NB-GLMM or distribution-free bootstrap; caveat D1 | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
+| X6 | **Process (xG) forecasts components better than realized (goals)** — *goals are equation-inputs, excluded as contemporaneous signals but are Phase-2 targets; real test = lagged xG vs lagged goals → future component (a sub-question, not the main bet); xG same-match → leak risk* | Med | `.shift(1)`; head-to-head test; coverage check | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
+| A2.2 | **Deferred scoring parts (bonus/cards/saves) are minor** | Med | quantify un-modeled points share before "good enough" | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
+| A2.1 | **Component independence** in the points map | Med | test residual cross-correlation; joint model in Phase 3 | Phase 3 | accepted-deferred |
+| A2.3 | **Linear-additive signal combination** (EN) | Low-Med | non-linear ceiling probe (gradient boosting) | Phase 2.2 | accepted-deferred |
+| A4.1 | **Calibration tolerance unspecified** | Med | pre-register tolerance; CV recalibration | Phase 4 | accepted-deferred |
+| X1 | **Conditional-on-appearance is the right target** | High | score the unconditional (incl. DNP=0) gap; model P(play) | **Phase 5** (P(play) required) | accepted-deferred |
+| X4 | **DGW exclusion is harmless** (product gap) | Med | state gap; DGW = sum of two single-GW forecasts | Phase 5 | accepted-deferred |
+| A5.1 | **Single-season decision backtest is enough** | High | block-bootstrap error bars on every decision claim | Phase 5 | accepted-deferred |
+| X3 | **Single-season stationarity** | Med | rolling-block stability read | Phase 3 (or when 2nd season lands) | accepted-deferred |
+| X5 | **Player identity stable within season** | Low-Med | flag movers; ICC robustness excl. them | opportunistic (with X2 refit) | accepted-deferred |
+| A0.2 | **Operational thresholds** (warmup=3, k=20, floors) | Low | ±1 sensitivity check once | opportunistic | accepted-deferred |
+
+🔴 **must-fix before Phase 2 opens:** X2, X6, A2.2 — these are exactly the pre-build validation sprint (§6).
+All others are *deliberately carried* with a named due-by, not forgotten.
 
 **Main Phase-2 bet (the headline, stated plainly):** *do situation features improve within-position
 ranking over the identity-only baseline, on held-out GWs, conditional on appearance?* Everything
@@ -189,10 +197,12 @@ survival-for-availability (Phase 6.1). Reserve "reach" for the rare muscles (sur
 
 ## 6. Immediate next — pre-Phase-2 validation sprint
 
+This sprint **is** the 🔴 must-fix gate (§4): the three items below block Phase 2 from opening.
 Small, cheap code that tests the biggest baked-in bets *before* writing the count models:
-1. **X6** — lagged xG vs lagged goals as predictors of the *future* component (per position).
-2. **X2** — count-GLMM (or bootstrap) ICC sensitivity: does D1's split/ordering survive dropping normality?
-3. **A2.2** — quantify the deferred-points share (bonus/cards/saves).
+1. **X2** (must-fix) — count-GLMM (or bootstrap) ICC sensitivity: does D1's split/ordering survive dropping normality? Caveat/annotate the frozen D1 results either way.
+2. **X6** (must-fix) — lagged xG vs lagged goals as predictors of the *future* component (per position).
+3. **A2.2** (must-fix) — quantify the deferred-points share (bonus/cards/saves).
 4. Add a **component-target leakage assertion** to the Phase-2 harness contract.
 
+**Gate to open Phase 2:** items 1–3 resolved to `tested-holds`/`tested-fails` (not `open`), and #4 in place.
 Then build 2.1. Prove the hypotheses, then model.

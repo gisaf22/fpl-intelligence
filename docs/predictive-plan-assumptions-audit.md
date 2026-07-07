@@ -23,7 +23,7 @@ starting point, never a conclusion. Same standard that demoted the minutes-offse
 | X3 | **Single-season stationarity** — within-season relationships are stable | all | Manager changes, injuries, fixture congestion, winter, tactical shifts create regime breaks. Walk-forward tolerates slow drift but every fit assumes one regime. | Add a within-season stability read (rolling-window coefficient / rolling baseline Spearman across GW blocks). Don't claim a stable relationship without it. | Medium |
 | X4 | **DGW exclusion is harmless** | population, all | Double-gameweeks are *excluded everywhere* — yet they are the highest-value decision moments (captaincy, chips). The stack is silent exactly when it matters most. | State explicitly that forecasts don't cover DGWs (a real product gap), and scope a DGW handling path (sum of two single-GW forecasts) before Phase 5. | Medium |
 | X5 | **Player identity is a stable within-season unit** | Phase 1, panel | Mid-season transfers, role changes (benchwarmer→nailed), position reclassification break the fixed random intercept. | Flag movers; check ICC robustness excluding transferred/role-changed players. | Low-Med |
-| X6 | **xG/xA are clean, non-leaky, and predictive** | Phase 2 features | Expected stats are computed from the *same match* → must be strictly lagged (leakage risk). And "xG predicts future goals better than goals do" is an empirical claim, not a given. | Enforce `.shift(1)`; **test** lagged-xG vs lagged-goals as predictors head-to-head before trusting xG. Verify source coverage/missingness. | Medium |
+| X6 | **Process stats (xG/xA) forecast the components better than the realized equation-inputs (goals/assists)** | Phase 2 features | *Framing:* goals/assists/CS are **equation inputs** — excluded as *contemporaneous* signals (circular: goals ARE points). In Phase 2 they are **targets**, not predictors, so that exclusion doesn't apply. The real, non-circular test: to forecast *future* goals, is *lagged xG* (process, less noisy) or *lagged goals* (realized, noisy) the better leading indicator? Both lagged. xG is also same-match → strict-lag leakage risk. | Enforce `.shift(1)`; **test** lagged-xG vs lagged-goals as predictors of the *future* component; verify coverage/missingness. **This is one sub-question — the *main* Phase-2 bet is "do process features beat the identity-only baseline at all."** | Medium |
 
 ## 2. Per-phase assumption register
 
@@ -52,7 +52,7 @@ starting point, never a conclusion. Same standard that demoted the minutes-offse
 
 ### Phase 5 (design)
 - **A5.1 Single-season decision backtest is one path.** 38 GWs is *one* realization; captain/transfer/chip rules backtested on it are **high-variance and prone to overfitting the season's meta**. Report decision results with uncertainty (block bootstrap over GWs) and resist ranking rules on a single-season point estimate. This is the weakest evidential link in the plan.
-- **A5.2 Decision layer needs price/ownership data** (transfers, chips, effective ownership) that is **not yet in the mart** — Phase 5 is under-specified until that lands (see strategy review).
+- **A5.2 Decision layer is un-built, NOT data-blocked.** *Correction:* the mart **already has** `purchase_price`, `ownership_count`, `transfers_in`, `transfers_out`, and the **market family validated them** (weakly informative: ownership rho ≈ 0.16 MID/DEF, price ≈ 0.12 DEF; transfers-balance dropped as uninformative). So Phase 5 is *not* blocked on data — we simply haven't built the **decision** layer that consumes it (transfer value, effective ownership). Note the distinction: these signals are *weak predictors of points* but are still **required for decision modeling** (you model EO regardless of whether ownership predicts returns). Price *changes* and chips need light derivation from the per-GW price, not new data.
 
 ### Phase 6
 - **A6.1** Cross-season blocked (acknowledged). **A6.2** Survival needs adequate event counts — verify. **A6.3** PyMC gated on EB proven — fine.
@@ -61,7 +61,7 @@ starting point, never a conclusion. Same standard that demoted the minutes-offse
 
 - **Panel-data econometrician:** "You shipped an ICC from a **Gaussian** LMM on zero-inflated counts (X2). The variance share is defensible; the *p-values and CIs* are on borrowed assumptions. Add a count-GLMM or bootstrap sensitivity before anyone cites the LRT."
 - **ML forecasting engineer:** "Your evaluation is **conditional on appearance** (X1) end-to-end. That's a legitimate *sub-problem*, but you're one step from reporting it as forecast skill. Model P(play) before Phase 5, or the decision numbers are optimistic. Also: single-season backtest (A5.1) — put error bars on every decision claim or don't rank on them."
-- **FPL domain analyst:** "You exclude DGWs (X4) and defer bonus (A2.2) — that's the captaincy and the premium-player edge gone. And no ownership/price (A5.2) means you can't actually model a transfer. The model will be 'accurate' on the part of FPL that matters least."
+- **FPL domain analyst:** "You exclude DGWs (X4) and defer bonus (A2.2) — that's the captaincy and the premium-player edge gone. The model will be 'accurate' on the part of FPL that matters least. (Price/ownership you *do* have — that's a build gap, A5.2, not a data gap.)"
 - **Skeptical statistician:** "Phase 3's gate (A3.1) validates a simulator against its own mean — circular. The real test is calibration (Phase 4). Consider collapsing 3-validation into 4. And component independence (A2.1) will make your haul probabilities wrong in the same direction every time."
 - **Data/pipeline engineer:** "xG is a same-match stat (X6) — one missed `.shift(1)` and the whole Phase-2 lift is leakage. Add an explicit component-target leakage assertion, mirroring `_assert_no_leakage`, and a data-quality/coverage gate on xG/xA before fitting."
 
@@ -74,7 +74,7 @@ starting point, never a conclusion. Same standard that demoted the minutes-offse
 **Plan amendments:**
 3. **Elevate availability / P(play) (X1)** from Phase 6 to a *pre-Phase-5 dependency* — decisions need it. Keep full survival modeling in 6, but a simple P(play) multiplier is required earlier.
 4. **Merge Phase 3's distributional validation into Phase 4** (A3.1) — drop the self-referential mean gate; validate the distribution where calibration lives.
-5. **Flag Phase 5 as data-blocked on price/ownership** (A5.2) — same status as cross-season is on 2nd-season data. Don't open 5 without it.
+5. **Phase 5 is a build gap, not a data gap** (A5.2, corrected) — price/ownership/transfers are present and validated; scope the decision layer (transfer value, EO) that consumes them. Only cross-season (Phase 6.2) is genuinely data-blocked.
 6. **Attach uncertainty to every decision/gate claim** (A5.1) via block bootstrap over GWs.
 
 **Standing discipline:**
@@ -84,7 +84,8 @@ starting point, never a conclusion. Same standard that demoted the minutes-offse
 
 The plan's **skeleton is sound** — benchmarks first, calibration before decisions, honest-null fallbacks.
 The exposed risks are not in the sequencing but in **three baked-in framings**: conditional-on-appearance
-(X1), Gaussian-on-counts (X2, already shipped), and single-season decision evidence (A5.1) — plus two
-**product gaps** (DGWs X4, ownership/price A5.2) that make "accuracy" and "usefulness" diverge. None block
-Phase 2; all must be *stated and scheduled*, not discovered later. Recommended immediate move: the small
+(X1), Gaussian-on-counts (X2, already shipped), and single-season decision evidence (A5.1) — plus one
+**product gap** (DGWs X4) and one **build gap** (the decision layer, A5.2 — data is present, not missing)
+that make "accuracy" and "usefulness" diverge. None block Phase 2; all must be *stated and scheduled*,
+not discovered later. Recommended immediate move: the small
 **pre-Phase-2 validation sprint** (actions 1–2), then build 2.1.

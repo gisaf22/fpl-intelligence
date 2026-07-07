@@ -28,9 +28,9 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 
 Legend: ✅ done · 📐 designed · 🗒 planned · 🚧/⛔ blocked/null.
 
-**Open debt on shipped work:** D1's ICC uses a Gaussian LMM on a count target — variance *share* holds,
-but its CIs/LRT assume normality (X2). Marked 🔴 **must-fix before Phase 2 opens** (§4) — Phase 2
-reconciles against D1's numbers, so the debt cannot be carried silently.
+**Shipped-work debt X2 — resolved (2026-07-06):** D1's Gaussian-LMM ICC was stress-tested with a
+distribution-free bootstrap — ordering + small magnitude hold without normality; GK exact-0 is a
+bias-corrected reading (caveat now on the D1 result). `tested-holds`, no re-work. See §4 / §6.
 
 ---
 
@@ -89,7 +89,7 @@ Two deliverables sharing a model but computed differently — must not be confla
 - **Population parity (D1↔Q1):** `minutes>0`, DGW excluded, `min_appearances=10`, per position, whole season. ICC = SS-share only for a balanced panel; ours is unbalanced → reconcile to *tolerance*, not equality.
 - **Done — D1:** ICC ~0.06–0.10 outfield, ~0 GK; small but **statistically real** (LRT decisive DEF/MID/FWD; GK null p=0.5); reconciles with Q1 SS-share (ICC slightly below — expected unbalanced-panel gap).
 - **Done — D2:** **null** — slightly *worse* than raw mean at every position (thin between-slice + player-specific λ reorders by games-played, adding sample-size noise to the rank). Shelved, kept in-repo for a cross-season re-run.
-- **Left:** the **X2 count-GLMM sensitivity** check on D1 (ICC via NB-GLMM / distribution-free bootstrap — the shipped CIs/LRT assume normality).
+- **Left:** none — the **X2 sensitivity** check is done (distribution-free bootstrap: conclusions robust; GK caveat recorded on the D1 result).
 - **Gate (met, D1):** reconciles with Q1; σ²_between real where Q1 found it. **Failed (D2):** doesn't out-rank → pre-registered fallback = ship D1, record D2 null. **Risks:** X2 (Gaussian-on-counts debt), X5 (movers break the fixed intercept).
 
 ### Phase 2.1 — Count models 📐 (next)
@@ -151,9 +151,9 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 
 | ID | Assumption baked in | Sev | Test / mitigation | Due-by (gate) | Status |
 |---|---|---|---|---|---|
-| **X2** | **Gaussian LMM on a count target** (debt on shipped D1 — CIs/LRT assume normality) | High | refit ICC via NB-GLMM or distribution-free bootstrap; caveat D1 | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
-| X6 | **Process (xG) forecasts components better than realized (goals)** — *goals are equation-inputs, excluded as contemporaneous signals but are Phase-2 targets; real test = lagged xG vs lagged goals → future component (a sub-question, not the main bet); xG same-match → leak risk* | Med | `.shift(1)`; head-to-head test; coverage check | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
-| A2.2 | **Deferred scoring parts (bonus/cards/saves) are minor** | Med | quantify un-modeled points share before "good enough" | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
+| **X2** | **Gaussian LMM on a count target** (debt on shipped D1 — CIs/LRT assume normality) | High | distribution-free bootstrap of SS between-share | Phase 2 (sprint) | ✅ **tested-holds** — ordering + magnitude robust; GK exact-0 is bias-corrected (caveat on D1) |
+| X6 | **Process (xG) forecasts components better than realized (goals)** — *goals are equation-inputs, excluded as contemporaneous signals but are Phase-2 targets; real test = lagged xG vs lagged goals → future component* | Med | lagged head-to-head, within-position | Phase 2 (sprint) | ✅ **tested-holds** — xG wins every position (MID +0.043, DEF +0.026, FWD +0.013) |
+| A2.2 | **Deferred scoring parts (bonus/cards/saves) are minor** | Med | quantify un-modeled points share | Phase 2 (sprint) | ✅ **tested-holds → NOT minor** — GK saves ~18%, FWD bonus ~11.5%; add GK-saves early, flag FWD bonus |
 | A2.1 | **Component independence** in the points map | Med | test residual cross-correlation; joint model in Phase 3 | Phase 3 | accepted-deferred |
 | A2.3 | **Linear-additive signal combination** (EN) | Low-Med | non-linear ceiling probe (gradient boosting) | Phase 2.2 | accepted-deferred |
 | A4.1 | **Calibration tolerance unspecified** | Med | pre-register tolerance; CV recalibration | Phase 4 | accepted-deferred |
@@ -164,8 +164,9 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 | X5 | **Player identity stable within season** | Low-Med | flag movers; ICC robustness excl. them | opportunistic (with X2 refit) | accepted-deferred |
 | A0.2 | **Operational thresholds** (warmup=3, k=20, floors) | Low | ±1 sensitivity check once | opportunistic | accepted-deferred |
 
-🔴 **must-fix before Phase 2 opens:** X2, X6, A2.2 — these are exactly the pre-build validation sprint (§6).
-All others are *deliberately carried* with a named due-by, not forgotten.
+✅ **Phase 2 gate CLEARED (2026-07-06):** X2, X6, A2.2 all `tested-holds` — see
+[pre-Phase-2 validation](studies/results/predictive-prephase2-validation.md). All others are
+*deliberately carried* with a named due-by, not forgotten.
 
 **Main Phase-2 bet (the headline, stated plainly):** *do situation features improve within-position
 ranking over the identity-only baseline, on held-out GWs, conditional on appearance?* Everything
@@ -195,14 +196,13 @@ survival-for-availability (Phase 6.1). Reserve "reach" for the rare muscles (sur
 
 ---
 
-## 6. Immediate next — pre-Phase-2 validation sprint
+## 6. Pre-Phase-2 validation sprint — ✅ DONE (gate cleared 2026-07-06)
 
-This sprint **is** the 🔴 must-fix gate (§4): the three items below block Phase 2 from opening.
-Small, cheap code that tests the biggest baked-in bets *before* writing the count models:
-1. **X2** (must-fix) — count-GLMM (or bootstrap) ICC sensitivity: does D1's split/ordering survive dropping normality? Caveat/annotate the frozen D1 results either way.
-2. **X6** (must-fix) — lagged xG vs lagged goals as predictors of the *future* component (per position).
-3. **A2.2** (must-fix) — quantify the deferred-points share (bonus/cards/saves).
-4. Add a **component-target leakage assertion** to the Phase-2 harness contract.
+Results: [studies/results/predictive-prephase2-validation.md](studies/results/predictive-prephase2-validation.md).
+1. **X2** ✅ `tested-holds` — distribution-free bootstrap: D1's ordering + small magnitude survive dropping normality; GK exact-0 is bias-corrected (caveat on D1).
+2. **X6** ✅ `tested-holds` — lagged **xG beats lagged goals** at every position (MID +0.043, DEF +0.026, FWD +0.013) → use process features.
+3. **A2.2** ✅ `tested-holds → NOT minor` — deferred points material: **GK saves ~18%, FWD bonus ~11.5%** → add GK-saves component early; flag FWD bonus as known bias.
+4. **Component-target leakage assertion** ➡ reclassified as a **Phase-2 build-time contract** (it guards feature columns that don't exist until the harness does) — wired in with `count_models.py`, not a pre-build test.
 
-**Gate to open Phase 2:** items 1–3 resolved to `tested-holds`/`tested-fails` (not `open`), and #4 in place.
-Then build 2.1. Prove the hypotheses, then model.
+**→ Phase 2 is OPEN.** Build order resumes at 2.1 (count models), carrying: leakage assertion into the
+harness; a GK-saves component; FWD-bonus flagged.

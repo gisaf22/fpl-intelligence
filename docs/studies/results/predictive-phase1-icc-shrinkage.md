@@ -21,6 +21,14 @@ Formalizes Q1's between/within split as a model parameter with uncertainty.
 | MID | 0.136 | 0.101 | [0.070, 0.122] | 0.835 | 7.40 | 6.4e-64 | 191 |
 | FWD | 0.132 | 0.097 | [0.000, 0.143] | 0.974 | 9.10 | 1.1e-17 | 51 |
 
+> **Normality sensitivity (X2, added 2026-07-06).** D1's ICC is from a *Gaussian* LMM on a count
+> target. A distribution-free player-clustered bootstrap of the SS between-share confirms D1's
+> **ordering and small magnitude** (DEF/MID/FWD between-share CIs exclude 0 without any normality
+> assumption). **GK caveat:** the raw SS-share is 0.038 [0.018, 0.063] (excludes 0) vs the LMM ICC = 0 —
+> this is finite-sample upward bias of the SS statistic, *not* durable between-keeper skill; the
+> "GK ≈ no durable level" conclusion correctly rests on the variance-component correction + the LRT
+> (p = 0.50). Conclusions robust; no re-work. Full read: [pre-Phase-2 validation](predictive-prephase2-validation.md).
+
 **Reconciliation (gate 1) — pass.** ICC tracks the descriptive SS between-share in
 order (GK < DEF < FWD ≈ MID) and magnitude. ICC sits slightly *below* the SS-share
 at every position — the expected unbalanced-panel gap (the SS-share is inflated by

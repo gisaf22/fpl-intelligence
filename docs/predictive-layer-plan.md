@@ -106,13 +106,17 @@ Two deliverables sharing a model but computed differently — must not be confla
 
   Only *count* components take Poisson/NB; a binary outcome (conceded 0 or not) is Bernoulli and yields `P(clean sheet)` directly. Saves/bonus/cards deferred as fixed scoring arithmetic — **quantify the un-modeled points share** (A2.2) before "good enough".
 - **Minutes — TESTED, not a hard-coded offset.** A log-minutes offset (coef=1) *asserts* a constant per-minute rate — likely false (late-game clustering, subs = selected population, the 60′ appearance/CS kink). Procedure: (1) enter `log(minutes)` with a **freely estimated** coefficient β → lock as offset only if β≈1; (2) inspect empirical per-minute component rate across bands 0–30/30–60/60–90 per position; (3) escalate to minutes-band dummies or a spline if non-proportional.
-- **Features (X):** minimal, **strictly-prior** process stats — goals rate ← lagged `xgi`/`xg`; assists ← lagged `xa`/`creativity`; clean sheet ← `fixture_context`, lagged `goals_conceded_roll3`, `was_home`. `.shift(1)` enforced; component-target leakage assertion added to the harness contract.
+- **Features (X):** minimal, **strictly-prior** process stats — goals rate ← lagged `xg` (per X6, xG > goals); assists ← lagged `xa`; clean sheet ← `fixture_context`, lagged `goals_conceded_roll3`, `was_home`. `.shift(1)` enforced; component-target leakage assertion added to the harness contract. Use component-appropriate parts (`xg`→goals, `xa`→assists), **not** the composite `xgi` (avoid double-counting).
+- **Salvaged from families (as a *prior*, not authority — see families disposition below):**
+  - **Candidate roster to re-test per component:** `xgi_roll3/5`, `minutes_roll3/8`, `transfers_in`, `ownership_count`, `purchase_price` (family rho 0.12–0.23). **Re-test each against its *component* target, not `total_points`** (A-F1) — the family verdicts gated on points with a brittle quintile rule and never enforced beating the baseline, so their "informative"/"excluded" labels are a weak prior, not a filter. Expect `xg`(FWD-goals) and `fixture`(CS) to re-enter *despite* family points-exclusion.
+  - **FWD explore findings (lagged/predictive, ref `research/families/form/explore/`):** (i) **"FRINGE > STABLE"** — rolling xGI correlates *more* for rotation/fringe forwards than nailed ones (bears on the minutes/exposure treatment above); (ii) xGI **horizon** 3/5/8-GW window choice for FWD. Carry as hypotheses into the FWD goals model.
+  - **Domain rationales (from family annotations):** transfers = crowd momentum (lagged); ownership tracks form with a lag; price proxies quality tier; GK excluded from attacking signals (ontological). Domain priors, not verdicts.
 - **Folded-in read:** the never-run **autocorrelation / form-persistence** study (via `research/kernels/diagnostic/serial.py`) enters here as a *gated* question — report within-player lag-1 autocorrelation per position, and test whether a lagged-form feature earns its place over the level-only baseline.
 - **Prereq (verified):** component columns present in mart. **Gate:** (1) over-dispersion test justifies NB/ZIP over Poisson; (2) composed E[points] beats the Phase-0 baseline **and** (3) the best single signal, per position, walk-forward. Else ship the dispersion diagnosis as an honest null.
 - **Risks:** X6 (xG>goals unproven — one sub-question), A2.1 (component independence — mean OK, haul-prob wrong), A2.2 (deferred bonus caps accuracy), X1 (conditional on appearance).
 
 ### Phase 2.2 — Regularized signal combination 📐
-- **Goal:** combine the families' *informative* signals into one predictor, handling collinearity principledly (supersedes ad-hoc composition weights).
+- **Goal:** combine the **re-validated** candidate signals (the family roster re-tested per component, §2.1) into one predictor, handling collinearity principledly (supersedes ad-hoc composition weights). *Not* the family "informative" labels — those are demoted to a prior (A-F1).
 - **Where:** extend `model/assemble/composition_study.py`. **Machinery:** `sklearn` ElasticNetCV inside the walk-forward harness.
 - **Key decision:** EN/LASSO assumes linear-additive combination — **probe against a non-linear reference** (gradient boosting) as a ceiling check for missed interactions (A2.3), not necessarily to ship.
 - **Prereq:** Phase-0 harness + families' informative-signal set. **Gate:** beats baseline **and** the single best signal on held-out GWs. **Risks:** A2.3 non-linearity.
@@ -163,6 +167,10 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 | X3 | **Single-season stationarity** | Med | rolling-block stability read | Phase 3 (or when 2nd season lands) | accepted-deferred |
 | X5 | **Player identity stable within season** | Low-Med | flag movers; ICC robustness excl. them | opportunistic (with X2 refit) | accepted-deferred |
 | A0.2 | **Operational thresholds** (warmup=3, k=20, floors) | Low | ±1 sensitivity check once | opportunistic | accepted-deferred |
+| **A-F1** | **Family signal-verdicts are `total_points` marginal reads, not component-validated** (gate never enforced beating the baseline; brittle quintile-monotonicity) — treat roster as a *prior*, not a filter | High | re-test each candidate against its *component* target with the Phase-0 baseline gate | Phase 2 (build) | 🔴 must-do in build |
+| A-F2 | **Does Q1b identity-dominance carry to components?** (if points are identity-dominant, features may add little beyond level) | Med | per-component within-predictability check vs level baseline | Phase 2 | open |
+| A-P1 | **`minutes ≥ 60` "qualified start"** — inherited from the prior families/EDA framework, **validated by that framework, not by us** | Med | test in Phase 2's minutes-band inspection before adopting; our verified population is `minutes > 0` | Phase 2 (with minutes analysis) | open (inherited) |
+| A-F3 | **FWD/GK have no validated point-signals** (families) — component-only reliance | Med | honest scope limit; GK via saves+CS, FWD via xG→goals | Phase 2 | accepted-deferred |
 
 ✅ **Phase 2 gate CLEARED (2026-07-06):** X2, X6, A2.2 all `tested-holds` — see
 [pre-Phase-2 validation](studies/results/predictive-prephase2-validation.md). All others are
@@ -193,6 +201,32 @@ breadth creep, not over-reach — the gate system already prevents building glam
 
 **Highest joint FPL × recruiter × practice value:** count/GLM target (Phase 2) · calibration (Phase 4) ·
 survival-for-availability (Phase 6.1). Reserve "reach" for the rare muscles (survival, calibration).
+
+**Canonical population (verified):** `minutes > 0`, DGW-excluded — the Phase-0/1 population we've gated
+on. Recorded here, not in a separate contract artifact (research-first — we don't grow the production
+registry). Any deviation is a register item, not a silent choice: `minutes ≥ 60` is **A-P1 (open)**.
+
+### Layer disposition & ownership (families reconciliation)
+
+**Families are demoted, not deleted (Option A).** They currently feed the live `serve/` scorer via
+`registry → governance`, so files stay in place. But their **authority is downgraded to "prior +
+explanatory"**: the predictive layer (Phase 2+) is now the **authoritative signal arbiter** (re-tests
+per component, gates on the Phase-0 baseline — the thing families never enforced). The salvage (candidate
+roster, FWD explore findings, domain rationales) is **referenced into Phase 2.1 above** — not moved
+(the useful stats already live in `research/kernels/`; the explore findings are lagged/predictive so they
+belong on the predictive side, *not* diagnostic, which is association-only).
+
+**Per-layer ownership going forward:**
+`dal` data + population · `research/foundation` EDA · `research/diagnostic` association (Q1/Q1b/Q2,
+contemporaneous) · `research/families` **demoted → hypothesis/prior only** · `model` **authoritative
+predictive validation + governance reconciler** · `serve` consumes governance-approved (family path now,
+predictive at Phase 5).
+
+**Action B — legacy-chain retirement (roadmap, decide at Phase 5):** research-first means
+`families → registry → governance → serve` is transient. **At the Phase-5 cutover**, promote the
+predictive scorer into `serve/` and retire the legacy signal-selection chain (freeze registry, archive
+family `validate/`). Not now — the live scorer must keep running until predictive can replace it. Logged
+as a one-line roadmap item, not an open action.
 
 ---
 

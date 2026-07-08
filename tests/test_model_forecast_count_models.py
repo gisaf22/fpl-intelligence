@@ -8,6 +8,7 @@ import pytest
 
 from model.forecast.count_models import (
     COUNT_COMPONENTS,
+    analyze_minutes_exposure,
     diagnose_by_position,
     diagnose_overdispersion,
 )
@@ -40,6 +41,25 @@ def test_insufficient_rows() -> None:
     d = diagnose_overdispersion(np.array([0, 1, 0, 2, 0]))
     assert d["family"] == "insufficient"
     assert np.isnan(d["mean"])
+
+
+def test_exposure_detects_proportional_when_true() -> None:
+    # Goals generated proportional to minutes (rate per 90 constant) => beta ~ 1, proportional.
+    rng = np.random.default_rng(3)
+    rows = []
+    for p in range(200):
+        pos = ["DEF", "MID", "FWD"][p % 3]
+        for gw in range(1, 20):
+            mins = int(rng.integers(10, 91))
+            rows.append({
+                "player_id": p, "gw": gw, "position": pos, "minutes": mins, "is_dgw": False,
+                "goals_scored": rng.poisson(0.3 * mins / 90), "assists": rng.poisson(0.1),
+            })
+    res = analyze_minutes_exposure(pd.DataFrame(rows))
+    assert set(res.index) <= {"DEF", "MID", "FWD"}
+    assert "beta_logmin" in res.columns and "proportional" in res.columns
+    # At least one position recovers proportional exposure (CI includes 1).
+    assert res["proportional"].any()
 
 
 def test_diagnose_by_position_structure() -> None:

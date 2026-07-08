@@ -46,3 +46,35 @@ target into a set of **near-Poisson components** that simple GLMs fit well. The 
 - Carry a **conditional dispersion re-check** into the fitting step (does adding features/exposure push the
   index to ~1.0?). Recorded, not assumed.
 - Clean sheets remain **Bernoulli** (binary, excluded from this count diagnosis by construction).
+
+---
+
+## Minutes exposure — is a log-minutes offset valid? (resolves A-P1)
+
+`analyze_minutes_exposure()` — contemporaneous goals-vs-minutes structure per position: per-90 goal rate
+by minutes band, and the pooled Poisson coefficient β on `log(minutes)` (β = 1 ⇒ proportional exposure ⇒
+offset justified).
+
+| pos | per-90 rate (1,30] | (30,60] | (60,90] | β log(min) [CI] | verdict |
+|---|---|---|---|---|---|
+| DEF | 0.077 | 0.020 | 0.043 | **0.59 [0.25, 0.94]** | sub-proportional — offset invalid |
+| MID | 0.163 | 0.100 | 0.152 | 0.90 [0.72, 1.08] | proportional — offset ok |
+| FWD | 0.620 | 0.248 | 0.386 | **0.66 [0.50, 0.83]** | sub-proportional — offset invalid |
+
+**Finding — proportional exposure is rejected for DEF and FWD** (β < 1, CI excludes 1); only MID is ~proportional.
+The per-90 rate is **non-monotonic — highest at short (1,30] minutes** (FWD 0.62 vs 0.39 at 60–90): the
+**attacking-substitute selection effect** (subs enter goal-chasing situations) plus small-minute denominator
+inflation. *Caveat:* pooled contemporaneous β mixes exposure with player selection (subs ≠ starters), so this
+is the *effective* minutes-rate relationship a model must respect, not clean causal exposure — but either way
+the offset decision is the same.
+
+**Decisions:**
+- **Do NOT use a fixed log-minutes offset** (coef=1) for goals. Enter minutes as a **free covariate**
+  (β estimated) or **minutes-band terms**; MID may keep an offset, DEF/FWD must not.
+- **A-P1 resolved (`minutes ≥ 60` "qualified start"):** the threshold is **not innocuous** — short
+  appearances carry a *different, higher* per-90 rate, so filtering to `minutes ≥ 60` (families' choice)
+  discards a materially distinct sub-population. Our predictive population stays **`minutes > 0`**, and
+  minutes enters the model flexibly rather than as a filter or a proportional offset. Status: **tested-fails
+  (proportional-exposure assumption); `minutes ≥ 60` not adopted.**
+- Connects to the salvaged family finding **"FRINGE > STABLE"** — same phenomenon (sub/rotation forwards
+  behave differently), now quantified.

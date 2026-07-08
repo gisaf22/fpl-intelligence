@@ -1,7 +1,7 @@
-"""Phase 2.1 — count models for the point components.
+"""Phase 2.1 - count models for the point components.
 
 First deliverable: the **over-dispersion diagnosis** (Phase 2 gate 1). Before fitting
-any component model we test the *shape* of each count component per position — is it
+any component model we test the *shape* of each count component per position - is it
 over-dispersed and/or zero-inflated relative to Poisson? The diagnosis picks the family
 by evidence, not habit (Poisson vs Negative Binomial vs zero-inflated / hurdle).
 
@@ -11,12 +11,12 @@ Method (per position x count component, e.g. goals_scored / assists):
   * NB vs Poisson likelihood-ratio test on the dispersion parameter alpha (H0: alpha = 0 is on
     the boundary -> the LR statistic is a 50:50 chi-sq(0)/chi-sq(1) mixture, so the one-sided
     p-value is half the naive chi-sq(1) tail),
-  * zero-inflation check: observed P(y=0) vs the Poisson-implied exp(-mean) — a large
+  * zero-inflation check: observed P(y=0) vs the Poisson-implied exp(-mean) - a large
     positive excess beyond what NB explains points to ZIP/hurdle.
 
 This is the **marginal** shape (intercept-only). Dispersion is re-checked conditional on
 covariates when the mean model is fitted (features add explanation that can absorb some
-apparent over-dispersion). Clean sheets are **binary** (Bernoulli) — not a count — and
+apparent over-dispersion). Clean sheets are **binary** (Bernoulli) - not a count - and
 are excluded from this diagnosis by construction.
 
 Population matches Phase 0/1: ``minutes > 0``, DGW excluded, per position.
@@ -32,7 +32,7 @@ import statsmodels.api as sm
 from scipy import stats
 from statsmodels.discrete.discrete_model import NegativeBinomial
 
-# Count components modelled with a Poisson/NB family (clean sheets are Bernoulli — separate).
+# Count components modelled with a Poisson/NB family (clean sheets are Bernoulli - separate).
 COUNT_COMPONENTS = ("goals_scored", "assists")
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 
@@ -83,7 +83,7 @@ def diagnose_overdispersion(y: pd.Series | np.ndarray) -> dict[str, float | str]
 
     # Family recommendation by evidence. Distinguish *statistical* over-dispersion (LRT,
     # sensitive to n) from *material* over-dispersion (dispersion index): with thousands of
-    # rows the LRT flags even a ~1.1 index, so NB is technically justified but ≈ Poisson.
+    # rows the LRT flags even a ~1.1 index, so NB is technically justified but ~ Poisson.
     lrt_significant = not np.isnan(lrt_p) and lrt_p < 0.05
     material = dispersion > DISPERSION_FLAG
     if lrt_significant or material:
@@ -103,6 +103,57 @@ def diagnose_overdispersion(y: pd.Series | np.ndarray) -> dict[str, float | str]
     }
 
 
+# Minutes bands for the exposure structure read (lo exclusive, hi inclusive).
+MINUTES_BANDS = ((1, 30), (30, 60), (60, 90))
+
+
+def analyze_minutes_exposure(
+    mart: pd.DataFrame, component: str = "goals_scored"
+) -> pd.DataFrame:
+    """Does the component rate scale proportionally with minutes played? (Exposure test.)
+
+    Contemporaneous structural read (same-week minutes and component), per position:
+      * per-90 component rate within minutes bands (is the rate flat across bands?),
+      * pooled Poisson coefficient beta on log(minutes) with CI. beta ~ 1 => proportional
+        exposure (a fixed log-minutes offset is justified); beta < 1 (CI excludes 1) =>
+        sub-proportional (offset invalid - minutes must enter as a free covariate / bands).
+
+    Caveat: pooled contemporaneous minutes-vs-component mixes mechanical exposure with
+    player selection (starters are better players than subs) and small-minute denominators
+    inflate per-90 rates. So this measures the *effective* minutes-rate relationship a model
+    must respect, not a clean causal exposure. Either way it decides the offset question.
+
+    Returns a frame indexed by position with per-band per-90 rates, beta + CI, and a
+    ``proportional`` flag (CI includes 1) / ``verdict``.
+    """
+    pop = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))]
+    rows = []
+    for pos in ("DEF", "MID", "FWD"):
+        sub = pop[pop["position"] == pos]
+        if len(sub) < MIN_ROWS:
+            continue
+        rec: dict[str, float | str | bool] = {"position": pos, "n": len(sub)}
+        for lo, hi in MINUTES_BANDS:
+            b = sub[(sub["minutes"] > lo) & (sub["minutes"] <= hi)]
+            rec[f"rate90_{lo}_{hi}"] = (
+                round(90 * b[component].sum() / b["minutes"].sum(), 3) if len(b) else float("nan")
+            )
+        x = sm.add_constant(np.log(sub["minutes"].to_numpy()))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            r = sm.GLM(sub[component].to_numpy(), x, family=sm.families.Poisson()).fit()
+        beta = float(r.params[1])
+        lo_ci, hi_ci = (float(v) for v in r.conf_int()[1])
+        proportional = lo_ci <= 1.0 <= hi_ci
+        rec.update({
+            "beta_logmin": round(beta, 3), "beta_lo": round(lo_ci, 3), "beta_hi": round(hi_ci, 3),
+            "proportional": proportional,
+            "verdict": "proportional (offset ok)" if proportional else "sub-proportional (offset invalid)",
+        })
+        rows.append(rec)
+    return pd.DataFrame(rows).set_index("position")
+
+
 def diagnose_by_position(
     mart: pd.DataFrame, components: tuple[str, ...] = COUNT_COMPONENTS
 ) -> pd.DataFrame:
@@ -116,7 +167,7 @@ def diagnose_by_position(
     for pos in POSITIONS:
         sub = pop[pop["position"] == pos]
         for comp in components:
-            # GK goals/assists are structurally absent — skip rather than report noise.
+            # GK goals/assists are structurally absent - skip rather than report noise.
             if pos == "GK":
                 continue
             d = diagnose_overdispersion(sub[comp])

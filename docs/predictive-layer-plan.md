@@ -5,13 +5,18 @@ assumptions register, and data inventory. Supersedes and folds in the former `pr
 `predictive-phase2-design`, `analysis-strategy-review`, and `predictive-plan-assumptions-audit` docs.
 Frozen per-phase *results* live separately (linked in §1) and are the immutable evidence trail.
 
-**Last updated:** 2026-07-07 · **Now at:** Phase 2.1 COMPLETE → **RESUME HERE: Phase 2.2** (regularized signal combination / elastic net; re-test salvaged family roster per component — closes A-F1). `main` clean & pushed.
+**Last updated:** 2026-07-08 · **Now at:** Phase 2.2 COMPLETE + remediated (A-F1 closed) → **RESUME HERE: Phase 3.1** (Monte-Carlo simulator). `main` clean & pushed.
 
-> **▶ Resume pointer.** Phase 2.1 done: component model beats identity-only at DEF +0.031 / MID +0.019
-> ([results](studies/results/predictive-phase2-component-model.md)); GK parity, FWD −0.012 (scope limit).
-> Read §1 dashboard + §4 register (Due-by gates) before building. Discipline: rank≠predict (§2);
-> population `minutes>0`; honest-null is valid; families are demoted to *prior* (§5, don't delete — serve
-> depends). Next: Phase 2.2 in `model/` (ElasticNetCV in the walk-forward harness).
+> **▶ Resume pointer.** Phase 2.2 done (remediated: `L1_wt` tuned, `minutes_trend` re-tested, selection
+> receipts added): regularized per-component combination clears BOTH gates (incumbent + best single signal)
+> **only at DEF** (0.237 > 0.217 > 0.162); MID regresses, FWD/GK beat incumbent but not the single
+> ([results](studies/results/predictive-phase2-signal-combination.md)). A-F1 **resolved** with a
+> selection-stability table (`selection_stability()`): `fdr_avg` kept across every component, process
+> `xg/xa_roll5` > roll3 (X6), `was_home` kept most for *assists* not CS (overturns v2 "defensive-only"),
+> `minutes_trend` retained-but-immaterial. A2.3 ceiling probe recorded (headroom modest at DEF/FWD, larger
+> at MID/GK). Read §1 dashboard + §4 register before building. Discipline: rank≠predict (§2); population
+> `minutes>0`; honest-null is valid; families
+> demoted to *prior* (§5, don't delete — serve depends). Next: Phase 3.1 Monte-Carlo simulator in `model/`.
 
 ---
 
@@ -26,7 +31,7 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | 1 · D2 | EB shrinkage ranker | ✅ built, ⛔ **null** | does NOT out-rank raw mean → shelved | same |
 | 2.1 | Count models — gate 1 (dispersion) | 🔨 **in build** | components near-Poisson (index ~1.1, no ZIP) | [results](studies/results/predictive-phase2-overdispersion.md) |
 | 2.1 | Count models — fit + compose + gate | ✅ **v2 done** | features beat baseline **DEF +0.031 / MID +0.019**; GK parity; FWD −0.012 (scope limit) | [results](studies/results/predictive-phase2-component-model.md) |
-| 2.2 | Regularized signal combination | 📐 planned | — | §3 |
+| 2.2 | Regularized signal combination | ✅ **done (remediated)** | clears both gates only at **DEF** (0.237); MID regresses, FWD/GK beat incumbent not the single; **A-F1 closed** w/ selection table | [results](studies/results/predictive-phase2-signal-combination.md) |
 | 3.1 | Monte-Carlo simulator | 🗒 planned | — | §3 |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
 | 4.1 | Calibration + proper scoring | 🗒 planned | — | §3 |
@@ -123,10 +128,11 @@ Two deliverables sharing a model but computed differently — must not be confla
 - **Prereq (verified):** component columns present in mart. **Gate:** (1) over-dispersion test justifies NB/ZIP over Poisson; (2) composed E[points] beats the Phase-0 baseline **and** (3) the best single signal, per position, walk-forward. Else ship the dispersion diagnosis as an honest null.
 - **Risks:** X6 (xG>goals unproven — one sub-question), A2.1 (component independence — mean OK, haul-prob wrong), A2.2 (deferred bonus caps accuracy), X1 (conditional on appearance).
 
-### Phase 2.2 — Regularized signal combination 📐
+### Phase 2.2 — Regularized signal combination ✅ done (2026-07-08)
 - **Goal:** combine the **re-validated** candidate signals (the family roster re-tested per component, §2.1) into one predictor, handling collinearity principledly (supersedes ad-hoc composition weights). *Not* the family "informative" labels — those are demoted to a prior (A-F1).
-- **Where:** extend `model/assemble/composition_study.py`. **Machinery:** `sklearn` ElasticNetCV inside the walk-forward harness.
-- **Key decision:** EN/LASSO assumes linear-additive combination — **probe against a non-linear reference** (gradient boosting) as a ceiling check for missed interactions (A2.3), not necessarily to ship.
+- **Where:** `model/forecast/signal_combination.py` → `walk_forward_signal_combination()`, `selection_stability()`, `gradient_boosting_ceiling()` (NOT the stale `model/assemble/composition_study.py`, the legacy SYNTH-01 governance path — slated for Phase-5 retirement). **Machinery:** per-component `statsmodels` **GLM.fit_regularized** (elastic net; BOTH `alpha` and `L1_wt` chosen by inner temporal CV), NOT Gaussian `sklearn` ElasticNetCV — keeps each component's evidence-picked count/logistic family.
+- **Key decision:** EN/LASSO assumes linear-additive combination — **probe against a non-linear reference** (gradient boosting, `gradient_boosting_ceiling()`) as a ceiling check for missed interactions (A2.3), not shipped.
+- **Result:** clears both gates (incumbent + best single signal) **only at DEF** (0.237 > 0.217 > 0.162); MID regresses (0.319 < 0.339), FWD/GK beat incumbent but not the best single signal. **A-F1 closed** with a selection-stability receipt: `fdr_avg` kept across every component, process `xg/xa_roll5` > roll3 (X6), `was_home` kept most for *assists* (overturns v2 "defensive-only" placement), `minutes_trend` retained-but-immaterial. A2.3 headroom modest at DEF/FWD, larger at MID/GK. [results](studies/results/predictive-phase2-signal-combination.md).
 - **Prereq:** Phase-0 harness + families' informative-signal set. **Gate:** beats baseline **and** the single best signal on held-out GWs. **Risks:** A2.3 non-linearity.
 
 ### Phase 3 — Distributions & uncertainty 🗒
@@ -167,7 +173,7 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 | X6 | **Process (xG) forecasts components better than realized (goals)** — *goals are equation-inputs, excluded as contemporaneous signals but are Phase-2 targets; real test = lagged xG vs lagged goals → future component* | Med | lagged head-to-head, within-position | Phase 2 (sprint) | ✅ **tested-holds** — xG wins every position (MID +0.043, DEF +0.026, FWD +0.013) |
 | A2.2 | **Deferred scoring parts (bonus/cards/saves) are minor** | Med | quantify un-modeled points share | Phase 2 (sprint) | ✅ **tested-holds → NOT minor** — GK saves ~18%, FWD bonus ~11.5%; add GK-saves early, flag FWD bonus |
 | A2.1 | **Component independence** in the points map | Med | test residual cross-correlation; joint model in Phase 3 | Phase 3 | accepted-deferred |
-| A2.3 | **Linear-additive signal combination** (EN) | Low-Med | non-linear ceiling probe (gradient boosting) | Phase 2.2 | accepted-deferred |
+| A2.3 | **Linear-additive signal combination** (EN) | Low-Med | non-linear ceiling probe (gradient boosting) | Phase 2.2 | ✅ **probed (2026-07-08)** — GBM headroom modest at DEF (+0.017)/FWD (+0.044), larger at GK (+0.067)/MID (+0.050) over the reg. combination; recorded lever, not shipped |
 | A4.1 | **Calibration tolerance unspecified** | Med | pre-register tolerance; CV recalibration | Phase 4 | accepted-deferred |
 | X1 | **Conditional-on-appearance is the right target** | High | score the unconditional (incl. DNP=0) gap; model P(play) | **Phase 5** (P(play) required) | accepted-deferred |
 | X4 | **DGW exclusion is harmless** (product gap) | Med | state gap; DGW = sum of two single-GW forecasts | Phase 5 | accepted-deferred |
@@ -175,7 +181,7 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 | X3 | **Single-season stationarity** | Med | rolling-block stability read | Phase 3 (or when 2nd season lands) | accepted-deferred |
 | X5 | **Player identity stable within season** | Low-Med | flag movers; ICC robustness excl. them | opportunistic (with X2 refit) | accepted-deferred |
 | A0.2 | **Operational thresholds** (warmup=3, k=20, floors) | Low | ±1 sensitivity check once | opportunistic | accepted-deferred |
-| **A-F1** | **Family signal-verdicts are `total_points` marginal reads, not component-validated** (gate never enforced beating the baseline; brittle quintile-monotonicity) — treat roster as a *prior*, not a filter | High | re-test each candidate against its *component* target with the Phase-0 baseline gate | Phase 2 (build) | 🔴 must-do in build |
+| **A-F1** | **Family signal-verdicts are `total_points` marginal reads, not component-validated** (gate never enforced beating the baseline; brittle quintile-monotonicity) — treat roster as a *prior*, not a filter | High | re-test each candidate against its *component* target with the Phase-0 baseline gate | Phase 2 (build) | ✅ **closed (2026-07-08)** — re-tested per component under a tuned elastic net + best-single gate; roster earns its place only at DEF; verdicts demoted to prior with a `selection_stability()` receipt (fdr_avg kept everywhere, roll5>roll3, was_home mainly attacking-assists) |
 | A-F2 | **Does Q1b identity-dominance carry to components?** (if points are identity-dominant, features may add little beyond level) | Med | per-component within-predictability check vs level baseline | Phase 2 | open |
 | A-P1 | **`minutes ≥ 60` "qualified start"** + **proportional-minutes exposure** | Med | minutes-band + Poisson-β test ([study](studies/results/predictive-phase2-minutes-exposure.md)) | Phase 2 | ✅ **tested-fails** — β<1 for DEF/FWD (offset invalid); short mins carry higher per-90 rate → `minutes≥60` NOT adopted; keep `minutes>0`, minutes enters flexibly |
 | A-F3 | **FWD/GK have no validated point-signals** (families) — component-only reliance | Med | honest scope limit; GK via saves+CS, FWD via xG→goals | Phase 2 | accepted-deferred |

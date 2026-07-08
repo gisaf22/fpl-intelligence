@@ -28,9 +28,9 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 
 Legend: ✅ done · 📐 designed · 🗒 planned · 🚧/⛔ blocked/null.
 
-**Open debt on shipped work:** D1's ICC uses a Gaussian LMM on a count target — variance *share* holds,
-but its CIs/LRT assume normality (X2). Marked 🔴 **must-fix before Phase 2 opens** (§4) — Phase 2
-reconciles against D1's numbers, so the debt cannot be carried silently.
+**Shipped-work debt X2 — resolved (2026-07-06):** D1's Gaussian-LMM ICC was stress-tested with a
+distribution-free bootstrap — ordering + small magnitude hold without normality; GK exact-0 is a
+bias-corrected reading (caveat now on the D1 result). `tested-holds`, no re-work. See §4 / §6.
 
 ---
 
@@ -89,7 +89,7 @@ Two deliverables sharing a model but computed differently — must not be confla
 - **Population parity (D1↔Q1):** `minutes>0`, DGW excluded, `min_appearances=10`, per position, whole season. ICC = SS-share only for a balanced panel; ours is unbalanced → reconcile to *tolerance*, not equality.
 - **Done — D1:** ICC ~0.06–0.10 outfield, ~0 GK; small but **statistically real** (LRT decisive DEF/MID/FWD; GK null p=0.5); reconciles with Q1 SS-share (ICC slightly below — expected unbalanced-panel gap).
 - **Done — D2:** **null** — slightly *worse* than raw mean at every position (thin between-slice + player-specific λ reorders by games-played, adding sample-size noise to the rank). Shelved, kept in-repo for a cross-season re-run.
-- **Left:** the **X2 count-GLMM sensitivity** check on D1 (ICC via NB-GLMM / distribution-free bootstrap — the shipped CIs/LRT assume normality).
+- **Left:** none — the **X2 sensitivity** check is done (distribution-free bootstrap: conclusions robust; GK caveat recorded on the D1 result).
 - **Gate (met, D1):** reconciles with Q1; σ²_between real where Q1 found it. **Failed (D2):** doesn't out-rank → pre-registered fallback = ship D1, record D2 null. **Risks:** X2 (Gaussian-on-counts debt), X5 (movers break the fixed intercept).
 
 ### Phase 2.1 — Count models 📐 (next)
@@ -106,13 +106,17 @@ Two deliverables sharing a model but computed differently — must not be confla
 
   Only *count* components take Poisson/NB; a binary outcome (conceded 0 or not) is Bernoulli and yields `P(clean sheet)` directly. Saves/bonus/cards deferred as fixed scoring arithmetic — **quantify the un-modeled points share** (A2.2) before "good enough".
 - **Minutes — TESTED, not a hard-coded offset.** A log-minutes offset (coef=1) *asserts* a constant per-minute rate — likely false (late-game clustering, subs = selected population, the 60′ appearance/CS kink). Procedure: (1) enter `log(minutes)` with a **freely estimated** coefficient β → lock as offset only if β≈1; (2) inspect empirical per-minute component rate across bands 0–30/30–60/60–90 per position; (3) escalate to minutes-band dummies or a spline if non-proportional.
-- **Features (X):** minimal, **strictly-prior** process stats — goals rate ← lagged `xgi`/`xg`; assists ← lagged `xa`/`creativity`; clean sheet ← `fixture_context`, lagged `goals_conceded_roll3`, `was_home`. `.shift(1)` enforced; component-target leakage assertion added to the harness contract.
+- **Features (X):** minimal, **strictly-prior** process stats — goals rate ← lagged `xg` (per X6, xG > goals); assists ← lagged `xa`; clean sheet ← `fixture_context`, lagged `goals_conceded_roll3`, `was_home`. `.shift(1)` enforced; component-target leakage assertion added to the harness contract. Use component-appropriate parts (`xg`→goals, `xa`→assists), **not** the composite `xgi` (avoid double-counting).
+- **Salvaged from families (as a *prior*, not authority — see families disposition below):**
+  - **Candidate roster to re-test per component:** `xgi_roll3/5`, `minutes_roll3/8`, `transfers_in`, `ownership_count`, `purchase_price` (family rho 0.12–0.23). **Re-test each against its *component* target, not `total_points`** (A-F1) — the family verdicts gated on points with a brittle quintile rule and never enforced beating the baseline, so their "informative"/"excluded" labels are a weak prior, not a filter. Expect `xg`(FWD-goals) and `fixture`(CS) to re-enter *despite* family points-exclusion.
+  - **FWD explore findings (lagged/predictive, ref `research/families/form/explore/`):** (i) **"FRINGE > STABLE"** — rolling xGI correlates *more* for rotation/fringe forwards than nailed ones (bears on the minutes/exposure treatment above); (ii) xGI **horizon** 3/5/8-GW window choice for FWD. Carry as hypotheses into the FWD goals model.
+  - **Domain rationales (from family annotations):** transfers = crowd momentum (lagged); ownership tracks form with a lag; price proxies quality tier; GK excluded from attacking signals (ontological). Domain priors, not verdicts.
 - **Folded-in read:** the never-run **autocorrelation / form-persistence** study (via `research/kernels/diagnostic/serial.py`) enters here as a *gated* question — report within-player lag-1 autocorrelation per position, and test whether a lagged-form feature earns its place over the level-only baseline.
 - **Prereq (verified):** component columns present in mart. **Gate:** (1) over-dispersion test justifies NB/ZIP over Poisson; (2) composed E[points] beats the Phase-0 baseline **and** (3) the best single signal, per position, walk-forward. Else ship the dispersion diagnosis as an honest null.
 - **Risks:** X6 (xG>goals unproven — one sub-question), A2.1 (component independence — mean OK, haul-prob wrong), A2.2 (deferred bonus caps accuracy), X1 (conditional on appearance).
 
 ### Phase 2.2 — Regularized signal combination 📐
-- **Goal:** combine the families' *informative* signals into one predictor, handling collinearity principledly (supersedes ad-hoc composition weights).
+- **Goal:** combine the **re-validated** candidate signals (the family roster re-tested per component, §2.1) into one predictor, handling collinearity principledly (supersedes ad-hoc composition weights). *Not* the family "informative" labels — those are demoted to a prior (A-F1).
 - **Where:** extend `model/assemble/composition_study.py`. **Machinery:** `sklearn` ElasticNetCV inside the walk-forward harness.
 - **Key decision:** EN/LASSO assumes linear-additive combination — **probe against a non-linear reference** (gradient boosting) as a ceiling check for missed interactions (A2.3), not necessarily to ship.
 - **Prereq:** Phase-0 harness + families' informative-signal set. **Gate:** beats baseline **and** the single best signal on held-out GWs. **Risks:** A2.3 non-linearity.
@@ -151,9 +155,9 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 
 | ID | Assumption baked in | Sev | Test / mitigation | Due-by (gate) | Status |
 |---|---|---|---|---|---|
-| **X2** | **Gaussian LMM on a count target** (debt on shipped D1 — CIs/LRT assume normality) | High | refit ICC via NB-GLMM or distribution-free bootstrap; caveat D1 | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
-| X6 | **Process (xG) forecasts components better than realized (goals)** — *goals are equation-inputs, excluded as contemporaneous signals but are Phase-2 targets; real test = lagged xG vs lagged goals → future component (a sub-question, not the main bet); xG same-match → leak risk* | Med | `.shift(1)`; head-to-head test; coverage check | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
-| A2.2 | **Deferred scoring parts (bonus/cards/saves) are minor** | Med | quantify un-modeled points share before "good enough" | **Phase 2 (pre-build sprint)** | 🔴 **must-fix** |
+| **X2** | **Gaussian LMM on a count target** (debt on shipped D1 — CIs/LRT assume normality) | High | distribution-free bootstrap of SS between-share | Phase 2 (sprint) | ✅ **tested-holds** — ordering + magnitude robust; GK exact-0 is bias-corrected (caveat on D1) |
+| X6 | **Process (xG) forecasts components better than realized (goals)** — *goals are equation-inputs, excluded as contemporaneous signals but are Phase-2 targets; real test = lagged xG vs lagged goals → future component* | Med | lagged head-to-head, within-position | Phase 2 (sprint) | ✅ **tested-holds** — xG wins every position (MID +0.043, DEF +0.026, FWD +0.013) |
+| A2.2 | **Deferred scoring parts (bonus/cards/saves) are minor** | Med | quantify un-modeled points share | Phase 2 (sprint) | ✅ **tested-holds → NOT minor** — GK saves ~18%, FWD bonus ~11.5%; add GK-saves early, flag FWD bonus |
 | A2.1 | **Component independence** in the points map | Med | test residual cross-correlation; joint model in Phase 3 | Phase 3 | accepted-deferred |
 | A2.3 | **Linear-additive signal combination** (EN) | Low-Med | non-linear ceiling probe (gradient boosting) | Phase 2.2 | accepted-deferred |
 | A4.1 | **Calibration tolerance unspecified** | Med | pre-register tolerance; CV recalibration | Phase 4 | accepted-deferred |
@@ -163,9 +167,14 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 | X3 | **Single-season stationarity** | Med | rolling-block stability read | Phase 3 (or when 2nd season lands) | accepted-deferred |
 | X5 | **Player identity stable within season** | Low-Med | flag movers; ICC robustness excl. them | opportunistic (with X2 refit) | accepted-deferred |
 | A0.2 | **Operational thresholds** (warmup=3, k=20, floors) | Low | ±1 sensitivity check once | opportunistic | accepted-deferred |
+| **A-F1** | **Family signal-verdicts are `total_points` marginal reads, not component-validated** (gate never enforced beating the baseline; brittle quintile-monotonicity) — treat roster as a *prior*, not a filter | High | re-test each candidate against its *component* target with the Phase-0 baseline gate | Phase 2 (build) | 🔴 must-do in build |
+| A-F2 | **Does Q1b identity-dominance carry to components?** (if points are identity-dominant, features may add little beyond level) | Med | per-component within-predictability check vs level baseline | Phase 2 | open |
+| A-P1 | **`minutes ≥ 60` "qualified start"** — inherited from the prior families/EDA framework, **validated by that framework, not by us** | Med | test in Phase 2's minutes-band inspection before adopting; our verified population is `minutes > 0` | Phase 2 (with minutes analysis) | open (inherited) |
+| A-F3 | **FWD/GK have no validated point-signals** (families) — component-only reliance | Med | honest scope limit; GK via saves+CS, FWD via xG→goals | Phase 2 | accepted-deferred |
 
-🔴 **must-fix before Phase 2 opens:** X2, X6, A2.2 — these are exactly the pre-build validation sprint (§6).
-All others are *deliberately carried* with a named due-by, not forgotten.
+✅ **Phase 2 gate CLEARED (2026-07-06):** X2, X6, A2.2 all `tested-holds` — see
+[pre-Phase-2 validation](studies/results/predictive-prephase2-validation.md). All others are
+*deliberately carried* with a named due-by, not forgotten.
 
 **Main Phase-2 bet (the headline, stated plainly):** *do situation features improve within-position
 ranking over the identity-only baseline, on held-out GWs, conditional on appearance?* Everything
@@ -193,16 +202,41 @@ breadth creep, not over-reach — the gate system already prevents building glam
 **Highest joint FPL × recruiter × practice value:** count/GLM target (Phase 2) · calibration (Phase 4) ·
 survival-for-availability (Phase 6.1). Reserve "reach" for the rare muscles (survival, calibration).
 
+**Canonical population (verified):** `minutes > 0`, DGW-excluded — the Phase-0/1 population we've gated
+on. Recorded here, not in a separate contract artifact (research-first — we don't grow the production
+registry). Any deviation is a register item, not a silent choice: `minutes ≥ 60` is **A-P1 (open)**.
+
+### Layer disposition & ownership (families reconciliation)
+
+**Families are demoted, not deleted (Option A).** They currently feed the live `serve/` scorer via
+`registry → governance`, so files stay in place. But their **authority is downgraded to "prior +
+explanatory"**: the predictive layer (Phase 2+) is now the **authoritative signal arbiter** (re-tests
+per component, gates on the Phase-0 baseline — the thing families never enforced). The salvage (candidate
+roster, FWD explore findings, domain rationales) is **referenced into Phase 2.1 above** — not moved
+(the useful stats already live in `research/kernels/`; the explore findings are lagged/predictive so they
+belong on the predictive side, *not* diagnostic, which is association-only).
+
+**Per-layer ownership going forward:**
+`dal` data + population · `research/foundation` EDA · `research/diagnostic` association (Q1/Q1b/Q2,
+contemporaneous) · `research/families` **demoted → hypothesis/prior only** · `model` **authoritative
+predictive validation + governance reconciler** · `serve` consumes governance-approved (family path now,
+predictive at Phase 5).
+
+**Action B — legacy-chain retirement (roadmap, decide at Phase 5):** research-first means
+`families → registry → governance → serve` is transient. **At the Phase-5 cutover**, promote the
+predictive scorer into `serve/` and retire the legacy signal-selection chain (freeze registry, archive
+family `validate/`). Not now — the live scorer must keep running until predictive can replace it. Logged
+as a one-line roadmap item, not an open action.
+
 ---
 
-## 6. Immediate next — pre-Phase-2 validation sprint
+## 6. Pre-Phase-2 validation sprint — ✅ DONE (gate cleared 2026-07-06)
 
-This sprint **is** the 🔴 must-fix gate (§4): the three items below block Phase 2 from opening.
-Small, cheap code that tests the biggest baked-in bets *before* writing the count models:
-1. **X2** (must-fix) — count-GLMM (or bootstrap) ICC sensitivity: does D1's split/ordering survive dropping normality? Caveat/annotate the frozen D1 results either way.
-2. **X6** (must-fix) — lagged xG vs lagged goals as predictors of the *future* component (per position).
-3. **A2.2** (must-fix) — quantify the deferred-points share (bonus/cards/saves).
-4. Add a **component-target leakage assertion** to the Phase-2 harness contract.
+Results: [studies/results/predictive-prephase2-validation.md](studies/results/predictive-prephase2-validation.md).
+1. **X2** ✅ `tested-holds` — distribution-free bootstrap: D1's ordering + small magnitude survive dropping normality; GK exact-0 is bias-corrected (caveat on D1).
+2. **X6** ✅ `tested-holds` — lagged **xG beats lagged goals** at every position (MID +0.043, DEF +0.026, FWD +0.013) → use process features.
+3. **A2.2** ✅ `tested-holds → NOT minor` — deferred points material: **GK saves ~18%, FWD bonus ~11.5%** → add GK-saves component early; flag FWD bonus as known bias.
+4. **Component-target leakage assertion** ➡ reclassified as a **Phase-2 build-time contract** (it guards feature columns that don't exist until the harness does) — wired in with `count_models.py`, not a pre-build test.
 
-**Gate to open Phase 2:** items 1–3 resolved to `tested-holds`/`tested-fails` (not `open`), and #4 in place.
-Then build 2.1. Prove the hypotheses, then model.
+**→ Phase 2 is OPEN.** Build order resumes at 2.1 (count models), carrying: leakage assertion into the
+harness; a GK-saves component; FWD-bonus flagged.

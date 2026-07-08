@@ -18,7 +18,8 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | pre-1 | Point-estimate (level) study | ✅ complete | shrink toward the **mean** | [results](studies/results/predictive-level-estimators.md) |
 | 1 · D1 | ICC / variance components | ✅ **shipped** | reconciles w/ Q1; σ²_between real (LRT) | [results](studies/results/predictive-phase1-icc-shrinkage.md) |
 | 1 · D2 | EB shrinkage ranker | ✅ built, ⛔ **null** | does NOT out-rank raw mean → shelved | same |
-| 2.1 | Count models (NB/ZIP/Bernoulli) | 📐 designed, not built | — | §3 |
+| 2.1 | Count models — gate 1 (dispersion) | 🔨 **in build** | components near-Poisson (index ~1.1, no ZIP) | [results](studies/results/predictive-phase2-overdispersion.md) |
+| 2.1 | Count models — fit + compose + gate 2/3 | 🗒 next | — | §3 |
 | 2.2 | Regularized signal combination | 📐 planned | — | §3 |
 | 3.1 | Monte-Carlo simulator | 🗒 planned | — | §3 |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
@@ -105,6 +106,7 @@ Two deliverables sharing a model but computed differently — must not be confla
   | Clean sheet | `clean_sheets` | **Bernoulli/logistic** (binary — no rate) | GK, DEF, (MID) |
 
   Only *count* components take Poisson/NB; a binary outcome (conceded 0 or not) is Bernoulli and yields `P(clean sheet)` directly. Saves/bonus/cards deferred as fixed scoring arithmetic — **quantify the un-modeled points share** (A2.2) before "good enough".
+- **Gate 1 DONE (dispersion diagnosis, [results](studies/results/predictive-phase2-overdispersion.md)):** components are **near-Poisson** (index ~1.0–1.1, zero-excess ~0, no ZIP/hurdle). NB LRT-flags goals but *not materially* (mostly between-player heterogeneity a mean model absorbs). **Decision:** goals→NB (cheap), assists→Poisson, CS→Bernoulli. Key insight: the component map turns the zero-inflated `total_points` into near-Poisson *components* — vindicates the decomposition. Conditional dispersion re-checked at fit.
 - **Minutes — TESTED, not a hard-coded offset.** A log-minutes offset (coef=1) *asserts* a constant per-minute rate — likely false (late-game clustering, subs = selected population, the 60′ appearance/CS kink). Procedure: (1) enter `log(minutes)` with a **freely estimated** coefficient β → lock as offset only if β≈1; (2) inspect empirical per-minute component rate across bands 0–30/30–60/60–90 per position; (3) escalate to minutes-band dummies or a spline if non-proportional.
 - **Features (X):** minimal, **strictly-prior** process stats — goals rate ← lagged `xg` (per X6, xG > goals); assists ← lagged `xa`; clean sheet ← `fixture_context`, lagged `goals_conceded_roll3`, `was_home`. `.shift(1)` enforced; component-target leakage assertion added to the harness contract. Use component-appropriate parts (`xg`→goals, `xa`→assists), **not** the composite `xgi` (avoid double-counting).
 - **Salvaged from families (as a *prior*, not authority — see families disposition below):**

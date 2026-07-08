@@ -19,7 +19,7 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | 1 · D1 | ICC / variance components | ✅ **shipped** | reconciles w/ Q1; σ²_between real (LRT) | [results](studies/results/predictive-phase1-icc-shrinkage.md) |
 | 1 · D2 | EB shrinkage ranker | ✅ built, ⛔ **null** | does NOT out-rank raw mean → shelved | same |
 | 2.1 | Count models — gate 1 (dispersion) | 🔨 **in build** | components near-Poisson (index ~1.1, no ZIP) | [results](studies/results/predictive-phase2-overdispersion.md) |
-| 2.1 | Count models — fit + compose + gate | 🔨 **v1 interim** | features beat baseline **DEF +0.012 / MID +0.017**; FWD/GK not yet | [results](studies/results/predictive-phase2-component-model.md) |
+| 2.1 | Count models — fit + compose + gate | ✅ **v2 done** | features beat baseline **DEF +0.031 / MID +0.019**; GK parity; FWD −0.012 (scope limit) | [results](studies/results/predictive-phase2-component-model.md) |
 | 2.2 | Regularized signal combination | 📐 planned | — | §3 |
 | 3.1 | Monte-Carlo simulator | 🗒 planned | — | §3 |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |

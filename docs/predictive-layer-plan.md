@@ -5,7 +5,13 @@ assumptions register, and data inventory. Supersedes and folds in the former `pr
 `predictive-phase2-design`, `analysis-strategy-review`, and `predictive-plan-assumptions-audit` docs.
 Frozen per-phase *results* live separately (linked in §1) and are the immutable evidence trail.
 
-**Last updated:** 2026-07-06 · **Now at:** Phase 1 complete → Phase 2 (designed, not built).
+**Last updated:** 2026-07-07 · **Now at:** Phase 2.1 COMPLETE → **RESUME HERE: Phase 2.2** (regularized signal combination / elastic net; re-test salvaged family roster per component — closes A-F1). `main` clean & pushed.
+
+> **▶ Resume pointer.** Phase 2.1 done: component model beats identity-only at DEF +0.031 / MID +0.019
+> ([results](studies/results/predictive-phase2-component-model.md)); GK parity, FWD −0.012 (scope limit).
+> Read §1 dashboard + §4 register (Due-by gates) before building. Discipline: rank≠predict (§2);
+> population `minutes>0`; honest-null is valid; families are demoted to *prior* (§5, don't delete — serve
+> depends). Next: Phase 2.2 in `model/` (ElasticNetCV in the walk-forward harness).
 
 ---
 

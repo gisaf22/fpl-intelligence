@@ -6,38 +6,40 @@
 **Question:** do situation features improve **within-position ranking** over the identity-only baseline
 (`base_season`), on held-out gameweeks, conditional on appearance? (The main Phase-2 bet.)
 
-## Model v1
+## Model (v2)
 - Components fit one-GW-ahead from **lag-safe** mart features (verified to exclude the current GW):
   goals & assists ~ `xgi_roll3` + `minutes_roll3` (Poisson); clean sheet ~ `goals_conceded_roll3` +
-  `xgc_roll3` + `minutes_roll3` (logistic). Expanding walk-forward (fit on `gw < t`).
+  `xgc_roll3` + `minutes_roll3` + `was_home` (logistic); **GK saves ~ `xgc_roll3` + `minutes_roll3`
+  (Poisson)**, converted at 3 saves = 1 pt. Expanding walk-forward (fit on `gw < t`).
 - **Minutes as a covariate, not a proportional offset** (exposure test rejected proportionality).
-- Composed to E[points] via the FPL scoring rule (goal/assist/CS multipliers per position); constant/
-  deferred pieces (appearance, saves, bonus, cards) dropped — a within-position constant does not change rank.
+- **`was_home` in the clean-sheet model only** — venue helps defenders (v2 added +0.019 at DEF) but *hurt*
+  MID/FWD attacking when included there (v1→v2 A/B). A feature-placement finding, recorded.
+- Composed to E[points] via the FPL scoring rule; constant/deferred pieces (appearance, bonus, cards) dropped.
 
 ## Result (within-position Spearman vs incumbent)
 
-| pos | base_season (incumbent) | component model | Δ | verdict |
+| pos | base_season (incumbent) | component model (v2) | Δ | verdict |
 |---|---|---|---|---|
-| GK | 0.041 | 0.039 | −0.002 | tie (near chance; saves not yet added) |
-| DEF | 0.185 | **0.197** | **+0.012** | ✅ features beat identity |
-| MID | 0.336 | **0.353** | **+0.017** | ✅ features beat identity |
-| FWD | 0.349 | 0.337 | −0.012 | ✗ behind incumbent |
+| GK | 0.041 | 0.039 | −0.002 | parity (GK ≈ chance for all models; saves added) |
+| DEF | 0.185 | **0.217** | **+0.031** | ✅ features beat identity |
+| MID | 0.336 | **0.355** | **+0.019** | ✅ features beat identity |
+| FWD | 0.349 | 0.337 | −0.012 | ✗ behind incumbent (scope limit) |
+
+*(v1, for the record: DEF +0.012, MID +0.017, FWD −0.012, GK −0.002. v2 adds `was_home`→CS and GK-saves.)*
 
 ## Findings
-- **Features add ranking value where the data is rich — DEF (+0.012) and MID (+0.017) beat the
-  identity-only baseline.** This is the first positive answer to the main Phase-2 bet: situation
-  features (attacking form + expected minutes + fixture) improve within-position ranking over "who the
-  player is," for the two most rankable outfield positions. Consistent with the families roster (xGI
-  approved at DEF/MID).
-- **FWD is behind (−0.012).** Forwards' points are goal-dominated and noisy, `base_season` (level)
-  already ranks them well, and v1's attacking feature (`xgi_roll3`) plus the substitute-selection
-  minutes effect are not yet enough. The salvaged "FRINGE > STABLE" finding and the xGI-horizon choice
-  are the natural next levers.
-- **GK ties** (≈ chance) — expected; the flagged **saves component (~18% of GK points)** is not yet in
-  the composition.
+- **Features beat identity-only, materially, at DEF (+0.031) and MID (+0.019)** — the main Phase-2 bet is
+  answered *yes* for the rankable outfield positions. Consistent with the families roster (xGI at DEF/MID).
+- **Venue is a defensive signal, not an attacking one.** `was_home` lifts clean-sheet ranking (DEF) but
+  adds noise to goals/assists (MID/FWD) — so it belongs only in the CS model. Concrete feature-placement lesson.
+- **GK reaches parity** with the incumbent once saves are added (~18% of GK points), but no better — GK
+  ranking is near-chance for *every* model (echoes Phase 0). An honest ceiling, not a fixable gap.
+- **FWD remains behind (−0.012) — an honest scope limit.** Forwards' points are goal-dominated; their
+  scoring *level* (`base_season`) already ranks them well, and lagged `xgi_roll3` doesn't beat it. The
+  salvaged **"FRINGE > STABLE"** / xGI-horizon findings point to **position-specific FWD features**
+  (roll5 horizon, recency/EW, sub-context) — real future work, not a quick win.
 
-## Status — interim, gate PARTIALLY met
-Gate: beat baseline per position. **Met for DEF/MID; not for FWD/GK.** This is a genuine partial win, not
-a full pass — recorded honestly. **Next levers (v2):** add the GK-saves component; FWD-specific features
-(xGI horizon per "FRINGE > STABLE", recency/EW term); NB for goals; add `was_home`/fixture strength.
-Conditional on appearance throughout (X1).
+## Status — gate: 2 of 4 pass, 1 parity, 1 miss (honest)
+Gate = beat baseline per position. **DEF ✅ / MID ✅ / GK parity / FWD ✗.** A real, material result for the
+rankable positions — not a full pass, not a null. Conditional on appearance throughout (X1). FWD-specific
+modelling and NB-for-goals are the recorded next levers; diminishing returns judged reached for v2.

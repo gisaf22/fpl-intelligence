@@ -24,7 +24,7 @@ def _panel(n_players: int = 120, n_gw: int = 14, seed: int = 0) -> pd.DataFrame:
                 "xgi_roll3": skill + rng.normal(0, 0.05), "minutes_roll3": 90.0,
                 "goals_conceded_roll3": rng.uniform(0, 2), "xgc_roll3": rng.uniform(0, 2),
                 "goals_scored": goals, "assists": rng.poisson(0.1),
-                "clean_sheets": int(rng.random() < 0.3),
+                "clean_sheets": int(rng.random() < 0.3), "saves": rng.poisson(1.5), "was_home": int(rng.random() < 0.5),
                 "total_points": 2 + goals * 5 + rng.normal(0, 1),
             })
     return pd.DataFrame(rows)

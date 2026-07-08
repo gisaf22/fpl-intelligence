@@ -32,6 +32,7 @@ from domain.fpl_scoring import (
     CLEAN_SHEET_POINTS_DEF,
     CLEAN_SHEET_POINTS_GK,
     CLEAN_SHEET_POINTS_MID,
+    GK_SAVES_PER_POINT,
     GOAL_POINTS_DEF,
     GOAL_POINTS_FWD,
     GOAL_POINTS_GK,
@@ -47,10 +48,13 @@ from model.eval.walkforward import (
 _GOAL_MULT = {"GK": GOAL_POINTS_GK, "DEF": GOAL_POINTS_DEF, "MID": GOAL_POINTS_MID, "FWD": GOAL_POINTS_FWD}
 _CS_MULT = {"GK": CLEAN_SHEET_POINTS_GK, "DEF": CLEAN_SHEET_POINTS_DEF, "MID": CLEAN_SHEET_POINTS_MID, "FWD": 0}
 
-# Lag-safe feature columns (verified to exclude the current GW).
+# Feature columns. Roll features are lag-safe (verified exclude current GW); `was_home` is the
+# upcoming fixture's venue — known before kickoff, so a legitimate predictor (not leakage).
 _GOAL_FEATURES = ["xgi_roll3", "minutes_roll3"]
 _ASSIST_FEATURES = ["xgi_roll3", "minutes_roll3"]
-_CS_FEATURES = ["goals_conceded_roll3", "xgc_roll3", "minutes_roll3"]
+_CS_FEATURES = ["goals_conceded_roll3", "xgc_roll3", "minutes_roll3", "was_home"]
+# GK saves ~ shots faced (xgc proxy) x minutes; converted to points at 3 saves = 1 pt.
+_SAVES_FEATURES = ["xgc_roll3", "minutes_roll3"]
 
 
 def _design(df: pd.DataFrame, features: list[str]) -> np.ndarray:
@@ -80,6 +84,7 @@ def walk_forward_component_points(mart: pd.DataFrame) -> pd.DataFrame:
     """
     df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
     df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
+    df["was_home"] = df["was_home"].astype(float)
     # Phase-0 incumbent: expanding prior mean of points (base_season), within player.
     df["base_season"] = df.groupby("player_id")["total_points"].transform(lambda s: s.expanding().mean().shift(1))
 
@@ -99,6 +104,13 @@ def walk_forward_component_points(mart: pd.DataFrame) -> pd.DataFrame:
         goal_mult = np.array([_GOAL_MULT.get(p, 0) for p in pos], dtype=float)
         cs_mult = np.array([_CS_MULT.get(p, 0) for p in pos], dtype=float)
         e_points = goal_mult * e_goals + ASSIST_POINTS * e_assists + cs_mult * e_cs
+
+        # GK saves component (~18% of GK points): fit on GK rows only, add saves points.
+        gk_tr, gk_te = train[train["position"] == "GK"], test[test["position"] == "GK"]
+        if not gk_te.empty and len(gk_tr.dropna(subset=_SAVES_FEATURES)) >= 30:
+            e_saves = _fit_predict(gk_tr, gk_te, "saves", _SAVES_FEATURES, sm.families.Poisson())
+            e_points[np.isin(test.index, gk_te.index)] += e_saves / GK_SAVES_PER_POINT
+
         df.loc[test.index, "e_points"] = e_points
 
     # Common evaluation set: rows where both the model and the incumbent are defined.

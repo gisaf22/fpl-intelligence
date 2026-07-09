@@ -34,11 +34,13 @@ from domain.fpl_scoring import (
     DC_CBIRT_THRESHOLD_MID_FWD,
     DC_CBIT_THRESHOLD_DEF,
     DC_POINTS,
+    FULL_APPEARANCE_POINTS,
     GK_SAVES_PER_POINT,
     GOAL_POINTS_DEF,
     GOAL_POINTS_FWD,
     GOAL_POINTS_GK,
     GOAL_POINTS_MID,
+    SHORT_APPEARANCE_POINTS,
 )
 from model.eval.walkforward import (
     MIN_ROWS_PER_POS,
@@ -199,6 +201,91 @@ def dc_validation(mart: pd.DataFrame) -> pd.DataFrame:
                      "hit_rate": hit, "n_gw": n_gw})
         rows.append({"position": pos, "model": "dc_roll3 (baseline)", "spearman": round(rho_base, 4),
                      "hit_rate": hit, "n_gw": n_gw})
+    out = pd.DataFrame(rows)
+    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
+    return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "model"])
+
+
+# --- Part 3.4: minutes hurdle + appearance --------------------------------------------------
+# Minutes is a GATE, not a smooth covariate: appearance is 1 (1-59') / 2 (>=60'), and the
+# clean-sheet term is only awarded at >=60'. Within the conditional-on-appearance population
+# (minutes>0), we model P(>=60' | played); P(play) itself - the blank / 0-minute tail - is X1,
+# deferred to Phase 5 (documented scope gap; it is the biggest missing tail for a distribution).
+# For outfield, a per-position logistic on lagged minutes form yields the calibrated probability
+# (ranking is ~parity with lagged minutes, but a raw minutes level is not a probability); GK play
+# >=60' ~99% of the time, so the target is near-constant and the logistic is unstable - GK use a
+# robust lagged rate instead. Uses: E[appearance | played] = 1 + P(>=60'), and P(>=60') gates CS.
+MINUTES_HURDLE_FEATURES = ["minutes_roll3", "minutes_roll5", "minutes_roll8", "starts_roll3"]
+_HURDLE_LOGIT_POSITIONS = ("DEF", "MID", "FWD")
+MIN_HURDLE_TRAIN_ROWS = 50
+
+
+def walk_forward_minutes_hurdle(mart: pd.DataFrame) -> pd.DataFrame:
+    """Expanding walk-forward P(>=60' | played) -> ``p60`` and ``e_appearance`` = 1 + p60.
+
+    Outfield: per-position logistic on lagged minutes form. GK: robust lagged expanding rate of
+    ``play60`` (near-constant ~1, the logistic is degenerate there). ``play60`` is the realized
+    >=60' indicator (the target).
+    """
+    df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
+    df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
+    for c in [*MINUTES_HURDLE_FEATURES[:-1], "minutes", "starts"]:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    df["starts_roll3"] = _lag_roll(df, "player_id", "starts", 3)
+    df["play60"] = (df["minutes"] >= 60).astype(float)
+    df["p60"] = np.nan
+
+    # GK: robust prior-only expanding rate of play60 (per player), backfilled with the global
+    # prior rate so early GWs still get a value.
+    gk = df["position"] == "GK"
+    prior_rate = df.groupby("player_id")["play60"].transform(lambda s: s.shift(1).expanding().mean())
+    global_prior = df.loc[gk, "play60"].shift(1).expanding().mean()
+    df.loc[gk, "p60"] = prior_rate[gk].fillna(global_prior).fillna(0.98)
+
+    for pos in _HURDLE_LOGIT_POSITIONS:
+        sdf = df[df["position"] == pos]
+        for t in sorted(g for g in sdf["gw"].unique() if g > WARMUP_GW):
+            tr = sdf[sdf["gw"] < t].dropna(subset=[*MINUTES_HURDLE_FEATURES, "play60"])
+            te = sdf[sdf["gw"] == t]
+            if len(tr) < MIN_HURDLE_TRAIN_ROWS or tr["play60"].nunique() < 2 or te.empty:
+                continue
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                try:
+                    x = sm.add_constant(tr[MINUTES_HURDLE_FEATURES].to_numpy(float), has_constant="add")
+                    res = sm.GLM(tr["play60"].to_numpy(float), x, family=sm.families.Binomial()).fit()
+                    xte = sm.add_constant(te[MINUTES_HURDLE_FEATURES].to_numpy(float), has_constant="add")
+                    df.loc[te.index, "p60"] = res.predict(xte)
+                except Exception:
+                    continue
+    df["e_appearance"] = SHORT_APPEARANCE_POINTS + (FULL_APPEARANCE_POINTS - SHORT_APPEARANCE_POINTS) * df["p60"]
+    return df
+
+
+def minutes_hurdle_validation(mart: pd.DataFrame) -> pd.DataFrame:
+    """Gate table: does modelled P(>=60') rank the realized >=60' indicator, vs lagged minutes?
+
+    Within-position Spearman of ``p60`` vs ``play60`` beside the ``minutes_roll3`` baseline. Outfield
+    is ~parity (the value is the calibrated probability, not a ranking win); GK is near-constant
+    (~0.99 base rate) so ranking is near-meaningless. Indexed (position, model).
+    """
+    df = walk_forward_minutes_hurdle(mart)
+    df["minutes_roll3"] = pd.to_numeric(df["minutes_roll3"], errors="coerce")
+    ev = df[(df["gw"] > WARMUP_GW) & df["p60"].notna()]
+    rows = []
+    for pos in POSITIONS:
+        sub = ev[ev["position"] == pos]
+        if sub.empty:
+            continue
+        rho_model = _grouped_spearman(sub, "p60", "play60", ["gw"], MIN_ROWS_PER_POS)
+        rho_base = _grouped_spearman(sub.dropna(subset=["minutes_roll3"]), "minutes_roll3", "play60",
+                                     ["gw"], MIN_ROWS_PER_POS)
+        n_gw = int(sub["gw"].nunique())
+        base_rate = round(float(sub["play60"].mean()), 3)
+        rows.append({"position": pos, "model": "P(>=60') hurdle", "spearman": round(rho_model, 4),
+                     "play60_rate": base_rate, "n_gw": n_gw})
+        rows.append({"position": pos, "model": "minutes_roll3 (baseline)", "spearman": round(rho_base, 4),
+                     "play60_rate": base_rate, "n_gw": n_gw})
     out = pd.DataFrame(rows)
     out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
     return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "model"])

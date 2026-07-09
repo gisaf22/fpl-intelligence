@@ -11,9 +11,11 @@ from model.forecast.points_model import (
     bonus_validation,
     build_team_ga_panel,
     dc_validation,
+    minutes_hurdle_validation,
     team_ga_cs_validation,
     walk_forward_bonus,
     walk_forward_dc,
+    walk_forward_minutes_hurdle,
     walk_forward_team_ga,
 )
 
@@ -28,10 +30,13 @@ def _panel(n_teams: int = 20, n_gw: int = 16, seed: int = 0) -> pd.DataFrame:
     for tm in range(n_teams):
         strength = rng.uniform(0.3, 2.2)  # team's mean goals-against
         dc_prop = {slot: rng.uniform(3, 13) for slot in range(5)}  # per-player DC-action mean
+        p60 = {slot: rng.uniform(0.4, 0.98) for slot in range(5)}   # per-player start propensity
         for gw in range(1, n_gw + 1):
             ga = rng.poisson(strength)
             home = int(rng.random() < 0.5)
             for slot, pos in enumerate(["GK", "DEF", "DEF", "MID", "FWD"]):
+                started = int(rng.random() < (0.99 if pos == "GK" else p60[slot]))
+                mins = 90 if started else int(rng.integers(1, 60))
                 goals = rng.poisson(0.3 if pos in ("MID", "FWD") else 0.05)
                 assists = rng.poisson(0.15)
                 cs = int(ga == 0) if pos != "FWD" else 0
@@ -39,12 +44,13 @@ def _panel(n_teams: int = 20, n_gw: int = 16, seed: int = 0) -> pd.DataFrame:
                 bonus = min(3, rng.poisson(0.4 * goals + 0.2 * assists + 0.1 * cs))
                 rows.append({
                     "player_id": tm * 5 + slot, "team_id": tm, "gw": gw, "position": pos,
-                    "minutes": 90, "is_dgw": False,
+                    "minutes": mins, "is_dgw": False, "starts": started,
                     "goals_scored": goals, "assists": assists, "saves": rng.poisson(1.0) if pos == "GK" else 0,
                     "goals_conceded": ga, "xgc": strength + rng.normal(0, 0.1),
                     "clean_sheets": cs, "clean_sheets_roll3": rng.uniform(0, 1),
                     "defensive_contribution": rng.poisson(dc_prop[slot]),
-                    "minutes_roll3": 90.0, "bonus": bonus,
+                    "minutes_roll3": 70.0 + 20 * p60[slot], "minutes_roll5": 70.0 + 20 * p60[slot],
+                    "minutes_roll8": 70.0 + 20 * p60[slot], "bonus": bonus,
                     "was_home": home, "fdr_avg": rng.uniform(2, 4),
                 })
     return pd.DataFrame(rows)
@@ -102,6 +108,22 @@ def test_dc_leakage_safe_and_validation_shape() -> None:
     res = dc_validation(_panel(seed=5))
     assert set(res.index.get_level_values("model")) == {"DC logistic P(hit)", "dc_roll3 (baseline)"}
     assert set(res.index.get_level_values("position")) <= {"DEF", "MID", "FWD"}  # GK exempt
+    assert res["spearman"].dropna().between(-1, 1).all()
+
+
+def test_minutes_hurdle_probability_and_appearance() -> None:
+    df = walk_forward_minutes_hurdle(_panel(seed=7))
+    fit = df.dropna(subset=["p60"])
+    assert fit["p60"].between(0, 1).all()          # a probability
+    # E[appearance | played] = 1 + P(>=60'), so it lies in [1, 2]
+    assert fit["e_appearance"].between(1, 2).all()
+    assert np.allclose(fit["e_appearance"], 1.0 + fit["p60"])
+    assert set(df["play60"].dropna().unique()) <= {0.0, 1.0}
+
+
+def test_minutes_hurdle_validation_shape() -> None:
+    res = minutes_hurdle_validation(_panel(seed=8))
+    assert set(res.index.get_level_values("model")) == {"P(>=60') hurdle", "minutes_roll3 (baseline)"}
     assert res["spearman"].dropna().between(-1, 1).all()
 
 

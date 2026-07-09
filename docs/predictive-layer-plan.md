@@ -41,7 +41,7 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | 2.1 | Count models — gate 1 (dispersion) | 🔨 **in build** | components near-Poisson (index ~1.1, no ZIP) | [results](studies/results/predictive-phase2-overdispersion.md) |
 | 2.1 | Count models — fit + compose + gate | ✅ **v2 done** | features beat baseline **DEF +0.031 / MID +0.019**; GK parity; FWD −0.012 (scope limit) | [results](studies/results/predictive-phase2-component-model.md) |
 | 2.2 | Regularized signal combination | ✅ **done (remediated)** | clears both gates only at **DEF** (0.237); MID regresses, FWD/GK beat incumbent not the single; **A-F1 closed** w/ selection table | [results](studies/results/predictive-phase2-signal-combination.md) |
-| 3.0 | Points-equation closure — T0/T1/T2 done; **T3 parts 3.1–3.4 done**, 3.5 + compose next | 🔨 **in build** | 3.1 team-GA→P(CS) beats incumbent; 3.2 DC beats baseline DEF/MID; 3.3 bonus=returns_pts; 3.4 minutes hurdle (P(≥60'), P(play) deferred X1); T1 spec 100% SGW; T2 resolved | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
+| 3.0 | Points-equation closure — T0/T1/T2 + **T3 parts 3.1–3.5 done**; compose full points model next | 🔨 **in build** | 3.1 team-GA→P(CS) beats incumbent; 3.2 DC beats baseline DEF/MID; 3.3 bonus=returns_pts; 3.4 minutes hurdle; 3.5 pooled beats per-position (A-P2 holds); compose+gate next | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
 | 3.1 | Monte-Carlo simulator | 🗒 planned (after 3.0) | — | §3 |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
 | 4.1 | Calibration + proper scoring | 🗒 planned | — | §3 |
@@ -191,7 +191,8 @@ at every gate. Each track has a **validation gate** that must pass before the ne
   (3.4) ✅ **done (2026-07-08)** **minutes hurdle** — `P(≥60'|played)` (outfield logistic, GK lagged
   rate), sets `E[appearance]=1+P(≥60')` + gates CS. Ranking ~parity with lagged minutes; value is the
   calibrated probability. `P(play)` blank tail deferred (X1, Phase 5). 9 tests;
-  (3.5) **per-position goals/assists** specs vs pooled+multiplier.
+  (3.5) ✅ **done (2026-07-08)** **per-position vs pooled goals/assists** — per-position **loses or ties
+  everywhere** (only FWD goals +0.006); A-P2 resolves *keep pooled+multiplier*. 10 tests;
   **Gate (per component):** walk-forward, within-position, honest-null valid; composed points produce
   **no impossible states**; (3.5) kept only if it beats pooled. *Plain terms:* actually add up each
   player's likely points, position by position, with the pieces we currently skip.
@@ -238,7 +239,7 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 | **D-A** | **DC↔conceded/CS co-movement** ("siege" vs "dominance") | Med | minutes-adjusted partial corr, bootstrap CI; `research/diagnostic/` | **Phase 3.0 Track 2** | ✅ **tested → NULL** — partial(DC,conceded\|min)=+0.05, (DC,CS\|min)=+0.00; "siege" was a minutes artifact, retracted; **no coupling** |
 | **D-B** | **Bonus recoverable from modeled returns** | Med | rank-corr bonus~returns, bootstrap CI | **Phase 3.0 Track 2** | ✅ **tested → YES** — rho FWD +0.78, others ~0.5; reduced-form bonus proxy viable |
 | **D-C** | **Bonus↔DC overlap** (shared inputs) | Low-Med | partial corr `corr(DC, bonus \| returns)` | **Phase 3.0 Track 2** | ✅ **tested → modest-real** — DEF +0.15, MID +0.10; add DC to bonus-proxy features |
-| **A-P2** | **Pooled component + position multiplier** ≈ per-position rate process (specification) | Med | per-position vs pooled walk-forward; keep only if it beats pooled | **Phase 3.0 Track 3.5** | 🔴 open — DGP differs by position (FWD-goals ≠ DEF-goals) |
+| **A-P2** | **Pooled component + position multiplier** ≈ per-position rate process (specification) | Med | per-position vs pooled walk-forward; keep only if it beats pooled | **Phase 3.0 Track 3.5** | ✅ **tested-holds (2026-07-08)** — per-position loses/ties at every cell (GK-assists −0.11, DEF-goals −0.02; only FWD-goals +0.006) → **keep pooled+multiplier**. [result](studies/results/predictive-phase3-points-model.md) |
 | A2.3 | **Linear-additive signal combination** (EN) | Low-Med | non-linear ceiling probe (gradient boosting) | Phase 2.2 | ✅ **probed (2026-07-08)** — GBM headroom modest at DEF (+0.017)/FWD (+0.044), larger at GK (+0.067)/MID (+0.050) over the reg. combination; recorded lever, not shipped |
 | A4.1 | **Calibration tolerance unspecified** | Med | pre-register tolerance; CV recalibration | Phase 4 | accepted-deferred |
 | X1 | **Conditional-on-appearance is the right target** | High | score the unconditional (incl. DNP=0) gap; model P(play) | **Phase 5** (P(play) required) | accepted-deferred |

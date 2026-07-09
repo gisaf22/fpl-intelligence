@@ -12,6 +12,7 @@ from model.forecast.points_model import (
     build_team_ga_panel,
     dc_validation,
     minutes_hurdle_validation,
+    pooled_vs_perposition,
     team_ga_cs_validation,
     walk_forward_bonus,
     walk_forward_dc,
@@ -48,6 +49,8 @@ def _panel(n_teams: int = 20, n_gw: int = 16, seed: int = 0) -> pd.DataFrame:
                     "goals_scored": goals, "assists": assists, "saves": rng.poisson(1.0) if pos == "GK" else 0,
                     "goals_conceded": ga, "xgc": strength + rng.normal(0, 0.1),
                     "clean_sheets": cs, "clean_sheets_roll3": rng.uniform(0, 1),
+                    "xg": max(0.0, 0.15 + rng.normal(0, 0.05)), "xa": max(0.0, 0.1 + rng.normal(0, 0.03)),
+                    "xgi_roll3": rng.uniform(0, 0.5), "xgi_roll5": rng.uniform(0, 0.5),
                     "defensive_contribution": rng.poisson(dc_prop[slot]),
                     "minutes_roll3": 70.0 + 20 * p60[slot], "minutes_roll5": 70.0 + 20 * p60[slot],
                     "minutes_roll8": 70.0 + 20 * p60[slot], "bonus": bonus,
@@ -125,6 +128,13 @@ def test_minutes_hurdle_validation_shape() -> None:
     res = minutes_hurdle_validation(_panel(seed=8))
     assert set(res.index.get_level_values("model")) == {"P(>=60') hurdle", "minutes_roll3 (baseline)"}
     assert res["spearman"].dropna().between(-1, 1).all()
+
+
+def test_pooled_vs_perposition_shape() -> None:
+    res = pooled_vs_perposition(_panel(seed=9))
+    assert res.index.names == ["component", "position"]
+    assert set(res.index.get_level_values("component")) == {"goals_scored", "assists"}
+    assert np.allclose(res["delta"], res["per_position"] - res["pooled"], atol=1e-4)
 
 
 def test_bonus_proxy_is_bounded_and_preserves_returns_ranking() -> None:

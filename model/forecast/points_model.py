@@ -291,6 +291,84 @@ def minutes_hurdle_validation(mart: pd.DataFrame) -> pd.DataFrame:
     return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "model"])
 
 
+# --- Part 3.5: per-position vs pooled goals/assists (A-P2) -----------------------------------
+# Phase 2 fit goals/assists POOLED across positions + a position multiplier at composition. The
+# multiplier is a within-position constant (irrelevant to within-position ranking), so this tests
+# whether the goal/assist RATE process genuinely differs by position enough that a per-position fit
+# ranks better. Verdict (real mart): NO - pooled wins or ties almost everywhere (pooling gives more
+# data per fit; the process is common up to scale). This function reproduces the comparison; the
+# resolution is to KEEP the pooled model (Phase 2's approach).
+_PROCESS_SPECS = {
+    "goals_scored": ["xg_roll3", "xg_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3"],
+    "assists": ["xa_roll3", "xa_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3"],
+}
+
+
+def _add_process_rolls(df: pd.DataFrame) -> pd.DataFrame:
+    """Leakage-safe lagged xg/xa process rolls (mart carries only the composite xgi lag-safe)."""
+    for src in ("xg", "xa"):
+        df[src] = pd.to_numeric(df[src], errors="coerce")
+        for w in (3, 5):
+            df[f"{src}_roll{w}"] = _lag_roll(df, "player_id", src, w)
+    return df
+
+
+def _poisson_fit_predict(train: pd.DataFrame, test: pd.DataFrame, feats: list[str], tgt: str) -> np.ndarray:
+    tr = train.dropna(subset=[*feats, tgt])
+    if len(tr) < 40 or tr[tgt].nunique() < 2:
+        return np.full(len(test), np.nan)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        try:
+            x = sm.add_constant(tr[feats].to_numpy(float), has_constant="add")
+            res = sm.GLM(tr[tgt].to_numpy(float), x, family=sm.families.Poisson()).fit()
+            return np.asarray(res.predict(sm.add_constant(test[feats].to_numpy(float), has_constant="add")))
+        except Exception:
+            return np.full(len(test), np.nan)
+
+
+def pooled_vs_perposition(mart: pd.DataFrame) -> pd.DataFrame:
+    """A-P2 gate: within-position Spearman of goals/assists, pooled+multiplier vs per-position fit.
+
+    Expanding walk-forward; the pooled model fits one Poisson on all positions, the per-position
+    model fits a separate Poisson per position. Returns (component, position) -> pooled,
+    per_position, delta. A positive delta means per-position beats pooled at that cell.
+    """
+    df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
+    df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
+    df = _add_process_rolls(df)
+    for c in ["xgi_roll3", "xgi_roll5", "minutes_roll3", "goals_scored", "assists"]:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    eval_gws = sorted(g for g in df["gw"].unique() if g > WARMUP_GW)
+
+    rows = []
+    for tgt, feats in _PROCESS_SPECS.items():
+        df["pooled"] = np.nan
+        df["perpos"] = np.nan
+        for t in eval_gws:
+            tr, te = df[df["gw"] < t], df[df["gw"] == t]
+            if te.empty:
+                continue
+            df.loc[te.index, "pooled"] = _poisson_fit_predict(tr, te, feats, tgt)
+            for pos in POSITIONS:
+                tep = te[te["position"] == pos]
+                if tep.empty:
+                    continue
+                df.loc[tep.index, "perpos"] = _poisson_fit_predict(tr[tr["position"] == pos], tep, feats, tgt)
+        ev = df[df["gw"] > WARMUP_GW].dropna(subset=["pooled", "perpos", tgt])
+        for pos in POSITIONS:
+            sub = ev[ev["position"] == pos]
+            if sub.empty:
+                continue
+            rp = _grouped_spearman(sub, "pooled", tgt, ["gw"], MIN_ROWS_PER_POS)
+            rq = _grouped_spearman(sub, "perpos", tgt, ["gw"], MIN_ROWS_PER_POS)
+            rows.append({"component": tgt, "position": pos, "pooled": round(rp, 4),
+                         "per_position": round(rq, 4), "delta": round(rq - rp, 4)})
+    out = pd.DataFrame(rows)
+    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
+    return out.sort_values(["component", "position"]).set_index(["component", "position"])
+
+
 # --- Part 3.3: bonus proxy ------------------------------------------------------------------
 # Bonus (top-3 BPS in the match -> 3/2/1) is caused by the SAME-match performance, so this is a
 # contemporaneous scoring-map (returns -> bonus), used at composition/simulation time when the

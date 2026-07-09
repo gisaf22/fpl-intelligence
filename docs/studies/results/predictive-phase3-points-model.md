@@ -37,8 +37,27 @@ realized `clean_sheets`, vs the lagged `clean_sheets_roll3` incumbent (35 eval G
 (materially at GK/DEF, parity+ at MID), and delivers CS **and** the conceded penalty jointly and
 consistently. Gate met. 4 hermetic tests.
 
+## Part 3.2 — defensive-contribution (DC) component ✅ (2026-07-08)
+**Motivation (D-A).** DC (+2 once a player hits their action threshold: DEF ≥10 CBIT, MID/FWD ≥12
+CBIRT; GK exempt) is conditionally independent of conceding/CS given minutes, so it is a **standalone**
+component — no coupling to the team-GA layer. Model `P(hit)` with a per-position logistic GLM on
+leakage-safe lagged DC-action form (`dc_roll3/5`) + `minutes_roll3` + `fdr_avg` + `was_home`, then
+`E[DC pts] = 2 × P(hit)`.
+
+**Validation — P(hit) vs realized `dc_hit`, vs the lagged-count baseline (`dc_roll3`):**
+
+| pos | DC logistic P(hit) | dc_roll3 (baseline) | Δ | hit-rate | verdict |
+|---|---|---|---|---|---|
+| DEF | **0.312** | 0.298 | +0.015 | 0.214 | ✅ beats baseline; DC ~10% of DEF pts (material) |
+| MID | 0.311 | 0.309 | +0.001 | 0.116 | ≈ parity; DC ~7% of MID pts (keep) |
+| FWD | 0.189 | 0.228 | −0.039 | **0.008** | ✗ loses; DC ~0.4% of FWD pts → **immaterial, exclude-and-flag** |
+
+**Verdict:** the logistic DC component earns its place at **DEF** (beats baseline) and is parity at
+**MID** — both positions where DC is a material share of points. For **FWD** the threshold is hit ~1%
+of the time and the model can't rank a near-never event, so DC is immaterial and flagged (the composed
+`e_dc_pts` there is a tiny near-constant, harmless). GK carry no DC term. 6 hermetic tests.
+
 ## Parts remaining (Track 3)
-- **3.2** DC component (count→threshold; standalone conditional on minutes — D-A found no GA coupling).
 - **3.3** bonus proxy `E[bonus | returns, minutes, position, DC]` (D-B viable; D-C → include DC).
 - **3.4** appearance constant + minutes hurdle `P(play)→P(≥60')`.
 - **3.5** per-position goals/assists specs vs pooled+multiplier.

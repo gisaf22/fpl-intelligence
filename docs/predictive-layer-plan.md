@@ -5,7 +5,7 @@ assumptions register, and data inventory. Supersedes and folds in the former `pr
 `predictive-phase2-design`, `analysis-strategy-review`, and `predictive-plan-assumptions-audit` docs.
 Frozen per-phase *results* live separately (linked in §1) and are the immutable evidence trail.
 
-**Last updated:** 2026-07-08 · **Now at:** Phase 2.2 COMPLETE + remediated (A-F1 closed) → **RESUME HERE: Phase 3.0** (points-equation closure — verify rules, per-position equations, scoring diagnostics, re-cast Phase 2 as a points model; *then* 3.1 MC). `main` clean & pushed.
+**Last updated:** 2026-07-08 · **Now at:** Phase 3.0 COMPLETE (points-equation closure — full points model beats Phase-2.1 + incumbent at every position) → **RESUME HERE: Phase 3.1** (Monte-Carlo simulator on the closed equation). `main` clean & pushed.
 
 > **▶ Resume pointer.** Phase 2.2 done (remediated: `L1_wt` tuned, `minutes_trend` re-tested, selection
 > receipts added): regularized per-component combination clears BOTH gates (incumbent + best single signal)
@@ -18,14 +18,13 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 > `minutes>0`; honest-null is valid; families
 > demoted to *prior* (§5, don't delete — serve depends).
 >
-> **Next: Phase 3.0 — points-equation closure (NEW, blocks 3.1).** Phase 2 models only 4 of the 12
-> scoring terms — fine for *ranking*, incomplete for a *points distribution*. Measured un-modeled
-> *variable* share (appearance excluded as a constant): GK ~19% / DEF ~27% / MID ~18% / FWD ~14%; for
-> defenders `defensive_contribution` (~10%) and `goals_conceded` (~8%) each rival goals. Two terms are
-> **not** separable per-player components (definitional): `clean_sheet = 1{GA=0}` with penalty
-> `−floor(GA/2)` (one goals-against variable), and `bonus` (a within-match top-3 order statistic on an
-> endogenous BPS). Close the equation — verify rules → per-position spec → scoring diagnostics → re-cast
-> Phase 2 as a points model — **before** the MC simulator (§3 Phase 3.0).
+> **Phase 3.0 — points-equation closure — ✅ COMPLETE (2026-07-08).** Phase 2 modelled 4 of the 12
+> scoring terms (fine for ranking, incomplete for a distribution). Closed the equation: verified rules,
+> per-position spec (100% SGW reconstruction), scoring diagnostics (D-A null / D-B proxy / D-C rejected
+> in-model / D-D CS≡GA identity), and a per-position **points** model (team-GA→CS+conceded joint; DC;
+> bonus=returns_pts; minutes hurdle; pooled goals/assists). Composed + dual-bar gated: the **full points
+> model beats the Phase-2.1 model AND the incumbent at every position** (vs Phase-2.1: GK +0.118 / DEF
+> +0.048 / MID +0.044 / FWD +0.044). **Next: Phase 3.1 Monte-Carlo simulator** on the closed equation.
 
 ---
 
@@ -41,7 +40,7 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | 2.1 | Count models — gate 1 (dispersion) | 🔨 **in build** | components near-Poisson (index ~1.1, no ZIP) | [results](studies/results/predictive-phase2-overdispersion.md) |
 | 2.1 | Count models — fit + compose + gate | ✅ **v2 done** | features beat baseline **DEF +0.031 / MID +0.019**; GK parity; FWD −0.012 (scope limit) | [results](studies/results/predictive-phase2-component-model.md) |
 | 2.2 | Regularized signal combination | ✅ **done (remediated)** | clears both gates only at **DEF** (0.237); MID regresses, FWD/GK beat incumbent not the single; **A-F1 closed** w/ selection table | [results](studies/results/predictive-phase2-signal-combination.md) |
-| 3.0 | Points-equation closure — T0/T1/T2 + **T3 parts 3.1–3.5 done**; compose full points model next | 🔨 **in build** | 3.1 team-GA→P(CS) beats incumbent; 3.2 DC beats baseline DEF/MID; 3.3 bonus=returns_pts; 3.4 minutes hurdle; 3.5 pooled beats per-position (A-P2 holds); compose+gate next | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
+| 3.0 | Points-equation closure (verify · per-position spec · diagnostics · per-position points model + compose) | ✅ **done** | **full points model beats Phase-2.1 + incumbent at every position** (vs Phase-2.1: GK +0.118/DEF +0.048/MID +0.044/FWD +0.044); T1 spec 100% SGW; T2 diagnostics resolved | [result](studies/results/predictive-phase3-points-model.md) | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
 | 3.1 | Monte-Carlo simulator | 🗒 planned (after 3.0) | — | §3 |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
 | 4.1 | Calibration + proper scoring | 🗒 planned | — | §3 |
@@ -193,9 +192,12 @@ at every gate. Each track has a **validation gate** that must pass before the ne
   calibrated probability. `P(play)` blank tail deferred (X1, Phase 5). 9 tests;
   (3.5) ✅ **done (2026-07-08)** **per-position vs pooled goals/assists** — per-position **loses or ties
   everywhere** (only FWD goals +0.006); A-P2 resolves *keep pooled+multiplier*. 10 tests;
-  **Gate (per component):** walk-forward, within-position, honest-null valid; composed points produce
-  **no impossible states**; (3.5) kept only if it beats pooled. *Plain terms:* actually add up each
-  player's likely points, position by position, with the pieces we currently skip.
+  **(compose)** ✅ **done (2026-07-08)** — full points model composed via the position scoring
+  structure + dual-bar gate (`base_season` + Phase-2.1). **Beats BOTH bars at every position**
+  (full vs Phase-2.1: GK +0.118 / DEF +0.048 / MID +0.044 / FWD +0.044) — closing the equation
+  improved ranking everywhere, not just DEF/GK. `points_model_gate()`, 12 tests.
+  *Plain terms:* we added up each player's likely points with all the pieces — and it predicts better
+  than the old model at every position.
 
 ### Phase 3 — Distributions & uncertainty 🗒
 - **3.1 Monte-Carlo simulator.** *Goal:* simulate components through the real scoring rules → full points distribution, haul probability, captaincy ceiling. *Where:* `model/forecast/simulator.py` (new), reuses `domain/fpl_scoring.py`. *Machinery:* MC sampling from the Phase-2 component models. *Prereq:* **Phase 3.0 complete** (closed points equation + measured dependence). **Gate:** internal correctness only — reproducible under seed; sim mean ≈ analytic component mean within MC error; dependence moves haul-prob vs independence. Distributional validation (PIT/haul-rate/CRPS) is **Phase 4** (`model/eval/calibration.py`), explicitly NOT a "sim mean ≈ point forecast" self-check. *Plain terms:* only once the points formula is complete, roll the dice thousands of times for each player's full range of outcomes.

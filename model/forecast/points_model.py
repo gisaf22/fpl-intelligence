@@ -349,7 +349,8 @@ def walk_forward_points(mart: pd.DataFrame) -> pd.DataFrame:
     Phase-2.1 four-component ranking model scored on identical rows for a fair gate.
     """
     df = _prepare_points_panel(mart)
-    for col in ["e_goals", "e_assists", "e_saves", "p_dc", "p60", "p_cs_old", "e_bonus"]:
+    for col in ["e_goals", "e_assists", "e_saves", "p_dc", "p60", "p_cs_old", "e_bonus",
+                "bonus_intercept", "bonus_slope"]:
         df[col] = np.nan
     eval_gws = sorted(g for g in df["gw"].unique() if g > WARMUP_GW)
     for t in eval_gws:
@@ -388,6 +389,9 @@ def walk_forward_points(mart: pd.DataFrame) -> pd.DataFrame:
                    + _CS_MULT[pos] * e_cs + e_sav)
             pred = b.predict(sm.add_constant(erp.to_numpy().reshape(-1, 1), has_constant="add"))
             df.loc[idx, "e_bonus"] = np.clip(pred, 0.0, BPS_BONUS_FIRST)
+            # expose the proxy coefficients so the simulator can apply bonus per draw (co-movement)
+            df.loc[idx, "bonus_intercept"] = float(b.params[0])
+            df.loc[idx, "bonus_slope"] = float(b.params[1])
 
     pos = df["position"]
     gmult, cmult = pos.map(_GOAL_MULT).astype(float), pos.map(_CS_MULT).astype(float)

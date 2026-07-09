@@ -8,9 +8,11 @@ import pytest
 
 from model.forecast.points_model import (
     _conceded_penalty_expectation,
+    bonus_validation,
     build_team_ga_panel,
     dc_validation,
     team_ga_cs_validation,
+    walk_forward_bonus,
     walk_forward_dc,
     walk_forward_team_ga,
 )
@@ -30,14 +32,19 @@ def _panel(n_teams: int = 20, n_gw: int = 16, seed: int = 0) -> pd.DataFrame:
             ga = rng.poisson(strength)
             home = int(rng.random() < 0.5)
             for slot, pos in enumerate(["GK", "DEF", "DEF", "MID", "FWD"]):
+                goals = rng.poisson(0.3 if pos in ("MID", "FWD") else 0.05)
+                assists = rng.poisson(0.15)
+                cs = int(ga == 0) if pos != "FWD" else 0
+                # bonus tracks returns (more goals/assists/CS -> more likely top-3 BPS)
+                bonus = min(3, rng.poisson(0.4 * goals + 0.2 * assists + 0.1 * cs))
                 rows.append({
                     "player_id": tm * 5 + slot, "team_id": tm, "gw": gw, "position": pos,
                     "minutes": 90, "is_dgw": False,
+                    "goals_scored": goals, "assists": assists, "saves": rng.poisson(1.0) if pos == "GK" else 0,
                     "goals_conceded": ga, "xgc": strength + rng.normal(0, 0.1),
-                    "clean_sheets": int(ga == 0) if pos != "FWD" else 0,
-                    "clean_sheets_roll3": rng.uniform(0, 1),
+                    "clean_sheets": cs, "clean_sheets_roll3": rng.uniform(0, 1),
                     "defensive_contribution": rng.poisson(dc_prop[slot]),
-                    "minutes_roll3": 90.0,
+                    "minutes_roll3": 90.0, "bonus": bonus,
                     "was_home": home, "fdr_avg": rng.uniform(2, 4),
                 })
     return pd.DataFrame(rows)
@@ -96,3 +103,17 @@ def test_dc_leakage_safe_and_validation_shape() -> None:
     assert set(res.index.get_level_values("model")) == {"DC logistic P(hit)", "dc_roll3 (baseline)"}
     assert set(res.index.get_level_values("position")) <= {"DEF", "MID", "FWD"}  # GK exempt
     assert res["spearman"].dropna().between(-1, 1).all()
+
+
+def test_bonus_proxy_is_bounded_and_preserves_returns_ranking() -> None:
+    df = walk_forward_bonus(_panel(seed=6))
+    fit = df.dropna(subset=["e_bonus"])
+    assert fit["e_bonus"].between(0, 3).all()      # calibrated E[bonus] in the valid range
+    res = bonus_validation(_panel(seed=6))
+    assert set(res.index.get_level_values("model")) == {"bonus proxy (calibrated)", "returns_pts (signal)"}
+    # monotone calibration -> proxy ranking equals the returns_pts signal, per position
+    for pos in ("GK", "DEF", "MID", "FWD"):
+        sub = res.xs(pos, level="position")
+        if len(sub) == 2:
+            assert abs(sub.loc["bonus proxy (calibrated)", "spearman"]
+                       - sub.loc["returns_pts (signal)", "spearman"]) < 1e-9

@@ -61,22 +61,24 @@ CLEAN_SHEET_POINTS_FWD: int = 0  # VERIFIED 2025/26
 # Goals conceded
 # ---------------------------------------------------------------------------
 
-# UNVERIFIED — long-standing FPL rule: GK and DEF lose 1 point for every 2
-# goals conceded while on the pitch. MID and FWD are not subject to this
-# penalty. Not yet cross-checked against bootstrap-static.
-GOALS_CONCEDED_PER_PENALTY: int = 2  # UNVERIFIED
-GOALS_CONCEDED_PENALTY_POINTS: int = -1  # UNVERIFIED
+# GK and DEF lose 1 point for every 2 goals conceded while on the pitch; MID/FWD exempt.
+# The -1 coefficient and its GK/DEF-only applicability are VERIFIED 2026-07-08 against
+# bootstrap-static game_config.scoring.goals_conceded ({GKP:-1, DEF:-1, MID:0, FWD:0}). The
+# "per 2" divisor is NOT exposed by that endpoint and stays by-rule (see scoring diagnostics doc).
+GOALS_CONCEDED_PER_PENALTY: int = 2  # UNVERIFIED (divisor not in bootstrap-static)
+GOALS_CONCEDED_PENALTY_POINTS: int = -1  # VERIFIED 2026-07-08 (game_config.scoring.goals_conceded)
 
 # ---------------------------------------------------------------------------
 # Defensive Contribution (2025/26 rule)
 # ---------------------------------------------------------------------------
 
-# UNVERIFIED — cross-checked empirically via the total_points reconstruction in
-# scoring_engine.ipynb (raises DEF/MID exact-match rate close to the GK/FWD baseline),
-# not yet cross-checked directly against bootstrap-static.
-DC_CBIT_THRESHOLD_DEF: int = 10  # UNVERIFIED — CBIT (tackles+CBI) threshold for DEF
+# DC_POINTS (+2) and its position applicability (DEF/MID/FWD earn it, GK does not) are
+# VERIFIED 2026-07-08 against bootstrap-static game_config.scoring.defensive_contribution
+# ({DEF:2, MID:2, FWD:2, GKP:0}). The ACTION THRESHOLDS (10 CBIT / 12 CBIRT) are NOT exposed by
+# that endpoint and stay by-rule (cross-checked empirically in scoring_engine.ipynb).
+DC_CBIT_THRESHOLD_DEF: int = 10  # UNVERIFIED — CBIT (tackles+CBI) threshold for DEF (not in bootstrap-static)
 DC_CBIRT_THRESHOLD_MID_FWD: int = 12  # UNVERIFIED — CBIRT (CBIT+recoveries) threshold for MID/FWD
-DC_POINTS: int = 2  # UNVERIFIED
+DC_POINTS: int = 2  # VERIFIED 2026-07-08 (game_config.scoring.defensive_contribution)
 
 
 def defensive_contribution_points(position: str, defensive_contribution: int) -> int:

@@ -317,10 +317,16 @@ def _logit_fit_predict(train: pd.DataFrame, test: pd.DataFrame, feats: list[str]
             return np.full(len(test), np.nan)
 
 
-def _prepare_points_panel(mart: pd.DataFrame) -> pd.DataFrame:
-    """Player panel (minutes>0, DGW-excluded) with every lagged feature + team-GA broadcast + base_season."""
+def _prepare_points_panel(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
+    """Player panel (DGW-excluded) with every lagged feature + team-GA broadcast + base_season.
+
+    Default keeps only ``minutes>0`` rows (the conditional-on-appearance population). ``keep_all=True``
+    retains 0-minute rows too (for ex-ante scoring of potential blanks, Phase 5) - components are still
+    TRAINED on ``minutes>0`` only (see ``walk_forward_points``); this only widens the prediction set.
+    """
     team = walk_forward_team_ga(mart)[["team_id", "gw", "p_cs", "e_conceded_pts"]]
-    df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
+    keep = ~mart["is_dgw"].astype(bool) if keep_all else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
+    df = mart[keep].copy()
     df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
     numeric = ["xg", "xa", "xgc_roll3", "xgi_roll3", "xgi_roll5", "minutes_roll3", "minutes_roll5",
                "minutes_roll8", "goals_conceded_roll3", "defensive_contribution", "starts", "fdr_avg",
@@ -342,19 +348,21 @@ def _prepare_points_panel(mart: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def walk_forward_points(mart: pd.DataFrame) -> pd.DataFrame:
+def walk_forward_points(mart: pd.DataFrame, predict_all: bool = False) -> pd.DataFrame:
     """Expanding walk-forward FULL points model -> ``full_pts`` (+ ``p21_pts`` Phase-2.1 bar, ``base_season``).
 
     Composes E[points] from the shipped parts per the position scoring structure; ``p21_pts`` is the
-    Phase-2.1 four-component ranking model scored on identical rows for a fair gate.
+    Phase-2.1 four-component ranking model scored on identical rows for a fair gate. ``predict_all=True``
+    also scores 0-minute (potential-blank) rows ex-ante (Phase 5 captaincy) - components are still
+    TRAINED on ``minutes>0`` only, so this only widens the prediction set, not the fit.
     """
-    df = _prepare_points_panel(mart)
+    df = _prepare_points_panel(mart, keep_all=predict_all)
     for col in ["e_goals", "e_assists", "e_saves", "p_dc", "p60", "p_cs_old", "e_bonus",
                 "bonus_intercept", "bonus_slope"]:
         df[col] = np.nan
     eval_gws = sorted(g for g in df["gw"].unique() if g > WARMUP_GW)
     for t in eval_gws:
-        tr, te = df[df["gw"] < t], df[df["gw"] == t]
+        tr, te = df[(df["gw"] < t) & (df["minutes"] > 0)], df[df["gw"] == t]
         if te.empty or len(tr) < MIN_TEAM_TRAIN_ROWS:
             continue
         df.loc[te.index, "e_goals"] = _poisson_fit_predict(tr, te, GOAL_FEATURES, "goals_scored")

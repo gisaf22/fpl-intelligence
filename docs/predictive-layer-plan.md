@@ -5,7 +5,7 @@ assumptions register, and data inventory. Supersedes and folds in the former `pr
 `predictive-phase2-design`, `analysis-strategy-review`, and `predictive-plan-assumptions-audit` docs.
 Frozen per-phase *results* live separately (linked in §1) and are the immutable evidence trail.
 
-**Last updated:** 2026-07-09 · **Now at:** Phase 4 COMPLETE (calibration hard gate — event probabilities trustworthy after recalibration; coverage dispersion residual documented) → **RESUME HERE: Phase 5** (decision evaluation — turn calibrated distributions into decisions, with block-bootstrap error bars; where P(play)/blanks & team-stacking finally land). Phase 3.2 odds-blocked. `main` clean & pushed.
+**Last updated:** 2026-07-09 · **Now at:** Phase 5 captaincy v1 COMPLETE (decision eval — season-average beats the model for captaincy; nothing separable on one season, A5.1 vindicated) → **RESUME HERE: 6.x levers** (multi-season backtest for A5.1; injury-aware P(play) via survival 6.1; squad/transfers + team-stacking). Phase 3.2 odds-blocked. `main` clean & pushed.
 
 > **▶ Resume pointer.** Phase 2.2 done (remediated: `L1_wt` tuned, `minutes_trend` re-tested, selection
 > receipts added): regularized per-component combination clears BOTH gates (incumbent + best single signal)
@@ -44,7 +44,7 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | 3.1 | Monte-Carlo simulator | ✅ **done** (2026-07-09) | internal-correctness gate PASSED (sim mean vs analytic full_pts corr **0.9988**); per-position distributions + P(haul) (GK 7.5% highest); blanks + team-stacking deferred; dist. adequacy → Phase 4 | [result](studies/results/predictive-phase3-simulator.md) |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
 | 4.1 | Calibration + proper scoring | ✅ **done** (2026-07-09) | probability gate MET — haul/return ECE → 0.0005/0.0052 after 1 recalibration pass (<0.02); CRPS beats point+Poisson everywhere; coverage residual (FWD too narrow) documented | [result](studies/results/predictive-phase4-calibration.md) |
-| 5.1 | Decision evaluation | 🗒 planned (build gap) | — | §3 |
+| 5.1 | Decision evaluation (captaincy v1) | ✅ **done** (2026-07-09) | season-average beats the model for captaincy; ceiling>mean (distribution helps) but P(play) hurts; **all CIs overlap on 1 season** (A5.1) | [result](studies/results/predictive-phase5-decisions.md) |
 | 6.x | Survival / drift / PyMC | 🗒 planned (6.2 data-blocked) | — | §3 |
 
 Legend: ✅ done · 📐 designed · 🗒 planned · 🚧/⛔ blocked/null.
@@ -213,10 +213,11 @@ at every gate. Each track has a **validation gate** that must pass before the ne
 - **Result:** **probability gate MET.** Haul ECE 0.0159→**0.0005 (Platt)**/0.0019 (iso); return 0.0336→**0.0052 (iso)** — both well under the pre-registered 0.02 after **one** recalibration pass (isotonic the robust default). Raw under-predicts hauls (3.1% vs obs 4.5%, thin attacker upper tail). **Residual:** interval coverage in-band only at MID (GK/DEF over-wide, FWD 0.737 too narrow) — a per-position **dispersion** residual recalibration can't fix, documented. CRPS: sim beats point+Poisson everywhere, beats climatology except GK. [results](studies/results/predictive-phase4-calibration.md).
 - **Gate (hard):** reliability within pre-registered tolerance (recalibrate if not) ✅; CRPS beats baseline ✅ (except GK vs climatology). **No decisions on miscalibrated probabilities** → ship isotonic-recalibrated event probs; flag the dispersion residual for the decision layer.
 
-### Phase 5 — Decision value 🗒 (build gap, not data gap)
-- **Goal:** the only metric that matters — captain success, transfer gain, ranking quality, chip value, vs baseline decisions.
-- **Where:** `serve/eval/decisions.py` (new). **Machinery:** backtested decision rules over walk-forward; ranking metrics; block bootstrap over GWs.
-- **Key decisions:** **needs P(play) first** (X1) — decisions can't condition on realized minutes; **single-season backtest is one path** → attach block-bootstrap error bars, **don't rank rules on a point estimate** (A5.1); handle DGWs (X4) as sum-of-two-single-GW forecasts.
+### Phase 5 — Decision value ✅ **captaincy v1 done (2026-07-09)** (build gap, not data gap)
+- **Goal:** the only metric that matters — does the model help you *decide* (captaincy first), vs baselines, with honest error bars.
+- **Where:** `model/eval/decisions.py` → `captaincy_backtest`, `build_captaincy_panel`, `_p_play`. Enabled by `walk_forward_points(predict_all=True)` (scores potential blanks ex-ante). **Machinery:** template/base_season/model-mean/model×P(play)/ceiling(p90,p_haul); pool-free + ownership views; mean+block-bootstrap CI, win-rate, regret-vs-oracle.
+- **Result (humbling, honest):** **a simple season-average (base_season 6.00) is the best captaincy strategy** — the full points model (4.89) does NOT beat it in either view. **Ceiling > mean** (p90 5.26 > model_mean 4.89 — the distribution adds value) but not enough; the **P(play) multiplier hurt** (4.43). **All block-bootstrap CIs overlap heavily — nothing is statistically separable on one season** (A5.1 vindicated). Regret ~11/16.7 → captaincy is haul-dominated. [results](studies/results/predictive-phase5-decisions.md).
+- **Verdict:** the stack is great for *ranking* (Phase 3) and *calibrated* (Phase 4), but that skill does **not** translate into a measurable captaincy edge over a season-average on one season — decision evaluation separates "accurate" from "useful," honestly. **Next levers:** multi-season backtest (A5.1), injury-aware `P(play)` (X1 built from lagged minutes only), squad/transfers + team-stacking.
 - **Data:** present (`purchase_price`, `ownership_count`, `transfers_in/out`) — this is an **un-built decision layer, not a data block**. **Prereq:** Phases 0–4 + P(play). **Gate:** decision rules beat baseline decisions (with uncertainty); only then promote to `serve/`.
 
 ### Phase 6 — Situational 🗒
@@ -247,9 +248,9 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 | **A-P2** | **Pooled component + position multiplier** ≈ per-position rate process (specification) | Med | per-position vs pooled walk-forward; keep only if it beats pooled | **Phase 3.0 Track 3.5** | ✅ **tested-holds (2026-07-08)** — per-position loses/ties at every cell (GK-assists −0.11, DEF-goals −0.02; only FWD-goals +0.006) → **keep pooled+multiplier**. [result](studies/results/predictive-phase3-points-model.md) |
 | A2.3 | **Linear-additive signal combination** (EN) | Low-Med | non-linear ceiling probe (gradient boosting) | Phase 2.2 | ✅ **probed (2026-07-08)** — GBM headroom modest at DEF (+0.017)/FWD (+0.044), larger at GK (+0.067)/MID (+0.050) over the reg. combination; recorded lever, not shipped |
 | A4.1 | **Calibration tolerance unspecified** | Med | pre-register tolerance; CV recalibration | Phase 4 | ✅ **tested-holds (2026-07-09)** — pre-registered haul ECE≤0.02 & 80% coverage∈[.75,.85]; met for event probs after 1 walk-forward recalibration pass (isotonic ≤0.0052); interval-width dispersion residual documented (FWD too narrow). [result](studies/results/predictive-phase4-calibration.md) |
-| X1 | **Conditional-on-appearance is the right target** | High | score the unconditional (incl. DNP=0) gap; model P(play) | **Phase 5** (P(play) required) | accepted-deferred |
+| X1 | **Conditional-on-appearance is the right target** | High | score the unconditional (incl. DNP=0) gap; model P(play) | **Phase 5** (P(play) required) | 🟡 **partly addressed (2026-07-09)** — `P(play)` built (`decisions._p_play`, lagged minutes/starts; pred 0.374 vs obs 0.383) & captaincy scored ex-ante incl. blanks; **no injury news** (biggest gap) → still open for a sharper P(play) |
 | X4 | **DGW exclusion is harmless** (product gap) | Med | state gap; DGW = sum of two single-GW forecasts | Phase 5 | accepted-deferred |
-| A5.1 | **Single-season decision backtest is enough** | High | block-bootstrap error bars on every decision claim | Phase 5 | accepted-deferred |
+| A5.1 | **Single-season decision backtest is enough** | High | block-bootstrap error bars on every decision claim | Phase 5 | ✅ **tested-holds → NOT enough (2026-07-09)** — every captaincy strategy's block-bootstrap CI overlaps; one season cannot separate them. Multi-season required before any decision claim. [result](studies/results/predictive-phase5-decisions.md) |
 | X3 | **Single-season stationarity** | Med | rolling-block stability read | Phase 3 (or when 2nd season lands) | accepted-deferred |
 | X5 | **Player identity stable within season** | Low-Med | flag movers; ICC robustness excl. them | opportunistic (with X2 refit) | accepted-deferred |
 | A0.2 | **Operational thresholds** (warmup=3, k=20, floors) | Low | ±1 sensitivity check once | opportunistic | accepted-deferred |

@@ -5,7 +5,7 @@ assumptions register, and data inventory. Supersedes and folds in the former `pr
 `predictive-phase2-design`, `analysis-strategy-review`, and `predictive-plan-assumptions-audit` docs.
 Frozen per-phase *results* live separately (linked in §1) and are the immutable evidence trail.
 
-**Last updated:** 2026-07-08 · **Now at:** Phase 2.2 COMPLETE + remediated (A-F1 closed) → **RESUME HERE: Phase 3.1** (Monte-Carlo simulator). `main` clean & pushed.
+**Last updated:** 2026-07-08 · **Now at:** Phase 2.2 COMPLETE + remediated (A-F1 closed) → **RESUME HERE: Phase 3.0** (points-equation closure — verify rules, per-position equations, scoring diagnostics, re-cast Phase 2 as a points model; *then* 3.1 MC). `main` clean & pushed.
 
 > **▶ Resume pointer.** Phase 2.2 done (remediated: `L1_wt` tuned, `minutes_trend` re-tested, selection
 > receipts added): regularized per-component combination clears BOTH gates (incumbent + best single signal)
@@ -16,7 +16,16 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 > `minutes_trend` retained-but-immaterial. A2.3 ceiling probe recorded (headroom modest at DEF/FWD, larger
 > at MID/GK). Read §1 dashboard + §4 register before building. Discipline: rank≠predict (§2); population
 > `minutes>0`; honest-null is valid; families
-> demoted to *prior* (§5, don't delete — serve depends). Next: Phase 3.1 Monte-Carlo simulator in `model/`.
+> demoted to *prior* (§5, don't delete — serve depends).
+>
+> **Next: Phase 3.0 — points-equation closure (NEW, blocks 3.1).** Phase 2 models only 4 of the 12
+> scoring terms — fine for *ranking*, incomplete for a *points distribution*. Measured un-modeled
+> *variable* share (appearance excluded as a constant): GK ~19% / DEF ~27% / MID ~18% / FWD ~14%; for
+> defenders `defensive_contribution` (~10%) and `goals_conceded` (~8%) each rival goals. Two terms are
+> **not** separable per-player components (definitional): `clean_sheet = 1{GA=0}` with penalty
+> `−floor(GA/2)` (one goals-against variable), and `bonus` (a within-match top-3 order statistic on an
+> endogenous BPS). Close the equation — verify rules → per-position spec → scoring diagnostics → re-cast
+> Phase 2 as a points model — **before** the MC simulator (§3 Phase 3.0).
 
 ---
 
@@ -32,7 +41,8 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | 2.1 | Count models — gate 1 (dispersion) | 🔨 **in build** | components near-Poisson (index ~1.1, no ZIP) | [results](studies/results/predictive-phase2-overdispersion.md) |
 | 2.1 | Count models — fit + compose + gate | ✅ **v2 done** | features beat baseline **DEF +0.031 / MID +0.019**; GK parity; FWD −0.012 (scope limit) | [results](studies/results/predictive-phase2-component-model.md) |
 | 2.2 | Regularized signal combination | ✅ **done (remediated)** | clears both gates only at **DEF** (0.237); MID regresses, FWD/GK beat incumbent not the single; **A-F1 closed** w/ selection table | [results](studies/results/predictive-phase2-signal-combination.md) |
-| 3.1 | Monte-Carlo simulator | 🗒 planned | — | §3 |
+| 3.0 | Points-equation closure — T0 verify + T2 diagnostics **done**; T1 spec + T3 points model next | 🔨 **in build** | T0: coefficients verified (÷2/÷3/DC-thresholds by-rule); T2: D-A **null**, D-B proxy-viable, D-C modest, D-D CS≡GA identity holds | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
+| 3.1 | Monte-Carlo simulator | 🗒 planned (after 3.0) | — | §3 |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
 | 4.1 | Calibration + proper scoring | 🗒 planned | — | §3 |
 | 5.1 | Decision evaluation | 🗒 planned (build gap) | — | §3 |
@@ -69,7 +79,7 @@ The most repeated error is over-claiming the *rung*. Match the verb to what was 
 ## 3. Phases — goal · done · left · gate · key decisions
 
 **Ordering rule:** dependency + de-risking (benchmarks → target shape → uncertainty → calibration →
-decisions). Never ordered by sophistication. **Build order:** `0.1→0.2→1.1→[pre-2 sprint]→2.1→2.2→3.1→(3.2 if odds)→4.1→5.1→6.x`.
+decisions). Never ordered by sophistication. **Build order:** `0.1→0.2→1.1→[pre-2 sprint]→2.1→2.2→3.0→3.1→(3.2 if odds)→4.1→5.1→6.x`.
 
 **Hard constraints (every item):** rung boundaries (assoc vs predictive); lag/leakage (`.shift(1)` before
 `.rolling()`, no-future-rows assertion); locked LENS `validate/` designs immutable (new work in `explore/`);
@@ -135,9 +145,48 @@ Two deliverables sharing a model but computed differently — must not be confla
 - **Result:** clears both gates (incumbent + best single signal) **only at DEF** (0.237 > 0.217 > 0.162); MID regresses (0.319 < 0.339), FWD/GK beat incumbent but not the best single signal. **A-F1 closed** with a selection-stability receipt: `fdr_avg` kept across every component, process `xg/xa_roll5` > roll3 (X6), `was_home` kept most for *assists* (overturns v2 "defensive-only" placement), `minutes_trend` retained-but-immaterial. A2.3 headroom modest at DEF/FWD, larger at MID/GK. [results](studies/results/predictive-phase2-signal-combination.md).
 - **Prereq:** Phase-0 harness + families' informative-signal set. **Gate:** beats baseline **and** the single best signal on held-out GWs. **Risks:** A2.3 non-linearity.
 
+### Phase 3.0 — Points-equation closure 🗒 (NEW — blocks 3.1)
+**Why this exists.** Phase 2 models 4 of the 12 scoring terms. That is correct for *ranking* (the
+dropped terms are within-position constants or low-variance noise), but a simulator composes *actual
+points*, so omissions with variance distort the distribution and its tails. Measured un-modeled
+*variable* share (appearance excluded — it is a near-constant +2): **GK ~19% / DEF ~27% / MID ~18% /
+FWD ~14%**; for defenders `defensive_contribution` (~10%) and `goals_conceded` (~8%) each rival goals.
+**Discipline:** separate DEFINITIONAL truths (act now) from EMPIRICAL hypotheses (measure first — no
+untested sign/magnitude claims, e.g. the DC↔conceded "siege" direction is UNPROVEN); honest-null valid
+at every gate. Each track has a **validation gate** that must pass before the next opens.
+
+- **Track 0 — Verify the rulebook** [FIX]. Confirm the `UNVERIFIED` constants (`goals_conceded` −1/2;
+  DC thresholds 10 CBIT / 12 CBIRT; `DC_POINTS` 2) against FPL bootstrap-static. *Where:*
+  `domain/fpl_scoring.py` + `tests/`. **Gate:** a test asserts each constant matches bootstrap-static.
+  *Plain terms:* two rules were written from memory — confirm against the official source before building on them.
+- **Track 1 — Document per-position equations** [CHANGE, definitional]. A per-position qualifying-terms
+  spec (terms, minutes gates, multipliers) as one importable structure. *Where:* `domain/fpl_scoring.py`.
+  **Gate:** `decompose_total_points` driven by the spec reconstructs `total_points` EXACTLY on
+  single-GW rows (DGW caveat documented) — no "why" test needed, it is the rules.
+  *Plain terms:* write one sheet per position of exactly what scores points and the minutes to qualify.
+- **Track 2 — Scoring diagnostics** [TEST; research tier, human-only, association-only, NO model
+  emission, bootstrap CI for any beyond-noise claim]. **D-A** DC↔conceded/CS association →
+  `research/diagnostic/`; **D-B** bonus↔returns attribution (R²/rank-corr; how often top-BPS = top-returns)
+  → `research/diagnostic/`; **D-C** bonus↔DC overlap (partial corr | returns) → `research/diagnostic/`;
+  **D-D** `CS = 1{GA=0}` identity / impossible-state rate → `research/foundation/composition/scoring_engine.ipynb`.
+  **Gate:** each yields a measured number + bootstrap CI, human-rendered; frozen verdicts in
+  `docs/studies/results/predictive-phase3-scoring-diagnostics.md`; the **plan** (not the notebook) records
+  the resulting modeling decision. *Plain terms:* measure the real relationships before choosing how to model them.
+- **Track 3 — Re-cast Phase 2 as a per-position POINTS model** [CHANGE; items gated on Track 2].
+  *Where:* `model/forecast/` (new module) + frozen `docs/studies/results/predictive-phase3-points-model.md`.
+  (3.1) **team goals-against layer** → derive CS + conceded jointly (definitional; D-D sizes payoff);
+  (3.2) **DC component** (count→threshold; coupling to GA gated by D-A);
+  (3.3) **bonus proxy** `E[bonus | returns, minutes, position]` (scope gated by D-B/D-C; competitive
+  residual documented as irreducible without a full-match sim);
+  (3.4) **appearance constant + minutes hurdle** `P(play)→P(≥60')` (blanks representable, or documented gap);
+  (3.5) **per-position goals/assists** specs vs pooled+multiplier.
+  **Gate (per component):** walk-forward, within-position, honest-null valid; composed points produce
+  **no impossible states**; (3.5) kept only if it beats pooled. *Plain terms:* actually add up each
+  player's likely points, position by position, with the pieces we currently skip.
+
 ### Phase 3 — Distributions & uncertainty 🗒
-- **3.1 Monte-Carlo simulator.** *Goal:* simulate components through the real scoring rules → full points distribution, haul probability, captaincy ceiling. *Where:* `model/forecast/simulator.py` (new), reuses `domain/fpl_scoring.py`. *Machinery:* MC sampling from the Phase-2 component models. *Prereq:* Phase-2 components fitted.
-  - **Amendment (audit):** the original "simulated mean ≈ point forecast" gate is **circular** (validates a sim against its own centre, ignoring the tails that are the whole point) → **move the distributional validation into Phase 4** (PIT/haul-rate). *Risk:* A2.1 — independent components mis-estimate haul probability (hauls co-move); model the dependence.
+- **3.1 Monte-Carlo simulator.** *Goal:* simulate components through the real scoring rules → full points distribution, haul probability, captaincy ceiling. *Where:* `model/forecast/simulator.py` (new), reuses `domain/fpl_scoring.py`. *Machinery:* MC sampling from the Phase-2 component models. *Prereq:* **Phase 3.0 complete** (closed points equation + measured dependence). **Gate:** internal correctness only — reproducible under seed; sim mean ≈ analytic component mean within MC error; dependence moves haul-prob vs independence. Distributional validation (PIT/haul-rate/CRPS) is **Phase 4** (`model/eval/calibration.py`), explicitly NOT a "sim mean ≈ point forecast" self-check. *Plain terms:* only once the points formula is complete, roll the dice thousands of times for each player's full range of outcomes.
+  - **Amendment (audit, retained):** the original "simulated mean ≈ point forecast" gate is **circular** (validates a sim against its own centre) → distributional validation lives in Phase 4. *Risk:* A2.1 — independent components mis-estimate haul probability (hauls co-move); the Phase 3.0 team-goals layer + D-A are how the dependence gets modeled rather than assumed.
 - **3.2 Bookmaker odds.** *Goal:* odds → implied returns as both a signal and an external yardstick. *Where:* `model/eval/` (benchmark) + `research/families/fixture/explore/` (as signal). *Machinery:* odds de-vig, calibration vs realized. *Prereq:* **odds data — 🚧 hard blocker if absent.** *Gate:* comparator only.
 
 ### Phase 4 — Trust the probabilities 🗒 (hard gate)
@@ -171,8 +220,13 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 |---|---|---|---|---|---|
 | **X2** | **Gaussian LMM on a count target** (debt on shipped D1 — CIs/LRT assume normality) | High | distribution-free bootstrap of SS between-share | Phase 2 (sprint) | ✅ **tested-holds** — ordering + magnitude robust; GK exact-0 is bias-corrected (caveat on D1) |
 | X6 | **Process (xG) forecasts components better than realized (goals)** — *goals are equation-inputs, excluded as contemporaneous signals but are Phase-2 targets; real test = lagged xG vs lagged goals → future component* | Med | lagged head-to-head, within-position | Phase 2 (sprint) | ✅ **tested-holds** — xG wins every position (MID +0.043, DEF +0.026, FWD +0.013) |
-| A2.2 | **Deferred scoring parts (bonus/cards/saves) are minor** | Med | quantify un-modeled points share | Phase 2 (sprint) | ✅ **tested-holds → NOT minor** — GK saves ~18%, FWD bonus ~11.5%; add GK-saves early, flag FWD bonus |
-| A2.1 | **Component independence** in the points map | Med | test residual cross-correlation; joint model in Phase 3 | Phase 3 | accepted-deferred |
+| A2.2 | **Deferred scoring parts (bonus/cards/saves/DC/conceded) are minor** | Med | quantify un-modeled points share | Phase 2 (sprint) → **full audit Phase 3.0** | ✅ **tested-holds → NOT minor** — full per-position decomposition (2026-07-08): un-modeled *variable* share DEF ~27% / GK ~19% / MID ~18% / FWD ~14%; DC ~10% and conceded ~8% rival goals for DEF → **Phase 3.0 Track 3** closes them |
+| A2.1 | **Component independence** in the points map | Med | test residual cross-correlation (D-A); joint team-goals model (CS+conceded) | **Phase 3.0** | 🟡 **partially resolved (2026-07-08)** — CS≡1{GA=0} confirmed (D-D, 0% impossible) → one team-GA model required; DC↔conceded is **null given minutes** (D-A) → no DC coupling needed. [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
+| **RULE-V** | **`goals_conceded` / DC constants are UNVERIFIED** in `domain/fpl_scoring.py` | Med | assert each against bootstrap-static | **Phase 3.0 Track 0** | 🟡 **partly done (2026-07-08)** — all point *coefficients* + position applicability VERIFIED vs `game_config.scoring`; the ÷2 (conceded), ÷3 (saves), and DC thresholds 10/12 are **not in the endpoint** → stay by-rule |
+| **D-A** | **DC↔conceded/CS co-movement** ("siege" vs "dominance") | Med | minutes-adjusted partial corr, bootstrap CI; `research/diagnostic/` | **Phase 3.0 Track 2** | ✅ **tested → NULL** — partial(DC,conceded\|min)=+0.05, (DC,CS\|min)=+0.00; "siege" was a minutes artifact, retracted; **no coupling** |
+| **D-B** | **Bonus recoverable from modeled returns** | Med | rank-corr bonus~returns, bootstrap CI | **Phase 3.0 Track 2** | ✅ **tested → YES** — rho FWD +0.78, others ~0.5; reduced-form bonus proxy viable |
+| **D-C** | **Bonus↔DC overlap** (shared inputs) | Low-Med | partial corr `corr(DC, bonus \| returns)` | **Phase 3.0 Track 2** | ✅ **tested → modest-real** — DEF +0.15, MID +0.10; add DC to bonus-proxy features |
+| **A-P2** | **Pooled component + position multiplier** ≈ per-position rate process (specification) | Med | per-position vs pooled walk-forward; keep only if it beats pooled | **Phase 3.0 Track 3.5** | 🔴 open — DGP differs by position (FWD-goals ≠ DEF-goals) |
 | A2.3 | **Linear-additive signal combination** (EN) | Low-Med | non-linear ceiling probe (gradient boosting) | Phase 2.2 | ✅ **probed (2026-07-08)** — GBM headroom modest at DEF (+0.017)/FWD (+0.044), larger at GK (+0.067)/MID (+0.050) over the reg. combination; recorded lever, not shipped |
 | A4.1 | **Calibration tolerance unspecified** | Med | pre-register tolerance; CV recalibration | Phase 4 | accepted-deferred |
 | X1 | **Conditional-on-appearance is the right target** | High | score the unconditional (incl. DNP=0) gap; model P(play) | **Phase 5** (P(play) required) | accepted-deferred |

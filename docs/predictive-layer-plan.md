@@ -41,7 +41,7 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | 2.1 | Count models — gate 1 (dispersion) | 🔨 **in build** | components near-Poisson (index ~1.1, no ZIP) | [results](studies/results/predictive-phase2-overdispersion.md) |
 | 2.1 | Count models — fit + compose + gate | ✅ **v2 done** | features beat baseline **DEF +0.031 / MID +0.019**; GK parity; FWD −0.012 (scope limit) | [results](studies/results/predictive-phase2-component-model.md) |
 | 2.2 | Regularized signal combination | ✅ **done (remediated)** | clears both gates only at **DEF** (0.237); MID regresses, FWD/GK beat incumbent not the single; **A-F1 closed** w/ selection table | [results](studies/results/predictive-phase2-signal-combination.md) |
-| 3.0 | Points-equation closure — T0 verify + T1 per-position spec + T2 diagnostics **done**; T3 points model next | 🔨 **in build** | T1: `POSITION_SCORING` spec reconstructs `total_points` **100% on 28,929 SGW rows**; T0 coefficients verified; T2 D-A null / D-B proxy / D-C modest / D-D identity | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
+| 3.0 | Points-equation closure — T0/T1/T2 done; **T3 part 3.1 (team-GA layer) done**, 3.2–3.5 next | 🔨 **in build** | 3.1: one team-GA Poisson model → P(CS) beats incumbent (GK +0.122 / DEF +0.068 / MID +0.007), CS+conceded joint & consistent; T1 spec 100% SGW; T2 diagnostics resolved | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
 | 3.1 | Monte-Carlo simulator | 🗒 planned (after 3.0) | — | §3 |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
 | 4.1 | Calibration + proper scoring | 🗒 planned | — | §3 |
@@ -177,7 +177,10 @@ at every gate. Each track has a **validation gate** that must pass before the ne
   the resulting modeling decision. *Plain terms:* measure the real relationships before choosing how to model them.
 - **Track 3 — Re-cast Phase 2 as a per-position POINTS model** [CHANGE; items gated on Track 2].
   *Where:* `model/forecast/` (new module) + frozen `docs/studies/results/predictive-phase3-points-model.md`.
-  (3.1) **team goals-against layer** → derive CS + conceded jointly (definitional; D-D sizes payoff);
+  (3.1) ✅ **done (2026-07-08)** **team goals-against layer** → one Poisson team-GA model derives
+  `p_cs=exp(-λ)` + `e_conceded_pts=E[-floor(GA/2)]` jointly (no impossible states). P(CS) beats the
+  lagged-CS incumbent at every position (GK +0.122, DEF +0.068, MID +0.007). `points_model.py`,
+  4 tests, [result](studies/results/predictive-phase3-points-model.md);
   (3.2) **DC component** (count→threshold; coupling to GA gated by D-A);
   (3.3) **bonus proxy** `E[bonus | returns, minutes, position]` (scope gated by D-B/D-C; competitive
   residual documented as irreducible without a full-match sim);

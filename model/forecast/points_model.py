@@ -26,9 +26,19 @@ import statsmodels.api as sm
 from scipy.stats import poisson
 
 from domain.fpl_scoring import (
+    ASSIST_POINTS,
+    BPS_BONUS_FIRST,
+    CLEAN_SHEET_POINTS_DEF,
+    CLEAN_SHEET_POINTS_GK,
+    CLEAN_SHEET_POINTS_MID,
     DC_CBIRT_THRESHOLD_MID_FWD,
     DC_CBIT_THRESHOLD_DEF,
     DC_POINTS,
+    GK_SAVES_PER_POINT,
+    GOAL_POINTS_DEF,
+    GOAL_POINTS_FWD,
+    GOAL_POINTS_GK,
+    GOAL_POINTS_MID,
 )
 from model.eval.walkforward import (
     MIN_ROWS_PER_POS,
@@ -189,6 +199,88 @@ def dc_validation(mart: pd.DataFrame) -> pd.DataFrame:
                      "hit_rate": hit, "n_gw": n_gw})
         rows.append({"position": pos, "model": "dc_roll3 (baseline)", "spearman": round(rho_base, 4),
                      "hit_rate": hit, "n_gw": n_gw})
+    out = pd.DataFrame(rows)
+    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
+    return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "model"])
+
+
+# --- Part 3.3: bonus proxy ------------------------------------------------------------------
+# Bonus (top-3 BPS in the match -> 3/2/1) is caused by the SAME-match performance, so this is a
+# contemporaneous scoring-map (returns -> bonus), used at composition/simulation time when the
+# returns are expected/sampled - NOT a lagged forecast. D-B found the ``returns_pts`` composite
+# (FPL point value of the modelled returns) is a strong BPS proxy (rho 0.50-0.77); a per-component
+# GLM does NOT beat it, and adding DC HURTS the ranking (D-C's small partial correlation does not
+# survive as a linear model term). So the proxy is a per-position calibration on ``returns_pts``:
+# it preserves that ranking and yields an ``E[bonus]`` magnitude for composition.
+_GOAL_MULT = {"GK": GOAL_POINTS_GK, "DEF": GOAL_POINTS_DEF, "MID": GOAL_POINTS_MID, "FWD": GOAL_POINTS_FWD}
+_CS_MULT = {"GK": CLEAN_SHEET_POINTS_GK, "DEF": CLEAN_SHEET_POINTS_DEF, "MID": CLEAN_SHEET_POINTS_MID, "FWD": 0}
+MIN_BONUS_TRAIN_ROWS = 50
+
+
+def _returns_points(df: pd.DataFrame) -> pd.Series:
+    """FPL point value of the modelled returns (goals/assists/CS/GK-saves), per position -
+    the strong BPS proxy from D-B. Uses whatever component columns are present (realized at
+    validation; expected at composition)."""
+    goals = pd.to_numeric(df["goals_scored"], errors="coerce").fillna(0.0)
+    assists = pd.to_numeric(df["assists"], errors="coerce").fillna(0.0)
+    cs = pd.to_numeric(df["clean_sheets"], errors="coerce").fillna(0.0)
+    saves = pd.to_numeric(df["saves"], errors="coerce").fillna(0.0)
+    gmult = df["position"].map(_GOAL_MULT).astype(float)
+    cmult = df["position"].map(_CS_MULT).astype(float)
+    save_pts = np.where(df["position"].eq("GK"), saves // GK_SAVES_PER_POINT, 0.0)
+    return goals * gmult + assists * ASSIST_POINTS + cs * cmult + save_pts
+
+
+def walk_forward_bonus(mart: pd.DataFrame) -> pd.DataFrame:
+    """Expanding walk-forward bonus proxy -> per-row ``e_bonus`` (calibrated E[bonus] in [0, 3]).
+
+    Per-position OLS of realized ``bonus`` on ``returns_pts`` (fit on ``gw < t``), applied to the
+    row's ``returns_pts``; clipped to the valid bonus range. Ranking equals ``returns_pts`` (a
+    monotone calibration); the fit only sets the magnitude.
+    """
+    df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
+    df["returns_pts"] = _returns_points(df)
+    df["bonus_actual"] = pd.to_numeric(df["bonus"], errors="coerce")
+    df["e_bonus"] = np.nan
+    for pos in POSITIONS:
+        sdf = df[df["position"] == pos]
+        for t in sorted(g for g in sdf["gw"].unique() if g > WARMUP_GW):
+            tr = sdf[sdf["gw"] < t].dropna(subset=["returns_pts", "bonus_actual"])
+            te = sdf[sdf["gw"] == t]
+            if len(tr) < MIN_BONUS_TRAIN_ROWS or te.empty:
+                continue
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                try:
+                    x = sm.add_constant(tr[["returns_pts"]].to_numpy(float), has_constant="add")
+                    res = sm.OLS(tr["bonus_actual"].to_numpy(float), x).fit()
+                    xte = sm.add_constant(te[["returns_pts"]].to_numpy(float), has_constant="add")
+                    df.loc[te.index, "e_bonus"] = np.clip(res.predict(xte), 0.0, BPS_BONUS_FIRST)
+                except Exception:
+                    continue
+    return df
+
+
+def bonus_validation(mart: pd.DataFrame) -> pd.DataFrame:
+    """Gate table: does the calibrated bonus proxy rank realized bonus (vs the raw returns_pts)?
+
+    Within-position Spearman of ``e_bonus`` vs realized ``bonus`` beside the ``returns_pts`` signal
+    (they match by construction - the calibration preserves ranking; D-B levels). Indexed (position, model).
+    """
+    df = walk_forward_bonus(mart)
+    ev = df[(df["gw"] > WARMUP_GW) & df["e_bonus"].notna()]
+    rows = []
+    for pos in POSITIONS:
+        sub = ev[ev["position"] == pos]
+        if sub.empty:
+            continue
+        rho_proxy = _grouped_spearman(sub, "e_bonus", "bonus_actual", ["gw"], MIN_ROWS_PER_POS)
+        rho_base = _grouped_spearman(sub, "returns_pts", "bonus_actual", ["gw"], MIN_ROWS_PER_POS)
+        n_gw = int(sub["gw"].nunique())
+        rows.append({"position": pos, "model": "bonus proxy (calibrated)",
+                     "spearman": round(rho_proxy, 4), "n_gw": n_gw})
+        rows.append({"position": pos, "model": "returns_pts (signal)",
+                     "spearman": round(rho_base, 4), "n_gw": n_gw})
     out = pd.DataFrame(rows)
     out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
     return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "model"])

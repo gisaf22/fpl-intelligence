@@ -41,7 +41,7 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | 2.1 | Count models — gate 1 (dispersion) | 🔨 **in build** | components near-Poisson (index ~1.1, no ZIP) | [results](studies/results/predictive-phase2-overdispersion.md) |
 | 2.1 | Count models — fit + compose + gate | ✅ **v2 done** | features beat baseline **DEF +0.031 / MID +0.019**; GK parity; FWD −0.012 (scope limit) | [results](studies/results/predictive-phase2-component-model.md) |
 | 2.2 | Regularized signal combination | ✅ **done (remediated)** | clears both gates only at **DEF** (0.237); MID regresses, FWD/GK beat incumbent not the single; **A-F1 closed** w/ selection table | [results](studies/results/predictive-phase2-signal-combination.md) |
-| 3.0 | Points-equation closure — T0/T1/T2 done; **T3 parts 3.1 (team-GA) + 3.2 (DC) done**, 3.3–3.5 next | 🔨 **in build** | 3.1 team-GA→P(CS) beats incumbent (GK +0.122/DEF +0.068/MID +0.007); 3.2 DC logistic beats baseline DEF/MID, FWD immaterial; T1 spec 100% SGW; T2 diagnostics resolved | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
+| 3.0 | Points-equation closure — T0/T1/T2 done; **T3 parts 3.1/3.2/3.3 done**, 3.4–3.5 + compose next | 🔨 **in build** | 3.1 team-GA→P(CS) beats incumbent; 3.2 DC beats baseline DEF/MID; 3.3 bonus proxy = returns_pts (FWD 0.77), DC-augment rejected; T1 spec 100% SGW; T2 diagnostics resolved | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
 | 3.1 | Monte-Carlo simulator | 🗒 planned (after 3.0) | — | §3 |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
 | 4.1 | Calibration + proper scoring | 🗒 planned | — | §3 |
@@ -184,8 +184,10 @@ at every gate. Each track has a **validation gate** that must pass before the ne
   (3.2) ✅ **done (2026-07-08)** **DC component** — per-position logistic P(hit) → `E[DC]=2·P(hit)`;
   beats the lagged baseline at DEF (+0.015) and parity at MID; FWD immaterial (~1% hit-rate) →
   exclude-and-flag; GK exempt. 6 tests, [result](studies/results/predictive-phase3-points-model.md);
-  (3.3) **bonus proxy** `E[bonus | returns, minutes, position]` (scope gated by D-B/D-C; competitive
-  residual documented as irreducible without a full-match sim);
+  (3.3) ✅ **done (2026-07-08)** **bonus proxy** — per-position OLS calibration on `returns_pts` (D-B);
+  a per-component GLM lost and **DC-augmentation hurt** (D-C partial didn't survive as a term). Ranking
+  = returns_pts (GK 0.50/DEF 0.53/MID 0.55/FWD 0.77), `E[bonus]∈[0,3]`; competitive residual irreducible
+  without a full-match sim. 7 tests, [result](studies/results/predictive-phase3-points-model.md);
   (3.4) **appearance constant + minutes hurdle** `P(play)→P(≥60')` (blanks representable, or documented gap);
   (3.5) **per-position goals/assists** specs vs pooled+multiplier.
   **Gate (per component):** walk-forward, within-position, honest-null valid; composed points produce

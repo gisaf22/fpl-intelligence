@@ -57,8 +57,27 @@ leakage-safe lagged DC-action form (`dc_roll3/5`) + `minutes_roll3` + `fdr_avg` 
 of the time and the model can't rank a near-never event, so DC is immaterial and flagged (the composed
 `e_dc_pts` there is a tiny near-constant, harmless). GK carry no DC term. 6 hermetic tests.
 
+## Part 3.3 — bonus proxy ✅ (2026-07-08)
+**Motivation (D-B/D-C).** Bonus (top-3 BPS in the match → 3/2/1) is caused by the *same-match*
+performance, so the proxy is a **contemporaneous scoring-map** (returns → bonus), applied at
+composition/simulation time when returns are expected/sampled — not a lagged forecast. Coefficients
+are still fit walk-forward for honest validation.
+
+**What was tried, and the honest outcome.**
+- A per-component Poisson GLM (`goals, assists, CS, saves, DC, minutes`) **lost** to the plain
+  `returns_pts` composite at every position (e.g. FWD 0.578 vs 0.767) — the composite already encodes
+  BPS's position weights, and the mostly-zero target fits poorly under a log link.
+- **Adding DC to a `returns_pts` calibration *hurt* the ranking** (DEF 0.530→0.436, FWD 0.767→0.584):
+  D-C's small positive *partial correlation* (+0.15 DEF) does **not** survive as a linear model term
+  (DC's scale/variance injects noise). A measured diagnostic that did not translate to a modelling gain.
+- **Chosen proxy:** a per-position OLS calibration on `returns_pts` alone — it *preserves* that ranking
+  (a monotone map) and yields a bounded `E[bonus] ∈ [0,3]` magnitude for composition.
+
+**Validation — `e_bonus` vs realized `bonus` (35 GWs):** equals the `returns_pts` signal by
+construction (D-B levels): **GK 0.503 · DEF 0.530 · MID 0.554 · FWD 0.767**. The calibration only sets
+the magnitude; ranking is the strong returns signal. 7 hermetic tests.
+
 ## Parts remaining (Track 3)
-- **3.3** bonus proxy `E[bonus | returns, minutes, position, DC]` (D-B viable; D-C → include DC).
 - **3.4** appearance constant + minutes hurdle `P(play)→P(≥60')`.
 - **3.5** per-position goals/assists specs vs pooled+multiplier.
 - Then compose all parts to E[points] via `domain.fpl_scoring` and gate the full points model per position.

@@ -5,7 +5,7 @@ assumptions register, and data inventory. Supersedes and folds in the former `pr
 `predictive-phase2-design`, `analysis-strategy-review`, and `predictive-plan-assumptions-audit` docs.
 Frozen per-phase *results* live separately (linked in §1) and are the immutable evidence trail.
 
-**Last updated:** 2026-07-09 · **Now at:** Phase 3.1 COMPLETE (MC simulator built; internal-correctness gate passed, full distributions + P(haul)) → **RESUME HERE: Phase 4** (calibration / proper scoring — validate the distributions the simulator produces; PIT / haul-rate / CRPS). Phase 3.2 odds-blocked. `main` clean & pushed.
+**Last updated:** 2026-07-09 · **Now at:** Phase 4 COMPLETE (calibration hard gate — event probabilities trustworthy after recalibration; coverage dispersion residual documented) → **RESUME HERE: Phase 5** (decision evaluation — turn calibrated distributions into decisions, with block-bootstrap error bars; where P(play)/blanks & team-stacking finally land). Phase 3.2 odds-blocked. `main` clean & pushed.
 
 > **▶ Resume pointer.** Phase 2.2 done (remediated: `L1_wt` tuned, `minutes_trend` re-tested, selection
 > receipts added): regularized per-component combination clears BOTH gates (incumbent + best single signal)
@@ -43,7 +43,7 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | 3.0 | Points-equation closure (verify · per-position spec · diagnostics · per-position points model + compose) | ✅ **done** | **full points model beats Phase-2.1 + incumbent at every position** (vs Phase-2.1: GK +0.118/DEF +0.048/MID +0.044/FWD +0.044); T1 spec 100% SGW; T2 diagnostics resolved | [result](studies/results/predictive-phase3-points-model.md) | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
 | 3.1 | Monte-Carlo simulator | ✅ **done** (2026-07-09) | internal-correctness gate PASSED (sim mean vs analytic full_pts corr **0.9988**); per-position distributions + P(haul) (GK 7.5% highest); blanks + team-stacking deferred; dist. adequacy → Phase 4 | [result](studies/results/predictive-phase3-simulator.md) |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
-| 4.1 | Calibration + proper scoring | 🗒 planned | — | §3 |
+| 4.1 | Calibration + proper scoring | ✅ **done** (2026-07-09) | probability gate MET — haul/return ECE → 0.0005/0.0052 after 1 recalibration pass (<0.02); CRPS beats point+Poisson everywhere; coverage residual (FWD too narrow) documented | [result](studies/results/predictive-phase4-calibration.md) |
 | 5.1 | Decision evaluation | 🗒 planned (build gap) | — | §3 |
 | 6.x | Survival / drift / PyMC | 🗒 planned (6.2 data-blocked) | — | §3 |
 
@@ -207,11 +207,11 @@ at every gate. Each track has a **validation gate** that must pass before the ne
   - **Locked decisions (2026-07-09):** defer team goals-for/stacking to Phase 5; bonus = proxy-per-draw; recover params from `walk_forward_points` columns; N=10k, seed=0. *Plain terms:* roll the dice thousands of times per player for their full range of outcomes — but only for players we already assume start, and one player at a time (not whole-team pileups yet).
 - **3.2 Bookmaker odds.** *Goal:* odds → implied returns as both a signal and an external yardstick. *Where:* `model/eval/` (benchmark) + `research/families/fixture/explore/` (as signal). *Machinery:* odds de-vig, calibration vs realized. *Prereq:* **odds data — 🚧 hard blocker if absent.** *Gate:* comparator only.
 
-### Phase 4 — Trust the probabilities 🗒 (hard gate)
+### Phase 4 — Trust the probabilities ✅ **done (2026-07-09)** (hard gate)
 - **Goal:** a probability is only useful if calibrated; point-accuracy can't reveal miscalibration.
-- **Where:** `model/eval/calibration.py` (new). **Machinery:** reliability diagrams, Brier/log-loss (haul prob), CRPS (full distribution), isotonic/Platt recalibration.
-- **Key decisions:** **pre-register the calibration tolerance** (A4.1); recalibrate via CV — isotonic/Platt **overfit on ~35 GWs**. Absorbs Phase-3's distributional validation.
-- **Prereq:** Phase-3 probabilistic outputs. **Gate (hard):** reliability within the pre-registered tolerance (recalibrate if not); CRPS beats baseline. **No decisions on miscalibrated probabilities.**
+- **Where:** `model/eval/calibration.py` → `calibration_report`, `simulate_eval`, `recalibration_table`, `crps_table`. **Machinery:** randomized PIT, reliability/ECE (haul ≥10 + return ≥6), 80% coverage, CRPS vs point-forecast/Poisson/climatology, walk-forward isotonic+Platt recalibration.
+- **Result:** **probability gate MET.** Haul ECE 0.0159→**0.0005 (Platt)**/0.0019 (iso); return 0.0336→**0.0052 (iso)** — both well under the pre-registered 0.02 after **one** recalibration pass (isotonic the robust default). Raw under-predicts hauls (3.1% vs obs 4.5%, thin attacker upper tail). **Residual:** interval coverage in-band only at MID (GK/DEF over-wide, FWD 0.737 too narrow) — a per-position **dispersion** residual recalibration can't fix, documented. CRPS: sim beats point+Poisson everywhere, beats climatology except GK. [results](studies/results/predictive-phase4-calibration.md).
+- **Gate (hard):** reliability within pre-registered tolerance (recalibrate if not) ✅; CRPS beats baseline ✅ (except GK vs climatology). **No decisions on miscalibrated probabilities** → ship isotonic-recalibrated event probs; flag the dispersion residual for the decision layer.
 
 ### Phase 5 — Decision value 🗒 (build gap, not data gap)
 - **Goal:** the only metric that matters — captain success, transfer gain, ranking quality, chip value, vs baseline decisions.
@@ -246,7 +246,7 @@ resolved. Status ∈ `open` (undecided) · `must-fix` (blocks the Due-by phase) 
 | **D-C** | **Bonus↔DC overlap** (shared inputs) | Low-Med | partial corr `corr(DC, bonus \| returns)` | **Phase 3.0 Track 2** | ✅ **tested → modest-real** — DEF +0.15, MID +0.10; add DC to bonus-proxy features |
 | **A-P2** | **Pooled component + position multiplier** ≈ per-position rate process (specification) | Med | per-position vs pooled walk-forward; keep only if it beats pooled | **Phase 3.0 Track 3.5** | ✅ **tested-holds (2026-07-08)** — per-position loses/ties at every cell (GK-assists −0.11, DEF-goals −0.02; only FWD-goals +0.006) → **keep pooled+multiplier**. [result](studies/results/predictive-phase3-points-model.md) |
 | A2.3 | **Linear-additive signal combination** (EN) | Low-Med | non-linear ceiling probe (gradient boosting) | Phase 2.2 | ✅ **probed (2026-07-08)** — GBM headroom modest at DEF (+0.017)/FWD (+0.044), larger at GK (+0.067)/MID (+0.050) over the reg. combination; recorded lever, not shipped |
-| A4.1 | **Calibration tolerance unspecified** | Med | pre-register tolerance; CV recalibration | Phase 4 | accepted-deferred |
+| A4.1 | **Calibration tolerance unspecified** | Med | pre-register tolerance; CV recalibration | Phase 4 | ✅ **tested-holds (2026-07-09)** — pre-registered haul ECE≤0.02 & 80% coverage∈[.75,.85]; met for event probs after 1 walk-forward recalibration pass (isotonic ≤0.0052); interval-width dispersion residual documented (FWD too narrow). [result](studies/results/predictive-phase4-calibration.md) |
 | X1 | **Conditional-on-appearance is the right target** | High | score the unconditional (incl. DNP=0) gap; model P(play) | **Phase 5** (P(play) required) | accepted-deferred |
 | X4 | **DGW exclusion is harmless** (product gap) | Med | state gap; DGW = sum of two single-GW forecasts | Phase 5 | accepted-deferred |
 | A5.1 | **Single-season decision backtest is enough** | High | block-bootstrap error bars on every decision claim | Phase 5 | accepted-deferred |

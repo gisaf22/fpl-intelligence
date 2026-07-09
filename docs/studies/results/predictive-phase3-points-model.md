@@ -104,6 +104,31 @@ one), which the appearance tier and the CS gate require; GK is ~constant. 9 herm
 here (the population is conditional on appearance). It is the biggest missing tail for a full points
 distribution; flagged, not hidden.
 
-## Parts remaining (Track 3)
-- **3.5** per-position goals/assists specs vs pooled+multiplier.
-- Then compose all parts to E[points] via `domain.fpl_scoring` and gate the full points model per position.
+## Part 3.5 — per-position vs pooled goals/assists (A-P2) ✅ (2026-07-08)
+**Question.** Phase 2 fit goals/assists **pooled** across positions + a position multiplier. The
+multiplier is a within-position constant (irrelevant to within-position ranking), so this asks whether
+the rate *process* differs by position enough that a per-position fit ranks better.
+
+**Result — within-position Spearman, pooled vs per-position (35 GWs):**
+
+| component | pos | pooled | per-position | Δ |
+|---|---|---|---|---|
+| goals | DEF | 0.041 | 0.018 | −0.023 |
+| goals | MID | 0.163 | 0.155 | −0.008 |
+| goals | FWD | 0.158 | 0.164 | +0.006 |
+| assists | GK | 0.060 | −0.053 | −0.112 |
+| assists | DEF | 0.068 | 0.056 | −0.012 |
+| assists | MID | 0.104 | 0.100 | −0.004 |
+| assists | FWD | 0.103 | 0.066 | −0.037 |
+
+**Verdict:** per-position **loses or ties at every cell** except a negligible +0.006 (FWD goals).
+Pooling gives more data per fit and the process is common up to scale (the multiplier handles scale);
+splitting just adds noise, worst at thin positions (GK assists −0.112). **A-P2 resolves: keep the
+pooled model + multiplier (Phase 2's approach).** 10 hermetic tests.
+
+*This is the third Track-3 refinement (after the bonus per-component GLM and DC-augmentation) that
+loses to the simpler baseline — the test-before-committing discipline consistently favouring parsimony.*
+
+## Next (Track 3 close-out)
+- **Compose** the shipped parts (team-GA → CS+conceded; DC; bonus; minutes hurdle; pooled goals/assists)
+  to E[points] via `domain.fpl_scoring` and gate the **full points model** per position vs `base_season`.

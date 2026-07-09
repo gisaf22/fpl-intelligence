@@ -26,6 +26,8 @@ research/foundation/composition/scoring_engine.ipynb section (d) for this caveat
 total_points reconstruction.
 """
 
+from dataclasses import dataclass
+
 # ---------------------------------------------------------------------------
 # Appearance
 # ---------------------------------------------------------------------------
@@ -140,6 +142,138 @@ BPS_BONUS_THIRD: int = 1  # VERIFIED 2025/26
 
 
 # ---------------------------------------------------------------------------
+# Per-position scoring equation (declarative single source of truth)
+# ---------------------------------------------------------------------------
+#
+# Each position earns points from a DIFFERENT set of qualifying terms (not just different
+# multipliers): FWD have no clean-sheet term, GK have no defensive-contribution term, only
+# GK/DEF carry the goals-conceded penalty, and clean-sheet is worth 4/4/1 for GK/DEF/MID.
+# ``POSITION_SCORING`` is the machine-readable equation the points model (Phase 3.0 Track 3)
+# reads to know WHICH components qualify per position and HOW each maps to points. The
+# arithmetic engine ``score_components`` consumes it, and ``decompose_total_points`` delegates
+# to it, so the spec is the one place the equation lives. ``role`` guides the model:
+#   variable  - has real per-GW variance, worth modelling (goals, assists, CS, saves, conceded,
+#               DC, bonus).  constant - within-position ~fixed (appearance).  rare - low-EV,
+#               high-variance noise, exclude-and-flag (cards, own goals, pen miss/save).
+
+
+@dataclass(frozen=True)
+class ScoringTerm:
+    """One additive term of a position's scoring equation.
+
+    ``kind`` dispatches the arithmetic: ``linear`` = points x count; ``rate`` =
+    floor(count / per) x points (saves per 3, conceded per 2); ``threshold`` = points once when
+    count >= threshold (defensive contribution); ``appearance`` = the minutes-tiered 0/1/2 rule.
+    ``bucket`` is the output component key (several stats can fold into one, e.g. yellow+red -> cards).
+    """
+
+    stat: str
+    points: int
+    kind: str = "linear"          # linear | rate | threshold | appearance
+    per: int = 1
+    threshold: int = 0
+    bucket: str = ""
+    role: str = "variable"        # variable | constant | rare
+
+    def out_key(self) -> str:
+        return self.bucket or self.stat
+
+
+# Terms common to every position (subject to minutes for appearance).
+_COMMON_TERMS: tuple[ScoringTerm, ...] = (
+    ScoringTerm("minutes", 0, kind="appearance", bucket="appearance", role="constant"),
+    ScoringTerm("assists", ASSIST_POINTS, role="variable"),
+    ScoringTerm("bonus", 1, role="variable"),
+    ScoringTerm("yellow_cards", YELLOW_CARD_POINTS, bucket="cards", role="rare"),
+    ScoringTerm("red_cards", RED_CARD_POINTS, bucket="cards", role="rare"),
+    ScoringTerm("own_goals", OWN_GOAL_POINTS, role="rare"),
+    ScoringTerm("penalties_missed", PENALTY_MISS_POINTS, role="rare"),
+)
+
+POSITION_SCORING: dict[str, tuple[ScoringTerm, ...]] = {
+    "GK": (
+        *_COMMON_TERMS,
+        ScoringTerm("goals_scored", GOAL_POINTS_GK, bucket="goals"),
+        ScoringTerm("clean_sheets", CLEAN_SHEET_POINTS_GK),
+        ScoringTerm("goals_conceded", GOALS_CONCEDED_PENALTY_POINTS, kind="rate",
+                    per=GOALS_CONCEDED_PER_PENALTY),
+        ScoringTerm("saves", 1, kind="rate", per=GK_SAVES_PER_POINT),
+        ScoringTerm("penalties_saved", GK_PENALTY_SAVE_POINTS, role="rare"),
+    ),
+    "DEF": (
+        *_COMMON_TERMS,
+        ScoringTerm("goals_scored", GOAL_POINTS_DEF, bucket="goals"),
+        ScoringTerm("clean_sheets", CLEAN_SHEET_POINTS_DEF),
+        ScoringTerm("goals_conceded", GOALS_CONCEDED_PENALTY_POINTS, kind="rate",
+                    per=GOALS_CONCEDED_PER_PENALTY),
+        ScoringTerm("defensive_contribution", DC_POINTS, kind="threshold",
+                    threshold=DC_CBIT_THRESHOLD_DEF),
+    ),
+    "MID": (
+        *_COMMON_TERMS,
+        ScoringTerm("goals_scored", GOAL_POINTS_MID, bucket="goals"),
+        ScoringTerm("clean_sheets", CLEAN_SHEET_POINTS_MID),
+        ScoringTerm("defensive_contribution", DC_POINTS, kind="threshold",
+                    threshold=DC_CBIRT_THRESHOLD_MID_FWD),
+    ),
+    "FWD": (
+        *_COMMON_TERMS,
+        ScoringTerm("goals_scored", GOAL_POINTS_FWD, bucket="goals"),
+        ScoringTerm("defensive_contribution", DC_POINTS, kind="threshold",
+                    threshold=DC_CBIRT_THRESHOLD_MID_FWD),
+    ),
+}
+
+# Canonical output keys (every decomposition carries the full set, zero-filled where a term
+# does not apply to the position) — keeps the reconstruction shape stable across positions.
+_DECOMP_KEYS: tuple[str, ...] = (
+    "appearance", "goals", "assists", "clean_sheets", "saves", "penalties_saved", "bonus",
+    "defensive_contribution", "goals_conceded", "cards", "own_goals", "penalties_missed",
+)
+
+
+def _term_points(term: ScoringTerm, count: int, minutes: int) -> int:
+    """Points contributed by one term given its input count (and minutes for appearance)."""
+    if term.kind == "appearance":
+        if minutes < APPEARANCE_MIN_MINUTES:
+            return 0
+        return FULL_APPEARANCE_POINTS if minutes >= FULL_APPEARANCE_MIN_MINUTES else SHORT_APPEARANCE_POINTS
+    if term.kind == "linear":
+        return count * term.points
+    if term.kind == "rate":
+        return (count // term.per) * term.points
+    if term.kind == "threshold":
+        return term.points if count >= term.threshold else 0
+    raise ValueError(f"unknown scoring-term kind: {term.kind!r}")
+
+
+def score_components(position: str, stats: dict[str, int]) -> dict[str, int]:
+    """Per-component points for one player-GW from the declarative ``POSITION_SCORING`` spec.
+
+    ``stats`` maps stat name -> count (missing stats treated as 0); ``minutes`` must be present.
+    Returns the full canonical key set (zero-filled), summing over terms that share a bucket.
+    """
+    minutes = int(stats.get("minutes", 0))
+    out = dict.fromkeys(_DECOMP_KEYS, 0)
+    for term in POSITION_SCORING[position]:
+        out[term.out_key()] += _term_points(term, int(stats.get(term.stat, 0)), minutes)
+    return out
+
+
+def position_components(position: str, roles: tuple[str, ...] = ("variable",)) -> list[str]:
+    """Qualifying component buckets for a position, filtered by ``role`` (default: modelled ones).
+
+    What Phase 3.0 Track 3 reads to know which components to fit per position (e.g. FWD has no
+    clean_sheets, GK has no defensive_contribution).
+    """
+    seen: list[str] = []
+    for term in POSITION_SCORING[position]:
+        if term.role in roles and term.out_key() not in seen:
+            seen.append(term.out_key())
+    return seen
+
+
+# ---------------------------------------------------------------------------
 # Total-points reconstruction
 # ---------------------------------------------------------------------------
 
@@ -162,42 +296,25 @@ def decompose_total_points(
 ) -> dict[str, int]:
     """Per-component point contributions for one player-gameweek (pure formula).
 
-    Scalars in, ``{component: points}`` out; the values sum to the FPL
-    ``total_points`` for single-fixture gameweeks. Exact for SGW rows; for the
-    small population of double-gameweek rows the ``defensive_contribution``
-    component can disagree with FPL's per-fixture-then-summed points (see
-    ``defensive_contribution_points`` and composition/scoring_engine.ipynb
-    section (d)). No pandas — vectorise by mapping over rows.
+    Thin wrapper over the declarative ``POSITION_SCORING`` spec (via :func:`score_components`) so
+    the equation lives in exactly one place. Scalars in, ``{component: points}`` out; the values
+    sum to the FPL ``total_points`` for single-fixture gameweeks. Exact for SGW rows; for the small
+    population of double-gameweek rows the ``defensive_contribution`` component can disagree with
+    FPL's per-fixture-then-summed points (see ``defensive_contribution_points`` and
+    composition/scoring_engine.ipynb section (d)). No pandas — vectorise by mapping over rows.
     """
-    goal_points = {
-        "GK": GOAL_POINTS_GK,
-        "DEF": GOAL_POINTS_DEF,
-        "MID": GOAL_POINTS_MID,
-        "FWD": GOAL_POINTS_FWD,
-    }
-    clean_sheet_points = {
-        "GK": CLEAN_SHEET_POINTS_GK,
-        "DEF": CLEAN_SHEET_POINTS_DEF,
-        "MID": CLEAN_SHEET_POINTS_MID,
-        "FWD": CLEAN_SHEET_POINTS_FWD,
-    }
-    appearance = FULL_APPEARANCE_POINTS if minutes >= FULL_APPEARANCE_MIN_MINUTES else SHORT_APPEARANCE_POINTS
-    conceded = (
-        (goals_conceded // GOALS_CONCEDED_PER_PENALTY) * GOALS_CONCEDED_PENALTY_POINTS
-        if position in ("GK", "DEF")
-        else 0
-    )
-    return {
-        "appearance": appearance,
-        "goals": goals_scored * goal_points[position],
-        "assists": assists * ASSIST_POINTS,
-        "clean_sheets": clean_sheets * clean_sheet_points[position],
-        "saves": (saves // GK_SAVES_PER_POINT) if position == "GK" else 0,
-        "penalties_saved": penalties_saved * GK_PENALTY_SAVE_POINTS,
+    return score_components(position, {
+        "minutes": minutes,
+        "goals_scored": goals_scored,
+        "assists": assists,
+        "clean_sheets": clean_sheets,
+        "goals_conceded": goals_conceded,
+        "saves": saves,
+        "penalties_saved": penalties_saved,
         "bonus": bonus,
-        "defensive_contribution": defensive_contribution_points(position, defensive_contribution),
-        "goals_conceded": conceded,
-        "cards": yellow_cards * YELLOW_CARD_POINTS + red_cards * RED_CARD_POINTS,
-        "own_goals": own_goals * OWN_GOAL_POINTS,
-        "penalties_missed": penalties_missed * PENALTY_MISS_POINTS,
-    }
+        "yellow_cards": yellow_cards,
+        "red_cards": red_cards,
+        "own_goals": own_goals,
+        "penalties_missed": penalties_missed,
+        "defensive_contribution": defensive_contribution,
+    })

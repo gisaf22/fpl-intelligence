@@ -41,7 +41,7 @@ Frozen per-phase *results* live separately (linked in §1) and are the immutable
 | 2.1 | Count models — gate 1 (dispersion) | 🔨 **in build** | components near-Poisson (index ~1.1, no ZIP) | [results](studies/results/predictive-phase2-overdispersion.md) |
 | 2.1 | Count models — fit + compose + gate | ✅ **v2 done** | features beat baseline **DEF +0.031 / MID +0.019**; GK parity; FWD −0.012 (scope limit) | [results](studies/results/predictive-phase2-component-model.md) |
 | 2.2 | Regularized signal combination | ✅ **done (remediated)** | clears both gates only at **DEF** (0.237); MID regresses, FWD/GK beat incumbent not the single; **A-F1 closed** w/ selection table | [results](studies/results/predictive-phase2-signal-combination.md) |
-| 3.0 | Points-equation closure — T0 verify + T2 diagnostics **done**; T1 spec + T3 points model next | 🔨 **in build** | T0: coefficients verified (÷2/÷3/DC-thresholds by-rule); T2: D-A **null**, D-B proxy-viable, D-C modest, D-D CS≡GA identity holds | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
+| 3.0 | Points-equation closure — T0 verify + T1 per-position spec + T2 diagnostics **done**; T3 points model next | 🔨 **in build** | T1: `POSITION_SCORING` spec reconstructs `total_points` **100% on 28,929 SGW rows**; T0 coefficients verified; T2 D-A null / D-B proxy / D-C modest / D-D identity | [diagnostics](studies/results/predictive-phase3-scoring-diagnostics.md) |
 | 3.1 | Monte-Carlo simulator | 🗒 planned (after 3.0) | — | §3 |
 | 3.2 | Bookmaker odds benchmark | 🚧 blocked (odds data) | — | §3 |
 | 4.1 | Calibration + proper scoring | 🗒 planned | — | §3 |
@@ -159,11 +159,14 @@ at every gate. Each track has a **validation gate** that must pass before the ne
   DC thresholds 10 CBIT / 12 CBIRT; `DC_POINTS` 2) against FPL bootstrap-static. *Where:*
   `domain/fpl_scoring.py` + `tests/`. **Gate:** a test asserts each constant matches bootstrap-static.
   *Plain terms:* two rules were written from memory — confirm against the official source before building on them.
-- **Track 1 — Document per-position equations** [CHANGE, definitional]. A per-position qualifying-terms
-  spec (terms, minutes gates, multipliers) as one importable structure. *Where:* `domain/fpl_scoring.py`.
-  **Gate:** `decompose_total_points` driven by the spec reconstructs `total_points` EXACTLY on
-  single-GW rows (DGW caveat documented) — no "why" test needed, it is the rules.
-  *Plain terms:* write one sheet per position of exactly what scores points and the minutes to qualify.
+- **Track 1 — Document per-position equations** ✅ **done (2026-07-08)**. `POSITION_SCORING` declarative
+  spec + `score_components` engine + `position_components()` accessor in `domain/fpl_scoring.py`;
+  `decompose_total_points` now delegates to it (single source). **Gate MET:** reconstructs `total_points`
+  **100% exact on 28,929 single-GW rows** (DGW DC-threshold caveat documented); 15 hermetic tests.
+  Modelled roster per position (what Track 3 fits): GK {goals, assists, CS, saves, conceded, bonus};
+  DEF {goals, assists, CS, conceded, DC, bonus}; MID {goals, assists, CS, DC, bonus};
+  FWD {goals, assists, DC, bonus}. *Plain terms:* one sheet per position of exactly what scores points,
+  proven by rebuilding every real score perfectly.
 - **Track 2 — Scoring diagnostics** [TEST; research tier, human-only, association-only, NO model
   emission, bootstrap CI for any beyond-noise claim]. **D-A** DC↔conceded/CS association →
   `research/diagnostic/`; **D-B** bonus↔returns attribution (R²/rank-corr; how often top-BPS = top-returns)

@@ -291,6 +291,142 @@ def minutes_hurdle_validation(mart: pd.DataFrame) -> pd.DataFrame:
     return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "model"])
 
 
+# --- Composition: full per-position points model (Track 3 close-out) -------------------------
+# Compose the shipped parts to E[points] per player-GW via the domain scoring structure, then gate
+# per position against TWO bars: the Phase-0 incumbent (base_season) and the Phase-2.1 four-component
+# ranking model (goals + assists + player-CS-Bernoulli + saves). Saves ported from Phase 2.1. Bonus
+# uses EXPECTED returns (the whole chain is linear, so the plug-in is exact for the mean). CS is
+# gated per player by P(>=60'); conceded (GK/DEF) and DC (DEF/MID) applied per the position spec.
+GOAL_FEATURES = ["xg_roll3", "xg_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3"]
+ASSIST_FEATURES = ["xa_roll3", "xa_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3"]
+SAVES_FEATURES = ["xgc_roll3", "minutes_roll3"]           # GK, ported from Phase 2.1
+CS_OLD_FEATURES = ["goals_conceded_roll3", "xgc_roll3", "minutes_roll3", "was_home"]  # Phase-2.1 bar
+
+
+def _logit_fit_predict(train: pd.DataFrame, test: pd.DataFrame, feats: list[str], tgt: str) -> np.ndarray:
+    tr = train.dropna(subset=[*feats, tgt])
+    if len(tr) < MIN_DC_TRAIN_ROWS or tr[tgt].nunique() < 2:
+        return np.full(len(test), np.nan)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        try:
+            x = sm.add_constant(tr[feats].to_numpy(float), has_constant="add")
+            res = sm.GLM(tr[tgt].to_numpy(float), x, family=sm.families.Binomial()).fit()
+            return np.asarray(res.predict(sm.add_constant(test[feats].to_numpy(float), has_constant="add")))
+        except Exception:
+            return np.full(len(test), np.nan)
+
+
+def _prepare_points_panel(mart: pd.DataFrame) -> pd.DataFrame:
+    """Player panel (minutes>0, DGW-excluded) with every lagged feature + team-GA broadcast + base_season."""
+    team = walk_forward_team_ga(mart)[["team_id", "gw", "p_cs", "e_conceded_pts"]]
+    df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
+    df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
+    numeric = ["xg", "xa", "xgc_roll3", "xgi_roll3", "xgi_roll5", "minutes_roll3", "minutes_roll5",
+               "minutes_roll8", "goals_conceded_roll3", "defensive_contribution", "starts", "fdr_avg",
+               "goals_scored", "assists", "saves", "clean_sheets", "bonus", "total_points"]
+    for c in numeric:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    df["was_home"] = df["was_home"].astype(float)
+    for s in ("xg", "xa"):
+        for w in (3, 5):
+            df[f"{s}_roll{w}"] = _lag_roll(df, "player_id", s, w)
+    for w in (3, 5):
+        df[f"dc_roll{w}"] = _lag_roll(df, "player_id", "defensive_contribution", w)
+    df["starts_roll3"] = _lag_roll(df, "player_id", "starts", 3)
+    df["play60"] = (df["minutes"] >= 60).astype(float)
+    df["dc_hit"] = (df["defensive_contribution"] >= df["position"].map(_DC_THRESHOLD)).astype(float)
+    df = df.merge(team, on=["team_id", "gw"], how="left")
+    df["base_season"] = df.groupby("player_id")["total_points"].transform(
+        lambda s: s.expanding().mean().shift(1))
+    return df
+
+
+def walk_forward_points(mart: pd.DataFrame) -> pd.DataFrame:
+    """Expanding walk-forward FULL points model -> ``full_pts`` (+ ``p21_pts`` Phase-2.1 bar, ``base_season``).
+
+    Composes E[points] from the shipped parts per the position scoring structure; ``p21_pts`` is the
+    Phase-2.1 four-component ranking model scored on identical rows for a fair gate.
+    """
+    df = _prepare_points_panel(mart)
+    for col in ["e_goals", "e_assists", "e_saves", "p_dc", "p60", "p_cs_old", "e_bonus"]:
+        df[col] = np.nan
+    eval_gws = sorted(g for g in df["gw"].unique() if g > WARMUP_GW)
+    for t in eval_gws:
+        tr, te = df[df["gw"] < t], df[df["gw"] == t]
+        if te.empty or len(tr) < MIN_TEAM_TRAIN_ROWS:
+            continue
+        df.loc[te.index, "e_goals"] = _poisson_fit_predict(tr, te, GOAL_FEATURES, "goals_scored")
+        df.loc[te.index, "e_assists"] = _poisson_fit_predict(tr, te, ASSIST_FEATURES, "assists")
+        df.loc[te.index, "p_cs_old"] = _logit_fit_predict(tr, te, CS_OLD_FEATURES, "clean_sheets")
+        gk_tr, gk_te = tr[tr["position"] == "GK"], te[te["position"] == "GK"]
+        if not gk_te.empty:
+            df.loc[gk_te.index, "e_saves"] = _poisson_fit_predict(gk_tr, gk_te, SAVES_FEATURES, "saves")
+            df.loc[gk_te.index, "p60"] = 0.98  # GK play >=60' ~always (3.4)
+        for pos in _DC_POSITIONS:
+            trp, tep = tr[tr["position"] == pos], te[te["position"] == pos]
+            if tep.empty:
+                continue
+            df.loc[tep.index, "p_dc"] = _logit_fit_predict(trp, tep, DC_FEATURES, "dc_hit")
+            df.loc[tep.index, "p60"] = _logit_fit_predict(trp, tep, MINUTES_HURDLE_FEATURES, "play60")
+        # bonus: per-position OLS on realized returns_pts, applied to EXPECTED returns_pts
+        tr_rp = tr.assign(rp=_returns_points(tr))
+        for pos in POSITIONS:
+            trp = tr_rp[tr_rp["position"] == pos].dropna(subset=["rp", "bonus"])
+            tep = te[te["position"] == pos]
+            if len(trp) < MIN_BONUS_TRAIN_ROWS or tep.empty:
+                continue
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                b = sm.OLS(trp["bonus"].to_numpy(float),
+                           sm.add_constant(trp[["rp"]].to_numpy(float), has_constant="add")).fit()
+            idx = tep.index
+            e_cs = df.loc[idx, "p_cs"].fillna(0) * df.loc[idx, "p60"].fillna(0)
+            e_sav = (df.loc[idx, "e_saves"].fillna(0) / GK_SAVES_PER_POINT) if pos == "GK" else 0.0
+            erp = (_GOAL_MULT[pos] * df.loc[idx, "e_goals"].fillna(0)
+                   + ASSIST_POINTS * df.loc[idx, "e_assists"].fillna(0)
+                   + _CS_MULT[pos] * e_cs + e_sav)
+            pred = b.predict(sm.add_constant(erp.to_numpy().reshape(-1, 1), has_constant="add"))
+            df.loc[idx, "e_bonus"] = np.clip(pred, 0.0, BPS_BONUS_FIRST)
+
+    pos = df["position"]
+    gmult, cmult = pos.map(_GOAL_MULT).astype(float), pos.map(_CS_MULT).astype(float)
+    core = gmult * df["e_goals"] + ASSIST_POINTS * df["e_assists"] + df["e_bonus"].fillna(0) + (1.0 + df["p60"])
+    e_sav = (df["e_saves"] / GK_SAVES_PER_POINT).where(pos == "GK", 0.0).fillna(0.0)
+    df["full_pts"] = (core
+                      + (cmult * df["p_cs"] * df["p60"]).fillna(0)
+                      + df["e_conceded_pts"].where(pos.isin(["GK", "DEF"]), 0.0).fillna(0)
+                      + (DC_POINTS * df["p_dc"]).where(pos.isin(_DC_POSITIONS), 0.0).fillna(0)
+                      + e_sav)
+    df["p21_pts"] = gmult * df["e_goals"] + ASSIST_POINTS * df["e_assists"] + (cmult * df["p_cs_old"]).fillna(0) + e_sav
+    return df
+
+
+def points_model_gate(mart: pd.DataFrame) -> pd.DataFrame:
+    """Dual-bar gate: full points model vs Phase-2.1 component model vs base_season, per position.
+
+    Within-position Spearman on the common eval set (all three scored on identical rows). Indexed
+    (position, model).
+    """
+    df = walk_forward_points(mart)
+    ev = df[df["gw"] > WARMUP_GW].dropna(subset=["full_pts", "p21_pts", "base_season"])
+    rows = []
+    for pos in POSITIONS:
+        sub = ev[ev["position"] == pos]
+        if sub.empty:
+            continue
+        n_gw = int(sub["gw"].nunique())
+        for col, label in [("full_pts", "full points model"),
+                           ("p21_pts", "Phase-2.1 component model"),
+                           ("base_season", "base_season (incumbent)")]:
+            rows.append({"position": pos, "model": label,
+                         "spearman": round(_grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
+                         "n_gw": n_gw})
+    out = pd.DataFrame(rows)
+    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
+    return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "model"])
+
+
 # --- Part 3.5: per-position vs pooled goals/assists (A-P2) -----------------------------------
 # Phase 2 fit goals/assists POOLED across positions + a position multiplier at composition. The
 # multiplier is a within-position constant (irrelevant to within-position ranking), so this tests

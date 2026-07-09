@@ -129,6 +129,39 @@ pooled model + multiplier (Phase 2's approach).** 10 hermetic tests.
 *This is the third Track-3 refinement (after the bonus per-component GLM and DC-augmentation) that
 loses to the simpler baseline — the test-before-committing discipline consistently favouring parsimony.*
 
-## Next (Track 3 close-out)
-- **Compose** the shipped parts (team-GA → CS+conceded; DC; bonus; minutes hurdle; pooled goals/assists)
-  to E[points] via `domain.fpl_scoring` and gate the **full points model** per position vs `base_season`.
+## Composition — full points model ✅ (2026-07-08) — Track 3 complete
+Compose the shipped parts to `E[points]` per player-GW via the position scoring structure: pooled
+goals/assists (×mult), team-GA `p_cs·P(≥60')·cs_mult` + `e_conceded_pts`, DC `2·P(hit)`, bonus
+(calibrated on **expected** returns — the chain is linear so the plug-in is exact for the mean),
+appearance `1+P(≥60')`, and GK saves (ported from Phase 2.1). Gated per position against **two** bars
+on identical rows: `base_season` and the **Phase-2.1 four-component model** (honest-null vs Phase-2.1
+was pre-registered as acceptable).
+
+**Result — within-position Spearman (35 GWs):**
+
+| pos | full points model | Phase-2.1 component | base_season | Δ vs Phase-2.1 |
+|---|---|---|---|---|
+| GK | **0.154** | 0.036 | 0.041 | **+0.118** |
+| DEF | **0.263** | 0.214 | 0.185 | **+0.048** |
+| MID | **0.391** | 0.347 | 0.336 | **+0.044** |
+| FWD | **0.398** | 0.354 | 0.349 | **+0.044** |
+
+**Verdict — exceeds expectation.** The full points model beats **both** bars at **every** position.
+The design review predicted parity-vs-Phase-2.1 at goal-dominated MID/FWD; instead, closing the
+equation improves ranking **everywhere** — hugely at GK (+0.118, the team-GA clean-sheet layer turning
+a near-chance position into a real signal) and materially at DEF (+0.048). Leakage-safe (all inputs
+lagged; `base_season` strictly prior). 12 hermetic tests.
+
+**Why it beat the goal-dominated positions too:** the added appearance/minutes signal (`1+P(≥60')`) and
+the bonus term (which amplifies the returns ranking) carry independent lift at MID/FWD beyond the raw
+goal/assist forecast; the team-GA CS layer + conceded + DC carry DEF/GK.
+
+## Status — Track 3 complete; Phase 3.0 (points-equation closure) complete
+Every part shipped and gated: 3.1 team-GA (CS+conceded joint), 3.2 DC, 3.3 bonus, 3.4 minutes hurdle,
+3.5 pooled>per-position, + composition. The full points model beats the Phase-2.1 ranking model and
+the incumbent at all four positions. **Next: Phase 3.1 Monte-Carlo simulator** — the equation is now
+complete and consistent, so the simulator can sample the components through the real scoring rules for
+a full points *distribution* (haul probability, captaincy ceiling). Distributional validation is Phase 4.
+
+**Carried scope limits:** `P(play)` / blank tail (X1, Phase 5); bonus competitive residual (irreducible
+without a full-match sim); rare events (cards/OG/pen) excluded-and-flagged.

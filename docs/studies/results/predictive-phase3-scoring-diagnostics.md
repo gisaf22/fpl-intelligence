@@ -71,6 +71,15 @@ definitionally wrong (they permit the 0%-observed impossible states).
 
 ---
 
+### Robustness — clustered bootstrap (2026-07-09)
+The D-A/B/C intervals above are row bootstraps, but player-GW rows are clustered (repeated player;
+shared team-fixture). Re-running with a **player-clustered** and a **team-fixture-clustered** bootstrap
+(`cluster_bootstrap_minutes_adjusted_rho`) changes the intervals negligibly — e.g. D-A DC~conceded|min
+row [+0.018,+0.086] vs player [+0.018,+0.083] vs team-fixture [+0.016,+0.085]; D-B FWD row [.743,.807]
+vs player [.737,.811]. These are *contemporaneous within-GW* associations, so the pairwise residuals are
+not autocorrelated enough within cluster to inflate variance at this n. **Verdicts and CI widths are
+robust to clustering** — the row-bootstrap intervals stand.
+
 ## Consolidated verdicts → Phase 3.0 Track 3 design
 | diagnostic | verdict | decision |
 |---|---|---|

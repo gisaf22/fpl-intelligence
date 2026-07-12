@@ -42,11 +42,12 @@ from domain.fpl_scoring import (
     GOAL_POINTS_MID,
     SHORT_APPEARANCE_POINTS,
 )
+from model.eval.metrics import grouped_spearman
+from model.eval.scorer import score_gates
 from model.eval.walkforward import (
     MIN_ROWS_PER_POS,
     POSITIONS,
     WARMUP_GW,
-    _grouped_spearman,
 )
 
 # Leakage-safe lagged team defensive form + pre-kickoff fixture context (venue, difficulty).
@@ -192,8 +193,8 @@ def dc_validation(mart: pd.DataFrame) -> pd.DataFrame:
         sub = ev[ev["position"] == pos]
         if sub.empty:
             continue
-        rho_model = _grouped_spearman(sub, "p_dc_hit", "dc_hit", ["gw"], MIN_ROWS_PER_POS)
-        rho_base = _grouped_spearman(sub.dropna(subset=["dc_roll3"]), "dc_roll3", "dc_hit",
+        rho_model = grouped_spearman(sub, "p_dc_hit", "dc_hit", ["gw"], MIN_ROWS_PER_POS)
+        rho_base = grouped_spearman(sub.dropna(subset=["dc_roll3"]), "dc_roll3", "dc_hit",
                                      ["gw"], MIN_ROWS_PER_POS)
         n_gw = int(sub["gw"].nunique())
         hit = round(float(sub["dc_hit"].mean()), 3)
@@ -277,8 +278,8 @@ def minutes_hurdle_validation(mart: pd.DataFrame) -> pd.DataFrame:
         sub = ev[ev["position"] == pos]
         if sub.empty:
             continue
-        rho_model = _grouped_spearman(sub, "p60", "play60", ["gw"], MIN_ROWS_PER_POS)
-        rho_base = _grouped_spearman(sub.dropna(subset=["minutes_roll3"]), "minutes_roll3", "play60",
+        rho_model = grouped_spearman(sub, "p60", "play60", ["gw"], MIN_ROWS_PER_POS)
+        rho_base = grouped_spearman(sub.dropna(subset=["minutes_roll3"]), "minutes_roll3", "play60",
                                      ["gw"], MIN_ROWS_PER_POS)
         n_gw = int(sub["gw"].nunique())
         base_rate = round(float(sub["play60"].mean()), 3)
@@ -417,26 +418,18 @@ def walk_forward_points(mart: pd.DataFrame, predict_all: bool = False) -> pd.Dat
 def points_model_gate(mart: pd.DataFrame) -> pd.DataFrame:
     """Dual-bar gate: full points model vs Phase-2.1 component model vs base_season, per position.
 
-    Within-position Spearman on the common eval set (all three scored on identical rows). Indexed
-    (position, model).
+    Routes through the reusable :func:`model.eval.scorer.score_gates`, so each cell now carries a
+    **block-bootstrap CI** and **coverage** alongside the within-position Spearman (all three scored on
+    the common eval set - identical rows). Indexed (position, model).
     """
     df = walk_forward_points(mart)
     ev = df[df["gw"] > WARMUP_GW].dropna(subset=["full_pts", "p21_pts", "base_season"])
-    rows = []
-    for pos in POSITIONS:
-        sub = ev[ev["position"] == pos]
-        if sub.empty:
-            continue
-        n_gw = int(sub["gw"].nunique())
-        for col, label in [("full_pts", "full points model"),
-                           ("p21_pts", "Phase-2.1 component model"),
-                           ("base_season", "base_season (incumbent)")]:
-            rows.append({"position": pos, "model": label,
-                         "spearman": round(_grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
-                         "n_gw": n_gw})
-    out = pd.DataFrame(rows)
-    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
-    return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "model"])
+    out = score_gates(ev, {
+        "full_pts": "full points model",
+        "p21_pts": "Phase-2.1 component model",
+        "base_season": "base_season (incumbent)",
+    })
+    return out.set_index(["position", "model"])
 
 
 # --- Part 3.5: per-position vs pooled goals/assists (A-P2) -----------------------------------
@@ -508,8 +501,8 @@ def pooled_vs_perposition(mart: pd.DataFrame) -> pd.DataFrame:
             sub = ev[ev["position"] == pos]
             if sub.empty:
                 continue
-            rp = _grouped_spearman(sub, "pooled", tgt, ["gw"], MIN_ROWS_PER_POS)
-            rq = _grouped_spearman(sub, "perpos", tgt, ["gw"], MIN_ROWS_PER_POS)
+            rp = grouped_spearman(sub, "pooled", tgt, ["gw"], MIN_ROWS_PER_POS)
+            rq = grouped_spearman(sub, "perpos", tgt, ["gw"], MIN_ROWS_PER_POS)
             rows.append({"component": tgt, "position": pos, "pooled": round(rp, 4),
                          "per_position": round(rq, 4), "delta": round(rq - rp, 4)})
     out = pd.DataFrame(rows)
@@ -587,8 +580,8 @@ def bonus_validation(mart: pd.DataFrame) -> pd.DataFrame:
         sub = ev[ev["position"] == pos]
         if sub.empty:
             continue
-        rho_proxy = _grouped_spearman(sub, "e_bonus", "bonus_actual", ["gw"], MIN_ROWS_PER_POS)
-        rho_base = _grouped_spearman(sub, "returns_pts", "bonus_actual", ["gw"], MIN_ROWS_PER_POS)
+        rho_proxy = grouped_spearman(sub, "e_bonus", "bonus_actual", ["gw"], MIN_ROWS_PER_POS)
+        rho_base = grouped_spearman(sub, "returns_pts", "bonus_actual", ["gw"], MIN_ROWS_PER_POS)
         n_gw = int(sub["gw"].nunique())
         rows.append({"position": pos, "model": "bonus proxy (calibrated)",
                      "spearman": round(rho_proxy, 4), "n_gw": n_gw})
@@ -617,8 +610,8 @@ def team_ga_cs_validation(mart: pd.DataFrame) -> pd.DataFrame:
         sub = ev[ev["position"] == pos]
         if sub.empty:
             continue
-        rho_model = _grouped_spearman(sub, "p_cs", "clean_sheets", ["gw"], MIN_ROWS_PER_POS)
-        rho_base = _grouped_spearman(sub.dropna(subset=["cs_roll"]), "cs_roll", "clean_sheets",
+        rho_model = grouped_spearman(sub, "p_cs", "clean_sheets", ["gw"], MIN_ROWS_PER_POS)
+        rho_base = grouped_spearman(sub.dropna(subset=["cs_roll"]), "cs_roll", "clean_sheets",
                                      ["gw"], MIN_ROWS_PER_POS)
         n_gw = int(sub["gw"].nunique())
         rows.append({"position": pos, "model": "team-GA P(CS)", "spearman": round(rho_model, 4), "n_gw": n_gw})

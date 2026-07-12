@@ -146,7 +146,16 @@ was pre-registered as acceptable).
 | MID | **0.391** | 0.347 | 0.336 | **+0.044** |
 | FWD | **0.398** | 0.354 | 0.349 | **+0.044** |
 
-**Verdict — exceeds expectation.** The full points model beats **both** bars at **every** position.
+**CI addendum (2026-07-12, eval-layer hardening).** `points_model_gate` now routes through the reusable
+`model.eval.scorer.score_gate`, which attaches a **block-bootstrap CI** to every cell (point estimates
+unchanged). The CIs sharpen the verdict honestly: **DEF** (full [0.235,0.301] vs base [0.151,0.221]) and
+**MID** ([0.370,0.422] vs [0.315,0.363]) are **separable** (CIs don't overlap) — real wins; but **GK**
+([0.074,0.247] vs [-0.047,0.120]) and **FWD** ([0.355,0.427] vs [0.292,0.389]) **overlap** → those gains
+are **not statistically separable on one season**. So "beats both bars at every position" holds on point
+estimates but only **DEF/MID are demonstrable**; GK/FWD are directional-only (A5.1 again). *This is exactly
+the error-bar gap the Phase-0 stress-test flagged — now closed for this gate.*
+
+**Verdict — exceeds expectation.** The full points model beats **both** bars at **every** position (point estimate).
 The design review predicted parity-vs-Phase-2.1 at goal-dominated MID/FWD; instead, closing the
 equation improves ranking **everywhere** — hugely at GK (+0.118, the team-GA clean-sheet layer turning
 a near-chance position into a real signal) and materially at DEF (+0.048). Leakage-safe (all inputs

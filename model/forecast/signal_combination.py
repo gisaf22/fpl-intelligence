@@ -49,11 +49,11 @@ from domain.fpl_scoring import (
     GOAL_POINTS_GK,
     GOAL_POINTS_MID,
 )
+from model.eval.metrics import grouped_spearman
 from model.eval.walkforward import (
     MIN_ROWS_PER_POS,
     POSITIONS,
     WARMUP_GW,
-    _grouped_spearman,
 )
 
 _GOAL_MULT = {"GK": GOAL_POINTS_GK, "DEF": GOAL_POINTS_DEF, "MID": GOAL_POINTS_MID, "FWD": GOAL_POINTS_FWD}
@@ -327,7 +327,7 @@ def _best_single_signal(ev: pd.DataFrame, features: list[str]) -> tuple[str, flo
     for s in features:
         if ev[s].nunique() <= 1:
             continue
-        rho = _grouped_spearman(ev, s, "total_points", ["gw"], MIN_ROWS_PER_POS)
+        rho = grouped_spearman(ev, s, "total_points", ["gw"], MIN_ROWS_PER_POS)
         if not np.isnan(rho) and abs(rho) > best_abs:
             best_sig, best_abs, best_signed = s, abs(rho), rho
     return best_sig, round(best_signed, 4)
@@ -364,8 +364,8 @@ def walk_forward_signal_combination(mart: pd.DataFrame) -> pd.DataFrame:
         )
         best_sig, best_rho = _best_single_signal(sub, pos_feats)
         n_gw = int(sub["gw"].nunique())
-        rho_base = _grouped_spearman(sub, "base_season", "total_points", ["gw"], MIN_ROWS_PER_POS)
-        rho_reg = _grouped_spearman(sub, "e_points", "total_points", ["gw"], MIN_ROWS_PER_POS)
+        rho_base = grouped_spearman(sub, "base_season", "total_points", ["gw"], MIN_ROWS_PER_POS)
+        rho_reg = grouped_spearman(sub, "e_points", "total_points", ["gw"], MIN_ROWS_PER_POS)
         rows.append({"position": pos, "model": "base_season (incumbent)",
                      "spearman": round(rho_base, 4), "n_gw": n_gw, "note": ""})
         rows.append({"position": pos, "model": "best single signal",
@@ -416,7 +416,7 @@ def gradient_boosting_ceiling(mart: pd.DataFrame) -> pd.DataFrame:
         if sub.empty:
             continue
         rows.append({"position": pos, "model": "gradient boosting (ceiling)",
-                     "spearman": round(_grouped_spearman(sub, "gbm", "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
+                     "spearman": round(grouped_spearman(sub, "gbm", "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
                      "n_gw": int(sub["gw"].nunique())})
     out = pd.DataFrame(rows)
     out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)

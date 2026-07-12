@@ -56,6 +56,17 @@ def build_baseline_features(mart: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def base_season(mart: pd.DataFrame) -> pd.Series:
+    """The incumbent baseline as a standalone Series: a player's expanding prior-mean points.
+
+    Single source of the ``base_season`` bar every model is gated against - previously re-typed inline
+    (numerically identical) in three forecast modules. Aligned to ``mart``'s index; leakage-safe
+    (``shift(1)`` before the expanding mean excludes the current gameweek).
+    """
+    pts = pd.to_numeric(mart["total_points"], errors="coerce")
+    return pts.groupby(mart["player_id"]).transform(lambda s: s.shift(1).expanding().mean())
+
+
 def _position_expanding_mean(df: pd.DataFrame) -> pd.Series:
     """Mean points of a player's position over all **earlier** gameweeks.
 

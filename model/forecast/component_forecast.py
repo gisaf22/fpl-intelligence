@@ -38,11 +38,11 @@ from domain.fpl_scoring import (
     GOAL_POINTS_GK,
     GOAL_POINTS_MID,
 )
+from model.eval.metrics import grouped_spearman
 from model.eval.walkforward import (
     MIN_ROWS_PER_POS,
     POSITIONS,
     WARMUP_GW,
-    _grouped_spearman,
 )
 
 _GOAL_MULT = {"GK": GOAL_POINTS_GK, "DEF": GOAL_POINTS_DEF, "MID": GOAL_POINTS_MID, "FWD": GOAL_POINTS_FWD}
@@ -125,7 +125,7 @@ def walk_forward_component_points(mart: pd.DataFrame) -> pd.DataFrame:
         for col, label in [("base_season", "base_season (incumbent)"), ("e_points", "component model")]:
             rows.append({
                 "position": pos, "model": label,
-                "spearman": round(_grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
+                "spearman": round(grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
                 "n_gw": int(sub["gw"].nunique()),
             })
     out = pd.DataFrame(rows)

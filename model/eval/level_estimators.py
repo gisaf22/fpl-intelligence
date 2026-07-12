@@ -18,11 +18,11 @@ import numpy as np
 import pandas as pd
 from scipy.stats import trim_mean
 
+from model.eval.metrics import grouped_spearman
 from model.eval.walkforward import (
     MIN_ROWS_PER_POS,
     POSITIONS,
     WARMUP_GW,
-    _grouped_spearman,
     _ndcg_at_k,
     _position_k,
     _precision_at_k,
@@ -126,7 +126,7 @@ def score_levels_by_position(mart: pd.DataFrame) -> pd.DataFrame:
                 nd.append(_ndcg_at_k(p, a, k))
             rows.append({
                 "position": pos, "estimator": label,
-                "spearman": round(_grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
+                "spearman": round(grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
                 "precision_at_k": round(float(np.mean(pk)), 4) if pk else np.nan,
                 "ndcg_at_k": round(float(np.mean(nd)), 4) if nd else np.nan,
                 "k": k, "n_gw": len(sub["gw"].unique()),

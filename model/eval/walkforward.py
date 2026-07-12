@@ -43,16 +43,14 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
 
 from model.eval.baselines import BASELINES, build_baseline_features
+from model.eval.metrics import grouped_spearman, ndcg_at_k, precision_at_k
 
 # Gameweeks below this are warmup (too little history for rolling/expanding windows).
 WARMUP_GW = 3
-# Minimum rows in a gameweek to compute a stable pooled per-GW metric.
-MIN_ROWS_PER_GW = 20
 # Minimum rows in a (gameweek, position) cell to compute a per-position rank corr
-# (lower than MIN_ROWS_PER_GW because GK cells are small — ~one keeper per club/GW).
+# (kept low because GK cells are small — ~one keeper per club/GW).
 MIN_ROWS_PER_POS = 10
 # Top-K shortlist size for precision@K / NDCG@K (~top 7% of a ~300-player GW —
 # the decision-relevant "would this be on my shortlist" scale).
@@ -69,39 +67,9 @@ def _assert_no_leakage(features: pd.DataFrame) -> None:
         raise AssertionError("leakage: a player-history baseline is defined on a player's first appearance")
 
 
-def _precision_at_k(pred: np.ndarray, actual: np.ndarray, k: int) -> float:
-    """Share of the predicted top-K that fall in the (tie-inclusive) actual top-K.
-
-    Tie-aware on the actual side: the target is heavily tied (many players share the
-    boundary score), so "actual top-K" is defined as everyone at or above the k-th
-    largest actual value — otherwise which tied player counts as top-K would be an
-    arbitrary argsort artifact. Predictions are near-continuous, so pred-side ties
-    are ignored.
-    """
-    k = min(k, len(pred))
-    thresh = np.sort(actual)[::-1][k - 1]     # k-th largest actual value
-    relevant = actual >= thresh               # tie-inclusive true top
-    top_pred = np.argsort(-pred)[:k]
-    return float(relevant[top_pred].sum()) / k
-
-
-def _grouped_spearman(df: pd.DataFrame, pred_col: str, target_col: str, by: list[str], min_n: int) -> float:
-    """Mean rank correlation over cells of ``by`` with >= min_n rows and non-constant columns."""
-    rhos = []
-    for _, g in df.groupby(by):
-        if len(g) >= min_n and g[pred_col].nunique() > 1 and g[target_col].nunique() > 1:
-            rhos.append(float(spearmanr(g[pred_col], g[target_col]).statistic))
-    return float(np.mean(rhos)) if rhos else np.nan
-
-
-def _ndcg_at_k(pred: np.ndarray, actual: np.ndarray, k: int) -> float:
-    """NDCG@K with points (clipped at 0) as gains, players ordered by prediction."""
-    k = min(k, len(pred))
-    gains = np.clip(actual, 0, None)
-    disc = 1.0 / np.log2(np.arange(2, k + 2))
-    dcg = (gains[np.argsort(-pred)][:k] * disc).sum()
-    idcg = (np.sort(gains)[::-1][:k] * disc).sum()
-    return float(dcg / idcg) if idcg > 0 else np.nan
+# Back-compat alias: the metric moved to model.eval.metrics (public). Kept so callers migrating from
+# ``from model.eval.walkforward import _grouped_spearman`` keep working; prefer the metrics import.
+_grouped_spearman = grouped_spearman
 
 
 def score_predictions(
@@ -131,7 +99,7 @@ def score_predictions(
 
     mae = float((ev[pred_col] - ev[target_col]).abs().mean())
     return {
-        "spearman_pos": round(_grouped_spearman(ev, pred_col, target_col, ["gw", "position"], MIN_ROWS_PER_POS), 4),
+        "spearman_pos": round(grouped_spearman(ev, pred_col, target_col, ["gw", "position"], MIN_ROWS_PER_POS), 4),
         "mae": round(mae, 4),
         "n": len(ev),
     }
@@ -198,11 +166,11 @@ def walk_forward_by_position(mart: pd.DataFrame) -> pd.DataFrame:
                 if len(g) < MIN_ROWS_PER_POS or g[col].nunique() <= 1 or g["total_points"].nunique() <= 1:
                     continue
                 p, a = g[col].to_numpy(), g["total_points"].to_numpy()
-                pk.append(_precision_at_k(p, a, k))
-                nd.append(_ndcg_at_k(p, a, k))
+                pk.append(precision_at_k(p, a, k))
+                nd.append(ndcg_at_k(p, a, k))
             rows.append({
                 "position": pos, "baseline": label,
-                "spearman": round(_grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
+                "spearman": round(grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
                 "precision_at_k": round(float(np.mean(pk)), 4) if pk else np.nan,
                 "ndcg_at_k": round(float(np.mean(nd)), 4) if nd else np.nan,
                 "k": k, "n_gw": len(sub["gw"].unique()),

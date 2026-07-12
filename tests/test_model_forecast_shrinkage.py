@@ -1,4 +1,4 @@
-"""Tests for the empirical-Bayes shrinkage ranker (model.eval.shrinkage) — Phase 1 D2."""
+"""Tests for the empirical-Bayes shrinkage ranker (model.forecast.shrinkage) — Phase 1 D2."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from model.eval.shrinkage import (
+from model.forecast.shrinkage import (
     SHRINK_ESTIMATORS,
     _variance_ratio_mom,
     build_shrunk_features,

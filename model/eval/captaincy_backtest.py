@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
+from model.eval.metrics import block_bootstrap_ci
 from model.eval.walkforward import WARMUP_GW
 from model.forecast.points_model import _lag_roll, walk_forward_points
 from model.forecast.simulator import simulate_points
@@ -79,19 +80,11 @@ def build_captaincy_panel(mart: pd.DataFrame, n_sims: int = 2000, seed: int = 0)
     return df
 
 
-def _block_bootstrap_ci(x: np.ndarray, block: int = 4, n: int = 3000, seed: int = 0) -> tuple[float, float]:
-    """Percentile CI of the mean of a per-GW series, resampling blocks of consecutive GWs (A5.1)."""
-    x = np.asarray(x, dtype=float)
-    if len(x) < block:
-        return (float("nan"), float("nan"))
-    rng = np.random.default_rng(seed)
-    k = int(np.ceil(len(x) / block))
-    draws = np.empty(n)
-    for i in range(n):
-        starts = rng.integers(0, len(x) - block + 1, size=k)
-        idx = np.concatenate([np.arange(s, s + block) for s in starts])[:len(x)]
-        draws[i] = x[idx].mean()
-    return (round(float(np.percentile(draws, 2.5)), 3), round(float(np.percentile(draws, 97.5)), 3))
+def _ci3(values: np.ndarray) -> tuple[float, float]:
+    """Block-bootstrap CI (shared ``metrics.block_bootstrap_ci``) rounded to 3dp - preserves the prior
+    displayed precision now that the raw helper returns unrounded floats."""
+    lo, hi = block_bootstrap_ci(values)
+    return (round(lo, 3), round(hi, 3))
 
 
 def _pick_series(pool: pd.DataFrame) -> tuple[dict[str, np.ndarray], np.ndarray]:
@@ -129,7 +122,7 @@ def captaincy_backtest(mart: pd.DataFrame, pool: str = "free", n_top: int = 50,
     rows = []
     for s, v in series.items():
         finite = v[~np.isnan(v)]
-        lo, hi = _block_bootstrap_ci(finite)
+        lo, hi = _ci3(finite)
         mean_v = round(float(finite.mean()), 3) if len(finite) else float("nan")
         rows.append({
             "strategy": s, "mean_pts_gw": mean_v,

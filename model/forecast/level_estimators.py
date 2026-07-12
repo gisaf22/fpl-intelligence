@@ -18,14 +18,12 @@ import numpy as np
 import pandas as pd
 from scipy.stats import trim_mean
 
-from model.eval.metrics import grouped_spearman
+from model.eval.metrics import grouped_spearman, ndcg_at_k, precision_at_k
 from model.eval.walkforward import (
     MIN_ROWS_PER_POS,
     POSITIONS,
     WARMUP_GW,
-    _ndcg_at_k,
     _position_k,
-    _precision_at_k,
 )
 
 # Recency half-life (in appearances) for the exponentially-weighted mean.
@@ -122,8 +120,8 @@ def score_levels_by_position(mart: pd.DataFrame) -> pd.DataFrame:
                 if len(g) < MIN_ROWS_PER_POS or g[col].nunique() <= 1 or g["total_points"].nunique() <= 1:
                     continue
                 p, a = g[col].to_numpy(), g["total_points"].to_numpy()
-                pk.append(_precision_at_k(p, a, k))
-                nd.append(_ndcg_at_k(p, a, k))
+                pk.append(precision_at_k(p, a, k))
+                nd.append(ndcg_at_k(p, a, k))
             rows.append({
                 "position": pos, "estimator": label,
                 "spearman": round(grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),

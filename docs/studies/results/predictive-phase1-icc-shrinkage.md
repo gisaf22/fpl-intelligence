@@ -3,7 +3,7 @@
 **Plan/design:** [docs/predictive-layer-plan.md](../../predictive-layer-plan.md) (§3 Phase 1)
 **Produced:** 2026-07-06
 **Code:** `research/kernels/inferential/variance_components.py` (D1) ·
-`model/eval/shrinkage.py` (D2)
+`model/forecast/shrinkage.py` (D2)
 **Outcome:** **D1 ships; D2 is a recorded null** (pre-registered fallback, §8 of the design).
 
 Population/metrics inherited from Phase 0 / Q1: `minutes > 0`, DGW excluded,
@@ -74,7 +74,7 @@ a single season. Rank correlation is insensitive to the shrinkage shrinkage buys
   test, and confirms the ordering with uncertainty.
 - **D2 is a recorded null.** Partial-pooling shrinkage toward the position mean does not
   out-rank the plain expanding mean within position on this single season. Kept in the
-  codebase (`model/eval/shrinkage.py`, tested) so it can be re-run once cross-season
+  codebase (`model/forecast/shrinkage.py`, tested) so it can be re-run once cross-season
   data lands (Phase 6), where a stronger shrink target and drift may change the verdict.
 
 ## Scope limits carried forward

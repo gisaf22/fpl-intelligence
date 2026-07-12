@@ -59,7 +59,7 @@ TOP_K = 20
 _PLAYER_HISTORY_BASELINES = ("base_last", "base_roll3", "base_roll5", "base_season")
 
 
-def _assert_no_leakage(features: pd.DataFrame) -> None:
+def _smoke_check_first_row_leakage(features: pd.DataFrame) -> None:
     """Guard: no player-history baseline may derive from a player's own current/future row."""
     first_rows = features.groupby("player_id").head(1)
     leaked = first_rows[list(_PLAYER_HISTORY_BASELINES)].notna().any(axis=1)
@@ -114,7 +114,7 @@ def walk_forward_baselines(mart: pd.DataFrame) -> pd.DataFrame:
     cross-position ranking here. Sorted by ``spearman_pos``.
     """
     features = build_baseline_features(mart)
-    _assert_no_leakage(features)
+    _smoke_check_first_row_leakage(features)
 
     post = features[features["gw"] > WARMUP_GW]
     common = post[list(BASELINES)].notna().all(axis=1)          # rows where ALL baselines exist
@@ -150,7 +150,7 @@ def walk_forward_by_position(mart: pd.DataFrame) -> pd.DataFrame:
     k / n_gw, positions ordered GK→DEF→MID→FWD and baselines by spearman within each.
     """
     features = build_baseline_features(mart)
-    _assert_no_leakage(features)
+    _smoke_check_first_row_leakage(features)
     post = features[features["gw"] > WARMUP_GW]
     ev = post[post[list(BASELINES)].notna().all(axis=1).to_numpy()]
 
@@ -178,3 +178,21 @@ def walk_forward_by_position(mart: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame(rows)
     out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
     return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "baseline"])
+
+
+_BASELINE_LABEL_TO_COL = {v: k for k, v in BASELINES.items()}
+
+
+def best_baseline_per_position(mart: pd.DataFrame) -> dict[str, str]:
+    """The strongest naive baseline COLUMN per position - the true bar a per-position gate should beat.
+
+    ``base_season`` is the pooled/headline incumbent, but it is NOT the best naive baseline at every
+    position: at GK the rolling-5 average out-ranks it. Gates that report a per-position incumbent
+    should use this so, e.g., a GK model is judged against the real floor (rolling5), not base_season.
+    """
+    by_pos = walk_forward_by_position(mart).reset_index()
+    out = {}
+    for pos, g in by_pos.groupby("position", observed=True):
+        top = g.sort_values("spearman", ascending=False).iloc[0]["baseline"]
+        out[str(pos)] = _BASELINE_LABEL_TO_COL[top]
+    return out

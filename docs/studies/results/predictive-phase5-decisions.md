@@ -1,7 +1,7 @@
 # Phase 5 — decision evaluation: captaincy (frozen)
 
 **Plan:** [docs/predictive-layer-plan.md](../../predictive-layer-plan.md) §3 Phase 5.
-**Produced:** 2026-07-09 · **Code:** `model/eval/decisions.py` (`captaincy_backtest`, `build_captaincy_panel`,
+**Produced:** 2026-07-09 · **Code:** `model/eval/captaincy_backtest.py` (`captaincy_backtest`, `build_captaincy_panel`,
 `_p_play`). Ex-ante scoring via `walk_forward_points(mart, predict_all=True)` (scores potential blanks);
 `P(play)` from lagged minutes/starts (no injury news — a real limitation). N=2000 sim draws.
 

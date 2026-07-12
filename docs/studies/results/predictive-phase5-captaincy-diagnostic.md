@@ -2,7 +2,7 @@
 
 **Plan:** [docs/predictive-layer-plan.md](../../predictive-layer-plan.md) §3 Phase 5.
 **Produced:** 2026-07-10 · **Code:** `model/eval/captaincy_diagnostics.py` (`captaincy_diagnostic_report`).
-**Notebook:** `model/eval/captaincy_ceiling_diagnostic.ipynb`. Reuses the Phase-5 captaincy panel
+**Notebook:** `model/eval/notebooks/captaincy_ceiling_diagnostic.ipynb`. Reuses the Phase-5 captaincy panel
 (pool-free availability gate, ex-ante, blanks=0); all discrimination features strictly lagged. 35 GWs.
 
 ## Question & pre-registered decision rule

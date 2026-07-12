@@ -21,7 +21,7 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 
-from model.eval.decisions import AVAILABILITY_MIN_ROLL, _block_bootstrap_ci, build_captaincy_panel
+from model.eval.captaincy_backtest import AVAILABILITY_MIN_ROLL, _ci3, build_captaincy_panel
 from model.eval.walkforward import WARMUP_GW
 
 # Strictly-lagged / pre-kickoff candidate signals for the oracle-discrimination model.
@@ -101,7 +101,7 @@ def divergence_winrate(pool: pd.DataFrame) -> dict:
                         - g.loc[g["base_season"].idxmax(), "total_points"])
     diff = np.asarray(diff, dtype=float)
     n_gw = pool["gw"].nunique()
-    lo, hi = _block_bootstrap_ci((diff > 0).astype(float)) if len(diff) >= 4 else (float("nan"), float("nan"))
+    lo, hi = _ci3((diff > 0).astype(float)) if len(diff) >= 4 else (float("nan"), float("nan"))
     return {"n_divergent": len(diff), "n_gw": int(n_gw),
             "winrate": round(float((diff > 0).mean()), 3) if len(diff) else float("nan"),
             "winrate_ci": (lo, hi),

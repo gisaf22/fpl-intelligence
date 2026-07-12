@@ -1,13 +1,13 @@
-"""Tests for the Phase 5 decision evaluation - captaincy backtest (model.eval.decisions)."""
+"""Tests for the Phase 5 decision evaluation - captaincy backtest (model.eval.captaincy_backtest)."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from model.eval.decisions import (
+from model.eval.captaincy_backtest import (
     _STRATEGIES,
-    _block_bootstrap_ci,
+    _ci3,
     build_captaincy_panel,
     captaincy_backtest,
 )
@@ -21,10 +21,10 @@ def _capt_panel(seed: int = 1):
     return _panel(seed=seed).assign(ownership_count=lambda d: 1_000_000 - d["player_id"] * 1000)
 
 
-def test_block_bootstrap_ci_brackets_constant() -> None:
-    lo, hi = _block_bootstrap_ci(np.full(20, 5.0))
+def test_ci3_brackets_constant() -> None:
+    lo, hi = _ci3(np.full(20, 5.0))
     assert lo == hi == 5.0                              # a constant series has a degenerate CI
-    lo2, hi2 = _block_bootstrap_ci(np.arange(20.0))
+    lo2, hi2 = _ci3(np.arange(20.0))
     assert lo2 <= np.arange(20.0).mean() <= hi2         # CI brackets the mean
 
 

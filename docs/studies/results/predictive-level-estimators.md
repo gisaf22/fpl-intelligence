@@ -2,7 +2,7 @@
 
 **Plan:** [docs/predictive-layer-plan.md](../../predictive-layer-plan.md) — pre-Phase-1 experiment
 **Produced:** 2026-07-05
-**Code:** `model/eval/level_estimators.py` · **Notebook:** `model/eval/level_estimators.ipynb`
+**Code:** `model/forecast/level_estimators.py` · **Notebook:** `model/eval/notebooks/level_estimators.ipynb`
 **Question:** we rank players by their season *mean*. Does a robust / recency / upside statistic rank
 next-GW points better, within position? (Decides what Phase-1 shrinkage shrinks toward.)
 

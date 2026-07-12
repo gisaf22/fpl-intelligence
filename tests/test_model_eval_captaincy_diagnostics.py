@@ -11,7 +11,7 @@ from model.eval.captaincy_diagnostics import (
     oracle_rank_hits,
     reducible_regret,
 )
-from tests.test_model_eval_decisions import _capt_panel
+from tests.test_model_eval_captaincy_backtest import _capt_panel
 
 pytestmark = pytest.mark.unit
 

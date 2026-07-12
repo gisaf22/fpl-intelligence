@@ -531,3 +531,31 @@ changelog entry and date.
 | 1.2 | April 2026 | Scoped to 2025-26 only — 2026-27 evaluation deferred to EVAL_DESIGN_2627.md. Title corrected. Removed decision tracking protocol and 2026-27 baselines |
 | 1.3 | April 2026 | Strengthened backtesting thresholds. Added decision-relevance gate. Added synthesis reproducibility requirement. Split analytical failure into catastrophic and practical. Operationalised noise criteria |
 | 1.5 | April 2026 | Four targeted gaps closed: practical meaningfulness threshold added to 4.2, synthesis GW block consistency required in 4.4, backtesting selection bias guard added to 4.5, signal re-entry control added to Section 9 |
+---
+
+## Appendix — code layout (predictive layer, 2026-07)
+
+The predictive layer separates by role: **`model/eval/` measures, `model/forecast/` predicts.**
+
+**`model/eval/`** — everything that *measures*, in three roles:
+- **harness** (model-agnostic scorer): `population` (canonical / full_universe), `baselines`
+  (naive reference bar + `base_season` + `best_baseline_per_position`), `metrics`
+  (`grouped_spearman`, `block_bootstrap_ci`, `precision_at_k`, `ndcg_at_k`, `spearman_with_ci`),
+  `scorer` (`GateResult` + `score_gate`/`score_gates` — within-position Spearman **with a
+  block-bootstrap CI + coverage**), `walkforward` (orchestration + `walk_forward_baselines`).
+- **eval studies** (compose a model + the harness to answer one gated question): `calibration`,
+  `captaincy_backtest`, `captaincy_diagnostics`.
+- **notebooks/** — the runnable, question-driven per-stage walkthroughs.
+
+**`model/forecast/`** — everything that *predicts* (fitted models): `component_forecast`,
+`signal_combination`, `points_model`, `simulator`, plus the Phase-1 estimators
+`level_estimators`, `shrinkage`.
+
+**Load-bearing rule:** the **harness must stay model-agnostic** — it must not import
+`model.forecast`. Eval studies *may* import forecast; `model/eval/__init__` exports only the
+harness/baselines/scorer (never a study), which keeps `eval` and `forecast` free of an import cycle.
+
+**Baselines vs models:** *baseline* = naive aggregate that defines the bar (lives in `eval`);
+*model* = fitted predictor that tries to beat it (lives in `forecast`). Strength is irrelevant to
+the split — `base_season` is a baseline even though it wins captaincy. Every ranking gate reports a
+block-bootstrap CI so "beats the baseline" is always qualified by whether the CIs separate.

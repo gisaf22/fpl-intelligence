@@ -1,4 +1,4 @@
-"""Tests for the point-estimate stress test (model.eval.level_estimators)."""
+"""Tests for the point-estimate stress test (model.forecast.level_estimators)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from model.eval.level_estimators import (
+from model.forecast.level_estimators import (
     LEVEL_ESTIMATORS,
     _huber_loc,
     build_level_features,

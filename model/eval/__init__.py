@@ -5,7 +5,7 @@ model is measured against. Leakage-safe by construction: every predictor reads
 only strictly-prior gameweeks (shift(1) before any rolling/expanding window).
 """
 
-from model.eval.baselines import BASELINES, base_season, build_baseline_features
+from model.eval.baselines import BASELINES, build_baseline_features, expanding_prior_mean
 from model.eval.metrics import (
     block_bootstrap_ci,
     grouped_spearman,
@@ -22,10 +22,10 @@ __all__ = [
     "BASELINES",
     # the reusable gate
     "GateResult",
-    "base_season",
     "block_bootstrap_ci",
     "build_baseline_features",
     "canonical",
+    "expanding_prior_mean",
     "full_universe",
     # metrics — shared primitives
     "grouped_spearman",

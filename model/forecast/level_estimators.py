@@ -18,13 +18,9 @@ import numpy as np
 import pandas as pd
 from scipy.stats import trim_mean
 
-from model.eval.metrics import grouped_spearman, ndcg_at_k, precision_at_k
-from model.eval.walkforward import (
-    MIN_ROWS_PER_POS,
-    POSITIONS,
-    WARMUP_GW,
-    _position_k,
-)
+from model.eval.baselines import expanding_prior_mean
+from model.eval.population import canonical
+from model.eval.walkforward import WARMUP_GW, score_topk_by_position
 
 # Recency half-life (in appearances) for the exponentially-weighted mean.
 EW_HALFLIFE = 5
@@ -72,8 +68,7 @@ def build_level_features(mart: pd.DataFrame) -> pd.DataFrame:
     DGW excluded, sorted by (player, gw). Every column is an expanding statistic over a
     player's strictly-prior points (``shift(1)``), so it never sees the current row.
     """
-    df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
-    df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
+    df = canonical(mart)
     pts = df.groupby("player_id")["total_points"]
 
     # Compute the expanding statistic over rows 1..t, THEN shift(1) so row t sees only
@@ -81,7 +76,8 @@ def build_level_features(mart: pd.DataFrame) -> pd.DataFrame:
     def prior_expand(fn):
         return pts.transform(lambda s: s.expanding().apply(fn, raw=True).shift(1))
 
-    df["lvl_mean"] = pts.transform(lambda s: s.expanding().mean().shift(1))
+    # lvl_mean is the shared Phase-0 incumbent (expanding prior mean) on the canonical population.
+    df["lvl_mean"] = expanding_prior_mean(df)
     df["lvl_median"] = pts.transform(lambda s: s.expanding().median().shift(1))
     df["lvl_trim"] = prior_expand(lambda a: trim_mean(a, TRIM_FRAC))
     df["lvl_huber"] = prior_expand(_huber_loc)
@@ -94,9 +90,10 @@ def build_level_features(mart: pd.DataFrame) -> pd.DataFrame:
 def score_levels_by_position(mart: pd.DataFrame) -> pd.DataFrame:
     """Per-(position, estimator) within-position ranking on the common evaluation set.
 
-    Mirrors ``walk_forward_by_position`` but over the alternative level estimators.
-    Returns a frame indexed by (position, estimator) with spearman / precision_at_k /
-    ndcg_at_k / k / n_gw, positions ordered GK→DEF→MID→FWD, estimators by spearman.
+    Routes through the shared :func:`model.eval.walkforward.score_topk_by_position`, so each cell now
+    carries a **block-bootstrap CI** (``ci_lo``/``ci_hi``) and ``coverage`` alongside spearman /
+    precision_at_k / ndcg_at_k. Returns a frame indexed by (position, estimator), positions ordered
+    GK->DEF->MID->FWD, estimators by spearman.
     """
     features = build_level_features(mart)
     cols = list(LEVEL_ESTIMATORS)
@@ -106,29 +103,7 @@ def score_levels_by_position(mart: pd.DataFrame) -> pd.DataFrame:
         raise AssertionError("leakage: a level estimate is defined on a player's first appearance")
 
     post = features[features["gw"] > WARMUP_GW]
-    ev = post[post[cols].notna().all(axis=1).to_numpy()]
-
-    rows = []
-    for pos in POSITIONS:
-        sub = ev[ev["position"] == pos]
-        if sub.empty:
-            continue
-        k = _position_k(int(sub.groupby("gw").size().median()))
-        for col, label in LEVEL_ESTIMATORS.items():
-            pk, nd = [], []
-            for _, g in sub.groupby("gw"):
-                if len(g) < MIN_ROWS_PER_POS or g[col].nunique() <= 1 or g["total_points"].nunique() <= 1:
-                    continue
-                p, a = g[col].to_numpy(), g["total_points"].to_numpy()
-                pk.append(precision_at_k(p, a, k))
-                nd.append(ndcg_at_k(p, a, k))
-            rows.append({
-                "position": pos, "estimator": label,
-                "spearman": round(grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
-                "precision_at_k": round(float(np.mean(pk)), 4) if pk else np.nan,
-                "ndcg_at_k": round(float(np.mean(nd)), 4) if nd else np.nan,
-                "k": k, "n_gw": len(sub["gw"].unique()),
-            })
-    out = pd.DataFrame(rows)
-    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
-    return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "estimator"])
+    scored = score_topk_by_position(post, LEVEL_ESTIMATORS).rename(columns={"model": "estimator"})
+    return scored.set_index(["position", "estimator"])[
+        ["spearman", "ci_lo", "ci_hi", "precision_at_k", "ndcg_at_k", "coverage", "k", "n_gw"]
+    ]

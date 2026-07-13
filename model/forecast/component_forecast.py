@@ -38,6 +38,7 @@ from domain.fpl_scoring import (
     GOAL_POINTS_GK,
     GOAL_POINTS_MID,
 )
+from model.eval.baselines import expanding_prior_mean
 from model.eval.metrics import grouped_spearman
 from model.eval.walkforward import (
     MIN_ROWS_PER_POS,
@@ -86,7 +87,7 @@ def walk_forward_component_points(mart: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
     df["was_home"] = df["was_home"].astype(float)
     # Phase-0 incumbent: expanding prior mean of points (base_season), within player.
-    df["base_season"] = df.groupby("player_id")["total_points"].transform(lambda s: s.expanding().mean().shift(1))
+    df["base_season"] = expanding_prior_mean(df)
 
     feat_cols = sorted(set(_GOAL_FEATURES + _ASSIST_FEATURES + _CS_FEATURES))
     eval_gws = sorted(g for g in df["gw"].unique() if g > WARMUP_GW)

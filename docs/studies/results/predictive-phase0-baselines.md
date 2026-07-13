@@ -81,10 +81,17 @@ These are deliberate simplifications of the Phase-0 floor, named here rather tha
 ## Phase 0 gate — PASSED
 
 Baselines produce reproducible per-GW scores (deterministic); the walk-forward harness passes its
-no-future-rows leakage assertion (`_assert_no_leakage`); baselines compared on a coverage-matched
-common set with ranking-appropriate, tie-aware, per-position metrics, framed as conditional on
-appearance. Phase 1 (hierarchical/ICC) may open — its promotion test is to beat **spearman_pos 0.205**
-(and spearman_mean 0.245) on this harness.
+no-future-rows leakage assertion (`_smoke_check_first_row_leakage`); baselines compared on a
+coverage-matched common set with ranking-appropriate, tie-aware, per-position metrics, framed as
+conditional on appearance. Phase 1 (hierarchical/ICC) may open — its promotion test is to beat the
+**per-position** bars above (GK ~0.06 / DEF 0.167 / MID 0.311 / FWD 0.334); the pooled
+`spearman_pos 0.205` is a one-line summary, not the gate.
+
+> **Correction 2026-07-13.** An earlier draft cited a pooled `spearman_mean 0.245` as a promotion
+> target and named the leakage guard `_assert_no_leakage`. Cross-position pooling was abolished (see the
+> top of this doc), so `spearman_mean` no longer exists; the real guard is
+> `_smoke_check_first_row_leakage`. Frozen numbers (`spearman_pos 0.205`, the per-position bars) are
+> unchanged — only the stale references are corrected.
 
 ## Board stress-test (2026-07-05) — verified
 

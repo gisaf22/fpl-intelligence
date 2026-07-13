@@ -45,7 +45,7 @@ import numpy as np
 import pandas as pd
 
 from model.eval.baselines import BASELINES, build_baseline_features
-from model.eval.metrics import grouped_spearman, ndcg_at_k, precision_at_k
+from model.eval.metrics import grouped_spearman, ndcg_at_k, precision_at_k, spearman_with_ci
 
 # Gameweeks below this are warmup (too little history for rolling/expanding windows).
 WARMUP_GW = 3
@@ -65,11 +65,6 @@ def _smoke_check_first_row_leakage(features: pd.DataFrame) -> None:
     leaked = first_rows[list(_PLAYER_HISTORY_BASELINES)].notna().any(axis=1)
     if bool(leaked.any()):
         raise AssertionError("leakage: a player-history baseline is defined on a player's first appearance")
-
-
-# Back-compat alias: the metric moved to model.eval.metrics (public). Kept so callers migrating from
-# ``from model.eval.walkforward import _grouped_spearman`` keep working; prefer the metrics import.
-_grouped_spearman = grouped_spearman
 
 
 def score_predictions(
@@ -134,9 +129,70 @@ def walk_forward_baselines(mart: pd.DataFrame) -> pd.DataFrame:
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 
 
-def _position_k(players_per_gw: int) -> int:
+def position_k(players_per_gw: int) -> int:
     """Decision-relevant shortlist size for a position: ~top quartile, in [3, TOP_K]."""
     return min(TOP_K, max(3, players_per_gw // 4))
+
+
+# Back-compat: the shortlist-size helper was private before Phase 1 routed the gate loop
+# through ``score_topk_by_position``. Kept so any straggler importing the old name still works.
+_position_k = position_k
+
+
+def score_topk_by_position(
+    candidates: pd.DataFrame,
+    models: dict[str, str],
+    target_col: str = "total_points",
+    *,
+    min_n: int = MIN_ROWS_PER_POS,
+    positions: tuple[str, ...] = POSITIONS,
+    seed: int = 0,
+    bootstrap: bool = True,
+) -> pd.DataFrame:
+    """The single per-(position, model) within-position ranking loop the whole harness shares.
+
+    ``candidates`` is the post-warmup frame (NOT yet common-filtered); every model is scored on the
+    rows where *all* ``models`` columns are defined, so a shrink-vs-mean comparison is not a sampling
+    artifact. Per (position, model) it returns the within-position Spearman, a **block-bootstrap CI**
+    (``ci_lo``/``ci_hi``, ``seed``) when ``bootstrap``, the tie-aware top-K ``precision_at_k`` /
+    ``ndcg_at_k``, ``coverage`` (share of the position's candidate rows on which the model is defined),
+    the position-scaled shortlist size ``k`` and ``n_gw``. ``walk_forward_by_position`` and the Phase-1
+    estimator studies (``level_estimators``/``shrinkage``) all route through this so the loop -- and any
+    future metric fix -- lives in one place. Rows are ordered by (position, Spearman desc).
+    """
+    cols = list(models)
+    common = candidates.dropna(subset=cols)
+    rows = []
+    for pos in positions:
+        sub_all = candidates[candidates["position"] == pos]
+        sub = common[common["position"] == pos]
+        if sub.empty:
+            continue
+        k = position_k(int(sub.groupby("gw").size().median()))
+        for col, label in models.items():
+            if bootstrap:
+                est, (lo, hi) = spearman_with_ci(sub, col, target_col, ["gw"], min_n, seed=seed)
+            else:
+                est, (lo, hi) = grouped_spearman(sub, col, target_col, ["gw"], min_n), (np.nan, np.nan)
+            pk, nd = [], []
+            for _, g in sub.groupby("gw"):
+                if len(g) < min_n or g[col].nunique() <= 1 or g[target_col].nunique() <= 1:
+                    continue
+                p, a = g[col].to_numpy(), g[target_col].to_numpy()
+                pk.append(precision_at_k(p, a, k))
+                nd.append(ndcg_at_k(p, a, k))
+            rows.append({
+                "position": pos, "model": label,
+                "spearman": round(est, 4), "ci_lo": round(lo, 4), "ci_hi": round(hi, 4),
+                "precision_at_k": round(float(np.mean(pk)), 4) if pk else np.nan,
+                "ndcg_at_k": round(float(np.mean(nd)), 4) if nd else np.nan,
+                "coverage": round(float(sub_all[col].notna().mean()), 3) if len(sub_all) else np.nan,
+                "k": k, "n_gw": int(sub["gw"].nunique()),
+            })
+    out = pd.DataFrame(rows)
+    if not out.empty:
+        out["position"] = pd.Categorical(out["position"], categories=positions, ordered=True)
+    return out.sort_values(["position", "spearman"], ascending=[True, False]).reset_index(drop=True)
 
 
 def walk_forward_by_position(mart: pd.DataFrame) -> pd.DataFrame:
@@ -144,7 +200,9 @@ def walk_forward_by_position(mart: pd.DataFrame) -> pd.DataFrame:
 
     Pooled ``spearman_pos`` masks large heterogeneity (GK ranks near chance; MID/FWD
     rank well), so Phase 1+ models must be judged against the *per-position* bars here.
-    ``k`` is the position-scaled shortlist size (``precision_at_k`` uses it).
+    ``k`` is the position-scaled shortlist size (``precision_at_k`` uses it). Thin wrapper over
+    :func:`score_topk_by_position` (CI skipped here to keep the Phase-0 leaderboard fast/columns
+    stable); the per-position CI is what the Phase-1 estimator gates surface.
 
     Returns a frame indexed by (position, baseline) with spearman / precision_at_k /
     k / n_gw, positions ordered GK→DEF→MID→FWD and baselines by spearman within each.
@@ -152,32 +210,8 @@ def walk_forward_by_position(mart: pd.DataFrame) -> pd.DataFrame:
     features = build_baseline_features(mart)
     _smoke_check_first_row_leakage(features)
     post = features[features["gw"] > WARMUP_GW]
-    ev = post[post[list(BASELINES)].notna().all(axis=1).to_numpy()]
-
-    rows = []
-    for pos in POSITIONS:
-        sub = ev[ev["position"] == pos]
-        if sub.empty:
-            continue
-        k = _position_k(int(sub.groupby("gw").size().median()))
-        for col, label in BASELINES.items():
-            pk, nd = [], []
-            for _, g in sub.groupby("gw"):
-                if len(g) < MIN_ROWS_PER_POS or g[col].nunique() <= 1 or g["total_points"].nunique() <= 1:
-                    continue
-                p, a = g[col].to_numpy(), g["total_points"].to_numpy()
-                pk.append(precision_at_k(p, a, k))
-                nd.append(ndcg_at_k(p, a, k))
-            rows.append({
-                "position": pos, "baseline": label,
-                "spearman": round(grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
-                "precision_at_k": round(float(np.mean(pk)), 4) if pk else np.nan,
-                "ndcg_at_k": round(float(np.mean(nd)), 4) if nd else np.nan,
-                "k": k, "n_gw": len(sub["gw"].unique()),
-            })
-    out = pd.DataFrame(rows)
-    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
-    return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "baseline"])
+    scored = score_topk_by_position(post, BASELINES, bootstrap=False).rename(columns={"model": "baseline"})
+    return scored.set_index(["position", "baseline"])[["spearman", "precision_at_k", "ndcg_at_k", "k", "n_gw"]]
 
 
 _BASELINE_LABEL_TO_COL = {v: k for k, v in BASELINES.items()}

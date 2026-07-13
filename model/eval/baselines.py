@@ -50,18 +50,24 @@ def build_baseline_features(mart: pd.DataFrame) -> pd.DataFrame:
     df["base_last"] = pts.transform(lambda s: s.shift(1))
     for k in ROLL_WINDOWS:
         df[f"base_roll{k}"] = pts.transform(lambda s, k=k: s.shift(1).rolling(k, min_periods=k).mean())
-    df["base_season"] = pts.transform(lambda s: s.shift(1).expanding().mean())
+    df["base_season"] = expanding_prior_mean(df)          # single source of the expanding-prior-mean stat
 
     df["base_posmean"] = _position_expanding_mean(df)
     return df
 
 
-def base_season(mart: pd.DataFrame) -> pd.Series:
-    """The incumbent baseline as a standalone Series: a player's expanding prior-mean points.
+def expanding_prior_mean(mart: pd.DataFrame) -> pd.Series:
+    """A player's expanding prior-mean points, as a standalone Series.
 
-    Single source of the ``base_season`` bar every model is gated against - previously re-typed inline
-    (numerically identical) in three forecast modules. Aligned to ``mart``'s index; leakage-safe
-    (``shift(1)`` before the expanding mean excludes the current gameweek).
+    This one statistic underlies the ``base_season`` baseline column, the Phase-1 ``lvl_mean``, and the
+    Phase-2/3 incumbent bar - which is *why* they are numerically equal. Leakage-safe: ``shift(1)``
+    before the expanding mean excludes the current gameweek. Aligned to ``mart``'s index.
+
+    Population-agnostic - the result's *meaning* follows the rows you pass: on the **canonical**
+    population (``minutes > 0``, DGW excluded) it is the ``base_season`` column / ``lvl_mean``; on a
+    blanks-included frame it is the "incl-blanks" variant for ex-ante blank scoring (Phase 5,
+    ``points_model`` ``keep_all``). To reproduce the ``base_season`` column, pass the canonical
+    population - the full mart would silently fold in 0-minute blanks.
     """
     pts = pd.to_numeric(mart["total_points"], errors="coerce")
     return pts.groupby(mart["player_id"]).transform(lambda s: s.shift(1).expanding().mean())

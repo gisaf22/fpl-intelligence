@@ -18,16 +18,13 @@ import pandas as pd
 from scipy.stats import spearmanr
 
 from dal.pipeline import load as load_mart
+from model.eval.population import canonical
 from research.kernels.descriptive.variance_components import decompose_variance
 
 POSITIONS = ["GK", "DEF", "MID", "FWD"]
 # Frozen Gaussian-LMM ICCs from D1 (predictive-phase1-icc-shrinkage.md) for side-by-side.
 _D1_ICC = {"GK": (0.000, 0.000, 0.027), "DEF": (0.056, 0.000, 0.082),
            "MID": (0.101, 0.070, 0.122), "FWD": (0.097, 0.000, 0.143)}
-
-
-def _population(mart: pd.DataFrame) -> pd.DataFrame:
-    return mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].sort_values(["player_id", "gw"]).copy()
 
 
 def x2_between_share_bootstrap(sub: pd.DataFrame, n_boot: int = 3000, seed: int = 7, min_app: int = 10):
@@ -64,7 +61,7 @@ def _wp_spearman(df: pd.DataFrame, col: str, target: str, min_n: int = 10) -> fl
 
 
 def run() -> None:
-    pop = _population(load_mart().mart)
+    pop = canonical(load_mart().mart)
 
     print("X2 — distribution-free SS between-share (player-clustered bootstrap) vs Gaussian-LMM ICC:")
     print(f"{'pos':4}{'SS_point':>10}{'boot_lo':>9}{'boot_med':>10}{'boot_hi':>9}   D1 ICC [CI]")

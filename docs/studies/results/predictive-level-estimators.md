@@ -11,12 +11,19 @@ leakage-checked, **within-position ranking only**, conditional on appearance.
 
 ## Per-position ranking (within-position Spearman, best per position in bold)
 
-| position | mean (incumbent) | best alternative | verdict |
+| position | mean (incumbent) [95% CI] | best alternative [95% CI] | verdict |
 |---|---|---|---|
-| GK | 0.041 | EW mean 0.076 | all ≈ chance — nothing to choose |
-| DEF | 0.185 | median 0.189 / Huber 0.187 | **tie** — robust centers ≈ mean (≤0.004) |
-| MID | 0.336 | EW mean 0.341 | **tie** — EW +0.005 (noise) |
-| FWD | 0.349 | **EW mean 0.371** | EW **+0.022** — recency helps forwards |
+| GK | 0.041 [-0.047, 0.120] | EW mean 0.076 [-0.005, 0.134] | all ≈ chance — nothing to choose |
+| DEF | 0.185 [0.151, 0.221] | median 0.189 [0.156, 0.227] / Huber 0.187 [0.153, 0.226] | **tie** — robust centers ≈ mean (≤0.004) |
+| MID | 0.336 [0.315, 0.363] | EW mean 0.341 [0.319, 0.376] | **tie** — EW +0.005 (noise) |
+| FWD | 0.349 [0.292, 0.389] | **EW mean 0.371 [0.327, 0.407]** | EW **+0.022** — recency helps forwards |
+
+> **Block-bootstrap CIs added 2026-07-12 (Phase 1 cleanup).** The gate now routes through the shared
+> harness helper (`model.eval.walkforward.score_topk_by_position`, seed=0, block=4 GWs); point
+> estimates are unchanged. The best alternative's CI **overlaps the mean's at every position**, which
+> confirms the "tie" verdicts quantitatively: robustification does not beat the mean beyond noise, and
+> even the FWD recency edge (EW 0.371 vs mean 0.349) has overlapping intervals -- a directional tilt
+> worth carrying forward, not a decisive single-season win.
 
 Full table (spearman): GK/DEF/MID/FWD × {mean, median, trimmed, Huber, p75, p90, EW} is in the
 notebook. Quantiles (p75/p90) rank the body worse everywhere; median is worst for FWD (discards upside).

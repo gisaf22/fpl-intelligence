@@ -54,5 +54,7 @@ def test_lvl_mean_matches_expanding_prior_mean() -> None:
 def test_score_structure_and_all_estimators_present() -> None:
     res = score_levels_by_position(_panel(n_players=80, n_gw=16))
     assert res.index.names == ["position", "estimator"]
-    assert list(res.columns) == ["spearman", "precision_at_k", "ndcg_at_k", "k", "n_gw"]
+    assert list(res.columns) == [
+        "spearman", "ci_lo", "ci_hi", "precision_at_k", "ndcg_at_k", "coverage", "k", "n_gw",
+    ]
     assert set(res.index.get_level_values("estimator")) == set(LEVEL_ESTIMATORS.values())

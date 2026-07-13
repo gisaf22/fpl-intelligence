@@ -27,13 +27,9 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from model.eval.metrics import grouped_spearman, ndcg_at_k, precision_at_k
-from model.eval.walkforward import (
-    MIN_ROWS_PER_POS,
-    POSITIONS,
-    WARMUP_GW,
-    _position_k,
-)
+from model.eval.baselines import expanding_prior_mean
+from model.eval.population import canonical
+from model.eval.walkforward import WARMUP_GW, score_topk_by_position
 
 # Minimum prior rows in a (position) slice before we trust its variance ratio.
 MIN_PRIOR_ROWS = 30
@@ -82,12 +78,15 @@ def build_shrunk_features(mart: pd.DataFrame, value_col: str = "total_points") -
     sorted by (player, gw). ``mu_pos`` / ``var_ratio`` are computed from each row's
     strictly-prior position slice; players/rows with no usable prior slice get NaN.
     """
-    df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
-    df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
+    df = canonical(mart)
     pts = df.groupby("player_id")[value_col]
 
-    # Player-level leakage-safe prior mean and prior appearance count.
-    df["lvl_mean"] = pts.transform(lambda s: s.expanding().mean().shift(1))
+    # Player-level leakage-safe prior mean (== Phase-0 ``base_season`` on the canonical
+    # population) and prior appearance count.
+    df["lvl_mean"] = (
+        expanding_prior_mean(df) if value_col == "total_points"
+        else pts.transform(lambda s: s.shift(1).expanding().mean())
+    )
     df["prior_n"] = pts.transform(lambda s: s.expanding().count().shift(1))
 
     # Position-level prior grand mean and variance ratio, evaluated per (position, gw).
@@ -111,9 +110,10 @@ def build_shrunk_features(mart: pd.DataFrame, value_col: str = "total_points") -
 def score_shrinkage_by_position(mart: pd.DataFrame) -> pd.DataFrame:
     """Per-(position, estimator) within-position ranking of ``lvl_mean`` vs ``lvl_shrunk``.
 
-    Mirrors ``score_levels_by_position`` on the common evaluation set (rows where both
-    estimators are defined), so the shrink-vs-mean comparison is not a sampling
-    artifact. Returns a frame indexed by (position, estimator).
+    Routes through the shared :func:`model.eval.walkforward.score_topk_by_position` on the common
+    evaluation set (rows where both estimators are defined), so the shrink-vs-mean comparison carries a
+    **block-bootstrap CI** (``ci_lo``/``ci_hi``) + ``coverage`` and is not a sampling artifact. Returns
+    a frame indexed by (position, estimator).
     """
     features = build_shrunk_features(mart)
     cols = list(SHRINK_ESTIMATORS)
@@ -124,29 +124,7 @@ def score_shrinkage_by_position(mart: pd.DataFrame) -> pd.DataFrame:
         raise AssertionError("leakage: a shrink estimate is defined on a player's first appearance")
 
     post = features[features["gw"] > WARMUP_GW]
-    ev = post[post[cols].notna().all(axis=1).to_numpy()]
-
-    rows = []
-    for pos in POSITIONS:
-        sub = ev[ev["position"] == pos]
-        if sub.empty:
-            continue
-        k = _position_k(int(sub.groupby("gw").size().median()))
-        for col, label in SHRINK_ESTIMATORS.items():
-            pk, nd = [], []
-            for _, g in sub.groupby("gw"):
-                if len(g) < MIN_ROWS_PER_POS or g[col].nunique() <= 1 or g["total_points"].nunique() <= 1:
-                    continue
-                p, a = g[col].to_numpy(), g["total_points"].to_numpy()
-                pk.append(precision_at_k(p, a, k))
-                nd.append(ndcg_at_k(p, a, k))
-            rows.append({
-                "position": pos, "estimator": label,
-                "spearman": round(grouped_spearman(sub, col, "total_points", ["gw"], MIN_ROWS_PER_POS), 4),
-                "precision_at_k": round(float(np.mean(pk)), 4) if pk else np.nan,
-                "ndcg_at_k": round(float(np.mean(nd)), 4) if nd else np.nan,
-                "k": k, "n_gw": len(sub["gw"].unique()),
-            })
-    out = pd.DataFrame(rows)
-    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
-    return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "estimator"])
+    scored = score_topk_by_position(post, SHRINK_ESTIMATORS).rename(columns={"model": "estimator"})
+    return scored.set_index(["position", "estimator"])[
+        ["spearman", "ci_lo", "ci_hi", "precision_at_k", "ndcg_at_k", "coverage", "k", "n_gw"]
+    ]

@@ -42,6 +42,7 @@ from domain.fpl_scoring import (
     GOAL_POINTS_MID,
     SHORT_APPEARANCE_POINTS,
 )
+from model.eval.baselines import expanding_prior_mean
 from model.eval.metrics import grouped_spearman
 from model.eval.scorer import score_gates
 from model.eval.walkforward import (
@@ -344,8 +345,7 @@ def _prepare_points_panel(mart: pd.DataFrame, keep_all: bool = False) -> pd.Data
     df["play60"] = (df["minutes"] >= 60).astype(float)
     df["dc_hit"] = (df["defensive_contribution"] >= df["position"].map(_DC_THRESHOLD)).astype(float)
     df = df.merge(team, on=["team_id", "gw"], how="left")
-    df["base_season"] = df.groupby("player_id")["total_points"].transform(
-        lambda s: s.expanding().mean().shift(1))
+    df["base_season"] = expanding_prior_mean(df)
     return df
 
 

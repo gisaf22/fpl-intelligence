@@ -1,4 +1,4 @@
-"""Tests for the reusable eval components (population, metrics, baselines.base_season, scorer)."""
+"""Tests for the reusable eval components (population, metrics, baselines.expanding_prior_mean, scorer)."""
 
 from __future__ import annotations
 
@@ -36,9 +36,9 @@ def test_population_canonical_and_full_universe() -> None:
     assert (full["minutes"] == 0).any()
 
 
-def test_base_season_matches_inline_lambda() -> None:
+def test_expanding_prior_mean_matches_inline_lambda() -> None:
     cano = population.canonical(_mart())
-    new = baselines.base_season(cano)
+    new = baselines.expanding_prior_mean(cano)
     old = cano.groupby("player_id")["total_points"].transform(lambda s: s.expanding().mean().shift(1))
     assert np.allclose(new.fillna(-999), old.fillna(-999))          # single source == the old inline form
 

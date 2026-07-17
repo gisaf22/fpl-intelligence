@@ -7,7 +7,10 @@ import pandas as pd
 import pytest
 
 from research.kernels.descriptive.variance_components import decompose_variance
-from research.kernels.inferential.variance_components import mixed_effects_icc
+from research.kernels.inferential.variance_components import (
+    between_share_bootstrap,
+    mixed_effects_icc,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -63,3 +66,18 @@ def test_ci_bounds_bracket_point_estimate() -> None:
     df = _panel(sigma_between=3.0, sigma_within=2.0, seed=5)
     res = mixed_effects_icc(df, n_bootstrap=_NB)
     assert res["icc_ci_lo"] <= res["icc"] <= res["icc_ci_hi"]
+
+
+def test_between_share_bootstrap_orders_and_is_deterministic() -> None:
+    # Between-variance dominates -> a large, ordered between-share; deterministic given the seed.
+    df = _panel(sigma_between=4.0, sigma_within=1.0, seed=1)
+    lo, med, hi = between_share_bootstrap(df, n_boot=200)
+    assert lo <= med <= hi
+    assert med > 0.5
+    assert tuple(between_share_bootstrap(df, n_boot=200)) == (lo, med, hi)
+
+
+def test_between_share_bootstrap_small_when_within_dominates() -> None:
+    df = _panel(sigma_between=0.3, sigma_within=4.0, seed=2)
+    _, med, _ = between_share_bootstrap(df, n_boot=200)
+    assert med < 0.3

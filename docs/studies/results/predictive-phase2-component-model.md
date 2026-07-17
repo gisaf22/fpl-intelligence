@@ -16,6 +16,23 @@
   MID/FWD attacking when included there (v1→v2 A/B). A feature-placement finding, recorded.
 - Composed to E[points] via the FPL scoring rule; constant/deferred pieces (appearance, bonus, cards) dropped.
 
+## Design check — lagged xG beats lagged goals as a predictor (2026-07-06)
+
+Before building on process stats, we tested the input choice directly (`component_forecast.xg_vs_goals_forecast_skill`):
+to forecast **next-GW `goals_scored`**, rank players by their strictly-prior expanding mean of `xg` vs of
+`goals_scored`; within-position Spearman on the common eval set (GW > 3).
+
+| pos | lagged **xG** | lagged **goals** | Δ (xG − goals) | winner |
+|---|---|---|---|---|
+| DEF | 0.080 | 0.054 | **+0.026** | xG |
+| MID | 0.180 | 0.137 | **+0.043** | xG |
+| FWD | 0.190 | 0.177 | **+0.013** | xG |
+
+**xG wins at every position** (biggest at MID) — xG regresses to a truer rate than the noisy realized
+outcome. This justifies feeding the component model lagged process stats (xG/xA) over lagged realized
+components. *(Goals here are a Phase-2 **target**; using them as a lagged predictor is not the excluded
+contemporaneous-signal case — see the claims discipline in the plan.)*
+
 ## Result (within-position Spearman vs incumbent)
 
 | pos | base_season (incumbent) | component model (v2) | Δ | verdict |

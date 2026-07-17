@@ -15,6 +15,7 @@ from model.forecast.points_model import (
     points_model_gate,
     pooled_vs_perposition,
     team_ga_cs_validation,
+    unmodeled_points_share,
     walk_forward_bonus,
     walk_forward_dc,
     walk_forward_minutes_hurdle,
@@ -173,3 +174,25 @@ def test_bonus_proxy_is_bounded_and_preserves_returns_ranking() -> None:
         if len(sub) == 2:
             assert abs(sub.loc["bonus proxy (calibrated)", "spearman"]
                        - sub.loc["returns_pts (signal)", "spearman"]) < 1e-9
+
+
+def _deferred_panel() -> pd.DataFrame:
+    """Small canonical panel: every player scores 6 pts with 1 bonus; GK also make 3 saves."""
+    rows = []
+    for p in range(8):
+        pos = ["GK", "DEF", "MID", "FWD"][p % 4]
+        for gw in range(1, 6):
+            rows.append({
+                "player_id": p, "gw": gw, "position": pos, "minutes": 90, "is_dgw": False,
+                "total_points": 6, "bonus": 1, "saves": 3 if pos == "GK" else 0,
+            })
+    return pd.DataFrame(rows)
+
+
+def test_unmodeled_points_share_isolates_gk_saves_and_bonus() -> None:
+    out = unmodeled_points_share(_deferred_panel())
+    assert list(out.index) == ["GK", "DEF", "MID", "FWD"]
+    assert {"total_points", "bonus_pct", "gk_saves_pct"} <= set(out.columns)
+    assert out.loc["GK", "gk_saves_pct"] > 0                       # only GK carry a saves share
+    assert (out.loc[["DEF", "MID", "FWD"], "gk_saves_pct"] == 0).all()
+    assert (out["bonus_pct"] > 0).all()                           # bonus scored for every position

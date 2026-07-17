@@ -2,32 +2,49 @@
 
 **Plan/design:** [docs/predictive-layer-plan.md](../../predictive-layer-plan.md) (§3 Phase 1)
 **Produced:** 2026-07-06
-**Code:** `research/kernels/inferential/variance_components.py` (D1) ·
-`model/forecast/shrinkage.py` (D2)
-**Outcome:** **D1 ships; D2 is a recorded null** (pre-registered fallback, §8 of the design).
+**Code:** `research/kernels/inferential/variance_components.py` (ICC inference) ·
+`model/forecast/shrinkage.py` (EB shrinkage)
+**Outcome:** **ICC inference ships; EB shrinkage is a recorded null** (pre-registered fallback, §8 of the design).
 
 Population/metrics inherited from Phase 0 / Q1: `minutes > 0`, DGW excluded,
 `min_appearances = 10`, per position, within-position ranking only, conditional on
-appearance. D1 whole-season one-shot; D2 walk-forward, strictly-prior, GW > 3.
+appearance. ICC inference is whole-season one-shot; EB shrinkage is walk-forward, strictly-prior, GW > 3.
 
-## D1 — Variance-components inference (random intercept, MixedLM REML)
+## ICC inference — variance components (random intercept, MixedLM REML)
 
 Formalizes Q1's between/within split as a model parameter with uncertainty.
 
-| pos | Q1 SS between-share | ICC (D1) | ICC 95% CI | σ²_between | σ²_within | LRT p | n_players |
+| pos | Q1 SS between-share | ICC | ICC 95% CI | σ²_between | σ²_within | LRT p | n_players |
 |---|---|---|---|---|---|---|---|
 | GK | 0.038 | 0.000 | [0.000, 0.027] | 0.000 | 7.51 | 0.50 | 25 |
 | DEF | 0.092 | 0.056 | [0.000, 0.082] | 0.558 | 9.43 | 1.1e-19 | 145 |
 | MID | 0.136 | 0.101 | [0.070, 0.122] | 0.835 | 7.40 | 6.4e-64 | 191 |
 | FWD | 0.132 | 0.097 | [0.000, 0.143] | 0.974 | 9.10 | 1.1e-17 | 51 |
 
-> **Normality sensitivity (X2, added 2026-07-06).** D1's ICC is from a *Gaussian* LMM on a count
-> target. A distribution-free player-clustered bootstrap of the SS between-share confirms D1's
-> **ordering and small magnitude** (DEF/MID/FWD between-share CIs exclude 0 without any normality
-> assumption). **GK caveat:** the raw SS-share is 0.038 [0.018, 0.063] (excludes 0) vs the LMM ICC = 0 —
-> this is finite-sample upward bias of the SS statistic, *not* durable between-keeper skill; the
-> "GK ≈ no durable level" conclusion correctly rests on the variance-component correction + the LRT
-> (p = 0.50). Conclusions robust; no re-work. Full read: [pre-Phase-2 validation](predictive-prephase2-validation.md).
+### ICC normality robustness — does the ICC survive dropping the Gaussian assumption? (2026-07-06)
+
+The ICC above is from a *Gaussian* MixedLM, but the target is a zero-inflated count. The between/within
+**sum-of-squares partition is distribution-free** as a point estimate (no normality needed) — only the
+LMM's CI/LRT assumed normality. A **player-clustered bootstrap of the SS between-share**
+(`research.kernels.inferential.variance_components.between_share_bootstrap`) gives a normality-free CI
+to set beside the Gaussian ICC:
+
+| pos | SS between-share (distribution-free) | bootstrap 95% CI | Gaussian-LMM ICC [CI] |
+|---|---|---|---|
+| GK | 0.038 | **[0.018, 0.063]** | 0.000 [0.000, 0.027] |
+| DEF | 0.092 | [0.070, 0.117] | 0.056 [0.000, 0.082] |
+| MID | 0.136 | [0.113, 0.160] | 0.101 [0.070, 0.122] |
+| FWD | 0.132 | [0.084, 0.182] | 0.097 [0.000, 0.143] |
+
+- **Ordering survives:** GK < DEF < FWD ≈ MID under **both** methods.
+- **Magnitude survives:** outfield between-share is small under both (~0.09–0.14 SS / ~0.06–0.10 ICC); DEF/MID/FWD CIs exclude 0 → the "small but real" conclusion is **not** an artifact of normality.
+- **GK caveat:** the distribution-free SS-share (0.038, CI excludes 0) diverges from the LMM's ICC = 0.
+  This is **finite-sample upward bias** of the SS statistic (group means differ by chance even with zero
+  true between-variance), *not* durable between-keeper skill. The "GK ≈ no durable level" conclusion
+  correctly rests on the variance-component correction + the LRT (p = 0.50), which the raw SS statistic
+  cannot replicate.
+
+**Verdict:** the ICC's substantive conclusions are robust to dropping normality. Debt retired; no re-work.
 
 **Reconciliation (gate 1) — pass.** ICC tracks the descriptive SS between-share in
 order (GK < DEF < FWD ≈ MID) and magnitude. ICC sits slightly *below* the SS-share
@@ -42,9 +59,9 @@ touch 0 (thin positions), but the LRT is decisive.
 
 **Read:** durable between-player level is a *small* share of weekly points variance
 (ICC ~6–10% outfield, ~0 for GK). Week-to-week points are dominated by within-player
-noise — the ceiling on any level-only ranker is low, which the D2 result then confirms.
+noise — the ceiling on any level-only ranker is low, which the EB-shrinkage result then confirms.
 
-## D2 — Empirical-Bayes shrunk ranker (walk-forward)
+## Empirical-Bayes shrunk ranker (walk-forward)
 
 `lvl_shrunk = μ_pos + λ·(mean_i − μ_pos)`, `λ = n_i/(n_i + σ²_within/σ²_between)`,
 all from strictly-prior rows; variance ratio by method-of-moments per evaluated GW.
@@ -65,7 +82,7 @@ all from strictly-prior rows; variance ratio by method-of-moments per evaluated 
 > stated. GK is degenerate (see note under the table): ICC(GK)=0 -> variance ratio = inf -> lambda -> 0
 > -> `lvl_shrunk` collapses to the position mean `mu_pos`, so the GK row is not a genuine model
 > comparison. GK's true naive bar is rolling-5, not `base_season`
-> (`walkforward.best_baseline_per_position`); `base_season` is used here only as the correct *control*
+> (`scorer.best_baseline_per_position`); `base_season` is used here only as the correct *control*
 > for the narrow question "does shrinking the mean beat the mean?".
 
 **Out-ranks (gate 3) — fail.** On the headline within-position Spearman, shrinkage is
@@ -82,10 +99,10 @@ a single season. Rank correlation is insensitive to the variance reduction shrin
 
 ## Decision
 
-- **Ship D1** — the ICC formalization is the durable Phase 1 output: it converts Q1's
+- **Ship the ICC inference** — the ICC formalization is the durable Phase 1 output: it converts Q1's
   descriptive between-share into an inferential parameter with a CI and a hypothesis
   test, and confirms the ordering with uncertainty.
-- **D2 is a recorded null.** Partial-pooling shrinkage toward the position mean does not
+- **EB shrinkage is a recorded null.** Partial-pooling shrinkage toward the position mean does not
   out-rank the plain expanding mean within position on this single season. Kept in the
   codebase (`model/forecast/shrinkage.py`, tested) so it can be re-run once cross-season
   data lands (Phase 6), where a stronger shrink target and drift may change the verdict.

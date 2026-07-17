@@ -1,4 +1,4 @@
-"""Empirical-Bayes shrinkage ranker — Phase 1 deliverable D2.
+"""Empirical-Bayes shrinkage ranker — the Phase 1 partial-pooling estimator.
 
 Turns the Q1/Q1b between-vs-within split into a *predictive* estimator: a
 partial-pooling shrinkage of each player's own prior mean toward the position's
@@ -15,7 +15,7 @@ leakage-safe exactly like the Phase-0 baselines:
   * ``n_{i,t}``     — player i's prior appearance count,
   * ``sigma2_within/sigma2_between`` — the position's variance ratio, estimated by
     method-of-moments on the prior slice and re-estimated per evaluated gameweek
-    (no iterative MixedLM refit in the walk-forward loop — that is D1's job).
+    (no iterative MixedLM refit in the walk-forward loop — that is the ICC study's job).
 
 Shrinking toward the *mean* (not a robust center) is the decision from the
 level-estimator study. This module ranks players who played; it does not predict

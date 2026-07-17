@@ -44,6 +44,7 @@ from domain.fpl_scoring import (
 )
 from model.eval.baselines import expanding_prior_mean
 from model.eval.metrics import grouped_spearman
+from model.eval.population import canonical
 from model.eval.scorer import score_gates
 from model.eval.walkforward import (
     MIN_ROWS_PER_POS,
@@ -620,3 +621,25 @@ def team_ga_cs_validation(mart: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame(rows)
     out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
     return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "model"])
+
+
+def unmodeled_points_share(mart: pd.DataFrame) -> pd.DataFrame:
+    """Per-position share of total points DEFERRED by the component map (bonus, and GK saves).
+
+    Quantifies the accuracy ceiling the component ranking model cannot reach and motivates closing
+    the points equation here. Findings:
+    docs/studies/results/predictive-phase3-scoring-diagnostics.md.
+    """
+    pop = canonical(mart)
+    rows = []
+    for pos in POSITIONS:
+        sub = pop[pop["position"] == pos]
+        tp = float(pd.to_numeric(sub["total_points"], errors="coerce").sum())
+        bonus_pct = 100 * float(pd.to_numeric(sub["bonus"], errors="coerce").sum()) / tp
+        saves = np.floor(pd.to_numeric(sub["saves"], errors="coerce").fillna(0) / GK_SAVES_PER_POINT)
+        saves_pct = 100 * float(saves.sum()) / tp if pos == "GK" else 0.0
+        rows.append({"position": pos, "total_points": round(tp),
+                     "bonus_pct": round(bonus_pct, 1), "gk_saves_pct": round(saves_pct, 1)})
+    out = pd.DataFrame(rows)
+    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
+    return out.sort_values("position").set_index("position")

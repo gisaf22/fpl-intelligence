@@ -8,6 +8,27 @@ percentile 95% CIs via `research.kernels.inferential.resampling`.
 
 ---
 
+## Deferred-points share — how much does the component map leave un-modelled? (2026-07-06)
+
+The component ranking model (appearance + goals + assists + CS) covers most points, but defers bonus,
+cards, saves, DC and conceded. `points_model.unmodeled_points_share` quantifies the deferred share per
+position — the accuracy ceiling the component model cannot reach — which motivates closing the points
+equation in Track 3.
+
+| pos | Σ total_points | bonus % | GK saves % (~) | note |
+|---|---|---|---|---|
+| GK | 2,497 | 6.3 | **17.6** | saves are a large deferred chunk for keepers |
+| DEF | 11,687 | 5.6 | — | bonus modest |
+| MID | 15,156 | 7.0 | — | bonus modest |
+| FWD | 4,103 | **11.5** | — | bonus is the largest single deferred piece |
+
+**Implication:** deferred parts are **not negligible and are position-skewed** — the map systematically
+under-predicts GK (missing ~18% saves) and premium FWD (missing ~11.5% bonus). Decision: add a
+**GK-saves component** early, treat **bonus** as a known downward bias for FWD, and close the remaining
+terms in Track 3 (below). Not "minor" — a stated, quantified limitation.
+
+---
+
 ## Track 0 — rulebook verification (vs FPL bootstrap-static `game_config.scoring`)
 
 **Confirmed against the API** (flip `UNVERIFIED`→`VERIFIED`): goals (GK 10 / DEF 6 / MID 5 / FWD 4),

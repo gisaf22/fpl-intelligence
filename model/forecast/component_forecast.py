@@ -40,6 +40,7 @@ from domain.fpl_scoring import (
 )
 from model.eval.baselines import expanding_prior_mean
 from model.eval.metrics import grouped_spearman
+from model.eval.population import canonical
 from model.eval.walkforward import (
     MIN_ROWS_PER_POS,
     POSITIONS,
@@ -132,3 +133,27 @@ def walk_forward_component_points(mart: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame(rows)
     out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
     return out.sort_values(["position", "spearman"], ascending=[True, False]).set_index(["position", "model"])
+
+
+def xg_vs_goals_forecast_skill(mart: pd.DataFrame) -> pd.DataFrame:
+    """Within-position rank skill of lagged xG vs lagged goals at forecasting next-GW goals.
+
+    Justifies feeding this module lagged process stats (xG/xA) rather than lagged realized
+    components. Findings: docs/studies/results/predictive-phase2-component-model.md.
+    """
+    pop = canonical(mart)
+    g = pop.groupby("player_id")
+    # strictly-prior expanding means only — leakage-safe, mirrors the component-model inputs.
+    pop["xg_prior"] = g["xg"].transform(lambda s: s.expanding().mean().shift(1))
+    pop["goals_prior"] = g["goals_scored"].transform(lambda s: s.expanding().mean().shift(1))
+    ev = pop[pop["gw"] > WARMUP_GW].dropna(subset=["xg_prior", "goals_prior"])
+    rows = []
+    for pos in ("DEF", "MID", "FWD"):
+        sub = ev[ev["position"] == pos]
+        rx = grouped_spearman(sub, "xg_prior", "goals_scored", ["gw"], MIN_ROWS_PER_POS)
+        rg = grouped_spearman(sub, "goals_prior", "goals_scored", ["gw"], MIN_ROWS_PER_POS)
+        rows.append({"position": pos, "xg_prior": round(rx, 4), "goals_prior": round(rg, 4),
+                     "delta": round(rx - rg, 4), "winner": "xG" if rx > rg else "goals"})
+    out = pd.DataFrame(rows)
+    out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
+    return out.sort_values("position").set_index("position")

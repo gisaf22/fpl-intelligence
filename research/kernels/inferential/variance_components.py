@@ -34,10 +34,10 @@ import pandas as pd
 import statsmodels.formula.api as smf
 from scipy import stats
 
-# Reuse the descriptive contract so D1's population matches Q1 exactly.
+# Reuse the descriptive contract so the ICC population matches Q1 exactly.
 from research.kernels.descriptive.variance_components import DEFAULT_MIN_APPEARANCES
 
-# Default replicates for the clustered ICC bootstrap. D1 is a one-shot per-position
+# Default replicates for the clustered ICC bootstrap. The ICC fit is a one-shot per-position
 # fit, so a few hundred refits is affordable; raise for tighter intervals.
 DEFAULT_N_BOOTSTRAP = 300
 DEFAULT_CI_LEVEL = 0.95
@@ -196,3 +196,39 @@ def _random_intercept_lrt(data: pd.DataFrame, value_col: str, group_col: str) ->
     stat = max(0.0, 2.0 * (ll_mixed - ll_null))
     p = 0.5 * float(stats.chi2.sf(stat, df=1))
     return stat, p
+
+
+def between_share_bootstrap(
+    sub: pd.DataFrame,
+    value_col: str = "total_points",
+    group_col: str = "player_id",
+    n_boot: int = 3000,
+    seed: int = 7,
+    min_appearances: int = DEFAULT_MIN_APPEARANCES,
+) -> np.ndarray:
+    """Distribution-free player-clustered bootstrap of the between-player SS share (no normality).
+
+    The normality-free companion to :func:`mixed_effects_icc`: because the between/within
+    sum-of-squares partition needs no distributional assumption, this bootstraps it directly to
+    check whether the Gaussian-LMM ICC's ordering and magnitude survive dropping normality. Returns
+    the ``[2.5, 50, 97.5]`` percentiles of the between-share over ``n_boot`` player-clustered
+    resamples. Vectorised via per-player sufficient stats: n_i, s_i=sum(x), q_i=sum(x^2);
+    SS_within_i = q_i - s_i^2/n_i.
+    """
+    g = sub.groupby(group_col)[value_col]
+    n = g.size().to_numpy(float)
+    s = g.sum().to_numpy(float)
+    q = g.apply(lambda x: float((x * x).sum())).to_numpy(float)
+    keep = n >= min_appearances
+    n, s, q = n[keep], s[keep], q[keep]
+    p = len(n)
+    rng = np.random.default_rng(seed)
+    reps = np.empty(n_boot)
+    for b in range(n_boot):
+        idx = rng.integers(0, p, p)
+        big_n, big_s, big_q = n[idx].sum(), s[idx].sum(), q[idx].sum()
+        grand = big_s / big_n
+        sst = big_q - big_n * grand * grand
+        ssw = (q[idx] - s[idx] ** 2 / n[idx]).sum()
+        reps[b] = (sst - ssw) / sst if sst > 0 else np.nan
+    return np.nanpercentile(reps, [2.5, 50, 97.5])

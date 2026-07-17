@@ -4,7 +4,8 @@ What is likely true beyond this data? Uncertainty quantification.
 
   resampling.py    — bootstrap CI for rank correlation and partial rho
   monotonicity.py  — bootstrap confidence for relationship shape
-  variance_components.py — random-intercept ICC inference (MixedLM + LRT)
+  variance_components.py — random-intercept ICC inference (MixedLM + LRT) +
+    distribution-free between-share bootstrap
 """
 
 from research.kernels.inferential.monotonicity import monotonicity_confidence
@@ -19,6 +20,7 @@ from research.kernels.inferential.resampling import (
     estimate_chance_correlation,
 )
 from research.kernels.inferential.variance_components import (
+    between_share_bootstrap,
     mixed_effects_icc,
 )
 
@@ -27,6 +29,7 @@ __all__ = [
     "CI_LEVEL",
     "MIN_N",
     "N_BOOTSTRAP",
+    "between_share_bootstrap",
     "bootstrap_partial_rho",
     "bootstrap_spearman_ci",
     "cluster_bootstrap_minutes_adjusted_rho",

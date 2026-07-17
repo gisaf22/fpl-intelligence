@@ -6,6 +6,15 @@
 `docs/studies/results/predictive-level-estimators.md` (frozen numbers are sacred; any change must
 reproduce them to 4dp).
 
+> **Resolution note (2026-07-15).** The pre-Phase-2 sprint was dissolved into its home phases, so this
+> audit's citations to `model/eval/prephase2_validation.py` are **historical** — that file no longer
+> exists. **AE-4 is resolved:** the private `_wp_spearman` was deleted in favour of
+> `model.eval.metrics.grouped_spearman`, and the distribution-free between-share bootstrap moved to
+> `research.kernels.inferential.variance_components.between_share_bootstrap` (the "D1 cross-check" row
+> below). The xG-vs-goals and deferred-points checks likewise moved to
+> `component_forecast.xg_vs_goals_forecast_skill` / `points_model.unmodeled_points_share`. Findings are
+> left as-recorded (a point-in-time audit); only this banner reconciles them with the current tree.
+
 ASCII throughout (`sigma2_*`, `->`, `<=`) to honor the code convention.
 
 ---
@@ -27,8 +36,8 @@ pre-Phase-1 "level-estimator" study decides what D2 should shrink toward.
 [EVAL_DESIGN.md:536-561](../../model/governance/EVAL_DESIGN.md#L536)):
 `population.canonical` ([population.py:13](../../model/eval/population.py#L13)),
 `baselines.base_season` ([baselines.py:59](../../model/eval/baselines.py#L59)),
-`baselines.best_baseline_per_position` (via
-[walkforward.py:186](../../model/eval/walkforward.py#L186)),
+`scorer.best_baseline_per_position` (via
+[scorer.py](../../model/eval/scorer.py)),
 `metrics.spearman_with_ci` / `block_bootstrap_ci`
 ([metrics.py:61](../../model/eval/metrics.py#L61) / [:39](../../model/eval/metrics.py#L39)),
 `scorer.score_gate/score_gates` ([scorer.py:33](../../model/eval/scorer.py#L33) / [:63](../../model/eval/scorer.py#L63)).

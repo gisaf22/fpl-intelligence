@@ -23,10 +23,16 @@ import pandas as pd
 import statsmodels.api as sm
 from scipy.stats import poisson
 
-from model.eval.walkforward import WARMUP_GW
+from model.eval.metrics import grouped_spearman
+from model.eval.walkforward import MIN_ROWS_PER_POS, POSITIONS, WARMUP_GW
+from model.features.build import broadcast
 from model.forecast.count_models import diagnose_overdispersion
-from model.terms._base import AssumptionReport, Fitted, Hypothesis
+from model.terms._base import AssumptionReport, Diagnostics, Fitted, GateResult, Hypothesis
 from model.terms.team_goals_against.spec import GRAIN, TEAM_GA_POOL
+
+# Positions that score a clean sheet (FWD get none) and that suffer the conceded penalty (GK/DEF only).
+_CS_POSITIONS = tuple(p for p in POSITIONS if p != "FWD")
+_CONCEDED_POSITIONS = ("GK", "DEF")
 
 # Fit guards — carried over verbatim from points_model.walk_forward_team_ga so the selected draw
 # reproduces the frozen p_cs / e_conceded_pts to the bit.
@@ -160,10 +166,147 @@ class TeamGoalsAgainstModel:
         return Fitted(
             name=self.name, predictions=team["lambda_ga"], features=tuple(features),
             meta={"variant": self.variant,
-                  "team_frame": team[["team_id", "gw", "lambda_ga", "p_cs", "e_conceded_pts"]]},
+                  # ga_roll3 rides along so the conceded Term can build its lagged-GA baseline.
+                  "team_frame": team[["team_id", "gw", "ga_roll3", "lambda_ga", "p_cs", "e_conceded_pts"]]},
         )
 
     def emit(self, fitted: Fitted) -> dict[str, np.ndarray]:
         """The two scored views this joint model produces — clean_sheet and conceded (team grain)."""
         team = fitted.meta["team_frame"]
         return {"clean_sheet": team["p_cs"].to_numpy(), "conceded": team["e_conceded_pts"].to_numpy()}
+
+
+def _played(mart: pd.DataFrame) -> pd.DataFrame:
+    """The conditional-on-appearance player population (minutes>0, DGW excluded)."""
+    return mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
+
+
+class CleanSheetTerm:
+    """clean_sheet = P(GA=0), broadcast to players, ranked vs the lagged clean_sheets_roll3 incumbent."""
+
+    name = "clean_sheet"
+    baseline_col = "clean_sheets_roll3"
+
+    def __init__(self, model: TeamGoalsAgainstModel | None = None) -> None:
+        self.model = model or TeamGoalsAgainstModel(variant="selected")
+
+    def _scored_rows(self, mart: pd.DataFrame, fitted: Fitted) -> pd.DataFrame:
+        """Player rows (post-warmup, p_cs defined) with the broadcast p_cs + the lagged CS baseline."""
+        pl = _played(mart)
+        pl["p_cs"] = broadcast(pl, fitted.meta["team_frame"], ["p_cs"])["p_cs"].to_numpy()
+        pl["cs_roll"] = pd.to_numeric(pl[self.baseline_col], errors="coerce")
+        return pl[(pl["gw"] > WARMUP_GW) & pl["p_cs"].notna()]
+
+    def validate(self, mart: pd.DataFrame) -> GateResult:
+        """Within-position Spearman of broadcast p_cs vs clean_sheets_roll3 (GK/DEF/MID); FWD get no CS."""
+        fitted = self.model.fit(mart)
+        ev = self._scored_rows(mart, fitted)
+        rows, passed = [], {}
+        for pos in _CS_POSITIONS:
+            sub = ev[ev["position"] == pos]
+            if sub.empty:
+                continue
+            r_model = grouped_spearman(sub, "p_cs", "clean_sheets", ["gw"], MIN_ROWS_PER_POS)
+            r_base = grouped_spearman(sub.dropna(subset=["cs_roll"]), "cs_roll", "clean_sheets",
+                                      ["gw"], MIN_ROWS_PER_POS)
+            rows.append({"position": pos, "baseline": round(r_base, 4), "p_cs": round(r_model, 4),
+                         "delta": round(r_model - r_base, 4), "n_gw": int(sub["gw"].nunique())})
+            passed[pos] = r_model > r_base
+        return GateResult(term=self.name, table=_ordered(rows, _CS_POSITIONS), passed=passed)
+
+    def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
+        """Residuals (worst-missed CS rows) + per-feature ablation on the CS ranking (post-gate)."""
+        fitted = self.model.fit(mart)
+        ev = self._scored_rows(mart, fitted)
+        ev = ev.assign(abs_resid=(ev["clean_sheets"] - ev["p_cs"]).abs())
+        residuals = (ev.sort_values("abs_resid", ascending=False)
+                       .loc[:, ["player_id", "team_id", "gw", "position", "clean_sheets", "p_cs", "abs_resid"]]
+                       .head(20).reset_index(drop=True))
+        ablation = _ablation(self.model, mart, "p_cs", "clean_sheets", _CS_POSITIONS)
+        return Diagnostics(term=self.name, residuals=residuals, ablation=ablation)
+
+
+class ConcededTerm:
+    """conceded = E[-floor(GA/2)], broadcast to GK/DEF, ranked vs the lagged-GA-implied penalty."""
+
+    name = "conceded"
+    baseline_col = "conceded_baseline"  # derived: lagged team GA (ga_roll3) mapped through -floor/2
+
+    def __init__(self, model: TeamGoalsAgainstModel | None = None) -> None:
+        self.model = model or TeamGoalsAgainstModel(variant="selected")
+
+    def _scored_rows(self, mart: pd.DataFrame, fitted: Fitted) -> pd.DataFrame:
+        """GK/DEF rows with broadcast e_conceded_pts, the lagged-GA baseline, and realized penalty."""
+        pl = _played(mart)
+        bc = broadcast(pl, fitted.meta["team_frame"], ["e_conceded_pts", "ga_roll3"])
+        pl["e_conceded"] = bc["e_conceded_pts"].to_numpy()
+        # Naive bar: the penalty implied by a team's lagged average GA (spec §5, deliberately dumb).
+        pl["conceded_baseline"] = conceded_penalty_expectation(bc["ga_roll3"].to_numpy())
+        # Realized outcome to rank against: the actual conceded penalty the player suffered.
+        gc = pd.to_numeric(pl["goals_conceded"], errors="coerce").to_numpy(dtype=float)
+        pl["conceded_actual"] = -(np.floor(gc / 2.0))
+        ev = pl[(pl["gw"] > WARMUP_GW) & pl["e_conceded"].notna()]
+        return ev[ev["position"].isin(_CONCEDED_POSITIONS)]
+
+    def validate(self, mart: pd.DataFrame) -> GateResult:
+        """Within-position Spearman of broadcast E[conceded] vs the lagged-GA baseline (GK/DEF)."""
+        fitted = self.model.fit(mart)
+        ev = self._scored_rows(mart, fitted)
+        rows, passed = [], {}
+        for pos in _CONCEDED_POSITIONS:
+            sub = ev[ev["position"] == pos]
+            if sub.empty:
+                continue
+            r_model = grouped_spearman(sub, "e_conceded", "conceded_actual", ["gw"], MIN_ROWS_PER_POS)
+            r_base = grouped_spearman(sub.dropna(subset=["conceded_baseline"]), "conceded_baseline",
+                                      "conceded_actual", ["gw"], MIN_ROWS_PER_POS)
+            rows.append({"position": pos, "baseline": round(r_base, 4), "e_conceded": round(r_model, 4),
+                         "delta": round(r_model - r_base, 4), "n_gw": int(sub["gw"].nunique())})
+            passed[pos] = r_model > r_base
+        return GateResult(term=self.name, table=_ordered(rows, _CONCEDED_POSITIONS), passed=passed)
+
+    def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
+        """Residuals (worst-missed conceded rows) + per-feature ablation on the conceded ranking."""
+        fitted = self.model.fit(mart)
+        ev = self._scored_rows(mart, fitted)
+        ev = ev.assign(abs_resid=(ev["conceded_actual"] - ev["e_conceded"]).abs())
+        residuals = (ev.sort_values("abs_resid", ascending=False)
+                       .loc[:, ["player_id", "team_id", "gw", "position", "conceded_actual", "e_conceded", "abs_resid"]]
+                       .head(20).reset_index(drop=True))
+        ablation = _ablation(self.model, mart, "conceded", "conceded_actual", _CONCEDED_POSITIONS,
+                             emit_key="conceded")
+        return Diagnostics(term=self.name, residuals=residuals, ablation=ablation)
+
+
+def _ordered(rows: list[dict], positions: tuple[str, ...]) -> pd.DataFrame:
+    """A gate table with positions ordered as declared (empty-safe)."""
+    table = pd.DataFrame(rows)
+    if not table.empty:
+        table["position"] = pd.Categorical(table["position"], categories=positions, ordered=True)
+        table = table.sort_values("position").reset_index(drop=True)
+    return table
+
+
+def _ablation(
+    model: TeamGoalsAgainstModel, mart: pd.DataFrame, pred_label: str, target: str,
+    positions: tuple[str, ...], *, emit_key: str = "clean_sheet",
+) -> pd.DataFrame:
+    """Drop each design feature, re-fit, re-score the term's within-position ranking — measured contribution."""
+    full_feats = model.features(model.population(mart))
+    rows = []
+    for drop in full_feats:
+        kept = [f for f in full_feats if f != drop]
+        if not kept:
+            continue
+        m = TeamGoalsAgainstModel(variant=model.variant, feature_override=kept)
+        fitted = m.fit(mart)
+        col = "p_cs" if emit_key == "clean_sheet" else "e_conceded_pts"
+        pl = _played(mart)
+        pl[pred_label] = broadcast(pl, fitted.meta["team_frame"], [col])[col].to_numpy()
+        if emit_key == "conceded":
+            gc = pd.to_numeric(pl["goals_conceded"], errors="coerce").to_numpy(dtype=float)
+            pl[target] = -(np.floor(gc / 2.0))
+        sub = pl[(pl["gw"] > WARMUP_GW) & pl[pred_label].notna() & pl["position"].isin(positions)]
+        r = grouped_spearman(sub, pred_label, target, ["gw", "position"], MIN_ROWS_PER_POS)
+        rows.append({"dropped": drop, "spearman": round(r, 4)})
+    return pd.DataFrame(rows)

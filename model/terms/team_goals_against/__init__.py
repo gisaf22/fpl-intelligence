@@ -9,6 +9,10 @@ Model/Term split (a model emits many terms) was designed for. Strangled from
 
 from __future__ import annotations
 
-from model.terms.team_goals_against.team_goals_against import TeamGoalsAgainstModel
+from model.terms.team_goals_against.team_goals_against import (
+    CleanSheetTerm,
+    ConcededTerm,
+    TeamGoalsAgainstModel,
+)
 
-__all__ = ["TeamGoalsAgainstModel"]
+__all__ = ["CleanSheetTerm", "ConcededTerm", "TeamGoalsAgainstModel"]

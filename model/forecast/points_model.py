@@ -51,6 +51,8 @@ from model.eval.walkforward import (
     POSITIONS,
     WARMUP_GW,
 )
+from model.features.build import broadcast
+from model.terms.team_goals_against import TeamGoalsAgainstModel
 
 # Leakage-safe lagged team defensive form + pre-kickoff fixture context (venue, difficulty).
 TEAM_GA_FEATURES = ["ga_roll3", "ga_roll5", "xgc_roll3", "xgc_roll5", "was_home", "fdr_avg"]
@@ -327,7 +329,11 @@ def _prepare_points_panel(mart: pd.DataFrame, keep_all: bool = False) -> pd.Data
     retains 0-minute rows too (for ex-ante scoring of potential blanks, Phase 5) - components are still
     TRAINED on ``minutes>0`` only (see ``walk_forward_points``); this only widens the prediction set.
     """
-    team = walk_forward_team_ga(mart)[["team_id", "gw", "p_cs", "e_conceded_pts"]]
+    # Team-GA layer now lives in the strangled joint model; its `selected` draw reproduces
+    # walk_forward_team_ga bit-for-bit (golden test), and `broadcast` is the checked form of the
+    # (team_id, gw) merge below. walk_forward_team_ga remains only for its own gate/tests until the
+    # final cleanup removes it.
+    team = TeamGoalsAgainstModel(variant="selected").fit(mart).meta["team_frame"]
     keep = ~mart["is_dgw"].astype(bool) if keep_all else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
     df = mart[keep].copy()
     df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
@@ -345,7 +351,8 @@ def _prepare_points_panel(mart: pd.DataFrame, keep_all: bool = False) -> pd.Data
     df["starts_roll3"] = _lag_roll(df, "player_id", "starts", 3)
     df["play60"] = (df["minutes"] >= 60).astype(float)
     df["dc_hit"] = (df["defensive_contribution"] >= df["position"].map(_DC_THRESHOLD)).astype(float)
-    df = df.merge(team, on=["team_id", "gw"], how="left")
+    bc = broadcast(df, team, ["p_cs", "e_conceded_pts"])
+    df["p_cs"], df["e_conceded_pts"] = bc["p_cs"].to_numpy(), bc["e_conceded_pts"].to_numpy()
     df["base_season"] = expanding_prior_mean(df)
     return df
 

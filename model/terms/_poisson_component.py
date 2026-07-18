@@ -31,13 +31,6 @@ from model.terms._base import (
     Hypothesis,
 )
 
-# Fit guards — carried over verbatim from the god-files so predictions reproduce to the bit.
-_MIN_TRAIN_ROWS_PER_FIT = 30   # per (feature-complete) training slice, else emit NaN for that GW
-_MIN_TRAIN_ROWS_TOTAL = 100    # skip an eval GW whose expanding train is still too small
-# Detectability floor (pre-fit): a Poisson mean is only learnable away from zero with enough positive
-# events; below this the slice is under-powered and a null would be *inconclusive*, not a licence to abandon.
-_MIN_POSITIVE_EVENTS = 10
-
 _ELASTICNET_ALPHA = 0.0  # L1/L2 penalty for the selected draw; 0.0 ⇒ ≡ unregularized MLE today
 _ELASTICNET_L1 = 0.5
 
@@ -57,6 +50,15 @@ class PoissonPlayerComponentModel:
 
     grain = "player_gw"
     family = staticmethod(sm.families.Poisson)
+
+    # Fit guards — carried over verbatim from the god-files so predictions reproduce to the bit. Class
+    # attributes so a subclass whose population changes the row scale can adjust them (e.g. GK-only
+    # ``saves`` lowers ``min_train_rows_total`` to match the god-file's effective inner GK guard).
+    min_train_rows_per_fit: ClassVar[int] = 30   # per feature-complete training slice, else emit NaN
+    min_train_rows_total: ClassVar[int] = 100    # skip an eval GW whose expanding train is still too small
+    # Detectability floor (pre-fit): a Poisson mean is only learnable away from zero with enough positive
+    # events; below this the slice is under-powered and a null is *inconclusive*, not a licence to abandon.
+    min_positive_events: ClassVar[int] = 10
 
     # -- subclass declares these ------------------------------------------------------------
     name: ClassVar[str]
@@ -105,7 +107,7 @@ class PoissonPlayerComponentModel:
         feats = self.features(train)
         complete = train.dropna(subset=[*feats, self.target])
         events = int((complete[self.target] > 0).sum())
-        detectable = len(complete) >= _MIN_TRAIN_ROWS_PER_FIT and events >= _MIN_POSITIVE_EVENTS
+        detectable = len(complete) >= self.min_train_rows_per_fit and events >= self.min_positive_events
         note = "" if detectable else f"under detectability floor: {events} positive events, {len(complete)} rows"
         return AssumptionReport(
             term=self.name, dispersion=disp, detectable=detectable, n_train=len(complete), notes=note
@@ -120,7 +122,7 @@ class PoissonPlayerComponentModel:
         is *shipped* moves — the regularized path is infrastructure for the future wider pool.
         """
         tr = train.dropna(subset=[*features, self.target])
-        if len(tr) < _MIN_TRAIN_ROWS_PER_FIT or tr[self.target].nunique() < 2:
+        if len(tr) < self.min_train_rows_per_fit or tr[self.target].nunique() < 2:
             return np.full(len(test), np.nan)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -144,7 +146,7 @@ class PoissonPlayerComponentModel:
         pred = pd.Series(np.nan, index=df.index, dtype=float)
         for t in sorted(g for g in df["gw"].unique() if g > WARMUP_GW):
             train, test = df[df["gw"] < t], df[df["gw"] == t]
-            if test.empty or len(train) < _MIN_TRAIN_ROWS_TOTAL:
+            if test.empty or len(train) < self.min_train_rows_total:
                 continue
             pred.loc[test.index] = self._fit_predict(train, test, features)
         return Fitted(name=self.name, predictions=pred, features=tuple(features),

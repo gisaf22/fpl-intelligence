@@ -53,8 +53,10 @@ here. Read every goals number as "ranking accuracy **given** the player played".
 
 ## 7. One pool, two draws (spec §3)
 
-`GOALS_POOL.minimal = (xgi_roll3, minutes_roll3)` is both the fast smoke-test and the comparison **bar**.
-The `selected` model regularizes over the full pool — but the §3 opponent-forward / team-context
-candidates are declared, not yet materialized, so today `selected` draws the same two columns as
-`minimal` and is **not** wired into `compose`. The frozen composed numbers are therefore unchanged; the
-minimal model reproduces the god-file goals GLM bit-for-bit (golden test in `test_goals.py`).
+`GOALS_POOL.minimal = (xgi_roll3, minutes_roll3)` is both the fast smoke-test and the comparison **bar** —
+it reproduces the god-file component (Phase-2.1) goals GLM bit-for-bit (golden). `selected` draws the
+**shipped `GOAL_FEATURES`** — `xg_roll3/5, xgi_roll3, xgi_roll5, minutes_roll3` — where `xg_roll3/5` are
+materialized lag-safe in `population` (`features.build.add_lagged_rolls`); it reproduces the shipped
+`points_model.walk_forward_points` goals fit bit-for-bit (second golden) and is what `compose` uses. At
+`alpha=0` the regularized draw is the exact MLE (`.fit()`), so the minimal→selected delta is purely the
+feature set. The opponent-forward / team-context candidates remain declared-but-unmaterialized (§3 agenda).

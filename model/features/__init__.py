@@ -8,7 +8,7 @@ model; the *minimal* and *selected* models both draw from that pool.
 
 from __future__ import annotations
 
-from model.features.build import assert_lag_safe, broadcast, materialize
+from model.features.build import add_lagged_rolls, assert_lag_safe, broadcast, materialize
 from model.features.spec import FeaturePool, FeatureSpec
 
-__all__ = ["FeaturePool", "FeatureSpec", "assert_lag_safe", "broadcast", "materialize"]
+__all__ = ["FeaturePool", "FeatureSpec", "add_lagged_rolls", "assert_lag_safe", "broadcast", "materialize"]

@@ -22,12 +22,13 @@ as a free covariate, never an `exposure=` offset.
 
 ## 3. xGI as the leading feature (creativity deferred)
 
-The god-file feeds assists the same `xgi_roll3` as goals — xGI (xG + xA) carries the creative signal and
-regresses to a truer rate than the very noisy realized-assist count. Faithful extraction keeps that.
-**Assist-specific creation** (creativity / key passes) and **team attacking context** are declared as
-unmaterialized pool candidates (`creativity_roll3`, `team_xg_roll3`) — the §3 forward agenda for assists,
-built later in `features/build.py`, not in this migration. The naive **baseline** stays dumb (lagged
-assists mean), never engineered.
+`minimal` feeds assists the same `xgi_roll3` as goals (the Phase-2.1 bar, golden-pinned). `selected` draws
+the **shipped `ASSIST_FEATURES`** — `xa_roll3/5, xgi_roll3, xgi_roll5, minutes_roll3` — with `xa_roll3/5`
+materialized lag-safe in `population` (`features.build.add_lagged_rolls`); it reproduces the shipped
+`points_model.walk_forward_points` assists fit bit-for-bit and is what `compose` uses. **Assist-specific
+creation** (creativity / key passes) and **team attacking context** remain declared-but-unmaterialized
+pool candidates (`creativity_roll3`, `team_xg_roll3`) — the §3 forward agenda. The naive **baseline** stays
+dumb (lagged assists mean), never engineered.
 
 ## 4. Lag-safety, detectability, conditional on appearance
 

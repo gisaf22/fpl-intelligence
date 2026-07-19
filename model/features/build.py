@@ -34,6 +34,34 @@ def materialize(mart: pd.DataFrame, spec: FeatureSpec) -> pd.Series:
     return mart[spec.name]
 
 
+def add_lagged_rolls(
+    df: pd.DataFrame,
+    sources: Sequence[str],
+    windows: Sequence[int] = (3, 5),
+    *,
+    group: str = "player_id",
+) -> pd.DataFrame:
+    """Materialize strictly-prior rolling-mean features ``{source}_roll{w}`` (spec §3 aggregation axis).
+
+    For each present ``source`` and window ``w``, builds ``{source}_roll{w}`` as the per-``group`` mean of
+    the prior ``w`` appearances — ``shift(1)`` **before** rolling, so the current GW never enters its own
+    feature (lag-safe by construction; asserted by :func:`assert_lag_safe`). Absent sources are skipped, so
+    the same call is a no-op on a mart that lacks them. ``min_periods=1`` matches the frozen construction
+    the shipped points model uses, so ``selected`` draws reproduce it.
+    """
+    out = df.copy()
+    for src in sources:
+        if src not in out.columns:
+            continue
+        out[src] = pd.to_numeric(out[src], errors="coerce")
+        grouped = out.groupby(group)[src]
+        for w in windows:
+            out[f"{src}_roll{w}"] = grouped.transform(
+                lambda s, w=w: s.shift(1).rolling(w, min_periods=1).mean()
+            )
+    return out
+
+
 def broadcast(
     mart: pd.DataFrame,
     team_frame: pd.DataFrame,

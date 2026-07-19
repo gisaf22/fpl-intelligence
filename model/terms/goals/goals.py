@@ -17,6 +17,9 @@ what differs. ``GoalsTerm`` scores E[goals] against the term's **own** lagged-go
 
 from __future__ import annotations
 
+import pandas as pd
+
+from model.features.build import add_lagged_rolls
 from model.terms._base import Hypothesis
 from model.terms._poisson_component import PlayerComponentTerm, PoissonPlayerComponentModel
 from model.terms.goals.spec import GOALS_POOL
@@ -37,6 +40,16 @@ class GoalsModel(PoissonPlayerComponentModel):
             status="supported (phase2: DEF +0.026, MID +0.043, FWD +0.013)",
         ),
     )
+
+    @staticmethod
+    def population(mart: pd.DataFrame) -> pd.DataFrame:
+        """Base player population + materialized lag-safe ``xg_roll3/5`` (the shipped GOAL_FEATURES).
+
+        ``minimal`` still draws only ``xgi_roll3 + minutes_roll3`` (unchanged, golden-pinned); building the
+        extra rolls only widens what ``selected`` can draw. On a mart without ``xg`` the build is a no-op.
+        """
+        df = PoissonPlayerComponentModel.population(mart)
+        return add_lagged_rolls(df, ["xg"], (3, 5))
 
 
 class GoalsTerm(PlayerComponentTerm):

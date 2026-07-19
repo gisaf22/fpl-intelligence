@@ -9,6 +9,9 @@ differ. The golden test pins ``minimal`` ``emit`` bit-identical to ``component_f
 
 from __future__ import annotations
 
+import pandas as pd
+
+from model.features.build import add_lagged_rolls
 from model.terms._base import Hypothesis
 from model.terms._poisson_component import PlayerComponentTerm, PoissonPlayerComponentModel
 from model.terms.assists.spec import ASSISTS_POOL
@@ -29,6 +32,16 @@ class AssistsModel(PoissonPlayerComponentModel):
             status="supported (phase2 component model: assists ~ xgi_roll3 + minutes_roll3)",
         ),
     )
+
+    @staticmethod
+    def population(mart: pd.DataFrame) -> pd.DataFrame:
+        """Base player population + materialized lag-safe ``xa_roll3/5`` (the shipped ASSIST_FEATURES).
+
+        ``minimal`` still draws only ``xgi_roll3 + minutes_roll3`` (unchanged, golden-pinned); building the
+        extra rolls only widens what ``selected`` can draw. On a mart without ``xa`` the build is a no-op.
+        """
+        df = PoissonPlayerComponentModel.population(mart)
+        return add_lagged_rolls(df, ["xa"], (3, 5))
 
 
 class AssistsTerm(PlayerComponentTerm):

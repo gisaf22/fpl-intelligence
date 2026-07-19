@@ -6,9 +6,30 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from model.features.build import broadcast
+from model.features.build import add_lagged_rolls, broadcast
 
 pytestmark = pytest.mark.unit
+
+
+def test_add_lagged_rolls_is_strictly_prior_and_grouped() -> None:
+    df = pd.DataFrame({
+        "player_id": [1, 1, 1, 2, 2],
+        "gw": [1, 2, 3, 1, 2],
+        "xg": [0.2, 0.8, 0.5, 1.0, 0.0],
+    })
+    out = add_lagged_rolls(df, ["xg"], (2,))
+    # First appearance of each player is NaN (shift(1) -> no prior); windows never cross the player boundary.
+    assert pd.isna(out.loc[0, "xg_roll2"]) and pd.isna(out.loc[3, "xg_roll2"])
+    assert out.loc[1, "xg_roll2"] == pytest.approx(0.2)          # prior of player 1 gw2 = [0.2]
+    assert out.loc[2, "xg_roll2"] == pytest.approx((0.2 + 0.8) / 2)
+    assert out.loc[4, "xg_roll2"] == pytest.approx(1.0)          # player 2 gw2 sees only player 2's gw1
+
+
+def test_add_lagged_rolls_skips_absent_sources() -> None:
+    df = pd.DataFrame({"player_id": [1, 1], "gw": [1, 2], "xg": [0.3, 0.4]})
+    out = add_lagged_rolls(df, ["xg", "xa"], (2,))   # no xa column present
+    assert "xg_roll2" in out.columns
+    assert "xa_roll2" not in out.columns             # absent source is a no-op, not an error
 
 
 def _player_mart() -> pd.DataFrame:

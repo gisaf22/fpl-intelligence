@@ -129,8 +129,12 @@ class PoissonPlayerComponentModel:
             try:
                 glm = sm.GLM(tr[self.target].to_numpy(dtype=float), _design(tr, features),
                              family=sm.families.Poisson())
-                res = (glm.fit() if self.variant == "minimal"
-                       else glm.fit_regularized(alpha=_ELASTICNET_ALPHA, L1_wt=_ELASTICNET_L1))
+                # alpha=0 regularization *is* the unregularized MLE, so use the exact IRLS solver there
+                # (bit-identical to the god-file's plain .fit()). fit_regularized only when a real penalty
+                # is chosen. So the minimal->selected delta at alpha=0 is purely the feature set.
+                regularize = self.variant == "selected" and _ELASTICNET_ALPHA > 0.0
+                res = (glm.fit_regularized(alpha=_ELASTICNET_ALPHA, L1_wt=_ELASTICNET_L1) if regularize
+                       else glm.fit())
                 return res.predict(_design(test, features))
             except Exception:
                 return np.full(len(test), np.nan)

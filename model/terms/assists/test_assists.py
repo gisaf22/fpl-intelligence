@@ -107,3 +107,50 @@ def test_validate_scores_model_vs_own_baseline() -> None:
     assert {"position", "baseline", "e_assists", "delta"} <= set(res.table.columns)
     assert res.table["e_assists"].between(-1, 1).all()
     assert set(res.passed).issubset({"GK", "DEF", "MID", "FWD"})
+
+
+def _process_panel(n_players: int = 120, n_gw: int = 16, seed: int = 7) -> pd.DataFrame:
+    """Panel carrying the shipped ASSIST_FEATURES inputs: xa, xgi_roll3/5, minutes_roll3."""
+    rng = np.random.default_rng(seed)
+    rows = []
+    for p in range(n_players):
+        pos = ["GK", "DEF", "MID", "FWD"][p % 4]
+        skill = rng.uniform(0.02, 0.5)
+        for gw in range(1, n_gw + 1):
+            rows.append({
+                "player_id": p, "gw": gw, "position": pos, "minutes": 90, "is_dgw": False,
+                "xg": max(0.0, skill + rng.normal(0, 0.08)), "xa": max(0.0, skill * 0.6 + rng.normal(0, 0.05)),
+                "xgi_roll3": skill + rng.normal(0, 0.05), "xgi_roll5": skill + rng.normal(0, 0.04),
+                "minutes_roll3": 90.0, "assists": rng.poisson(skill * 0.6),
+            })
+    return pd.DataFrame(rows)
+
+
+def test_selected_reproduces_full_pts_assists_to_the_bit() -> None:
+    """full_pts reconciliation: selected (5-feature ASSIST_FEATURES) ≡ points_model's inline assists fit."""
+    from model.eval.walkforward import WARMUP_GW
+    from model.forecast.points_model import (
+        ASSIST_FEATURES,
+        MIN_TEAM_TRAIN_ROWS,
+        _add_process_rolls,
+        _poisson_fit_predict,
+    )
+
+    panel = _process_panel()
+    assert set(AssistsModel(variant="selected").features(AssistsModel.population(panel))) == set(ASSIST_FEATURES)
+
+    got = AssistsModel(variant="selected").fit(panel).predictions.to_numpy()
+
+    ref_df = panel[(panel["minutes"] > 0) & (~panel["is_dgw"].astype(bool))].copy()
+    ref_df = _add_process_rolls(ref_df.sort_values(["player_id", "gw"]).reset_index(drop=True))
+    ref = pd.Series(np.nan, index=ref_df.index, dtype=float)
+    for t in sorted(g for g in ref_df["gw"].unique() if g > WARMUP_GW):
+        tr, te = ref_df[(ref_df["gw"] < t) & (ref_df["minutes"] > 0)], ref_df[ref_df["gw"] == t]
+        if te.empty or len(tr) < MIN_TEAM_TRAIN_ROWS:
+            continue
+        ref.loc[te.index] = _poisson_fit_predict(tr, te, ASSIST_FEATURES, "assists")
+    ref = ref.to_numpy()
+
+    both = ~(np.isnan(got) | np.isnan(ref))
+    assert both.any()
+    np.testing.assert_array_almost_equal(got[both], ref[both], decimal=10)

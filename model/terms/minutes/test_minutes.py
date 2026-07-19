@@ -13,6 +13,7 @@ import pytest
 
 from model.terms._base import Fitted, GateResult, Model, Term
 from model.terms._binary_component import BinaryPerPositionComponent
+from model.terms._freeze import assert_frozen
 from model.terms.minutes import MinutesHurdleModel, MinutesTerm
 
 pytestmark = pytest.mark.unit
@@ -53,21 +54,12 @@ def test_satisfies_contracts_and_shape() -> None:
     assert model.logit_positions == ("DEF", "MID", "FWD")  # GK handled by the override
 
 
-def test_selected_emit_reproduces_walk_forward_minutes_hurdle_to_the_bit() -> None:
-    from model.forecast.points_model import walk_forward_minutes_hurdle
-
-    panel = _panel()
-    fitted = MinutesHurdleModel(variant="selected").fit(panel)
-    got = MinutesHurdleModel.population(panel).assign(p=fitted.predictions.to_numpy())
-    got = got[["player_id", "gw", "position", "p"]]
-    ref = walk_forward_minutes_hurdle(panel)[["player_id", "gw", "p60"]]
-    merged = got.merge(ref, on=["player_id", "gw"])
-    assert len(merged) == len(got)
-    both = ~(merged["p"].isna() | merged["p60"].isna())
-    assert both.any()
-    np.testing.assert_array_almost_equal(merged.loc[both, "p"].to_numpy(),
-                                         merged.loc[both, "p60"].to_numpy(), decimal=10)
-    np.testing.assert_array_equal(merged["p"].isna().to_numpy(), merged["p60"].isna().to_numpy())
+def test_selected_emit_reproduces_walk_forward_minutes_hurdle_frozen() -> None:
+    """Frozen: selected p60 ≡ the (deleted) walk_forward_minutes_hurdle, including the GK override."""
+    got = MinutesHurdleModel(variant="selected").fit(_panel()).predictions.to_numpy()
+    assert_frozen(got, n_scored=2200, sum6=1720.667671,
+                  spot_idx=[0, 440, 937, 1479, 2021],
+                  spot_vals=[0.98, 1.0, 0.6539, 0.7013, 0.7949])
 
 
 def test_gk_override_is_the_robust_rate_not_a_logistic() -> None:
@@ -81,19 +73,12 @@ def test_gk_override_is_the_robust_rate_not_a_logistic() -> None:
     assert (gk["p"].between(0.0, 1.0)).all()
 
 
-def test_gate_reproduces_minutes_hurdle_validation() -> None:
-    from model.forecast.points_model import minutes_hurdle_validation
-
-    panel = _panel()
-    ref = minutes_hurdle_validation(panel)  # indexed (position, model)
-    got = MinutesTerm().validate(panel).table.set_index("position")
-    for pos in got.index:
-        ref_model = ref.xs(pos, level="position").loc["P(>=60') hurdle", "spearman"]
-        got_val = got.loc[pos, "p60"]
-        if pd.isna(ref_model):
-            assert pd.isna(got_val)
-        else:
-            assert got_val == pytest.approx(ref_model, abs=1e-9)
+def test_gate_reproduces_minutes_hurdle_validation_frozen() -> None:
+    """Frozen: the term gate's per-position Spearman ≡ the (deleted) minutes_hurdle_validation."""
+    got = MinutesTerm().validate(_panel()).table.set_index("position")
+    frozen = {"GK": -0.0343, "DEF": 0.2452, "MID": 0.127, "FWD": 0.1727}
+    for pos, want in frozen.items():
+        assert round(float(got.loc[pos, "p60"]), 4) == want
 
 
 def test_validate_covers_all_positions_and_emit_single_view() -> None:

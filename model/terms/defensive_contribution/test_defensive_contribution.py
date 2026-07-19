@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 
 from model.terms._base import AssumptionReport, Fitted, GateResult, Model, Term
+from model.terms._freeze import assert_frozen
 from model.terms.defensive_contribution import (
     DefensiveContributionModel,
     DefensiveContributionTerm,
@@ -58,32 +59,20 @@ def test_population_builds_the_derived_binary_target() -> None:
     assert (pop.loc[pop["position"] == "MID", "dc_threshold"] == 12).all()
 
 
-def test_selected_emit_reproduces_walk_forward_dc_to_the_bit() -> None:
-    from model.forecast.points_model import walk_forward_dc
-
-    panel = _panel()
-    fitted = DefensiveContributionModel(variant="selected").fit(panel)
-    got = DefensiveContributionModel.population(panel).assign(p=fitted.predictions.to_numpy())
-    got = got[["player_id", "gw", "p"]]
-    ref = walk_forward_dc(panel)[["player_id", "gw", "p_dc_hit"]]
-    merged = got.merge(ref, on=["player_id", "gw"])
-    assert len(merged) == len(got)
-    both = ~(merged["p"].isna() | merged["p_dc_hit"].isna())
-    assert both.any()
-    np.testing.assert_array_almost_equal(merged.loc[both, "p"].to_numpy(),
-                                         merged.loc[both, "p_dc_hit"].to_numpy(), decimal=10)
-    np.testing.assert_array_equal(merged["p"].isna().to_numpy(), merged["p_dc_hit"].isna().to_numpy())
+def test_selected_emit_reproduces_walk_forward_dc_frozen() -> None:
+    """Frozen: selected P(DC hit) ≡ the (deleted) points_model.walk_forward_dc."""
+    got = DefensiveContributionModel(variant="selected").fit(_panel()).predictions.to_numpy()
+    assert_frozen(got, n_scored=1950, sum6=787.988723,
+                  spot_idx=[3, 483, 963, 1443, 1923],
+                  spot_vals=[0.6186, 0.4382, 0.4667, 0.3909, 0.3811])
 
 
-def test_gate_reproduces_dc_validation() -> None:
-    from model.forecast.points_model import dc_validation
-
-    panel = _panel()
-    ref = dc_validation(panel)  # indexed (position, model)
-    got = DefensiveContributionTerm().validate(panel).table.set_index("position")
-    for pos in got.index:
-        ref_model = ref.xs(pos, level="position").loc["DC logistic P(hit)", "spearman"]
-        assert got.loc[pos, "p_dc_hit"] == pytest.approx(ref_model, abs=1e-9)
+def test_gate_reproduces_dc_validation_frozen() -> None:
+    """Frozen: the term gate's per-position Spearman ≡ the (deleted) points_model.dc_validation."""
+    got = DefensiveContributionTerm().validate(_panel()).table.set_index("position")
+    frozen = {"DEF": 0.4999, "MID": 0.4629, "FWD": 0.4946}
+    for pos, want in frozen.items():
+        assert round(float(got.loc[pos, "p_dc_hit"]), 4) == want
 
 
 def test_emit_returns_single_term_and_check_assumptions() -> None:

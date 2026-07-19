@@ -12,9 +12,9 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-import statsmodels.api as sm
 
 from model.terms._base import AssumptionReport, Fitted, GateResult, Model, Term
+from model.terms._freeze import assert_frozen
 from model.terms._poisson_component import PoissonPlayerComponentModel
 from model.terms.saves import SavesModel, SavesTerm
 
@@ -38,26 +38,6 @@ def _panel(n_players: int = 120, n_gw: int = 14, seed: int = 0) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _reference_e_saves(mart: pd.DataFrame) -> pd.DataFrame:
-    """The god-file GK-saves component (frozen design): GK e_saves keyed by (player_id, gw)."""
-    from model.eval.walkforward import WARMUP_GW
-    from model.forecast.component_forecast import _SAVES_FEATURES, _fit_predict
-
-    df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
-    df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
-    df["e_saves"] = np.nan
-    for t in sorted(g for g in df["gw"].unique() if g > WARMUP_GW):
-        train, test = df[df["gw"] < t], df[df["gw"] == t]
-        if test.empty or len(train) < 100:
-            continue
-        gk_tr, gk_te = train[train["position"] == "GK"], test[test["position"] == "GK"]
-        if not gk_te.empty and len(gk_tr.dropna(subset=_SAVES_FEATURES)) >= 30:
-            df.loc[gk_te.index, "e_saves"] = _fit_predict(gk_tr, gk_te, "saves", _SAVES_FEATURES,
-                                                           sm.families.Poisson())
-    gk = df[df["position"] == "GK"]
-    return gk[["player_id", "gw", "e_saves"]].reset_index(drop=True)
-
-
 def test_satisfies_contracts_and_is_gk_only() -> None:
     model = SavesModel(variant="minimal")
     term = SavesTerm(model)
@@ -69,21 +49,12 @@ def test_satisfies_contracts_and_is_gk_only() -> None:
     assert (pop["position"] == "GK").all()  # population override restricts to keepers
 
 
-def test_emit_reproduces_godfile_gk_saves_to_the_bit() -> None:
-    panel = _panel()
-    fitted = SavesModel(variant="minimal").fit(panel)
-    got = SavesModel.population(panel).assign(e_saves=fitted.predictions.to_numpy())
-    got = got[["player_id", "gw", "e_saves"]].reset_index(drop=True)
-    ref = _reference_e_saves(panel)
-    merged = got.merge(ref, on=["player_id", "gw"], suffixes=("_got", "_ref"))
-    assert len(merged) == len(got)  # same GK rows on both sides
-    both = ~(merged["e_saves_got"].isna() | merged["e_saves_ref"].isna())
-    assert both.any()
-    np.testing.assert_array_almost_equal(
-        merged.loc[both, "e_saves_got"].to_numpy(), merged.loc[both, "e_saves_ref"].to_numpy(), decimal=10
-    )
-    np.testing.assert_array_equal(merged["e_saves_got"].isna().to_numpy(),
-                                  merged["e_saves_ref"].isna().to_numpy())
+def test_emit_reproduces_godfile_gk_saves_frozen() -> None:
+    """Frozen: minimal GK e_saves ≡ the (deleted) component_forecast GK-saves GLM (GK-only population)."""
+    got = SavesModel(variant="minimal").fit(_panel()).predictions.to_numpy()
+    assert_frozen(got, n_scored=330, sum6=471.100411,
+                  spot_idx=[3, 87, 171, 255, 339],
+                  spot_vals=[1.4013, 1.1705, 2.3551, 0.9902, 1.71])
 
 
 def test_emit_returns_single_saves_term() -> None:

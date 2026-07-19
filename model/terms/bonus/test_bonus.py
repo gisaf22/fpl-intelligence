@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 
 from model.terms._base import AssumptionReport, Diagnostics, GateResult, Model, Term
+from model.terms._freeze import assert_frozen
 from model.terms.bonus import BonusModel, BonusTerm
 
 pytestmark = pytest.mark.unit
@@ -51,32 +52,20 @@ def test_satisfies_contracts_and_shape() -> None:
     assert model.pool.candidates[0].known_future is True
 
 
-def test_selected_emit_reproduces_walk_forward_bonus_to_the_bit() -> None:
-    from model.forecast.points_model import walk_forward_bonus
-
-    panel = _panel()
-    fitted = BonusModel().fit(panel)
-    got = BonusModel.population(panel).assign(e=fitted.predictions.to_numpy())
-    got = got[["player_id", "gw", "e"]]
-    ref = walk_forward_bonus(panel)[["player_id", "gw", "e_bonus"]]
-    merged = got.merge(ref, on=["player_id", "gw"])
-    assert len(merged) == len(got)
-    both = ~(merged["e"].isna() | merged["e_bonus"].isna())
-    assert both.any()
-    np.testing.assert_array_almost_equal(merged.loc[both, "e"].to_numpy(),
-                                         merged.loc[both, "e_bonus"].to_numpy(), decimal=10)
-    np.testing.assert_array_equal(merged["e"].isna().to_numpy(), merged["e_bonus"].isna().to_numpy())
+def test_selected_emit_reproduces_walk_forward_bonus_frozen() -> None:
+    """Frozen: e_bonus ≡ the (deleted) points_model.walk_forward_bonus."""
+    got = BonusModel().fit(_panel()).predictions.to_numpy()
+    assert_frozen(got, n_scored=2080, sum6=946.056084,
+                  spot_idx=[3, 515, 1027, 1539, 2051],
+                  spot_vals=[0.1553, 0.1553, 0.7359, 0.1027, 0.1859])
 
 
-def test_gate_reproduces_bonus_validation() -> None:
-    from model.forecast.points_model import bonus_validation
-
-    panel = _panel()
-    ref = bonus_validation(panel)  # indexed (position, model)
-    got = BonusTerm().validate(panel).table.set_index("position")
-    for pos in got.index:
-        ref_proxy = ref.xs(pos, level="position").loc["bonus proxy (calibrated)", "spearman"]
-        assert got.loc[pos, "e_bonus"] == pytest.approx(ref_proxy, abs=1e-9)
+def test_gate_reproduces_bonus_validation_frozen() -> None:
+    """Frozen: the term gate's per-position Spearman ≡ the (deleted) bonus_validation."""
+    got = BonusTerm().validate(_panel()).table.set_index("position")
+    frozen = {"GK": 0.3829, "DEF": 0.6199, "MID": 0.5663, "FWD": 0.5987}
+    for pos, want in frozen.items():
+        assert round(float(got.loc[pos, "e_bonus"]), 4) == want
 
 
 def test_emit_is_clipped_and_exposes_calibration_coefficients() -> None:

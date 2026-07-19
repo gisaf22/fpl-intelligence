@@ -13,6 +13,7 @@ import pandas as pd
 import pytest
 
 from model.terms._base import AssumptionReport, Diagnostics, Fitted, GateResult, Model, Term
+from model.terms._freeze import assert_frozen
 from model.terms.team_goals_against import CleanSheetTerm, ConcededTerm, TeamGoalsAgainstModel
 
 pytestmark = pytest.mark.unit
@@ -44,12 +45,6 @@ def _mart(n_teams: int = 20, n_gw: int = 16, seed: int = 0) -> pd.DataFrame:
         lambda s: s.shift(1).rolling(3, min_periods=3).mean()
     )
     return df
-
-
-def _reference_team_ga(mart: pd.DataFrame) -> pd.DataFrame:
-    """The god-file team-GA layer (the frozen design) for the golden compare."""
-    from model.forecast.points_model import walk_forward_team_ga
-    return walk_forward_team_ga(mart)
 
 
 def test_satisfies_model_contract_and_grain() -> None:
@@ -91,17 +86,16 @@ def test_terms_are_internally_consistent_by_construction() -> None:
     assert (conc[defined] <= 1e-9).all()
 
 
-def test_selected_emit_reproduces_godfile_team_ga_to_the_bit() -> None:
-    panel = _mart()
-    fitted = TeamGoalsAgainstModel(variant="selected").fit(panel)
-    got = fitted.meta["team_frame"].sort_values(["team_id", "gw"]).reset_index(drop=True)
-    ref = _reference_team_ga(panel).sort_values(["team_id", "gw"]).reset_index(drop=True)
-    for col in ("lambda_ga", "p_cs", "e_conceded_pts"):
-        g, r = got[col].to_numpy(), ref[col].to_numpy()
-        both = ~(np.isnan(g) | np.isnan(r))
-        assert both.any()
-        np.testing.assert_array_almost_equal(g[both], r[both], decimal=10)
-        np.testing.assert_array_equal(np.isnan(g), np.isnan(r))
+def test_selected_emit_reproduces_godfile_team_ga_frozen() -> None:
+    """Frozen: the joint team-GA layer (lambda_ga, p_cs, e_conceded_pts) ≡ the (deleted) walk_forward_team_ga."""
+    tf = TeamGoalsAgainstModel(variant="selected").fit(_mart()).meta["team_frame"]
+    tf = tf.sort_values(["team_id", "gw"]).reset_index(drop=True)
+    assert_frozen(tf["lambda_ga"].to_numpy(), n_scored=260, sum6=350.97815,
+                  spot_idx=[3, 83, 163, 243], spot_vals=[1.8188, 2.906, 2.5069, 2.0002])
+    assert_frozen(tf["p_cs"].to_numpy(), n_scored=260, sum6=77.087285,
+                  spot_idx=[3, 83, 163, 243], spot_vals=[0.1622, 0.0547, 0.0815, 0.1353])
+    assert_frozen(tf["e_conceded_pts"].to_numpy(), n_scored=260, sum6=-117.2961,
+                  spot_idx=[3, 83, 163, 243], spot_vals=[-0.666, -1.2038, -1.0051, -0.7547])
 
 
 def test_check_assumptions_dispersion_and_detectability() -> None:
@@ -140,16 +134,12 @@ def test_conceded_gate_ranks_gk_def_only() -> None:
     assert res.table["e_conceded"].between(-1, 1).all()
 
 
-def test_clean_sheet_gate_reproduces_godfile_cs_validation() -> None:
-    """CleanSheetTerm.validate p_cs Spearman ≡ points_model.team_ga_cs_validation (the frozen gate)."""
-    from model.forecast.points_model import team_ga_cs_validation
-
-    mart = _mart()
-    ref = team_ga_cs_validation(mart)  # indexed (position, model)
-    got = CleanSheetTerm().validate(mart).table.set_index("position")
-    for pos in got.index:
-        ref_model = ref.xs(pos, level="position").loc["team-GA P(CS)", "spearman"]
-        assert got.loc[pos, "p_cs"] == pytest.approx(ref_model, abs=1e-9)
+def test_clean_sheet_gate_reproduces_godfile_cs_validation_frozen() -> None:
+    """Frozen: CleanSheetTerm.validate p_cs Spearman ≡ the (deleted) points_model.team_ga_cs_validation."""
+    got = CleanSheetTerm().validate(_mart()).table.set_index("position")
+    frozen = {"GK": 0.2094, "DEF": 0.2106, "MID": 0.2106}
+    for pos, want in frozen.items():
+        assert round(float(got.loc[pos, "p_cs"]), 4) == want
 
 
 def test_diagnose_returns_residuals_and_ablation() -> None:

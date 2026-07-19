@@ -76,6 +76,8 @@ Verify: eval tests green; `lint-imports`; `ruff`.
   the god-files, each referenced by an eval notebook):
     - `component_forecast.xg_vs_goals_forecast_skill` (discovery check) → consumed by `phase2_ranking.ipynb`.
     - `points_model.unmodeled_points_share` (diagnostic) → consumed by `phase3_points_model.ipynb`.
+  Also repoint/retire the `model/terms/team_goals_against/notebook.ipynb` cell that imports
+  `points_model.team_ga_cs_validation` (a term-folder notebook, not eval) — it breaks on deletion too.
   Decide per fn: relocate to a proper home (discovery skill → `research`; diagnostic → `model/eval` or a
   diagnostics module) and repoint the notebook, **or** retire the notebook cell. Do NOT delete silently.
 - `count_models.py`, `level_estimators.py`, `shrinkage.py` are **NOT** god-files — keep them + their tests.

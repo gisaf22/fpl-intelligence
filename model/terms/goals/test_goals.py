@@ -1,10 +1,10 @@
 """Tests for the goals term (model.terms.goals) — contract + frozen-number reproduction.
 
-The reproduction guarantee (spec §10 invariant): the strangled ``GoalsModel(minimal)`` emits E[goals]
-**bit-identical** to the god-file ``component_forecast``'s goals GLM on a fixed panel. Identical
-predictions ⇒ identical downstream composed/ranking numbers, so this pins the 4dp invariant without a
-live mart. When ``component_forecast`` is deleted (spec §10 step 5), the golden vector below becomes
-the frozen record and this test keeps guarding it.
+The reproduction guarantee (spec §10 invariant): the strangled ``GoalsModel`` emits E[goals] identical to
+the god-file ``component_forecast``/``points_model`` goals GLM. Those references have now been **frozen**
+(the god-files are being deleted, spec §10.5): each golden below asserts the emit against a checked-in
+regression vector — a scored-row count, the 6dp prediction sum (a drift-sensitive checksum), and a handful
+of 4dp spot values — captured while the god-file references were still live and green.
 """
 
 from __future__ import annotations
@@ -12,9 +12,9 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-import statsmodels.api as sm
 
 from model.terms._base import AssumptionReport, Fitted, GateResult, Model, Term
+from model.terms._freeze import assert_frozen
 from model.terms.goals import GoalsModel, GoalsTerm
 
 pytestmark = pytest.mark.unit
@@ -37,24 +37,6 @@ def _panel(n_players: int = 120, n_gw: int = 14, seed: int = 0) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-# -- god-file reference (the frozen goals design), replicated locally for the golden compare -------
-def _reference_e_goals(mart: pd.DataFrame) -> pd.Series:
-    """Expanding walk-forward E[goals] exactly as component_forecast fits the goals component."""
-    from model.eval.walkforward import WARMUP_GW
-    from model.forecast.component_forecast import _GOAL_FEATURES, _design, _fit_predict
-
-    df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
-    df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
-    pred = pd.Series(np.nan, index=df.index, dtype=float)
-    for t in sorted(g for g in df["gw"].unique() if g > WARMUP_GW):
-        train, test = df[df["gw"] < t], df[df["gw"] == t]
-        if test.empty or len(train) < 100:
-            continue
-        pred.loc[test.index] = _fit_predict(train, test, "goals_scored", _GOAL_FEATURES, sm.families.Poisson())
-    _ = _design  # imported to prove we share the god-file's design construction
-    return pred
-
-
 def test_satisfies_model_and_term_contracts() -> None:
     model = GoalsModel(variant="minimal")
     term = GoalsTerm(model)
@@ -66,17 +48,12 @@ def test_satisfies_model_and_term_contracts() -> None:
     assert model.pool.minimal == ("xgi_roll3", "minutes_roll3")
 
 
-def test_emit_reproduces_godfile_goals_to_the_bit() -> None:
-    """The strangler invariant: minimal emit ≡ component_forecast's goals GLM (4dp and beyond)."""
-    panel = _panel()
-    fitted = GoalsModel(variant="minimal").fit(panel)
-    got = fitted.predictions.to_numpy()
-    ref = _reference_e_goals(panel).to_numpy()
-    both = ~(np.isnan(got) | np.isnan(ref))
-    assert both.any()
-    np.testing.assert_array_almost_equal(got[both], ref[both], decimal=10)
-    # NaN pattern must also match (same warmup / thin-slice guards).
-    np.testing.assert_array_equal(np.isnan(got), np.isnan(ref))
+def test_emit_reproduces_godfile_goals_frozen() -> None:
+    """The strangler invariant, frozen: minimal emit ≡ the (deleted) component_forecast goals GLM."""
+    got = GoalsModel(variant="minimal").fit(_panel()).predictions.to_numpy()
+    assert_frozen(got, n_scored=1320, sum6=287.867666,
+                  spot_idx=[3, 339, 675, 1011, 1347],
+                  spot_vals=[0.1284, 0.0869, 0.335, 0.2783, 0.2843])
 
 
 def test_emit_returns_single_goals_term() -> None:
@@ -140,31 +117,16 @@ def _process_panel(n_players: int = 120, n_gw: int = 16, seed: int = 7) -> pd.Da
     return pd.DataFrame(rows)
 
 
-def test_selected_reproduces_full_pts_goals_to_the_bit() -> None:
-    """full_pts reconciliation: selected (5-feature GOAL_FEATURES) ≡ points_model's inline goals fit."""
-    from model.eval.walkforward import WARMUP_GW
-    from model.forecast.points_model import GOAL_FEATURES, MIN_TEAM_TRAIN_ROWS, _add_process_rolls, _poisson_fit_predict
-
+def test_selected_reproduces_full_pts_goals_frozen() -> None:
+    """full_pts reconciliation, frozen: selected (5-feature GOAL_FEATURES) ≡ points_model's inline goals fit."""
     panel = _process_panel()
-    # selected must draw exactly the shipped GOAL_FEATURES set (order-invariant for GLM predictions).
-    assert set(GoalsModel(variant="selected").features(GoalsModel.population(panel))) == set(GOAL_FEATURES)
-
+    # selected must draw exactly the shipped 5-feature GOAL_FEATURES set (frozen expected set).
+    assert set(GoalsModel(variant="selected").features(GoalsModel.population(panel))) == {
+        "xg_roll3", "xg_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3"}
     got = GoalsModel(variant="selected").fit(panel).predictions.to_numpy()
-
-    # Reference: the goals slice of walk_forward_points (pooled, 5-feature, plain-MLE .fit()).
-    ref_df = panel[(panel["minutes"] > 0) & (~panel["is_dgw"].astype(bool))].copy()
-    ref_df = _add_process_rolls(ref_df.sort_values(["player_id", "gw"]).reset_index(drop=True))
-    ref = pd.Series(np.nan, index=ref_df.index, dtype=float)
-    for t in sorted(g for g in ref_df["gw"].unique() if g > WARMUP_GW):
-        tr, te = ref_df[(ref_df["gw"] < t) & (ref_df["minutes"] > 0)], ref_df[ref_df["gw"] == t]
-        if te.empty or len(tr) < MIN_TEAM_TRAIN_ROWS:
-            continue
-        ref.loc[te.index] = _poisson_fit_predict(tr, te, GOAL_FEATURES, "goals_scored")
-    ref = ref.to_numpy()
-
-    both = ~(np.isnan(got) | np.isnan(ref))
-    assert both.any()
-    np.testing.assert_array_almost_equal(got[both], ref[both], decimal=10)
+    assert_frozen(got, n_scored=1560, sum6=378.949036,
+                  spot_idx=[3, 387, 771, 1155, 1539],
+                  spot_vals=[0.2613, 0.0966, 0.1392, 0.1013, 0.1596])
 
 
 def _lagsafe_mart(n_players: int = 6, n_gw: int = 6) -> pd.DataFrame:

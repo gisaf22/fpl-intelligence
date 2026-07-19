@@ -19,13 +19,29 @@ BLOCK_GWS = 4
 N_BOOTSTRAP = 3000
 
 
+def has_rank_signal(g: pd.DataFrame, pred_col: str, target_col: str, min_n: int) -> bool:
+    """Whether a (gameweek[, position]) cell has enough signal to yield a meaningful rank metric.
+
+    Requires enough rows and variance on *both* sides: a constant prediction makes any ranking an
+    argsort artifact; a constant target makes precision/NDCG trivially 1.0 and Spearman undefined.
+    The single home for this predicate so every metric family (grouped Spearman, the per-GW
+    precision/NDCG loop, the pre-Phase-2 checks) scores the *same* qualifying cells and cannot drift.
+    """
+    return len(g) >= min_n and g[pred_col].nunique() > 1 and g[target_col].nunique() > 1
+
+
+def cell_spearman(pred: np.ndarray, actual: np.ndarray) -> float:
+    """Spearman rank correlation for a single (gameweek[, position]) cell (caller guards rankability)."""
+    return float(spearmanr(pred, actual).statistic)
+
+
 def grouped_spearman_series(df: pd.DataFrame, pred_col: str, target_col: str,
                             by: list[str], min_n: int) -> np.ndarray:
     """Per-cell within-group rank correlations over cells of ``by`` (>= min_n rows, non-constant)."""
     rhos = []
     for _, g in df.groupby(by):
-        if len(g) >= min_n and g[pred_col].nunique() > 1 and g[target_col].nunique() > 1:
-            rhos.append(float(spearmanr(g[pred_col], g[target_col]).statistic))
+        if has_rank_signal(g, pred_col, target_col, min_n):
+            rhos.append(cell_spearman(g[pred_col].to_numpy(), g[target_col].to_numpy()))
     return np.asarray(rhos, dtype=float)
 
 
@@ -72,8 +88,12 @@ def spearman_with_ci(df: pd.DataFrame, pred_col: str, target_col: str, by: list[
 def precision_at_k(pred: np.ndarray, actual: np.ndarray, k: int) -> float:
     """Share of the predicted top-K that fall in the (tie-inclusive) actual top-K.
 
-    Tie-aware on the actual side: the target is heavily tied, so the actual top-K is everyone at or
-    above the k-th largest actual value (else which tied player counts is an argsort artifact).
+    Question: *how many* of my top-K picks were real hits? (count/membership — order within K and
+    magnitude are ignored; contrast :func:`ndcg_at_k`.) 
+    
+    Tie-aware on the actual side: the target is
+    heavily tied, so the actual top-K is everyone at or above the k-th largest actual value (else
+    which tied player counts is an argsort artifact).
     """
     k = min(k, len(pred))
     thresh = np.sort(actual)[::-1][k - 1]
@@ -83,10 +103,17 @@ def precision_at_k(pred: np.ndarray, actual: np.ndarray, k: int) -> float:
 
 
 def ndcg_at_k(pred: np.ndarray, actual: np.ndarray, k: int) -> float:
-    """NDCG@K with points (clipped at 0) as gains, players ordered by prediction."""
+    """NDCG@K with points (clipped at 0) as gains, players ordered by prediction.
+
+    Question: *how well* did I rank the top — did I put the biggest scorers highest? (graded by
+    points, position-weighted; contrast :func:`precision_at_k`, which only counts membership.)
+    """
     k = min(k, len(pred))
     gains = np.clip(actual, 0, None)
     disc = 1.0 / np.log2(np.arange(2, k + 2))
+    
+    # Prediction ties broken arbitrarily by argsort (deterministic, not tie-averaged) — adds slight
+    # noise for integer-valued baselines like base_last; negligible once averaged over gameweeks.
     dcg = (gains[np.argsort(-pred)][:k] * disc).sum()
     idcg = (np.sort(gains)[::-1][:k] * disc).sum()
     return float(dcg / idcg) if idcg > 0 else np.nan

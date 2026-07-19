@@ -539,10 +539,12 @@ The predictive layer separates by role: **`model/eval/` measures, `model/forecas
 
 **`model/eval/`** — everything that *measures*, in three roles:
 - **harness** (model-agnostic scorer): `population` (canonical / full_universe), `baselines`
-  (naive reference bar + `base_season` + `best_baseline_per_position`), `metrics`
+  (naive reference bar + `base_season`), `metrics`
   (`grouped_spearman`, `block_bootstrap_ci`, `precision_at_k`, `ndcg_at_k`, `spearman_with_ci`),
   `scorer` (`GateResult` + `score_gate`/`score_gates` — within-position Spearman **with a
-  block-bootstrap CI + coverage**), `walkforward` (orchestration + `walk_forward_baselines`).
+  block-bootstrap CI + coverage** — plus `best_baseline_per_position`, the per-position incumbent bar),
+  `walkforward` (orchestration + `walk_forward_by_position`,
+  the sole per-position benchmark; `score_predictions` for ad-hoc single-column metrics).
 - **eval studies** (compose a model + the harness to answer one gated question): `calibration`,
   `captaincy_backtest`, `captaincy_diagnostics`.
 - **notebooks/** — the runnable, question-driven per-stage walkthroughs.

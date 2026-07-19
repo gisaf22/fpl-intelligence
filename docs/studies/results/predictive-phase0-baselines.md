@@ -9,29 +9,17 @@
 
 **Ranking is within-position only.** Squads fill under position quotas, so ranking a keeper against a
 forward is meaningless — **cross-position pooling is abolished** (no `spearman_mean`, no cross-position
-top-K). All baselines scored on the **same rows** (the common set where every baseline is defined;
-n = 8728). `coverage` = share of post-warmup rows on which the baseline is defined at all. The target
-is zero-inflated/right-skewed, so squared error is haul-dominated — **RMSE is omitted**; MAE is a
-secondary sanity number. Proper scoring (Poisson deviance, CRPS) arrives in Phase 4.
-
-### Within-position summary (one line per baseline)
-
-| baseline | spearman_pos | mae | coverage |
-|---|---|---|---|
-| expanding season avg | **0.205** | 2.193 | 0.984 |
-| rolling avg (5) | 0.202 | 2.284 | 0.849 |
-| rolling avg (3) | 0.177 | 2.378 | 0.940 |
-| last-GW points | 0.163 | 2.703 | 0.984 |
-| position mean (sanity floor) | NaN | 2.229 | 1.000 |
-
-`position mean` is `NaN` by construction — constant within a position, so it cannot rank at all,
-confirming the signal is player identity. The summary averages over positions; the **actual bars** are
-per-position (below).
+top-K, and no pooled one-line summary — see the 2026-07-13 update below). All baselines scored on the
+**same rows** (the common set where every baseline is defined; n = 8728). `coverage` = share of
+post-warmup rows on which the baseline is defined at all. The target is zero-inflated/right-skewed, so
+squared error is haul-dominated — **RMSE is omitted**, and **MAE is not a leaderboard metric** (too
+haul-noisy to compare models by). Proper scoring (Poisson deviance, CRPS) arrives in Phase 4.
 
 ### Per-position bars (the decision-relevant gate for Phase 1)
 
-Squads fill under position quotas, so ranking that matters is *within* position. The pooled
-`spearman_pos = 0.205` masks a ~5× spread (`walk_forward_by_position`; `k` scaled to each pool):
+Squads fill under position quotas, so ranking that matters is *within* position — there is **no pooled
+number**. Ranking quality spans a ~5× spread across positions (`walk_forward_by_position`; `k` scaled
+to each pool):
 
 | position | ~players/GW | best baseline | spearman | precision@k |
 |---|---|---|---|---|
@@ -62,8 +50,10 @@ availability family (later phase). Read every downstream model's score under the
   strongest simple signal. Confirmed.
 - **"Deviations mean-revert"** — last-GW is the *worst* ranker and smoothing helps monotonically
   (roll3 < roll5 < season) → chasing last week's result hurts. Confirmed.
-- **Identity dominates (corroborates Q1b)** — position mean, which removes player identity, ranks at
-  chance (spearman 0.011; precision@20 0.070 ≈ 20/300 random). The ranking signal *is* player identity.
+- **Identity dominates (corroborates Q1b)** — an identity-free position-mean predictor is constant
+  within a position and so ranks at chance: the ranking signal *is* player identity. (That predictor
+  has since been retired from the harness — see the 2026-07-13 update — because being constant it
+  produces no rank signal; the finding it established stands.)
 
 ## v1 scope limits (documented; deferred to later phases)
 
@@ -84,14 +74,22 @@ Baselines produce reproducible per-GW scores (deterministic); the walk-forward h
 no-future-rows leakage assertion (`_smoke_check_first_row_leakage`); baselines compared on a
 coverage-matched common set with ranking-appropriate, tie-aware, per-position metrics, framed as
 conditional on appearance. Phase 1 (hierarchical/ICC) may open — its promotion test is to beat the
-**per-position** bars above (GK ~0.06 / DEF 0.167 / MID 0.311 / FWD 0.334); the pooled
-`spearman_pos 0.205` is a one-line summary, not the gate.
+**per-position** bars above (GK ~0.06 / DEF 0.167 / MID 0.311 / FWD 0.334). There is no pooled number to
+game.
 
-> **Correction 2026-07-13.** An earlier draft cited a pooled `spearman_mean 0.245` as a promotion
+> **Correction 2026-07-13a.** An earlier draft cited a pooled `spearman_mean 0.245` as a promotion
 > target and named the leakage guard `_assert_no_leakage`. Cross-position pooling was abolished (see the
 > top of this doc), so `spearman_mean` no longer exists; the real guard is
-> `_smoke_check_first_row_leakage`. Frozen numbers (`spearman_pos 0.205`, the per-position bars) are
-> unchanged — only the stale references are corrected.
+> `_smoke_check_first_row_leakage`. The per-position bars are unchanged — only the stale references are
+> corrected.
+
+> **Update 2026-07-13b — pooled summary + position-mean + MAE retired.** The pooled one-line leaderboard
+> (`walk_forward_baselines`) and the identity-free `base_posmean` baseline were removed from the harness.
+> Rationale: per-position ranking is the only decision-relevant metric; a pooled Spearman masks the ~5×
+> cross-position spread, `base_posmean` is constant within a position (no rank signal), and MAE is too
+> haul-noisy on this target to compare models by. `walk_forward_by_position` is now the sole benchmark;
+> the per-position bars (GK ~0.06 / DEF 0.167 / MID 0.311 / FWD 0.334) are unchanged. Ad-hoc MAE for a
+> single column is still available via `score_predictions`.
 
 ## Board stress-test (2026-07-05) — verified
 

@@ -13,8 +13,9 @@ from dataclasses import asdict, dataclass
 
 import pandas as pd
 
+from model.eval.baselines import BASELINES
 from model.eval.metrics import spearman_with_ci
-from model.eval.walkforward import MIN_ROWS_PER_POS, POSITIONS
+from model.eval.walkforward import MIN_ROWS_PER_POS, POSITIONS, walk_forward_by_position
 
 
 @dataclass(frozen=True)
@@ -72,3 +73,19 @@ def score_gates(candidates: pd.DataFrame, models: dict[str, str], **kwargs) -> p
         return pd.DataFrame(columns=["position", "model", "spearman", "ci_lo", "ci_hi", "n_gw", "coverage"])
     out = pd.concat(parts, ignore_index=True)
     return out.sort_values(["position", "spearman"], ascending=[True, False]).reset_index(drop=True)
+
+
+def best_baseline_per_position(mart: pd.DataFrame) -> dict[str, str]:
+    """The strongest naive baseline COLUMN per position - the true bar a per-position gate should beat.
+
+    ``base_season`` is the pooled/headline incumbent, but it is NOT the best naive baseline at every
+    position: at GK the rolling-5 average out-ranks it. Gates that report a per-position incumbent
+    should use this so, e.g., a GK model is judged against the real floor (rolling5), not base_season.
+    """
+    label_to_col = {v: k for k, v in BASELINES.items()}
+    by_pos = walk_forward_by_position(mart).reset_index()
+    out = {}
+    for pos, g in by_pos.groupby("position", observed=True):
+        top = g.sort_values("spearman", ascending=False).iloc[0]["baseline"]
+        out[str(pos)] = label_to_col[top]
+    return out

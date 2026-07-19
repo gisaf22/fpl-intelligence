@@ -9,7 +9,7 @@ goals-against mean via ``lambda_ga = -log(p_cs)``, ``p_dc``/``p60`` are Bernoull
 
 Sampling assumptions (kept LOCAL to this file — the Term contract emits point values, not distributions;
 declaring a per-term sampling law is a deferred §2 change). Ported faithfully from the strangled
-``model.forecast.simulator`` and NOT newly validated here (PIT / haul-rate / CRPS is Phase-4 work):
+``model.forecast.simulator`` (since deleted) and NOT newly validated here (PIT / haul-rate / CRPS is Phase-4 work):
   * **team goals-against is drawn ONCE per team-fixture and shared** across the team's players, so
     ``clean_sheet = 1{GA=0} & played>=60`` and ``conceded = -floor(GA/2)`` co-move (D-D). Exact for
     full-90 players, approximate for subs.

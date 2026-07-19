@@ -55,7 +55,7 @@ THE THREE LENSES (what each looks for)
 SHARED-COMPONENT REUSE CHECKLIST (flag each the phase reinvents instead of importing)
   [ ] population filter `minutes>0 & DGW`   -> should be `population.canonical` (or `full_universe`)
   [ ] `base_season` inline lambda            -> `baselines.base_season`
-  [ ] per-position incumbent = base_season   -> `baselines`/`walkforward.best_baseline_per_position` (GK!)
+  [ ] per-position incumbent = base_season   -> `scorer.best_baseline_per_position` (GK!)
   [ ] hand-rolled `for pos: grouped_spearman` gate loop -> `scorer.score_gate/score_gates` (adds CI+coverage)
   [ ] private cross-import (`_grouped_spearman`, `_block_bootstrap_ci`, ...) -> public `metrics.*`
   [ ] block-bootstrap CI reimplemented       -> `metrics.block_bootstrap_ci`

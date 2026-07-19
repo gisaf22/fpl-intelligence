@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from model.eval.baselines import BASELINES, build_baseline_features
-from model.eval.walkforward import WARMUP_GW, score_predictions, walk_forward_baselines
+from model.eval.baselines import build_baseline_features
+from model.eval.walkforward import WARMUP_GW, score_predictions
 
 pytestmark = pytest.mark.unit
 
@@ -30,8 +30,7 @@ def _panel(n_players: int = 6, n_gw: int = 12, seed: int = 0) -> pd.DataFrame:
 def test_features_are_leakage_safe_on_first_appearance() -> None:
     feats = build_baseline_features(_panel())
     first = feats.groupby("player_id").head(1)
-    # No PLAYER-HISTORY baseline may be defined on a player's first row (nothing prior).
-    # base_posmean is excluded: it reads other players' earlier gameweeks.
+    # No baseline may be defined on a player's first row (nothing prior).
     player_hist = ["base_last", "base_roll3", "base_roll5", "base_season"]
     assert not first[player_hist].notna().any(axis=1).any()
 
@@ -57,23 +56,8 @@ def test_persistent_skill_makes_season_avg_rank_well() -> None:
     # true ranking within position (positive within-position Spearman).
     feats = build_baseline_features(_panel(n_players=60, n_gw=15, seed=3))
     out = score_predictions(feats, "base_season")
-    assert out["spearman_pos"] > 0.3
+    assert out["spearman"] > 0.3
     assert out["n"] > 0
-
-
-def test_walk_forward_returns_all_baselines_ranked() -> None:
-    res = walk_forward_baselines(_panel(n_players=60, n_gw=14))
-    assert set(res.index) == set(BASELINES.values())
-    assert list(res.columns) == ["spearman_pos", "mae", "n", "coverage"]
-    # sorted by within-position spearman descending (no cross-position ranking)
-    sp = res["spearman_pos"].dropna().to_numpy()
-    assert (np.diff(sp) <= 1e-9).all()
-
-
-def test_common_eval_set_scores_all_baselines_on_equal_n() -> None:
-    # Fix A: with a common evaluation set, every baseline is scored on the same rows.
-    res = walk_forward_baselines(_panel(n_players=30, n_gw=16))
-    assert res["n"].nunique() == 1  # equal n across baselines
 
 
 def test_scoring_respects_warmup() -> None:
@@ -82,11 +66,11 @@ def test_scoring_respects_warmup() -> None:
     assert len(ev) < len(feats)  # warmup rows are excluded from evaluation
 
 
-def test_by_position_structure_and_posmean_constant() -> None:
+def test_by_position_structure() -> None:
+    from model.eval.baselines import BASELINES
     from model.eval.walkforward import walk_forward_by_position
     res = walk_forward_by_position(_panel(n_players=60, n_gw=16))
     assert res.index.names == ["position", "baseline"]
     assert list(res.columns) == ["spearman", "precision_at_k", "ndcg_at_k", "k", "n_gw"]
-    # position mean is constant within a position -> spearman is undefined (NaN).
-    posmean = res.xs("position mean (sanity floor)", level="baseline")
-    assert posmean["spearman"].isna().all()
+    # only the ranking baselines appear — no position-mean row (dropped as non-ranking).
+    assert set(res.index.get_level_values("baseline")) <= set(BASELINES.values())

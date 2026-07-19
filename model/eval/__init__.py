@@ -15,27 +15,25 @@ from model.eval.metrics import (
 )
 from model.eval.population import canonical, full_universe
 from model.eval.scorer import GateResult, score_gate, score_gates
-from model.eval.walkforward import score_predictions, walk_forward_baselines, walk_forward_by_position
+from model.eval.walkforward import per_gw_scores, score_predictions, walk_forward_by_position
 
+# Public surface: baselines/population, the reusable gate, shared metric primitives,
+# and the Phase-0 walk-forward harness (incl. per_gw_scores, the per-gameweek substrate).
 __all__ = [
-    # baselines / population — the canonical reference bar + dataset
     "BASELINES",
-    # the reusable gate
     "GateResult",
     "block_bootstrap_ci",
     "build_baseline_features",
     "canonical",
     "expanding_prior_mean",
     "full_universe",
-    # metrics — shared primitives
     "grouped_spearman",
     "ndcg_at_k",
+    "per_gw_scores",
     "precision_at_k",
     "score_gate",
     "score_gates",
-    # Phase-0 harness
     "score_predictions",
     "spearman_with_ci",
-    "walk_forward_baselines",
     "walk_forward_by_position",
 ]

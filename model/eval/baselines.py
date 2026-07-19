@@ -2,8 +2,7 @@
 
 These are the floor every signal and model must beat. Each baseline predicts a
 player-gameweek's ``total_points`` from **strictly-prior** rows only, so the
-features are leakage-safe by construction (all use ``shift(1)`` within a player,
-or an expanding position aggregate that excludes the current gameweek).
+features are leakage-safe by construction (all use ``shift(1)`` within a player).
 
 Population contract (v1): ``minutes > 0``, DGW excluded — the project base
 population. Warmup gameweeks (too little history for a window) yield NaN features
@@ -17,13 +16,15 @@ import pandas as pd
 # Rolling-window lengths (in appearances) for the rolling-average baselines.
 ROLL_WINDOWS = (3, 5)
 
-# Baseline column -> human label. The harness scores exactly these columns.
+# Baseline column -> human label. The harness ranks exactly these columns.
+# (A position-mean column was dropped: constant within a (gw, position) group, it
+# carries no within-position rank signal, and absolute-error (MAE) is too haul-noisy
+# in FPL to compare models by — ranking per position is the decision-relevant metric.)
 BASELINES: dict[str, str] = {
     "base_last": "last-GW points",
     "base_roll3": "rolling avg (3)",
     "base_roll5": "rolling avg (5)",
     "base_season": "expanding season avg",
-    "base_posmean": "position mean (sanity floor)",
 }
 
 
@@ -51,8 +52,6 @@ def build_baseline_features(mart: pd.DataFrame) -> pd.DataFrame:
     for k in ROLL_WINDOWS:
         df[f"base_roll{k}"] = pts.transform(lambda s, k=k: s.shift(1).rolling(k, min_periods=k).mean())
     df["base_season"] = expanding_prior_mean(df)          # single source of the expanding-prior-mean stat
-
-    df["base_posmean"] = _position_expanding_mean(df)
     return df
 
 
@@ -68,21 +67,12 @@ def expanding_prior_mean(mart: pd.DataFrame) -> pd.Series:
     blanks-included frame it is the "incl-blanks" variant for ex-ante blank scoring (Phase 5,
     ``points_model`` ``keep_all``). To reproduce the ``base_season`` column, pass the canonical
     population - the full mart would silently fold in 0-minute blanks.
+
+    Input contract: ``mart`` carries the mart's ``total_points`` column - numeric
+    (``Int64``, nullable on BGW per ``MART_SCHEMA``). Every caller derives its frame
+    from the schema-validated mart (filter/sort/merge preserve the dtype), so no
+    numeric coercion is needed here.
     """
-    pts = pd.to_numeric(mart["total_points"], errors="coerce")
-    return pts.groupby(mart["player_id"]).transform(lambda s: s.shift(1).expanding().mean())
-
-
-def _position_expanding_mean(df: pd.DataFrame) -> pd.Series:
-    """Mean points of a player's position over all **earlier** gameweeks.
-
-    Identity-free floor: it knows only "how do DEF/MID/FWD/GK score on average so
-    far", not who the player is. Excludes the current gameweek to stay leakage-safe.
-    """
-    per = (
-        df.groupby(["position", "gw"])["total_points"].agg(["sum", "count"]).reset_index().sort_values("gw")
+    return mart.groupby("player_id")["total_points"].transform(
+        lambda s: s.shift(1).expanding().mean()
     )
-    cum_sum = per.groupby("position")["sum"].cumsum() - per["sum"]
-    cum_cnt = per.groupby("position")["count"].cumsum() - per["count"]
-    per["base_posmean"] = (cum_sum / cum_cnt).where(cum_cnt > 0)
-    return df.merge(per[["position", "gw", "base_posmean"]], on=["position", "gw"], how="left")["base_posmean"]

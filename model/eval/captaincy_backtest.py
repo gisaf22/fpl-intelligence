@@ -29,7 +29,7 @@ import statsmodels.api as sm
 from model.eval.metrics import block_bootstrap_ci
 from model.eval.walkforward import WARMUP_GW
 from model.forecast.points_model import _lag_roll, walk_forward_points
-from model.forecast.simulator import simulate_points
+from model.simulate import simulate_points
 
 P_PLAY_FEATURES = ["minutes_roll3", "minutes_roll5", "starts_roll3"]
 AVAILABILITY_MIN_ROLL = 45.0          # pool-free gate: averaged >= 45 min over the last 3 (lagged)

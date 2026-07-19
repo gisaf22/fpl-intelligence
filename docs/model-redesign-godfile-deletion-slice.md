@@ -46,6 +46,28 @@ seed-pinned regression vector just shipped in `test_simulate.py`) — not checke
 already builds a deterministic synthetic panel in its test; freeze a handful of its emit/gate values to
 4dp and drop the god-file import.
 
+## PROGRESS (2026-07-19)
+
+Choice made at the captaincy fork: **delete the 3 free god-files now, defer `points_model`** (its only
+remaining consumer is captaincy's ex-ante `predict_all` blank universe, which compose can't yet produce —
+that's the spec-X1 blank-tail slice, deferred).
+
+- **Stage A — DONE.** All 7 term goldens frozen onto `model/terms/_freeze.assert_frozen` records. Zero
+  behaviour change.
+- **Stage B — DONE (both consumers).** `calibration.py` + `captaincy_backtest.py` repointed onto
+  `compose`/`model.simulate` (`full_pts` → compose `e_points`; captaincy feeds its `walk_forward_points`
+  output into `model.simulate.simulate_points`). Structural eval tests green; GK numbers shift by design.
+- **Stage C — PARTIAL.** Deleted `component_forecast.py`, `signal_combination.py`, `simulator.py` + their
+  3 tests. Relocated both diagnostics → `model/eval/forecast_diagnostics.py` (+ test). Repointed
+  `phase3_points_model` + `phase3_simulator` notebooks; retired `phase2_ranking.ipynb`. **3-CS
+  reconciliation effectively complete:** the player-Binomial CS and signal-combination CS are gone; the
+  extracted `team_goals_against` model is the single source. 1332 passed / 1 skipped, 6/6 contracts.
+
+**REMAINING:** `points_model.py` (+ its test, + `team_goals_against/notebook.ipynb`'s
+`team_ga_cs_validation` cell). Blocked on the **compose `predict_all` blank-scoring slice** (Choice-2
+work). Transient dup to clean up then: `unmodeled_points_share` exists in both `points_model` (dies with
+it) and `forecast_diagnostics` (canonical).
+
 ## Sequence (3 stages, independently reviewable)
 
 ### Stage A — golden-freeze (zero behavior change, do first)

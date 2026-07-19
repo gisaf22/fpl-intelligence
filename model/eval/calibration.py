@@ -23,9 +23,9 @@ from scipy.stats import poisson as _poisson
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression
 
+from model.compose import compose_parameters, compose_points
 from model.eval.walkforward import POSITIONS, WARMUP_GW
-from model.forecast.points_model import walk_forward_points
-from model.forecast.simulator import (
+from model.simulate import (
     _REQUIRED,
     HAUL_THRESHOLD,
     _draw_team_ga,
@@ -54,10 +54,14 @@ def simulate_eval(mart: pd.DataFrame, n_sims: int = 3000, seed: int = 0,
 
     Returns one row per scored player-GW: ``pit`` (randomized), ``p_haul``/``haul``,
     ``p_return``/``return_``, ``cover`` (in [p10,p90]), ``crps_sim``, ``crps_point``, plus
-    ``position``, ``gw``, ``y`` (realized), ``full_pts``.
+    ``position``, ``gw``, ``y`` (realized), ``e_points`` (the compose point forecast, the successor to
+    the god-file ``full_pts`` — better at GK, spec §10.5).
     """
-    pts = walk_forward_points(mart)
-    df = pts[pts["gw"] > WARMUP_GW].dropna(subset=[*_REQUIRED, "total_points", "full_pts"]).copy()
+    params = compose_parameters(mart)
+    ep = compose_points(mart)[["player_id", "gw", "e_points"]]
+    y_src = mart[["player_id", "gw", "total_points"]]
+    df = params.merge(ep, on=["player_id", "gw"]).merge(y_src, on=["player_id", "gw"], how="left")
+    df = df[df["gw"] > WARMUP_GW].dropna(subset=[*_REQUIRED, "total_points", "e_points"]).copy()
     df = df.reset_index(drop=True)
     df["y"] = pd.to_numeric(df["total_points"], errors="coerce")
     rng = np.random.default_rng(seed)
@@ -74,12 +78,12 @@ def simulate_eval(mart: pd.DataFrame, n_sims: int = 3000, seed: int = 0,
         p10, p90 = np.percentile(d, [10, 90], axis=1)
         out.append(pd.DataFrame({
             "position": block["position"].to_numpy(), "gw": block["gw"].to_numpy(),
-            "y": y, "full_pts": block["full_pts"].to_numpy(),
+            "y": y, "e_points": block["e_points"].to_numpy(),
             "pit": below + rng.random(len(block)) * eq,
             "p_haul": (d >= HAUL_THRESHOLD).mean(axis=1), "haul": (y >= HAUL_THRESHOLD).astype(int),
             "p_return": (d >= RETURN_THRESHOLD).mean(axis=1), "return_": (y >= RETURN_THRESHOLD).astype(int),
             "cover": ((p10 <= y) & (y <= p90)).astype(int),
-            "crps_sim": _crps_empirical(d, y), "crps_point": np.abs(block["full_pts"].to_numpy() - y),
+            "crps_sim": _crps_empirical(d, y), "crps_point": np.abs(block["e_points"].to_numpy() - y),
         }))
     return pd.concat(out, ignore_index=True)
 
@@ -132,7 +136,7 @@ def crps_table(ev: pd.DataFrame, seed: int = 0) -> pd.DataFrame:
     """Per-position mean CRPS: simulator vs point-forecast vs Poisson(mean) vs climatology (lower better)."""
     rng = np.random.default_rng(seed)
     y = ev["y"].to_numpy(dtype=float)
-    pois_draws = _poisson.rvs(np.clip(ev["full_pts"].to_numpy(), 1e-3, None)[:, None] * np.ones((1, 2000)),
+    pois_draws = _poisson.rvs(np.clip(ev["e_points"].to_numpy(), 1e-3, None)[:, None] * np.ones((1, 2000)),
                               random_state=rng)
     ev = ev.assign(crps_pois=_crps_empirical(pois_draws, y))
     ev = ev.assign(crps_clim=np.nan)

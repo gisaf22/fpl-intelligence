@@ -29,6 +29,8 @@ marginals (no team goals-for co-movement); rare events excluded.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import numpy as np
 import pandas as pd
 
@@ -91,26 +93,38 @@ def _simulate_rows(block: pd.DataFrame, ga: np.ndarray, n_sims: int,
             + conceded + dc_pts + saves_pts + bonus)
 
 
+def iter_sample_blocks(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
+                       batch_rows: int = 400) -> Iterator[tuple[pd.DataFrame, np.ndarray]]:
+    """Yield ``(block, draws)`` per memory-bounded batch — the shared raw-draw primitive (spec Phase-4 §1).
+
+    ``params`` is a :func:`model.compose.compose_parameters` output (any extra columns — e.g. a realized
+    ``y`` — ride along on each yielded ``block``). Team goals-against is drawn **once** per team-fixture and
+    shared (drawn up front from a single seeded rng), then each block's other components are drawn per row;
+    ``draws`` is the ``(n_block_rows, n_sims)`` sampled-points matrix. The single home of the draw loop:
+    :func:`simulate_points` reduces it to summaries, ``calibration`` scores it against realized points — so
+    the machinery is not duplicated and the rng stream is identical across both.
+    """
+    df = params[params["gw"] > WARMUP_GW].dropna(subset=_REQUIRED).copy().reset_index(drop=True)
+    if df.empty:
+        return
+    rng = np.random.default_rng(seed)
+    tf_index, ga_by_tf = _draw_team_ga(df, n_sims, rng)
+    for start in range(0, len(df), batch_rows):
+        block = df.iloc[start:start + batch_rows]
+        ga = ga_by_tf[tf_index[start:start + batch_rows]]
+        yield block, _simulate_rows(block, ga, n_sims, rng)
+
+
 def simulate_points(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
                     batch_rows: int = 400) -> pd.DataFrame:
     """Monte-Carlo the points distribution for each scored player-GW row of a parameter panel.
 
-    ``params`` is a :func:`model.compose.compose_parameters` output. Team goals-against is drawn once per
-    team-fixture (shared); other components per row. Rows are processed in blocks to bound memory, but the
-    team-GA draws are shared across all blocks (drawn up front). Returns per-row summaries:
-    ``sim_mean, sim_sd, p10, p50, p90, p_haul`` (P(points>=10)).
+    ``params`` is a :func:`model.compose.compose_parameters` output. Draws come from the shared
+    :func:`iter_sample_blocks` primitive (team-GA shared per team-fixture, components per row); this only
+    reduces each block to per-row summaries: ``sim_mean, sim_sd, p10, p50, p90, p_haul`` (P(points>=10)).
     """
-    df = params[params["gw"] > WARMUP_GW].dropna(subset=_REQUIRED).copy().reset_index(drop=True)
-    if df.empty:
-        return pd.DataFrame(columns=_SUMMARY_COLUMNS)
-    rng = np.random.default_rng(seed)
-    tf_index, ga_by_tf = _draw_team_ga(df, n_sims, rng)
-
     out = []
-    for start in range(0, len(df), batch_rows):
-        block = df.iloc[start:start + batch_rows]
-        ga = ga_by_tf[tf_index[start:start + batch_rows]]
-        pts = _simulate_rows(block, ga, n_sims, rng)
+    for block, pts in iter_sample_blocks(params, n_sims=n_sims, seed=seed, batch_rows=batch_rows):
         q10, q50, q90 = np.percentile(pts, [10, 50, 90], axis=1)
         out.append(pd.DataFrame({
             "player_id": block["player_id"].to_numpy(), "gw": block["gw"].to_numpy(),
@@ -119,7 +133,7 @@ def simulate_points(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
             "p10": q10, "p50": q50, "p90": q90,
             "p_haul": (pts >= HAUL_THRESHOLD).mean(axis=1),
         }))
-    return pd.concat(out, ignore_index=True)
+    return pd.concat(out, ignore_index=True) if out else pd.DataFrame(columns=_SUMMARY_COLUMNS)
 
 
 def simulate_from_mart(mart: pd.DataFrame, n_sims: int = 10000, seed: int = 0) -> pd.DataFrame:

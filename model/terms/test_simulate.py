@@ -16,6 +16,7 @@ from model.compose import compose_parameters
 from model.simulate import (
     _SUMMARY_COLUMNS,
     _draw_team_ga,
+    iter_sample_blocks,
     simulate_from_mart,
     simulate_points,
     simulator_consistency,
@@ -41,6 +42,27 @@ def test_seed_pinned_regression_vector() -> None:
               "p50": 2.1975, "p90": 6.8481, "p_haul": 0.0413}
     for col, want in frozen.items():
         assert round(float(row[col]), 4) == want, f"{col}: {row[col]!r} != {want}"
+
+
+def test_iter_sample_blocks_covers_scored_rows_and_matches_simulate_points() -> None:
+    """The shared draw primitive yields the same scored rows simulate_points reduces, in order, with an
+    (n_rows, n_sims) draw matrix per block — and simulate_points is a pure reduction over it."""
+    params = compose_parameters(_mart(seed=0))
+    blocks = list(iter_sample_blocks(params, n_sims=500, seed=7, batch_rows=128))
+    assert blocks and all(d.shape == (len(b), 500) for b, d in blocks)
+    # concatenated block keys == simulate_points output keys, same order (a pure reduction).
+    keys = pd.concat([b[["player_id", "gw"]] for b, _ in blocks], ignore_index=True)
+    sim = simulate_points(params, n_sims=500, seed=7, batch_rows=128)
+    np.testing.assert_array_equal(keys.to_numpy(), sim[["player_id", "gw"]].to_numpy())
+    # per-block mean equals simulate_points' sim_mean (same rng stream, no double-draw).
+    means = np.concatenate([d.mean(axis=1) for _, d in blocks])
+    np.testing.assert_array_almost_equal(means, sim["sim_mean"].to_numpy(), decimal=12)
+
+
+def test_empty_params_yields_no_blocks() -> None:
+    empty = compose_parameters(_mart()).iloc[:0]
+    assert list(iter_sample_blocks(empty, n_sims=10, seed=0)) == []
+    assert simulate_points(empty, n_sims=10, seed=0).empty
 
 
 def test_determinism_same_seed() -> None:

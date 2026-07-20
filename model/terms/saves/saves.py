@@ -43,9 +43,15 @@ class SavesModel(PoissonPlayerComponentModel):
     )
 
     @staticmethod
-    def population(mart: pd.DataFrame) -> pd.DataFrame:
-        """GK-only v1 population: ``position == GK``, ``minutes > 0``, DGW excluded, sorted (player, gw)."""
-        df = mart[(mart["position"] == "GK") & (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
+    def population(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
+        """GK-only v1 population: ``position == GK``, ``minutes > 0``, DGW excluded, sorted (player, gw).
+
+        ``keep_all=True`` retains 0-minute GK rows for ex-ante scoring of the wider universe (train stays
+        ``minutes>0`` in :meth:`fit`); default is the conditional-on-appearance GK population.
+        """
+        gk = (mart["position"] == "GK") & (~mart["is_dgw"].astype(bool))
+        keep = gk if keep_all else gk & (mart["minutes"] > 0)
+        df = mart[keep].copy()
         return df.sort_values(["player_id", "gw"]).reset_index(drop=True)
 
 

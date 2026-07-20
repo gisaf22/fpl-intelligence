@@ -92,9 +92,16 @@ class PoissonPlayerComponentModel:
 
     # -- population --------------------------------------------------------------------------
     @staticmethod
-    def population(mart: pd.DataFrame) -> pd.DataFrame:
-        """The v1 population: ``minutes > 0``, DGW excluded, sorted (player, gw) — shared contract."""
-        df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
+    def population(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
+        """The v1 population: ``minutes > 0``, DGW excluded, sorted (player, gw) — shared contract.
+
+        ``keep_all=True`` retains ``minutes == 0`` (potential-blank) rows for ex-ante scoring of the
+        wider universe — components are still TRAINED on ``minutes>0`` only (see :meth:`fit`), so this
+        only widens the *prediction* set. Default (``keep_all=False``) is the conditional-on-appearance
+        population; every existing golden reproduces on that path.
+        """
+        keep = ~mart["is_dgw"].astype(bool) if keep_all else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
+        df = mart[keep].copy()
         return df.sort_values(["player_id", "gw"]).reset_index(drop=True)
 
     # -- pre-fit (spec §4 stage 1) -----------------------------------------------------------
@@ -139,17 +146,21 @@ class PoissonPlayerComponentModel:
             except Exception:
                 return np.full(len(test), np.nan)
 
-    def fit(self, mart: pd.DataFrame) -> Fitted:
+    def fit(self, mart: pd.DataFrame, keep_all: bool = False) -> Fitted:
         """Expanding walk-forward → E[target] per population row (NaN pre-warmup / on thin slices).
 
         Lag-safety is a **build/CI property** (``features.build.assert_lag_safe``, spec §4 stage 0), not
         a fit-time guard — the mart's declared ``*_roll`` inputs already exclude the current GW.
+
+        ``keep_all=True`` widens the population to potential-blank (``minutes==0``) rows but keeps TRAIN
+        filtered to ``minutes>0`` (the ``& (minutes>0)`` below), so the fit is identical to the default
+        path and only the *prediction* set grows. The train filter is a no-op when ``keep_all=False``.
         """
-        df = self.population(mart)
+        df = self.population(mart, keep_all=keep_all)
         features = self.features(df)
         pred = pd.Series(np.nan, index=df.index, dtype=float)
         for t in sorted(g for g in df["gw"].unique() if g > WARMUP_GW):
-            train, test = df[df["gw"] < t], df[df["gw"] == t]
+            train, test = df[(df["gw"] < t) & (df["minutes"] > 0)], df[df["gw"] == t]
             if test.empty or len(train) < self.min_train_rows_total:
                 continue
             pred.loc[test.index] = self._fit_predict(train, test, features)

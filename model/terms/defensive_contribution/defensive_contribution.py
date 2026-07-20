@@ -49,14 +49,16 @@ class DefensiveContributionModel(BinaryPerPositionComponent):
     )
 
     @staticmethod
-    def population(mart: pd.DataFrame) -> pd.DataFrame:
+    def population(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
         """DEF/MID/FWD rows (minutes>0, DGW excluded) with lagged DC form + the derived ``dc_hit`` target.
 
         Mirrors ``points_model._add_dc_columns`` exactly so the selected draw reproduces its output. GK are
-        excluded (no DC term); the per-player rolls are unaffected by that filter.
+        excluded (no DC term); the per-player rolls are unaffected by that filter. ``keep_all=True`` widens
+        to potential-blank rows (``dc_roll{3,5}`` then include those rows, by design); train stays ``minutes>0``.
         """
-        df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
-                  & (mart["position"].isin(_DC_POSITIONS))].copy()
+        outfield = (~mart["is_dgw"].astype(bool)) & (mart["position"].isin(_DC_POSITIONS))
+        keep = outfield if keep_all else outfield & (mart["minutes"] > 0)
+        df = mart[keep].copy()
         df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
         for c in ["defensive_contribution", "minutes_roll3", "fdr_avg"]:
             df[c] = pd.to_numeric(df[c], errors="coerce")

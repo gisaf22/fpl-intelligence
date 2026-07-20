@@ -80,7 +80,9 @@ class BinaryPerPositionComponent:
 
     # -- population + derived target (subclass) ---------------------------------------------
     @staticmethod
-    def population(mart: pd.DataFrame) -> pd.DataFrame:  # pragma: no cover - overridden
+    def population(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:  # pragma: no cover - overridden
+        """Build the derived target + lagged features. ``keep_all=True`` retains ``minutes==0`` rows for
+        ex-ante scoring of the wider universe (train stays ``minutes>0`` in :meth:`fit`)."""
         raise NotImplementedError
 
     def _fill_special(self, df: pd.DataFrame, pred: pd.Series) -> None:
@@ -117,16 +119,21 @@ class BinaryPerPositionComponent:
             except Exception:
                 return np.full(len(test), np.nan)
 
-    def fit(self, mart: pd.DataFrame) -> Fitted:
-        """Expanding walk-forward per position -> P(target=1) per row; special positions via the hook."""
-        df = self.population(mart)
+    def fit(self, mart: pd.DataFrame, keep_all: bool = False) -> Fitted:
+        """Expanding walk-forward per position -> P(target=1) per row; special positions via the hook.
+
+        ``keep_all=True`` widens the population to potential-blank (``minutes==0``) rows but keeps TRAIN
+        filtered to ``minutes>0`` (the ``& (minutes>0)`` below) — the fit is identical to the default
+        path and only the *prediction* set grows. The train filter is a no-op when ``keep_all=False``.
+        """
+        df = self.population(mart, keep_all=keep_all)
         features = self.features(df)
         pred = pd.Series(np.nan, index=df.index, dtype=float)
         self._fill_special(df, pred)
         for pos in self.logit_positions:
             sdf = df[df["position"] == pos]
             for t in sorted(g for g in sdf["gw"].unique() if g > WARMUP_GW):
-                train, test = sdf[sdf["gw"] < t], sdf[sdf["gw"] == t]
+                train, test = sdf[(sdf["gw"] < t) & (sdf["minutes"] > 0)], sdf[sdf["gw"] == t]
                 if test.empty:
                     continue
                 pred.loc[test.index] = self._fit_predict(train, test, features)

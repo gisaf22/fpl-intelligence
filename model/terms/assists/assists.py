@@ -34,13 +34,14 @@ class AssistsModel(PoissonPlayerComponentModel):
     )
 
     @staticmethod
-    def population(mart: pd.DataFrame) -> pd.DataFrame:
+    def population(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
         """Base player population + materialized lag-safe ``xa_roll3/5`` (the shipped ASSIST_FEATURES).
 
         ``minimal`` still draws only ``xgi_roll3 + minutes_roll3`` (unchanged, golden-pinned); building the
         extra rolls only widens what ``selected`` can draw. On a mart without ``xa`` the build is a no-op.
+        ``keep_all=True`` widens to potential-blank rows (rolls then include those rows, by design).
         """
-        df = PoissonPlayerComponentModel.population(mart)
+        df = PoissonPlayerComponentModel.population(mart, keep_all=keep_all)
         return add_lagged_rolls(df, ["xa"], (3, 5))
 
 

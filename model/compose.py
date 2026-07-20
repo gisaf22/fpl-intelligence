@@ -33,9 +33,10 @@ from domain.fpl_scoring import (
     GOAL_POINTS_MID,
     SHORT_APPEARANCE_POINTS,
 )
+from model.eval.baselines import expanding_prior_mean
 from model.features.build import broadcast
 from model.terms.bonus.bonus import returns_points  # noqa: F401  (kept for parity/reference)
-from model.terms.registry import BONUS_MODEL, TERM_MODELS
+from model.terms.registry import BONUS_MODEL, PLAY_MODEL, TERM_MODELS
 
 _GOAL_MULT = {"GK": GOAL_POINTS_GK, "DEF": GOAL_POINTS_DEF, "MID": GOAL_POINTS_MID, "FWD": GOAL_POINTS_FWD}
 _CS_MULT = {"GK": CLEAN_SHEET_POINTS_GK, "DEF": CLEAN_SHEET_POINTS_DEF, "MID": CLEAN_SHEET_POINTS_MID, "FWD": 0}
@@ -58,18 +59,29 @@ _VIEW_TO_PARAM = {
 PARAM_COLUMNS = (*_VIEW_TO_PARAM.values(), "bonus_intercept", "bonus_slope")
 
 
-def _master_panel(mart: pd.DataFrame) -> pd.DataFrame:
-    """The conditional-on-appearance player panel every term view is aligned onto."""
-    df = mart[(mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))].copy()
+def _master_panel(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
+    """The player panel every term view is aligned onto.
+
+    Default (``keep_all=False``) is the conditional-on-appearance panel (``minutes>0``). ``keep_all=True``
+    retains potential-blank (``minutes==0``) rows so the ex-ante universe can be scored — the components
+    are evaluated as-if-played on those rows and P(play) de-conditions them (spec X1).
+    """
+    keep = ~mart["is_dgw"].astype(bool) if keep_all else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
+    df = mart[keep].copy()
     return df.sort_values(["player_id", "gw"]).reset_index(drop=True)
 
 
-def _collect_views(master: pd.DataFrame, mart: pd.DataFrame) -> dict[str, np.ndarray]:
-    """Fit every registered model and map each emitted view onto ``master`` (broadcast if team-grain)."""
+def _collect_views(master: pd.DataFrame, mart: pd.DataFrame, keep_all: bool = False) -> dict[str, np.ndarray]:
+    """Fit every registered model and map each emitted view onto ``master`` (broadcast if team-grain).
+
+    ``keep_all`` widens the player-grain populations to potential blanks (predicted as-if-played, trained
+    on ``minutes>0``); the team-grain joint model is unaffected (constraint: team-GA/CS need no blank
+    handling — they are broadcast onto whatever players ``master`` carries)."""
     views: dict[str, np.ndarray] = {}
     for model in TERM_MODELS:
-        fitted = model.fit(mart)
-        pop = model.population(mart)
+        team_grain = model.grain == "team_gw"
+        fitted = model.fit(mart) if team_grain else model.fit(mart, keep_all=keep_all)
+        pop = model.population(mart) if team_grain else model.population(mart, keep_all=keep_all)
         emitted = model.emit(fitted)
         if model.grain == "team_gw":
             frame = pop[["team_id", "gw"]].copy()
@@ -103,32 +115,55 @@ def _bonus_coeffs_per_row(master: pd.DataFrame, mart: pd.DataFrame) -> tuple[np.
     return keyed["intercept"].to_numpy(), keyed["slope"].to_numpy()
 
 
-def compose_parameters(mart: pd.DataFrame) -> pd.DataFrame:
+def _p_play_view(master: pd.DataFrame, mart: pd.DataFrame) -> np.ndarray:
+    """P(play) = P(minutes>0) mapped onto ``master`` (spec X1). ``PLAY_MODEL``'s population is already the
+    whole universe, so it scores every master row (blanks included); NaN pre-warmup / on thin slices."""
+    fitted = PLAY_MODEL.fit(mart, keep_all=True)
+    pop = PLAY_MODEL.population(mart, keep_all=True)
+    frame = pop[["player_id", "gw"]].copy()
+    frame[PLAY_MODEL.term] = fitted.predictions.to_numpy()
+    merged = master[["player_id", "gw"]].merge(frame, on=["player_id", "gw"], how="left")
+    return merged[PLAY_MODEL.term].to_numpy()
+
+
+def compose_parameters(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
     """The raw per-row parameter panel every term view exposes, BEFORE scoring/gating (spec §1 item 5).
 
     Returns the master player panel keyed by (player_id, team_id, gw, position, minutes) plus one column
     per :data:`PARAM_COLUMNS`: the Poisson means, P(GA=0), Bernoulli probs, point-valued conceded penalty,
     and bonus's scoring-map coefficients. This is the single surface both :func:`compose_points` (means ->
     E[points]) and ``simulate.py`` (draws -> points distribution) build on, so view-collection happens once.
+
+    ``keep_all=True`` widens the panel to potential-blank rows (each term scored as-if-played) and adds a
+    ``p_play`` = P(minutes>0) column — the unconditional factor :func:`compose_points` multiplies out front.
+    The default path is unchanged (no ``p_play`` column; conditional-on-appearance panel).
     """
-    master = _master_panel(mart)
-    views = _collect_views(master, mart)
+    master = _master_panel(mart, keep_all=keep_all)
+    views = _collect_views(master, mart, keep_all=keep_all)
     out = master[["player_id", "team_id", "gw", "position", "minutes"]].copy()
     for view, param in _VIEW_TO_PARAM.items():
         out[param] = views.get(view, np.full(len(master), np.nan))
     out["bonus_intercept"], out["bonus_slope"] = _bonus_coeffs_per_row(master, mart)
+    if keep_all:
+        out["p_play"] = _p_play_view(master, mart)
     return out
 
 
-def compose_points(mart: pd.DataFrame) -> pd.DataFrame:
+def compose_points(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
     """Assemble E[points] (+ its per-term decomposition) from the term registry.
 
-    Returns the master player panel with one column per :data:`DECOMP_COLUMNS` and ``e_points`` (their
-    sum). Pre-warmup rows carry NaN term views -> 0 contributions (filter ``gw > WARMUP_GW`` downstream).
-    Built on :func:`compose_parameters` (the shared raw-parameter surface) — this scores its means through
-    the domain rule; ``simulate.py`` draws from the same panel for the distribution.
+    Returns the master player panel with one column per :data:`DECOMP_COLUMNS`, ``e_points`` (their sum),
+    and ``base_season`` (the player's expanding prior-mean points — the incumbent bar). Pre-warmup rows
+    carry NaN term views -> 0 contributions (filter ``gw > WARMUP_GW`` downstream). Built on
+    :func:`compose_parameters` (the shared raw-parameter surface) — this scores its means through the
+    domain rule; ``simulate.py`` draws from the same panel for the distribution.
+
+    ``e_points`` is the **conditional-on-appearance** expectation (E[points | played]) — appearance is the
+    as-if-played ``1 + p60`` (never gated on realized minutes, matching the shipped ``full_pts``).
+    ``keep_all=True`` widens to potential-blank rows and adds ``p_play`` + ``e_points_uncond`` =
+    P(play) x E[points | played] (spec X1: the unconditional expectation over the ex-ante universe).
     """
-    params = compose_parameters(mart)
+    params = compose_parameters(mart, keep_all=keep_all)
     pos = params["position"]
     gmult = pos.map(_GOAL_MULT).astype(float).to_numpy()
     cmult = pos.map(_CS_MULT).astype(float).to_numpy()
@@ -138,8 +173,10 @@ def compose_points(mart: pd.DataFrame) -> pd.DataFrame:
 
     p60 = p("p60")
     d = pd.DataFrame(index=params.index)
-    d["appearance"] = np.where(params["minutes"].to_numpy() > 0,
-                               SHORT_APPEARANCE_POINTS + (FULL_APPEARANCE_POINTS - SHORT_APPEARANCE_POINTS) * p60, 0.0)
+    # Conditional-on-appearance (as-if-played): appearance = 1 + p60, NOT gated on realized minutes. On the
+    # default master (all minutes>0) this equals the prior ``where(minutes>0, ..., 0)`` bit-for-bit; on the
+    # keep_all panel it is the E[appearance | played] a blank row must carry before the P(play) multiply.
+    d["appearance"] = SHORT_APPEARANCE_POINTS + (FULL_APPEARANCE_POINTS - SHORT_APPEARANCE_POINTS) * p60
     d["goals"] = gmult * p("e_goals")
     d["assists"] = ASSIST_POINTS * p("e_assists")
     d["clean_sheets"] = cmult * p("p_cs") * p60                             # gated by minutes (>=60')
@@ -156,4 +193,12 @@ def compose_points(mart: pd.DataFrame) -> pd.DataFrame:
     for col in DECOMP_COLUMNS:
         out[col] = d[col].to_numpy()
     out["e_points"] = out[list(DECOMP_COLUMNS)].sum(axis=1)
+    # base_season: the player's expanding prior-mean points (the incumbent bar), single-sourced from
+    # model.eval.baselines. On the keep_all panel this is the incl-blanks variant (blanks lower the mean).
+    out["base_season"] = expanding_prior_mean(_master_panel(mart, keep_all=keep_all)).to_numpy()
+    if keep_all:
+        # De-condition: E[points]_unconditional = P(play) x E[points | played]. The Monte-Carlo sim stays
+        # conditional (constraint: P(play) enters only the mean/captaincy strategies, not the draws).
+        out["p_play"] = params["p_play"].to_numpy()
+        out["e_points_uncond"] = out["e_points"].to_numpy() * out["p_play"].to_numpy()
     return out

@@ -11,14 +11,23 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from model.compose import DECOMP_COLUMNS, _collect_views, _master_panel, compose_points
+from model.compose import (
+    DECOMP_COLUMNS,
+    _collect_views,
+    _master_panel,
+    compose_parameters,
+    compose_points,
+)
 from model.terms.registry import BONUS_MODEL, REGISTERED_TERMS, TERM_MODELS
 
 pytestmark = pytest.mark.unit
 
 
-def _mart(seed: int = 0, n_teams: int = 16, n_gw: int = 16) -> pd.DataFrame:
-    """A full mart-like panel carrying every column the eight terms need."""
+def _mart(seed: int = 0, n_teams: int = 16, n_gw: int = 16, blanks: bool = False) -> pd.DataFrame:
+    """A full mart-like panel carrying every column the eight terms need.
+
+    ``blanks=True`` injects real ``minutes==0`` (potential-blank) rows for benched players, so the keep_all
+    (ex-ante) path has a genuine blank tail to score."""
     rng = np.random.default_rng(seed)
     roster = [("GK", 1), ("DEF", 3), ("MID", 3), ("FWD", 2)]
     rows = []
@@ -38,6 +47,8 @@ def _mart(seed: int = 0, n_teams: int = 16, n_gw: int = 16) -> pd.DataFrame:
             for pl, pos, skill, p_start, dc_lam in players:
                 started = rng.random() < p_start
                 minutes = 90 if started else int(rng.choice([20, 45]))
+                if blanks and not started and rng.random() < 0.6:
+                    minutes = 0                                       # a real blank (potential-blank tail)
                 goals = int(rng.poisson(skill if pos != "GK" else 0.01))
                 assists = int(rng.poisson(skill * 0.6))
                 saves = int(rng.poisson(2.5)) if pos == "GK" else 0
@@ -109,3 +120,54 @@ def test_e_points_is_finite_post_warmup() -> None:
     post = out[out["gw"] > 3]
     assert np.isfinite(post["e_points"].to_numpy()).all()
     assert (post["e_points"] > 0).mean() > 0.9  # appearance alone keeps E[points] positive for players
+
+
+# --- keep_all (ex-ante blank tail, spec X1) -------------------------------------------------------
+def test_default_path_carries_no_pplay_columns() -> None:
+    """The invariant: keep_all=False output is unchanged — no p_play / e_points_uncond, no widening."""
+    assert "p_play" not in compose_parameters(_mart()).columns
+    default = compose_points(_mart())
+    assert "p_play" not in default.columns and "e_points_uncond" not in default.columns
+    assert "base_season" in default.columns  # base_season is exposed on BOTH paths
+
+
+def test_keep_all_widens_panel_and_adds_pplay() -> None:
+    mart = _mart(blanks=True)
+    base = compose_parameters(mart)
+    wide = compose_parameters(mart, keep_all=True)
+    assert len(wide) > len(base)                       # blanks widen the universe
+    assert "p_play" in wide.columns
+    post = wide[wide["gw"] > 3]
+    scored = post["p_play"].dropna()
+    assert len(scored) > 0 and scored.between(0, 1).all()  # a probability where defined (NaN on thin slices)
+    assert (post["minutes"] == 0).sum() > 0            # real blank rows are present
+
+
+def test_keep_all_scores_blanks_as_if_played() -> None:
+    """A blank row carries a non-zero conditional expectation (as-if-played appearance = 1 + p60)."""
+    out = compose_points(_mart(blanks=True), keep_all=True)
+    post = out[out["gw"] > 3]
+    blanks = post[post["minutes"] == 0]
+    assert len(blanks) > 0
+    assert (blanks["appearance"] >= 1.0 - 1e-9).all()  # de-gated: NOT zeroed by realized minutes==0
+
+
+def test_unconditional_equals_pplay_times_conditional() -> None:
+    out = compose_points(_mart(blanks=True), keep_all=True)
+    # e_points stays the conditional (as-if-played) sum of the decomposition ...
+    np.testing.assert_array_almost_equal(
+        out["e_points"].to_numpy(), out[list(DECOMP_COLUMNS)].sum(axis=1).to_numpy(), decimal=12)
+    # ... and the unconditional expectation is exactly P(play) x that conditional mean.
+    ev = out[out["gw"] > 3].dropna(subset=["p_play"])
+    np.testing.assert_array_almost_equal(
+        ev["e_points_uncond"].to_numpy(), (ev["e_points"] * ev["p_play"]).to_numpy(), decimal=12)
+
+
+def test_keep_all_leaves_shared_rows_defined_and_conditional_unchanged_shape() -> None:
+    """keep_all is a superset universe: every played row from the default panel is still present."""
+    mart = _mart(blanks=True)
+    base = compose_points(mart)
+    wide = compose_points(mart, keep_all=True)
+    base_keys = set(map(tuple, base[["player_id", "gw"]].to_numpy()))
+    wide_keys = set(map(tuple, wide[["player_id", "gw"]].to_numpy()))
+    assert base_keys <= wide_keys

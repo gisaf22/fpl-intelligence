@@ -52,17 +52,17 @@ def test_calibration_report_seed_pinned_regression() -> None:
     isotonic/Platt output can legitimately drift across library versions (Fork C)."""
     rep = calibration_report(_panel(seed=0), n_sims=2000, seed=0)
     assert rep["n"] == 1260
-    assert rep["pit_mean"] == 0.512
+    assert rep["pit_mean"] == 0.526
     np.testing.assert_array_almost_equal(
         rep["pit_deciles"],
-        [0.051, 0.09, 0.092, 0.127, 0.154, 0.121, 0.098, 0.083, 0.081, 0.102], decimal=6)
-    cover = {"GK": 0.942, "DEF": 0.923, "MID": 0.638, "FWD": 0.821}
-    crps = {"GK": 1.746, "DEF": 1.537, "MID": 1.623, "FWD": 1.347}
+        [0.049, 0.081, 0.092, 0.123, 0.142, 0.122, 0.113, 0.076, 0.079, 0.122], decimal=6)
+    cover = {"GK": 0.854, "DEF": 0.923, "MID": 0.638, "FWD": 0.821}
+    crps = {"GK": 1.783, "DEF": 1.537, "MID": 1.623, "FWD": 1.347}
     for p in POSITIONS:
         np.testing.assert_almost_equal(float(rep["coverage"][p]), cover[p], decimal=6)
         np.testing.assert_almost_equal(float(rep["crps"].loc[p, "crps_sim"]), crps[p], decimal=6)
-    np.testing.assert_almost_equal(float(rep["haul_ece"].loc["raw", "ece"]), 0.0192, decimal=6)
-    np.testing.assert_almost_equal(float(rep["return_ece"].loc["raw", "ece"]), 0.0719, decimal=6)
+    np.testing.assert_almost_equal(float(rep["haul_ece"].loc["raw", "ece"]), 0.0206, decimal=6)
+    np.testing.assert_almost_equal(float(rep["return_ece"].loc["raw", "ece"]), 0.0834, decimal=6)
     # power surface: per-position event counts reproduce exactly.
     got_events = {p: (int(rep["events"].loc[p, "n"]), int(rep["events"].loc[p, "n_haul"]),
                       int(rep["events"].loc[p, "n_return"])) for p in POSITIONS}

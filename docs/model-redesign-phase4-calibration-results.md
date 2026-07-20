@@ -40,18 +40,45 @@ forecast and Poisson(mean) at **every** position, and beats (in-sample-optimisti
 
 GK is the one position where in-sample climatology edges the simulator — consistent with (3) below.
 
-**3. Interval coverage — RESIDUAL MISCALIBRATION (per-position spread).** Nominal 80%; in-band only for MID:
+**3. Interval coverage — RESIDUAL MISCALIBRATION (per-position spread).** Nominal 80%; in-band only for MID.
+A per-position `sim_sd` vs realized-std check separates *genuine* mis-dispersion from a discrete-interval
+metric artifact (`[p10,p90]` over-covers lumpy discrete distributions even when the width is right):
 
-| position | coverage | vs [0.75, 0.85] |
+| position | coverage (initial) | `sim_sd`/realized | diagnosis |
+|---|---|---|---|
+| GK | 0.894 | **1.48** | genuine **over**-dispersion → **fixed** (see below) |
+| DEF | 0.857 | 1.01 | width right → **discreteness artifact**, not a defect |
+| MID | 0.818 | 0.80 | ✅ in band |
+| FWD | 0.735 | 0.69 | genuine **under**-dispersion (thin haul tail) |
+
+### GK over-dispersion — root cause + fix (done)
+
+Decomposing the GK simulated variance by component, **goals dominated at 6.3** (vs clean-sheet 2.95). The
+pooled goals model emits a spurious tiny `e_goals ≈ 0.063` for keepers (~2.4 goals/season — absurd), and a
+GK goal is worth **10** points, so `Var(10·Poisson(0.063)) = 100 × 0.063 ≈ 6.3` — larger than the
+clean-sheet term, and essentially the entire GK over-dispersion. **Fix:** a position-eligibility gate
+(`_GOAL_POS = DEF/MID/FWD`) attributes goal points to outfield only — `E[GK goals] ≈ 0`, the honest value —
+applied at the *scoring* layer in both `compose` and `simulate` so the simulator's rng stream (and its
+seed-pinned golden) stay bit-identical. Outcome on the real mart:
+
+| GK metric | before | after |
 |---|---|---|
-| GK | 0.894 | too **wide** (over-covers) |
-| DEF | 0.857 | slightly too wide |
-| MID | 0.818 | ✅ in band |
-| FWD | 0.735 | too **narrow** (under-covers) |
+| `sim_sd` / realized | 1.48 (over-dispersed) | **0.97** (matches realized) |
+| coverage | 0.894 | 0.882 |
+| CRPS (sim) | 1.423 | **1.374** (gap to climatology 0.076 → 0.027) |
+| raw haul ECE (all pos) | 0.0160 | 0.0199 (still ≤ 0.02; recal → 0.003) |
 
-The simulator's spread is too wide for GK/DEF (their outcomes are more concentrated than simulated — points
-dominated by appearance + clean-sheet) and too narrow for FWD (forwards carry a fatter haul tail than the
-draw captures). Well-powered, so this is a genuine structural finding, not noise.
+The GK **over-dispersion is resolved** (variance now matches realized; CRPS improved; the ×10 goal-variance
+artifact gone) and the GK mean is more accurate (drops 0.63 spurious goal points). The residual GK coverage
+0.882 is now the **same discreteness artifact as DEF** (width right, ratio ~1), not over-dispersion. The
+one honest cost: removing the spurious GK goal pathway thinned GK haul prob, nudging raw haul ECE
+0.0160 → 0.0199 (still within the pre-registered tolerance; recalibration drives it to 0.003).
+
+**Remaining coverage residuals (not addressed here):** FWD **under**-dispersion (ratio 0.69) is a genuine
+thin-tail defect from drawing components **independently** (goals ⊥ assists ⊥ team-CS), so the sim misses
+the return co-movement that stacks a forward haul — a correlated-draw modelling change, its own later slice.
+DEF/MID over-coverage is a discrete-interval **metric artifact**, not over-dispersion (would be addressed by
+an interpolated-quantile coverage metric, not model surgery).
 
 **4. PIT — mild left-skew.** Mean 0.463 (ideal 0.5); deciles roughly flat except an elevated first decile
 (0.153 vs ~0.10): slightly more realized outcomes land in the lowest predicted quantile than the
@@ -64,8 +91,8 @@ tolerance; a single walk-forward recalibration pass makes haul/return ECE excell
 the distribution adds real information over point/Poisson/climatology baselines. Captaincy ceiling reads
 (`p90`, `p_haul`) can be relied on, especially after the light recalibration.
 
-**The residual is interval width, per position** — GK/DEF too wide, FWD too narrow — which recalibrating
-*event probabilities* does not fix (it needs the simulator's per-position **variance** tuned: e.g. GK/DEF
-draws are over-dispersed, FWD under-dispersed on the haul tail). That is **model work, deliberately out of
-scope here** (the Phase-4 gate is the trust verdict + one recalibration pass, not distributional surgery).
-Recorded as the next-actionable calibration lever.
+**Residual, after the GK fix:** the GK over-dispersion is **resolved** (§3). What remains is (a) FWD
+**under**-dispersion — a genuine thin-tail defect needing correlated component draws (its own slice), and
+(b) DEF/MID over-coverage — a discrete-interval **metric artifact**, not a model defect. Neither is
+addressed by recalibrating event probabilities; both are recorded as the next-actionable levers, out of
+this slice's scope.

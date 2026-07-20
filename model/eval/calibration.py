@@ -24,18 +24,15 @@ from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression
 
 from model.compose import compose_parameters, compose_points
-from model.eval.walkforward import POSITIONS, WARMUP_GW
-from model.simulate import (
-    _REQUIRED,
-    HAUL_THRESHOLD,
-    _draw_team_ga,
-    _simulate_rows,
-)
+from model.eval.walkforward import POSITIONS
+from model.simulate import HAUL_THRESHOLD, iter_sample_blocks
 
 RETURN_THRESHOLD = 6
 HAUL_ECE_TOL = 0.02
 COVERAGE_BAND = (0.75, 0.85)
 MIN_RECAL_TRAIN = 200
+_EVAL_COLUMNS = ("position", "gw", "y", "e_points", "pit", "p_haul", "haul",
+                 "p_return", "return_", "cover", "crps_sim", "crps_point")
 
 
 def _crps_empirical(draws: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -50,28 +47,29 @@ def _crps_empirical(draws: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 def simulate_eval(mart: pd.DataFrame, n_sims: int = 3000, seed: int = 0,
                   batch_rows: int = 400) -> pd.DataFrame:
-    """Per player-GW predictive-vs-realized metrics (reuses the simulator's draw machinery).
+    """Per player-GW predictive-vs-realized metrics over the shared draw primitive.
 
-    Returns one row per scored player-GW: ``pit`` (randomized), ``p_haul``/``haul``,
-    ``p_return``/``return_``, ``cover`` (in [p10,p90]), ``crps_sim``, ``crps_point``, plus
-    ``position``, ``gw``, ``y`` (realized), ``e_points`` (the compose point forecast, the successor to
-    the god-file ``full_pts`` — better at GK, spec §10.5).
+    Draws come from :func:`model.simulate.iter_sample_blocks` (the single home of the Monte-Carlo loop —
+    no private-internal reach or duplicated loop); this layer only *scores* each block's raw draws against
+    realized ``y``. Returns one row per scored player-GW: ``pit`` (randomized, discreteness-correct),
+    ``p_haul``/``haul``, ``p_return``/``return_``, ``cover`` (in [p10,p90]), ``crps_sim``, ``crps_point``,
+    plus ``position``, ``gw``, ``y`` (realized), ``e_points`` (the compose point forecast). The realized
+    ``y``/``e_points`` ride along on each yielded block (extra ``params`` columns pass through).
+
+    The PIT tie-jitter draws from a **separate** seeded rng (``seed+1``) — scoring owns its own randomness,
+    so the draw primitive stays pure (Phase-4 Fork B: draw/score separation).
     """
     params = compose_parameters(mart)
     ep = compose_points(mart)[["player_id", "gw", "e_points"]]
     y_src = mart[["player_id", "gw", "total_points"]]
     df = params.merge(ep, on=["player_id", "gw"]).merge(y_src, on=["player_id", "gw"], how="left")
-    df = df[df["gw"] > WARMUP_GW].dropna(subset=[*_REQUIRED, "total_points", "e_points"]).copy()
-    df = df.reset_index(drop=True)
+    # keep rows with a realized target + point forecast; iter_sample_blocks applies the _REQUIRED filter.
+    df = df.dropna(subset=["total_points", "e_points"]).copy()
     df["y"] = pd.to_numeric(df["total_points"], errors="coerce")
-    rng = np.random.default_rng(seed)
-    tf_index, ga_by_tf = _draw_team_ga(df, n_sims, rng)
+    pit_rng = np.random.default_rng(seed + 1)
 
     out = []
-    for start in range(0, len(df), batch_rows):
-        block = df.iloc[start:start + batch_rows]
-        ga = ga_by_tf[tf_index[start:start + batch_rows]]
-        d = _simulate_rows(block, ga, n_sims, rng)
+    for block, d in iter_sample_blocks(df, n_sims=n_sims, seed=seed, batch_rows=batch_rows):
         y = block["y"].to_numpy(dtype=float)
         below = (d < y[:, None]).mean(axis=1)
         eq = (d == y[:, None]).mean(axis=1)
@@ -79,13 +77,13 @@ def simulate_eval(mart: pd.DataFrame, n_sims: int = 3000, seed: int = 0,
         out.append(pd.DataFrame({
             "position": block["position"].to_numpy(), "gw": block["gw"].to_numpy(),
             "y": y, "e_points": block["e_points"].to_numpy(),
-            "pit": below + rng.random(len(block)) * eq,
+            "pit": below + pit_rng.random(len(block)) * eq,
             "p_haul": (d >= HAUL_THRESHOLD).mean(axis=1), "haul": (y >= HAUL_THRESHOLD).astype(int),
             "p_return": (d >= RETURN_THRESHOLD).mean(axis=1), "return_": (y >= RETURN_THRESHOLD).astype(int),
             "cover": ((p10 <= y) & (y <= p90)).astype(int),
             "crps_sim": _crps_empirical(d, y), "crps_point": np.abs(block["e_points"].to_numpy() - y),
         }))
-    return pd.concat(out, ignore_index=True)
+    return pd.concat(out, ignore_index=True) if out else pd.DataFrame(columns=list(_EVAL_COLUMNS))
 
 
 def expected_calibration_error(prob: np.ndarray, event: np.ndarray, bins: int = 10) -> float:

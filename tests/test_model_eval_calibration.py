@@ -9,10 +9,12 @@ from model.eval.calibration import (
     RETURN_THRESHOLD,
     calibration_report,
     crps_table,
+    event_counts,
     expected_calibration_error,
     recalibration_table,
     simulate_eval,
 )
+from model.eval.walkforward import POSITIONS
 from tests._synthetic_mart import points_panel as _panel
 
 pytestmark = pytest.mark.unit
@@ -42,6 +44,42 @@ def test_recalibration_table_shape() -> None:
     tbl = recalibration_table(ev, "p_return", "return_")
     assert set(tbl.index) == {"raw", "isotonic", "platt"}
     assert (tbl["ece"] >= 0).all()
+
+
+def test_calibration_report_seed_pinned_regression() -> None:
+    """Repro gate (Phase-4 step 3): fixed panel + seed -> the numpy/scipy metrics reproduce to the
+    report's rounding. The sklearn-recalibrated ECE is checked under a **tolerance**, not bit-frozen —
+    isotonic/Platt output can legitimately drift across library versions (Fork C)."""
+    rep = calibration_report(_panel(seed=0), n_sims=2000, seed=0)
+    assert rep["n"] == 1260
+    assert rep["pit_mean"] == 0.512
+    np.testing.assert_array_almost_equal(
+        rep["pit_deciles"],
+        [0.051, 0.09, 0.092, 0.127, 0.154, 0.121, 0.098, 0.083, 0.081, 0.102], decimal=6)
+    cover = {"GK": 0.942, "DEF": 0.923, "MID": 0.638, "FWD": 0.821}
+    crps = {"GK": 1.746, "DEF": 1.537, "MID": 1.623, "FWD": 1.347}
+    for p in POSITIONS:
+        np.testing.assert_almost_equal(float(rep["coverage"][p]), cover[p], decimal=6)
+        np.testing.assert_almost_equal(float(rep["crps"].loc[p, "crps_sim"]), crps[p], decimal=6)
+    np.testing.assert_almost_equal(float(rep["haul_ece"].loc["raw", "ece"]), 0.0192, decimal=6)
+    np.testing.assert_almost_equal(float(rep["return_ece"].loc["raw", "ece"]), 0.0719, decimal=6)
+    # power surface: per-position event counts reproduce exactly.
+    got_events = {p: (int(rep["events"].loc[p, "n"]), int(rep["events"].loc[p, "n_haul"]),
+                      int(rep["events"].loc[p, "n_return"])) for p in POSITIONS}
+    assert got_events == {"GK": (260, 19, 95), "DEF": (520, 21, 190),
+                          "MID": (240, 11, 71), "FWD": (240, 13, 65)}
+    # sklearn recalibration (tolerance, not frozen): a walk-forward recal must not WORSEN the raw haul ECE.
+    raw = float(rep["haul_ece"].loc["raw", "ece"])
+    for method in ("isotonic", "platt"):
+        assert float(rep["haul_ece"].loc[method, "ece"]) <= raw + 0.01
+
+
+def test_event_counts_power_surface() -> None:
+    ev = simulate_eval(_panel(seed=1), n_sims=300, seed=0)
+    counts = event_counts(ev)
+    assert list(counts.index) == list(POSITIONS)
+    assert set(counts.columns) == {"n", "n_haul", "n_return"}
+    assert (counts["n"] >= counts["n_return"]).all() and (counts["n_return"] >= counts["n_haul"]).all()
 
 
 def test_crps_table_and_report() -> None:

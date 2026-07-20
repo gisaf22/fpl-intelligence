@@ -148,8 +148,17 @@ def crps_table(ev: pd.DataFrame, seed: int = 0) -> pd.DataFrame:
     return tbl.reindex(POSITIONS)
 
 
+def event_counts(ev: pd.DataFrame) -> pd.DataFrame:
+    """Per-position realized event counts — the **power** surface: haul (>=10) and return (>=6) are rare on
+    one season, so a per-position ECE is only interpretable where the events are not a handful. Read
+    alongside the ECE tables: few events => 'inconclusive/underpowered', not 'miscalibrated'."""
+    tbl = ev.groupby("position").agg(n=("y", "size"), n_haul=("haul", "sum"), n_return=("return_", "sum"))
+    return tbl.reindex(POSITIONS)
+
+
 def calibration_report(mart: pd.DataFrame, n_sims: int = 3000, seed: int = 0) -> dict:
-    """Full Phase-4 report: PIT, haul/return ECE (raw+recal), coverage vs tolerance, CRPS vs comparators."""
+    """Full Phase-4 report: PIT, haul/return ECE (raw+recal), coverage vs tolerance, CRPS vs comparators,
+    and per-position event counts (the power surface for honest interpretation)."""
     ev = simulate_eval(mart, n_sims=n_sims, seed=seed)
     pit_deciles = np.histogram(ev["pit"], bins=10, range=(0, 1))[0] / len(ev)
     coverage = ev.groupby("position")["cover"].mean().round(3).reindex(POSITIONS)
@@ -163,4 +172,5 @@ def calibration_report(mart: pd.DataFrame, n_sims: int = 3000, seed: int = 0) ->
         "coverage_in_band": {p: bool(COVERAGE_BAND[0] <= coverage[p] <= COVERAGE_BAND[1])
                              for p in POSITIONS if not np.isnan(coverage[p])},
         "crps": crps_table(ev, seed=seed),
+        "events": event_counts(ev),
     }

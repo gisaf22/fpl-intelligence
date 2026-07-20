@@ -5,12 +5,13 @@ its emitted view(s) onto a master player panel (team-grain terms are **broadcast
 assembles the FPL points decomposition using the ``domain`` weights. ``bonus`` is fit last and calibrated
 onto the *expected* returns of the other terms (its cross-term dependency).
 
-**Reproduction scope (agreed):** this reproduces the **component composition** — the terms *as extracted*
-(goals/assists on their 2 mechanistic features). It does **not** yet reproduce the shipped
-``points_model.walk_forward_points`` (``full_pts``), which inlines richer 5-feature goals/assists, a flat
-GK ``p60``, and the expected-returns bonus at full fidelity. Closing that gap (materialize the xg/xa
-process rolls, reconcile GK ``p60``) is a tracked follow-up; the decomposition here is internally exact
-(the parts sum to ``e_points``).
+This is now the **canonical** E[points] engine (the ``points_model.walk_forward_points`` god-file it
+strangled has been deleted). ``selected`` goals/assists draw the full 5-feature process pool where the
+mart carries it, matching the old ``full_pts`` attacking components; GK ``p60`` uses the ``minutes`` term's
+robust rate rather than the old flat-0.98 shortcut, so GK scores diverge from the retired model **by
+design** (a deliberate improvement, not a gap). The decomposition is internally exact (the parts sum to
+``e_points``). ``compose_points(keep_all=True)`` adds the ex-ante blank tail: ``p_play`` and
+``e_points_uncond`` = P(play) x E[points | played] (spec X1).
 """
 
 from __future__ import annotations
@@ -64,9 +65,12 @@ def _master_panel(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
 
     Default (``keep_all=False``) is the conditional-on-appearance panel (``minutes>0``). ``keep_all=True``
     retains potential-blank (``minutes==0``) rows so the ex-ante universe can be scored — the components
-    are evaluated as-if-played on those rows and P(play) de-conditions them (spec X1).
+    are evaluated as-if-played on those rows and P(play) de-conditions them (spec X1). The keep_all universe
+    is **fixtures-only**: a no-fixture / blank-gameweek row (``minutes`` null) is not a captaincy candidate,
+    so it is excluded (excluded either way — the default ``minutes>0`` already drops nulls).
     """
-    keep = ~mart["is_dgw"].astype(bool) if keep_all else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
+    keep = ((~mart["is_dgw"].astype(bool)) & mart["minutes"].notna()) if keep_all \
+        else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
     df = mart[keep].copy()
     return df.sort_values(["player_id", "gw"]).reset_index(drop=True)
 

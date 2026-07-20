@@ -43,10 +43,25 @@ at all is a genuine **starter-vs-backup** split, well described by lagged minute
 starts_roll3`. Rotation / availability signals (days-since-start, congestion) are the biggest missing
 lever and are declared **unmaterialized** `§3` pool candidates.
 
-## 5. Baseline + validation — no god-file golden (Fork D)
+## 5. Population is fixtures-only — no-fixture rows excluded
 
-The per-term bar (spec §5) is `minutes_roll3` (lagged minutes level) ranking `played`. There is **no
-bit-identical reference**: captaincy's old inline `_p_play` was a *pooled*, crude logistic, so this
-per-position term is a deliberate **replacement**, not a reproduction — captaincy numbers shift by design
-(same class of change as the GK p60 improvement). P(play) is pinned by **structural + seed** tests
-(scores the blanks, learns the availability signal, deterministic), not a frozen vector.
+The population keeps blanks (`minutes==0`) but **excludes no-fixture rows** (`minutes` null: a
+blank-gameweek team, or a player not yet registered that GW). A no-fixture row is not an appearance
+decision — `played = 1{minutes>0}` is undefined there — and `minutes` is a nullable `Int64`, so
+`(NA > 0).astype(float)` would leak a **NaN** into the target (it poisoned the gate before this was fixed).
+The whole `keep_all` universe is fixtures-only for the same reason: you cannot captain a player with no game.
+
+## 6. Baseline + validation — no god-file golden (Fork D)
+
+The per-term bar (spec §5) is `minutes_roll3` (lagged minutes level) ranking `played`. **Real-mart gate
+(2025-26):** P(play) ranks appearance strongly — within-position Spearman GK 0.84 / DEF 0.73 / MID 0.76 /
+FWD 0.78 — at **~parity with (marginally below) the lagged-minutes baseline**. That is **expected, not a
+miss** (identical to the `p60` hurdle): a raw lagged-minutes level is already a near-optimal *ranker* of
+appearance, so the win here is a **calibrated probability** (needed for `P(play) × E[points | played]`),
+which a minutes count cannot provide. Calibration is monotonic with well-calibrated extremes and a mild
+mid-range gap (~0.10 mean abs); recalibration (isotonic/Platt) is future work.
+
+There is **no bit-identical reference**: captaincy's old inline `_p_play` was a *pooled*, crude logistic,
+so this per-position term is a deliberate **replacement**, not a reproduction — captaincy numbers shift by
+design (same class of change as the GK p60 improvement). P(play) is pinned by **structural + seed** tests
+(scores the blanks, excludes no-fixture rows, learns the availability signal, deterministic), not a golden.

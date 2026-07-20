@@ -67,6 +67,19 @@ def test_population_is_the_whole_universe_with_the_played_target() -> None:
     assert set(np.unique(pop["played"])) == {0.0, 1.0}
 
 
+def test_population_excludes_no_fixture_rows_and_keeps_played_clean() -> None:
+    """No-fixture rows (nullable-Int64 ``minutes`` == NA: blank GW / unregistered) are not appearance
+    decisions — dropping them keeps ``played`` a clean 0/1 (else ``(NA>0).astype(float)`` leaks NaN and
+    poisons the gate). Regression for the real-mart bug where blank-GW rows made per-cell Spearman NaN."""
+    panel = _panel()
+    panel["minutes"] = panel["minutes"].astype("Int64")
+    panel.loc[panel["gw"].isin([8, 9]) & (panel["player_id"] % 3 == 0), "minutes"] = pd.NA  # no-fixture rows
+    pop = PlayModel.population(panel)
+    assert pop["minutes"].notna().all()                     # no-fixture rows dropped
+    assert pop["played"].notna().all()                      # target is clean 0/1, never NaN
+    assert set(np.unique(pop["played"])) == {0.0, 1.0}
+
+
 def test_fit_scores_the_blank_rows_as_probabilities() -> None:
     panel = _panel(seed=1)
     model = PlayModel(variant="selected")

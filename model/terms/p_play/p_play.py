@@ -48,23 +48,28 @@ class PlayModel(BinaryPerPositionComponent):
     trains_on_appearances_only = False       # P(play) must learn from the blank (played==0) rows
     hypotheses = (
         Hypothesis(
-            claim="lagged minutes + start form rank who features next GW better than a lagged minutes level alone",
+            claim="a per-position logistic yields a CALIBRATED P(play) the raw lagged-minutes level cannot",
             test="within-position Spearman of P(play) vs played beside minutes_roll3, GW>3, all positions",
-            success_threshold="calibrated appearance probability; ranking >= the lagged-minutes baseline",
-            status="new term (X1 blank tail) — replaces captaincy's pooled inline _p_play (per-position upgrade)",
+            success_threshold="calibrated appearance probability at ~ranking parity (a minutes level is not a prob)",
+            status=("supported-as-calibration (real mart: Spearman GK .84 / DEF .73 / MID .76 / FWD .78, "
+                    "~parity with the lagged-minutes baseline — expected, like p60; the value is the probability. "
+                    "Mild mid-range miscalibration ~0.10, extremes well-calibrated — recalibration is future work)"),
         ),
     )
 
     @staticmethod
     def population(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
-        """The **whole** universe (DGW excluded): all rows incl. ``minutes==0``, with lagged starts + target.
+        """The fixtures universe (DGW excluded): every row with a fixture incl. ``minutes==0``, with lagged
+        starts + the derived ``played`` target.
 
         P(play) is the appearance model itself, so — unlike every conditional-on-appearance term — the
-        population is *always* the widest one (the target ``played`` is defined by the blank rows). The
-        ``keep_all`` flag is accepted for base-signature parity but does not change this: the population is
-        already the full universe. ``minutes_roll{3,5}`` come from the mart; only ``starts_roll3`` is built.
+        population keeps the blank rows (the target ``played`` = 1{minutes>0} is *defined* by them). It
+        excludes **no-fixture** rows (``minutes`` null: a blank-gameweek / not-yet-registered player), which
+        are not appearance decisions and would make ``played`` NaN. The ``keep_all`` flag is accepted for
+        base-signature parity but does not change this population. ``minutes_roll{3,5}`` come from the mart;
+        only ``starts_roll3`` is built.
         """
-        df = mart[~mart["is_dgw"].astype(bool)].copy()
+        df = mart[(~mart["is_dgw"].astype(bool)) & mart["minutes"].notna()].copy()
         df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
         for c in ["minutes_roll3", "minutes_roll5", "minutes", "starts"]:
             df[c] = pd.to_numeric(df[c], errors="coerce")

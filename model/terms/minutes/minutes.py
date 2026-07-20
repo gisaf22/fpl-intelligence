@@ -52,9 +52,11 @@ class MinutesHurdleModel(BinaryPerPositionComponent):
         Mirrors ``walk_forward_minutes_hurdle`` exactly (``minutes_roll{3,5,8}`` come from the mart; only
         ``starts_roll3`` is built here) so the selected draw reproduces its output. GK rows are retained —
         the override needs them. ``keep_all=True`` widens to potential-blank rows (``starts_roll3`` and the
-        GK expanding-rate override then include those rows, by design); train stays ``minutes>0``.
+        GK expanding-rate override then include those rows, by design); train stays ``minutes>0``. The
+        ``keep_all`` universe is fixtures-only (NaN-minutes no-fixture rows excluded — not appearances).
         """
-        keep = ~mart["is_dgw"].astype(bool) if keep_all else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
+        keep = ((~mart["is_dgw"].astype(bool)) & mart["minutes"].notna()) if keep_all \
+            else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
         df = mart[keep].copy()
         df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
         for c in ["minutes_roll3", "minutes_roll5", "minutes_roll8", "minutes", "starts"]:

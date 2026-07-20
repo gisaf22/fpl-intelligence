@@ -47,10 +47,11 @@ class SavesModel(PoissonPlayerComponentModel):
         """GK-only v1 population: ``position == GK``, ``minutes > 0``, DGW excluded, sorted (player, gw).
 
         ``keep_all=True`` retains 0-minute GK rows for ex-ante scoring of the wider universe (train stays
-        ``minutes>0`` in :meth:`fit`); default is the conditional-on-appearance GK population.
+        ``minutes>0`` in :meth:`fit`); default is the conditional-on-appearance GK population. The
+        ``keep_all`` universe is fixtures-only (NaN-minutes no-fixture rows excluded — not appearances).
         """
         gk = (mart["position"] == "GK") & (~mart["is_dgw"].astype(bool))
-        keep = gk if keep_all else gk & (mart["minutes"] > 0)
+        keep = gk & mart["minutes"].notna() if keep_all else gk & (mart["minutes"] > 0)
         df = mart[keep].copy()
         return df.sort_values(["player_id", "gw"]).reset_index(drop=True)
 

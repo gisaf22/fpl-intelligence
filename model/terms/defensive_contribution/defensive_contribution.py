@@ -55,9 +55,10 @@ class DefensiveContributionModel(BinaryPerPositionComponent):
         Mirrors ``points_model._add_dc_columns`` exactly so the selected draw reproduces its output. GK are
         excluded (no DC term); the per-player rolls are unaffected by that filter. ``keep_all=True`` widens
         to potential-blank rows (``dc_roll{3,5}`` then include those rows, by design); train stays ``minutes>0``.
+        The ``keep_all`` universe is fixtures-only (NaN-minutes no-fixture rows excluded — not appearances).
         """
         outfield = (~mart["is_dgw"].astype(bool)) & (mart["position"].isin(_DC_POSITIONS))
-        keep = outfield if keep_all else outfield & (mart["minutes"] > 0)
+        keep = outfield & mart["minutes"].notna() if keep_all else outfield & (mart["minutes"] > 0)
         df = mart[keep].copy()
         df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
         for c in ["defensive_contribution", "minutes_roll3", "fdr_avg"]:

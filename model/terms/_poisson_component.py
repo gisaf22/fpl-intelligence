@@ -99,8 +99,13 @@ class PoissonPlayerComponentModel:
         wider universe — components are still TRAINED on ``minutes>0`` only (see :meth:`fit`), so this
         only widens the *prediction* set. Default (``keep_all=False``) is the conditional-on-appearance
         population; every existing golden reproduces on that path.
+
+        The ``keep_all`` universe is players who **have a fixture** (``minutes`` not null): a no-fixture /
+        blank-gameweek row is not an appearance decision, so a NaN-minutes row is excluded either way.
         """
-        keep = ~mart["is_dgw"].astype(bool) if keep_all else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
+        no_fixture = mart["minutes"].isna()
+        keep = ((~mart["is_dgw"].astype(bool)) & ~no_fixture) if keep_all \
+            else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
         df = mart[keep].copy()
         return df.sort_values(["player_id", "gw"]).reset_index(drop=True)
 

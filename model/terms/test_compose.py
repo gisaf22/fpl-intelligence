@@ -163,6 +163,20 @@ def test_unconditional_equals_pplay_times_conditional() -> None:
         ev["e_points_uncond"].to_numpy(), (ev["e_points"] * ev["p_play"]).to_numpy(), decimal=12)
 
 
+def test_keep_all_excludes_no_fixture_rows() -> None:
+    """The keep_all universe is fixtures-only: a no-fixture row (nullable-Int64 ``minutes`` == NA, e.g. a
+    blank gameweek) is not a captaincy candidate and must not appear on the panel (else P(play)/e_points
+    would score a phantom player with no game)."""
+    mart = _mart(blanks=True)
+    mart["minutes"] = mart["minutes"].astype("Int64")
+    mart.loc[(mart["gw"] == 7) & (mart["player_id"] % 4 == 0), "minutes"] = pd.NA
+    wide = compose_points(mart, keep_all=True)
+    gw7 = wide[wide["gw"] == 7]
+    assert gw7["minutes"].notna().all()                            # no-fixture rows dropped from the universe
+    assert not (gw7["player_id"] % 4 == 0).any()                   # specifically the NA-minutes players
+    assert _master_panel(mart, keep_all=True)["minutes"].notna().all()
+
+
 def test_keep_all_leaves_shared_rows_defined_and_conditional_unchanged_shape() -> None:
     """keep_all is a superset universe: every played row from the default panel is still present."""
     mart = _mart(blanks=True)

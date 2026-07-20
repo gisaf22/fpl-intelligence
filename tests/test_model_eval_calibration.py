@@ -13,7 +13,7 @@ from model.eval.calibration import (
     recalibration_table,
     simulate_eval,
 )
-from tests.test_model_forecast_points_model import _panel
+from tests._synthetic_mart import points_panel as _panel
 
 pytestmark = pytest.mark.unit
 

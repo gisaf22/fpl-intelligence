@@ -11,7 +11,7 @@ from model.eval.captaincy_backtest import (
     build_captaincy_panel,
     captaincy_backtest,
 )
-from tests.test_model_forecast_points_model import _panel
+from tests._synthetic_mart import points_panel as _panel
 
 pytestmark = pytest.mark.unit
 
@@ -32,8 +32,9 @@ def test_build_captaincy_panel_has_pplay_and_multiplier() -> None:
     df = build_captaincy_panel(_capt_panel(seed=1), n_sims=200, seed=0)
     fit = df.dropna(subset=["p_play"])
     assert fit["p_play"].between(0, 1).all()
-    prod = df.dropna(subset=["full_pts", "p_play"])
-    assert np.allclose(prod["model_pplay"], prod["full_pts"] * prod["p_play"])
+    # the unconditional mean is exactly P(play) x the conditional (as-if-played) mean (compose owns it).
+    prod = df.dropna(subset=["e_points", "p_play"])
+    assert np.allclose(prod["e_points_uncond"], prod["e_points"] * prod["p_play"])
 
 
 def test_captaincy_backtest_shape_and_bounds() -> None:

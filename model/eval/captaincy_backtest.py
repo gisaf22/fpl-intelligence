@@ -6,78 +6,62 @@ where the distribution should matter (ceiling, not just mean).
 
 Strategies (each picks argmax per GW over the candidate universe, scored by realized points, blanks=0
 so rotation is priced): template (ownership), base_season (expanding mean incl blanks), model_mean
-(``full_pts``), model_mean x P(play) (rotation-adjusted), ceiling (``p90`` and recalibrated ``p_haul``).
+(compose ``e_points``, the conditional mean), model_mean x P(play) (compose ``e_points_uncond``,
+rotation-adjusted), ceiling (``p90`` and recalibrated ``p_haul``).
 
 Universe (two views): **pool-free** = a model-agnostic lagged-minutes availability gate (primary, no
 arbitrary pool); **ownership top-N** (secondary). Reads per strategy: mean pts/GW + **block-bootstrap CI**
 (A5.1 - one season is thin and GWs autocorrelate), head-to-head win rate vs template, and regret vs the
-oracle best captain. `P(play)` (X1) is built here from lagged minutes/starts (no injury news - a
-limitation vs real managers).
+oracle best captain.
 
-Ex-ante scoring needs predictions for potential blanks, so this uses
-``walk_forward_points(mart, predict_all=True)``.
+Ex-ante scoring needs predictions for potential blanks, so this consumes the blank-inclusive compose
+surface: ``compose_points(mart, keep_all=True)`` (E[points | played], ``base_season``, ``p_play``, and the
+unconditional ``e_points_uncond`` = P(play) x E[points | played]) plus the conditional Monte-Carlo ceiling
+from ``simulate_points(compose_parameters(mart, keep_all=True))``. The per-position P(play) term (X1) lives
+in ``model.terms.p_play`` (lagged minutes/starts, no injury news - a limitation vs real managers).
 """
 
 from __future__ import annotations
 
-import warnings
-
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 
+from model.compose import compose_parameters, compose_points
 from model.eval.metrics import block_bootstrap_ci
 from model.eval.walkforward import WARMUP_GW
-from model.forecast.points_model import _lag_roll, walk_forward_points
 from model.simulate import simulate_points
 
-P_PLAY_FEATURES = ["minutes_roll3", "minutes_roll5", "starts_roll3"]
 AVAILABILITY_MIN_ROLL = 45.0          # pool-free gate: averaged >= 45 min over the last 3 (lagged)
-MIN_PPLAY_TRAIN = 200
+# Raw mart signals carried onto the compose panel for the strategies (ownership/availability/realized) AND
+# the Door-1 discrimination diagnostic (fdr/home/form/price). Present-subset: a thin fixture may lack some.
+_RAW_CARRY_COLS = ["ownership_count", "total_points", "minutes_roll3",
+                   "fdr_avg", "was_home", "xgi_roll5", "purchase_price"]
 _STRATEGIES = {
     "template": "ownership_count",
     "base_season": "base_season",
-    "model_mean": "full_pts",
-    "model_mean_x_pplay": "model_pplay",
+    "model_mean": "e_points",
+    "model_mean_x_pplay": "e_points_uncond",
     "ceiling_p90": "p90",
     "ceiling_phaul": "p_haul",
 }
 
 
-def _p_play(df: pd.DataFrame) -> np.ndarray:
-    """Walk-forward P(minutes>0) from lagged minutes/starts (logistic). No injury news - flagged."""
-    df = df.copy()
-    df["played"] = (pd.to_numeric(df["minutes"], errors="coerce") > 0).astype(float)
-    out = np.full(len(df), np.nan)
-    for t in sorted(g for g in df["gw"].unique() if g > WARMUP_GW):
-        tr = df[df["gw"] < t].dropna(subset=[*P_PLAY_FEATURES, "played"])
-        te = (df["gw"] == t).to_numpy()
-        if len(tr) < MIN_PPLAY_TRAIN or tr["played"].nunique() < 2:
-            continue
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            try:
-                x = sm.add_constant(tr[P_PLAY_FEATURES].to_numpy(float), has_constant="add")
-                res = sm.GLM(tr["played"].to_numpy(float), x, family=sm.families.Binomial()).fit()
-                xte = sm.add_constant(df.loc[te, P_PLAY_FEATURES].fillna(0).to_numpy(float), has_constant="add")
-                out[te] = res.predict(xte)
-            except Exception:
-                continue
-    return out
-
-
 def build_captaincy_panel(mart: pd.DataFrame, n_sims: int = 2000, seed: int = 0) -> pd.DataFrame:
-    """Per player-GW captaincy inputs: strategy scores + realized points, on the full ex-ante universe."""
-    pts = walk_forward_points(mart, predict_all=True)
-    sim = simulate_points(pts, n_sims=n_sims, seed=seed)[["player_id", "gw", "p90", "p_haul"]]
+    """Per player-GW captaincy inputs: strategy scores + realized points, on the full ex-ante universe.
+
+    Consumes compose directly (spec X1): ``compose_points(keep_all=True)`` gives the conditional mean
+    ``e_points``, ``base_season``, ``p_play``, and the unconditional ``e_points_uncond``; the ceiling
+    (``p90``/``p_haul``) comes from the conditional Monte-Carlo simulator. The mart's raw decision inputs
+    (ownership, realized points, the availability-gate roll) are merged back on by (player_id, gw)."""
+    pts = compose_points(mart, keep_all=True)
+    params = compose_parameters(mart, keep_all=True)
+    sim = simulate_points(params, n_sims=n_sims, seed=seed)[["player_id", "gw", "p90", "p_haul"]]
     df = pts.merge(sim, on=["player_id", "gw"], how="left")
-    for c in ["minutes", "minutes_roll3", "minutes_roll5", "ownership_count", "total_points"]:
-        df[c] = pd.to_numeric(df[c], errors="coerce")
-    if "starts_roll3" not in df.columns:
-        df["starts_roll3"] = _lag_roll(df.sort_values(["player_id", "gw"]), "player_id", "starts", 3)
-    df["p_play"] = _p_play(df)
-    df["model_pplay"] = df["full_pts"] * df["p_play"]
-    return df
+    present = [c for c in _RAW_CARRY_COLS if c in mart.columns]
+    raw = mart[~mart["is_dgw"].astype(bool)][["player_id", "gw", *present]].copy()
+    for c in present:
+        raw[c] = pd.to_numeric(raw[c], errors="coerce")
+    return df.merge(raw.drop_duplicates(["player_id", "gw"]), on=["player_id", "gw"], how="left")
 
 
 def _ci3(values: np.ndarray) -> tuple[float, float]:
@@ -111,7 +95,7 @@ def captaincy_backtest(mart: pd.DataFrame, pool: str = "free", n_top: int = 50,
     """
     df = build_captaincy_panel(mart, n_sims=n_sims, seed=seed)
     ev = df[(df["gw"] > WARMUP_GW)].dropna(
-        subset=["full_pts", "p90", "p_haul", "ownership_count", "base_season", "total_points"])
+        subset=["e_points", "p90", "p_haul", "ownership_count", "base_season", "total_points"])
     gate = ev[ev["minutes_roll3"] >= AVAILABILITY_MIN_ROLL]
     if pool == "ownership":
         gate = gate.sort_values("ownership_count", ascending=False).groupby("gw").head(n_top)

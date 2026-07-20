@@ -31,10 +31,10 @@ DISCRIMINATION_FEATURES = ["fdr_avg", "was_home", "xgi_roll5", "purchase_price",
 def build_diagnostic_pool(mart: pd.DataFrame, n_sims: int = 2000, seed: int = 0) -> pd.DataFrame:
     """Phase-5 captaincy candidate pool (pool-free availability gate) with a per-GW ``is_oracle`` flag."""
     df = build_captaincy_panel(mart, n_sims=n_sims, seed=seed)
-    for c in [*DISCRIMINATION_FEATURES, "minutes_roll3", "total_points", "full_pts", "base_season"]:
+    for c in [*DISCRIMINATION_FEATURES, "minutes_roll3", "total_points", "e_points", "base_season"]:
         if c in df.columns:
             df[c] = pd.to_numeric(df[c], errors="coerce")
-    pool = df[df["gw"] > WARMUP_GW].dropna(subset=["full_pts", "base_season", "total_points"])
+    pool = df[df["gw"] > WARMUP_GW].dropna(subset=["e_points", "base_season", "total_points"])
     pool = pool[pool["minutes_roll3"] >= AVAILABILITY_MIN_ROLL].copy()
     pool["is_oracle"] = 0
     pool.loc[pool.groupby("gw")["total_points"].idxmax(), "is_oracle"] = 1
@@ -60,7 +60,7 @@ def reducible_regret(pool: pd.DataFrame) -> pd.DataFrame:
         rows.append({
             "gw": gw, "oracle": float(g["total_points"].max()),
             "base": float(g.loc[g["base_season"].idxmax(), "total_points"]),
-            "model": float(g.loc[g["full_pts"].idxmax(), "total_points"]),
+            "model": float(g.loc[g["e_points"].idxmax(), "total_points"]),
         })
     out = pd.DataFrame(rows)
     out["reducible"] = out["oracle"] - out["base"]
@@ -72,7 +72,7 @@ def reducible_regret(pool: pd.DataFrame) -> pd.DataFrame:
 
 
 def oracle_rank_hits(pool: pd.DataFrame, score_cols: tuple[str, ...] = (
-        "base_season", "full_pts", "p90", "p_haul", "ownership_count")) -> pd.DataFrame:
+        "base_season", "e_points", "p90", "p_haul", "ownership_count")) -> pd.DataFrame:
     """hit@1 / hit@3: how often each strategy ranks the eventual oracle at the top of its list."""
     gws = pool["gw"].unique()
     chance1 = float(np.mean(1.0 / pool.groupby("gw").size()))
@@ -95,9 +95,9 @@ def divergence_winrate(pool: pd.DataFrame) -> dict:
     diff = []
     for _, g in pool.groupby("gw"):
         bp = g.loc[g["base_season"].idxmax(), "player_id"]
-        mp = g.loc[g["full_pts"].idxmax(), "player_id"]
+        mp = g.loc[g["e_points"].idxmax(), "player_id"]
         if bp != mp:
-            diff.append(g.loc[g["full_pts"].idxmax(), "total_points"]
+            diff.append(g.loc[g["e_points"].idxmax(), "total_points"]
                         - g.loc[g["base_season"].idxmax(), "total_points"])
     diff = np.asarray(diff, dtype=float)
     n_gw = pool["gw"].nunique()

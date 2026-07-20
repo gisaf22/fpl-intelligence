@@ -53,6 +53,12 @@ class BinaryPerPositionComponent:
     min_positive_events: ClassVar[int] = 20     # detectability floor (positive class)
     logit_positions: ClassVar[tuple[str, ...]] = ("DEF", "MID", "FWD")
 
+    # Whether TRAIN is filtered to appearances (minutes>0). True for every conditional-on-played term
+    # (a no-op on the default population, so keep_all keeps the fit identical). ``PlayModel`` sets this
+    # False: P(play) *is* the appearance model, so its target ``played`` needs the blank (minutes==0)
+    # rows in TRAIN — filtering them out would leave one class and collapse the logistic.
+    trains_on_appearances_only: ClassVar[bool] = True
+
     # -- subclass declares these ------------------------------------------------------------
     name: ClassVar[str]
     target: ClassVar[str]
@@ -123,8 +129,9 @@ class BinaryPerPositionComponent:
         """Expanding walk-forward per position -> P(target=1) per row; special positions via the hook.
 
         ``keep_all=True`` widens the population to potential-blank (``minutes==0``) rows but keeps TRAIN
-        filtered to ``minutes>0`` (the ``& (minutes>0)`` below) — the fit is identical to the default
-        path and only the *prediction* set grows. The train filter is a no-op when ``keep_all=False``.
+        filtered to ``minutes>0`` (via :attr:`trains_on_appearances_only`) — the fit is identical to the
+        default path and only the *prediction* set grows. The train filter is a no-op when
+        ``keep_all=False``; ``PlayModel`` disables it (it must learn from the blank rows).
         """
         df = self.population(mart, keep_all=keep_all)
         features = self.features(df)
@@ -133,7 +140,8 @@ class BinaryPerPositionComponent:
         for pos in self.logit_positions:
             sdf = df[df["position"] == pos]
             for t in sorted(g for g in sdf["gw"].unique() if g > WARMUP_GW):
-                train, test = sdf[(sdf["gw"] < t) & (sdf["minutes"] > 0)], sdf[sdf["gw"] == t]
+                prior, test = sdf[sdf["gw"] < t], sdf[sdf["gw"] == t]
+                train = prior[prior["minutes"] > 0] if self.trains_on_appearances_only else prior
                 if test.empty:
                     continue
                 pred.loc[test.index] = self._fit_predict(train, test, features)

@@ -187,7 +187,10 @@ class PlayerComponentTerm:
     baseline_col: ClassVar[str]              # the naive bar: the player's lagged expanding mean target
     view_col: ClassVar[str]                  # the model-prediction column label in the gate table
     _model_cls: ClassVar[type[PoissonPlayerComponentModel]]
-    default_variant: ClassVar[Literal["minimal", "selected"]] = "minimal"
+    # Gate the variant that SHIPS. The registry composes `selected`, so gating `minimal` would issue
+    # verdicts about a model that makes none of the predictions (the binary sibling already does this).
+    # `minimal` remains the comparison bar — reachable by passing the model explicitly.
+    default_variant: ClassVar[Literal["minimal", "selected"]] = "selected"
 
     def __init__(self, model: PoissonPlayerComponentModel | None = None) -> None:
         self.model = model or self._model_cls(variant=self.default_variant)

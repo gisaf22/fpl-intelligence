@@ -38,8 +38,11 @@ def test_seed_pinned_regression_vector() -> None:
     sim = simulate_points(compose_parameters(_mart(seed=0)), n_sims=3000, seed=7)
     row = sim.sort_values(["player_id", "gw"]).iloc[100]
     assert (int(row["player_id"]), int(row["gw"]), row["position"]) == (8, 9, "FWD")
-    frozen = {"sim_mean": 3.8376, "sim_sd": 2.6993, "p10": 1.1975,
-              "p50": 2.1975, "p90": 6.8481, "p_haul": 0.0413}
+    # Re-frozen (position-intercept slice): the goals term now carries a per-position intercept and
+    # emits a structural 0.0 for GK, so every row's e_goals moved. p10/p50/p90 are unchanged — the shift
+    # is in the mean and the tail, not the discrete body of the distribution.
+    frozen = {"sim_mean": 3.86, "sim_sd": 2.6518, "p10": 1.1975,
+              "p50": 2.1975, "p90": 6.8481, "p_haul": 0.0367}
     for col, want in frozen.items():
         assert round(float(row[col]), 4) == want, f"{col}: {row[col]!r} != {want}"
 

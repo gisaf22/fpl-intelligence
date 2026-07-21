@@ -88,23 +88,24 @@ def test_calibration_report_seed_pinned_regression() -> None:
     isotonic/Platt output can legitimately drift across library versions (Fork C)."""
     rep = calibration_report(_panel(seed=0), n_sims=2000, seed=0)
     assert rep["n"] == 1260
-    assert rep["pit_mean"] == 0.526
+    assert rep["pit_mean"] == 0.527
     np.testing.assert_array_almost_equal(
         rep["pit_deciles"],
-        [0.049, 0.081, 0.092, 0.123, 0.142, 0.122, 0.113, 0.076, 0.079, 0.122], decimal=6)
-    # `cover` (operational [p10,p90]) is unchanged by the discreteness correction — the draw and PIT
-    # streams are untouched; `cover_pit` is the new discreteness-correct gate (coverage-metric slice).
-    cover = {"GK": 0.854, "DEF": 0.923, "MID": 0.638, "FWD": 0.821}
-    cover_pit = {"GK": 0.854, "DEF": 0.921, "MID": 0.638, "FWD": 0.792}
-    crps = {"GK": 1.783, "DEF": 1.537, "MID": 1.623, "FWD": 1.347}
+        [0.059, 0.072, 0.093, 0.112, 0.126, 0.141, 0.115, 0.084, 0.085, 0.113], decimal=6)
+    # `cover` is the operational [p10,p90] hit rate; `cover_pit` is the discreteness-correct gate.
+    # Both re-frozen in the position-intercept slice: the goals term changed, so the drawn
+    # distributions moved (the earlier re-freeze was metric-only and left `cover` untouched).
+    cover = {"GK": 0.869, "DEF": 0.885, "MID": 0.65, "FWD": 0.875}
+    cover_pit = {"GK": 0.869, "DEF": 0.883, "MID": 0.65, "FWD": 0.846}
+    crps = {"GK": 1.771, "DEF": 1.557, "MID": 1.616, "FWD": 1.348}
     for p in POSITIONS:
         np.testing.assert_almost_equal(float(rep["coverage"][p]), cover[p], decimal=6)
         np.testing.assert_almost_equal(float(rep["coverage_pit"][p]), cover_pit[p], decimal=6)
         np.testing.assert_almost_equal(float(rep["crps"].loc[p, "crps_sim"]), crps[p], decimal=6)
     # the band is pre-registered and unmoved; it now gates on the discreteness-correct number.
     assert rep["coverage_in_band"] == {p: bool(0.75 <= cover_pit[p] <= 0.85) for p in POSITIONS}
-    np.testing.assert_almost_equal(float(rep["haul_ece"].loc["raw", "ece"]), 0.0206, decimal=6)
-    np.testing.assert_almost_equal(float(rep["return_ece"].loc["raw", "ece"]), 0.0834, decimal=6)
+    np.testing.assert_almost_equal(float(rep["haul_ece"].loc["raw", "ece"]), 0.0241, decimal=6)
+    np.testing.assert_almost_equal(float(rep["return_ece"].loc["raw", "ece"]), 0.0702, decimal=6)
     # power surface: per-position event counts reproduce exactly.
     got_events = {p: (int(rep["events"].loc[p, "n"]), int(rep["events"].loc[p, "n_haul"]),
                       int(rep["events"].loc[p, "n_return"])) for p in POSITIONS}

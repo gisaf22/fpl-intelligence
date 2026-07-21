@@ -57,9 +57,9 @@ def test_reuses_the_shared_poisson_base() -> None:
 
 def test_emit_reproduces_godfile_assists_frozen() -> None:
     got = AssistsModel(variant="minimal").fit(_panel()).predictions.to_numpy()
-    assert_frozen(got, n_scored=1320, sum6=268.33595,
+    assert_frozen(got, n_scored=1320, sum6=268.346591,
                   spot_idx=[3, 339, 675, 1011, 1347],
-                  spot_vals=[0.1286, 0.3543, 0.219, 0.3734, 0.2685])
+                  spot_vals=[0.127, 0.351, 0.2166, 0.3701, 0.2658])
 
 
 def test_emit_returns_single_assists_term() -> None:
@@ -112,6 +112,6 @@ def test_selected_reproduces_full_pts_assists_frozen() -> None:
     assert set(AssistsModel(variant="selected").features(AssistsModel.population(panel))) == {
         "xa_roll3", "xa_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3"}
     got = AssistsModel(variant="selected").fit(panel).predictions.to_numpy()
-    assert_frozen(got, n_scored=1560, sum6=244.361119,
+    assert_frozen(got, n_scored=1560, sum6=244.991438,
                   spot_idx=[3, 387, 771, 1155, 1539],
-                  spot_vals=[0.1548, 0.0485, 0.2003, 0.1268, 0.2645])
+                  spot_vals=[0.1542, 0.0515, 0.1967, 0.1269, 0.2568])

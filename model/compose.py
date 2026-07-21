@@ -43,11 +43,11 @@ _GOAL_MULT = {"GK": GOAL_POINTS_GK, "DEF": GOAL_POINTS_DEF, "MID": GOAL_POINTS_M
 _CS_MULT = {"GK": CLEAN_SHEET_POINTS_GK, "DEF": CLEAN_SHEET_POINTS_DEF, "MID": CLEAN_SHEET_POINTS_MID, "FWD": 0}
 _CONCEDED_POS = ("GK", "DEF")
 _DC_POS = ("DEF", "MID", "FWD")
-# Goal points are attributed to OUTFIELD only. A GK scoring is astronomically rare, but the pooled goals
-# model emits a spurious tiny GK e_goals (~0.06) and the x10 GK goal multiplier squares that into a large
-# variance (~6.3 — bigger than the clean-sheet term), which over-disperses the GK distribution and wrecks
-# GK interval coverage (Phase-4 diagnosis). Gating GK goals to 0 is the honest correction: E[GK goals] ~ 0.
-_GOAL_POS = ("DEF", "MID", "FWD")
+# NOTE: goal points used to be gated to outfield here (`_GOAL_POS`), because the POOLED goals model
+# emitted a spurious GK e_goals (~0.06) which the x10 GK multiplier squared into ~6.3 of variance and
+# wrecked GK interval coverage. That gate is gone: `GoalsModel` no longer fits GK at all (its target is
+# structurally zero), so it emits 0.0 at source. The scoring layer no longer patches the model — a
+# regression in the goals term is now caught by that term's own level gate rather than silently masked.
 
 # The points decomposition (parts sum to e_points); stable across positions, zero where inapplicable.
 DECOMP_COLUMNS = ("appearance", "goals", "assists", "clean_sheets", "goals_conceded",
@@ -186,7 +186,7 @@ def compose_points(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
     # default master (all minutes>0) this equals the prior ``where(minutes>0, ..., 0)`` bit-for-bit; on the
     # keep_all panel it is the E[appearance | played] a blank row must carry before the P(play) multiply.
     d["appearance"] = SHORT_APPEARANCE_POINTS + (FULL_APPEARANCE_POINTS - SHORT_APPEARANCE_POINTS) * p60
-    d["goals"] = np.where(pos.isin(_GOAL_POS), gmult * p("e_goals"), 0.0)   # GK goals ~ 0 (see _GOAL_POS)
+    d["goals"] = gmult * p("e_goals")          # GK e_goals is 0.0 at source (not fitted)
     d["assists"] = ASSIST_POINTS * p("e_assists")
     d["clean_sheets"] = cmult * p("p_cs") * p60                             # gated by minutes (>=60')
     d["goals_conceded"] = np.where(pos.isin(_CONCEDED_POS), p("conceded_pts"), 0.0)  # already point-valued (<=0)

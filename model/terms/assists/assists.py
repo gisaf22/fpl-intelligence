@@ -24,6 +24,11 @@ class AssistsModel(PoissonPlayerComponentModel):
     target = "assists"
     term = "assists"
     pool = ASSISTS_POOL
+    # All four positions ARE fitted. GK assists are rare (~0.006/GW) but genuinely non-zero, unlike
+    # GK goals (exactly 0.0000 realized), so a keeper gets an *estimated* intercept rather than an
+    # assumed zero — the pooled model's failure was inflating that rate ~9x, not the rate existing.
+    # DEF is the design's reference level.
+    fit_positions = ("DEF", "MID", "FWD", "GK")
     hypotheses = (
         Hypothesis(
             claim="lagged xGI ranks next-GW assists better than a player's lagged assists mean",

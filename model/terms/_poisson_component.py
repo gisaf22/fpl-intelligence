@@ -35,9 +35,25 @@ _ELASTICNET_ALPHA = 0.0  # L1/L2 penalty for the selected draw; 0.0 ⇒ ≡ unre
 _ELASTICNET_L1 = 0.5
 
 
-def _design(df: pd.DataFrame, features: list[str]) -> np.ndarray:
-    """Intercept + features design matrix (float; NaNs handled by the caller's dropna)."""
-    return sm.add_constant(df[features].to_numpy(dtype=float), has_constant="add")
+def _design(df: pd.DataFrame, features: list[str], levels: tuple[str, ...] = ()) -> np.ndarray:
+    """Intercept + features (+ position dummies) design matrix.
+
+    ``levels`` are the position levels the model fits, in a fixed declared order; the **first is the
+    reference** and the rest get an indicator column. Passing fewer than two levels adds no columns,
+    so a single-position model (``saves``) keeps exactly the design it had.
+
+    Position is part of the *specification*, not a drawn feature: at equal process signal a forward
+    converts to goals at a different rate than a defender (a defender's xGI is ~50% assists, a
+    forward's ~87% goals), so a pooled intercept cannot express both. Omitting it is omitted-variable
+    bias, and it is absorbed almost entirely by the intercept — a shared slope keeps every position
+    borrowing strength for the signal itself.
+    """
+    X = df[features].to_numpy(dtype=float)
+    if len(levels) > 1:
+        pos = df["position"].to_numpy()
+        dummies = np.column_stack([(pos == lvl).astype(float) for lvl in levels[1:]])
+        X = np.hstack([X, dummies])
+    return sm.add_constant(X, has_constant="add")
 
 
 class PoissonPlayerComponentModel:
@@ -59,6 +75,15 @@ class PoissonPlayerComponentModel:
     # Detectability floor (pre-fit): a Poisson mean is only learnable away from zero with enough positive
     # events; below this the slice is under-powered and a null is *inconclusive*, not a licence to abandon.
     min_positive_events: ClassVar[int] = 10
+
+    # The positions this model FITS, in a fixed order (first = the design's reference level). Positions
+    # outside this tuple are not estimated at all: their target is structurally degenerate (keepers do
+    # not score goals), so they receive the structural value ``0.0`` rather than a fitted number that
+    # then has to be patched out downstream. Declared, not inferred from the data, so the design matrix
+    # is stable across every walk-forward slice.
+    fit_positions: ClassVar[tuple[str, ...]] = POSITIONS
+    # The honest value for a position whose target is structurally degenerate.
+    structural_value: ClassVar[float] = 0.0
 
     # -- subclass declares these ------------------------------------------------------------
     name: ClassVar[str]
@@ -136,10 +161,11 @@ class PoissonPlayerComponentModel:
         tr = train.dropna(subset=[*features, self.target])
         if len(tr) < self.min_train_rows_per_fit or tr[self.target].nunique() < 2:
             return np.full(len(test), np.nan)
+        levels = self.fit_positions
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             try:
-                glm = sm.GLM(tr[self.target].to_numpy(dtype=float), _design(tr, features),
+                glm = sm.GLM(tr[self.target].to_numpy(dtype=float), _design(tr, features, levels),
                              family=sm.families.Poisson())
                 # alpha=0 regularization *is* the unregularized MLE, so use the exact IRLS solver there
                 # (bit-identical to the god-file's plain .fit()). fit_regularized only when a real penalty
@@ -147,7 +173,7 @@ class PoissonPlayerComponentModel:
                 regularize = self.variant == "selected" and _ELASTICNET_ALPHA > 0.0
                 res = (glm.fit_regularized(alpha=_ELASTICNET_ALPHA, L1_wt=_ELASTICNET_L1) if regularize
                        else glm.fit())
-                return res.predict(_design(test, features))
+                return res.predict(_design(test, features, levels))
             except Exception:
                 return np.full(len(test), np.nan)
 
@@ -164,11 +190,21 @@ class PoissonPlayerComponentModel:
         df = self.population(mart, keep_all=keep_all)
         features = self.features(df)
         pred = pd.Series(np.nan, index=df.index, dtype=float)
+        # Positions outside `fit_positions` are structurally degenerate for this target: they are
+        # excluded from TRAIN (they would drag the shared slope toward a rate that does not exist)
+        # and receive the structural value rather than an estimate. The structural value is written on
+        # exactly the slices the walk-forward scores, so the scored population is unchanged — a
+        # structural position is *not* scored pre-warmup or on a slice too thin to run.
+        fits = df["position"].isin(self.fit_positions).to_numpy()
         for t in sorted(g for g in df["gw"].unique() if g > WARMUP_GW):
-            train, test = df[(df["gw"] < t) & (df["minutes"] > 0)], df[df["gw"] == t]
-            if test.empty or len(train) < self.min_train_rows_total:
+            train = df[(df["gw"] < t) & (df["minutes"] > 0) & fits]
+            at_t = (df["gw"] == t).to_numpy()
+            if not at_t.any() or len(train) < self.min_train_rows_total:
                 continue
-            pred.loc[test.index] = self._fit_predict(train, test, features)
+            pred.loc[df.index[at_t & ~fits]] = self.structural_value
+            test = df[at_t & fits]
+            if not test.empty:
+                pred.loc[test.index] = self._fit_predict(train, test, features)
         return Fitted(name=self.name, predictions=pred, features=tuple(features),
                       meta={"variant": self.variant, "population_index": df.index})
 
@@ -217,7 +253,11 @@ class PlayerComponentTerm:
         rows, passed = [], {}
         for pos in POSITIONS:
             sub = ev[ev["position"] == pos]
-            if sub.empty:
+            # A position the model does not fit makes no RANKING claim (its prediction is the constant
+            # structural value, so a rank correlation is undefined) — it is absent here rather than
+            # recorded as a failure. It still appears in the LEVEL table below: that is precisely where
+            # an over-reaching structural assumption gets caught.
+            if sub.empty or pos not in self.model.fit_positions:
                 continue
             r_base = grouped_spearman(sub, self.baseline_col, target, ["gw"], MIN_ROWS_PER_POS)
             r_model = grouped_spearman(sub, self.view_col, target, ["gw"], MIN_ROWS_PER_POS)

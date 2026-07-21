@@ -27,7 +27,11 @@ build-backend = "hatchling.build"
 dev-mode-dirs = ["."]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# `model` is here because the term tests are CO-LOCATED with the code they guard (spec §9) — every
+# term golden, the strangler-invariant vectors, compose and simulate. With `tests` alone, CI ran none
+# of them: `pytest -m unit` collects only testpaths, so 80 tests including every model golden were
+# silently skipped. A golden that nothing runs is not a golden.
+testpaths = ["tests", "model"]
 markers = [
     "integration: marks tests that require a live database (deselect with '-m not integration')",
     "unit: marks tests that run without any external dependencies",

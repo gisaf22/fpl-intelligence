@@ -32,6 +32,9 @@ class GoalsModel(PoissonPlayerComponentModel):
     target = "goals_scored"
     term = "goals"
     pool = GOALS_POOL
+    # Keepers do not score: the target is structurally zero, so GK is not fitted (it would also
+    # drag the shared slope). DEF is the design's reference level.
+    fit_positions = ("DEF", "MID", "FWD")
     hypotheses = (
         Hypothesis(
             claim="lagged xG+xA ranks next-GW goals better than a player's lagged goals mean",

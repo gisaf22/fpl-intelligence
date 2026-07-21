@@ -51,9 +51,11 @@ def test_satisfies_model_and_term_contracts() -> None:
 def test_emit_reproduces_godfile_goals_frozen() -> None:
     """The strangler invariant, frozen: minimal emit ≡ the (deleted) component_forecast goals GLM."""
     got = GoalsModel(variant="minimal").fit(_panel()).predictions.to_numpy()
-    assert_frozen(got, n_scored=1320, sum6=287.867666,
-                  spot_idx=[3, 339, 675, 1011, 1347],
-                  spot_vals=[0.1284, 0.0869, 0.335, 0.2783, 0.2843])
+    # Re-frozen (position-intercept slice): GK is no longer fitted, so the spot indices moved onto
+    # DEF/MID/FWD rows — an all-zero spot vector would not detect drift in the fitted positions.
+    assert_frozen(got, n_scored=1320, sum6=216.070899,
+                  spot_idx=[17, 428, 839, 1268, 1679],
+                  spot_vals=[0.2483, 0.3887, 0.3067, 0.1252, 0.2696])
 
 
 def test_emit_returns_single_goals_term() -> None:
@@ -124,9 +126,9 @@ def test_selected_reproduces_full_pts_goals_frozen() -> None:
     assert set(GoalsModel(variant="selected").features(GoalsModel.population(panel))) == {
         "xg_roll3", "xg_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3"}
     got = GoalsModel(variant="selected").fit(panel).predictions.to_numpy()
-    assert_frozen(got, n_scored=1560, sum6=378.949036,
-                  spot_idx=[3, 387, 771, 1155, 1539],
-                  spot_vals=[0.2613, 0.0966, 0.1392, 0.1013, 0.1596])
+    assert_frozen(got, n_scored=1560, sum6=295.084028,
+                  spot_idx=[19, 489, 959, 1449, 1919],
+                  spot_vals=[0.0991, 0.1275, 0.6339, 1.0096, 0.4145])
 
 
 def _lagsafe_mart(n_players: int = 6, n_gw: int = 6) -> pd.DataFrame:

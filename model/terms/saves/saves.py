@@ -27,6 +27,7 @@ class SavesModel(PoissonPlayerComponentModel):
     """Poisson GLM of next-GW ``saves`` on lagged process stats, GK only (the fittable unit)."""
 
     name = "saves"
+    fit_positions = ("GK",)   # GK-only: one level => no dummies, design unchanged
     target = "saves"
     term = "saves"
     pool = SAVES_POOL

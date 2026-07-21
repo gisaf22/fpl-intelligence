@@ -46,7 +46,7 @@ import numpy as np
 import pandas as pd
 
 from domain.fpl_scoring import BPS_BONUS_FIRST, GK_SAVES_PER_POINT
-from model.compose import _CS_MULT, _GOAL_MULT, _GOAL_POS, compose_parameters, compose_points
+from model.compose import _CS_MULT, _GOAL_MULT, compose_parameters, compose_points
 from model.eval.walkforward import WARMUP_GW
 
 HAUL_THRESHOLD = 10
@@ -81,18 +81,17 @@ def _simulate_rows(block: pd.DataFrame, ga: np.ndarray, n_sims: int,
     is_gk = (pos == "GK")[:, None]
     has_conceded = np.isin(pos, ["GK", "DEF"])[:, None]
     has_dc = np.isin(pos, ["DEF", "MID", "FWD"])[:, None]
-    has_goal = np.isin(pos, _GOAL_POS)[:, None]               # goal points: outfield only (GK e_goals ~ 0)
 
     def col(name: str) -> np.ndarray:
         return np.nan_to_num(block[name].to_numpy(dtype=float))[:, None]
 
     play60 = rng.random((n, n_sims)) < col("p60")
-    goals = rng.poisson(col("e_goals"), size=(n, n_sims))     # draw unchanged (keeps the rng stream stable)
+    goals = rng.poisson(col("e_goals"), size=(n, n_sims))     # GK e_goals is 0.0 => draws 0
     assists = rng.poisson(col("e_assists"), size=(n, n_sims))
     saves = np.where(is_gk, rng.poisson(np.clip(col("e_saves"), 0, None), size=(n, n_sims)), 0)
     dc = (rng.random((n, n_sims)) < col("p_dc")) & has_dc
 
-    goal_pts = np.where(has_goal, gmult * goals, 0)           # gate GK goals to 0 (the spurious x10 variance)
+    goal_pts = gmult * goals                                  # no position gate: the model emits 0 for GK
     cs = (ga == 0) & play60                                   # clean sheet needs GA=0 AND >=60'
     conceded = np.where(has_conceded, -(ga // 2), 0)
     saves_pts = np.where(is_gk, saves // GK_SAVES_PER_POINT, 0)

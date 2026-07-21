@@ -1,5 +1,11 @@
 # Phase-4 calibration — real-mart verdict (Track A: are the distributions trustworthy?)
 
+> **⚠️ SUPERSEDED IN PART (2026-07-20) — read the [correction](#correction-2026-07-20--the-coverage-metric-was-broken) at the bottom first.**
+> §3's coverage table was measured with a rule that is **not valid on an atomic distribution**. The
+> corrected numbers **flip MID from pass to fail**, **clear GK/DEF outright**, and **retire the proposed
+> "correlated component draws" slice as a measured dead end**. §§1, 2, 4 (haul ECE, CRPS, PIT) stand
+> unchanged. Plan: [coverage-metric slice](model-redesign-coverage-metric-slice.md).
+
 **Type:** results (frozen record) · **Plan:** [model-redesign-phase4-calibration-slice.md](model-redesign-phase4-calibration-slice.md)
 **Run:** `calibration_report(mart, n_sims=4000, seed=0)` on the full 2025-26 mart (GW1-38), conditional
 population (`minutes>0`, DGW-excluded, GW>3), **n = 10,110** scored player-GWs. Render-not-decide: the
@@ -96,3 +102,74 @@ the distribution adds real information over point/Poisson/climatology baselines.
 (b) DEF/MID over-coverage — a discrete-interval **metric artifact**, not a model defect. Neither is
 addressed by recalibrating event probabilities; both are recorded as the next-actionable levers, out of
 this slice's scope.
+
+---
+
+## Correction (2026-07-20) — the coverage metric was broken
+
+Everything above this line is the original frozen record. This section supersedes **§3 only**; §§1, 2, 4
+stand. Run: `calibration_report(mart, n_sims=4000, seed=0)`, same mart, same population, n = 10,110.
+
+### What was wrong
+
+§3 measured coverage as `p10 <= y <= p90`. FPL points are **atomic** — a player who plays and returns
+nothing scores exactly 1 or 2 — so `np.percentile` lands *inside* an atom and the interval is not an 80%
+interval at all: the simulator puts **47.5% of its FWD mass at or below its own `p10`**. The bonus term
+sharpens this into a specific bug: bonus adds a *continuous* sliver to a *discrete* score, so `p10` lands
+at **1.02** instead of `1.00`, and the **modal** FWD outcome `y = 1` is scored as falling *below* the
+interval. **76 of the 154 FWD below-`p10` misses are exactly that** — half the headline "FWD
+under-coverage" was the metric, not the model.
+
+The gate is now the **randomized-PIT** coverage (`0.10 <= u <= 0.90`), which is discreteness-correct by
+construction and reuses the PIT the suite already computes (no added randomness). The pre-registered band
+**[0.75, 0.85] is unmoved** — only the quantity it applies to changed.
+
+### Corrected §3 verdict
+
+| position | `[p10,p90]` (operational) | **`cover_pit` (gate)** | corrected verdict |
+|---|---|---|---|
+| GK | 0.882 | **0.802** | ✅ **in band** — the "over-coverage" was artifact |
+| DEF | 0.857 | **0.801** | ✅ **in band** — the "over-coverage" was artifact |
+| MID | 0.818 | **0.713** | ❌ **out of band** — *was a false pass* |
+| FWD | 0.735 | **0.654** | ❌ out of band — worse than recorded |
+
+Both columns stay in the report: `coverage` is what a consumer of the shipped `p10`/`p90` actually
+experiences, `coverage_pit` is the calibration gate. **Net:** the DEF/GK "artifact" reading in §3 was
+right and is now *dissolved* rather than asserted; MID was never actually passing; FWD is a real defect.
+
+### The proposed "correlated component draws" slice is a measured dead end
+
+§3 attributed FWD to independent component draws and named a correlated-draw slice. **Probed and
+rejected.** A shared attacking latent `Z ~ Gamma(1/φ, φ)` (`E[Z]=1`, means preserved exactly) per
+player-fixture *and* per team-fixture, with `goals|Z ~ Pois(λ_g·Z)` and `assists|Z ~ Pois(λ_a·Z)` — the
+exact mechanism proposed — does essentially nothing:
+
+| FWD | φ=0 (control) | φ=0.3 | φ=0.8 |
+|---|---|---|---|
+| `sim_sd`/realized | 0.707 | 0.730 | 0.765 |
+| coverage | 0.733 | 0.734 | **0.731** |
+| CRPS | 1.377 | 1.376 | 1.377 |
+
+Coverage moves by −0.002 and CRPS by 0.000 even at an already-implausible φ=0.8. Added variance is
+`φ·(4λ_g + 3λ_a)²`; FWD λ's are small, so closing the ratio this way would need `φ ≈ 6`. **Do not build
+this slice.**
+
+### What the FWD/MID narrowness actually is (next lever)
+
+RMSE about `sim_mean` (FWD: 3.04) far exceeds mean `sim_sd` (2.15). That excess is **mean-model error**,
+not component independence — the simulator draws as if `e_goals`/`e_assists`/`p60` were **known exactly**
+and propagates **zero parameter uncertainty**. That is the leading hypothesis for MID/FWD, and its own
+slice.
+
+### Newly surfaced, not previously recorded: per-position mean bias
+
+| position | bias (`sim_mean` − realized), pts/GW |
+|---|---|
+| GK | +0.25 |
+| DEF | **+0.39** |
+| MID | −0.01 |
+| FWD | **−0.40** |
+
+The model systematically **over-rates defenders and under-rates forwards by ~0.8 pts *relative***. It is
+a small share of MSE (bias²/mse ≈ 0.017) but it is *systematic and cross-position*, so it lands directly
+on transfer and captaincy comparisons — arguably the highest-decision-impact open item. Own slice.

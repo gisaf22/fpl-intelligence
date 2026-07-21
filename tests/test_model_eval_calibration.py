@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from model.eval.calibration import (
+    COVERAGE_ALPHA,
     RETURN_THRESHOLD,
     calibration_report,
     crps_table,
@@ -35,8 +36,43 @@ def test_simulate_eval_columns_and_bounds() -> None:
     assert ev["pit"].between(0, 1).all()
     assert ev["p_haul"].between(0, 1).all()
     assert set(ev["cover"].unique()) <= {0, 1}
+    assert set(ev["cover_pit"].unique()) <= {0, 1}
     assert (ev["crps_sim"] >= 0).all()
     assert RETURN_THRESHOLD == 6
+
+
+def test_cover_pit_is_a_pure_function_of_pit() -> None:
+    """`cover_pit` must add NO randomness of its own (coverage-metric slice, Fork B): it is exactly
+    the indicator that the already-drawn randomized PIT lies in the central 80%."""
+    ev = simulate_eval(_panel(seed=1), n_sims=300, seed=0)
+    expected = ((ev["pit"] >= COVERAGE_ALPHA) & (ev["pit"] <= 1 - COVERAGE_ALPHA)).astype(int)
+    assert (ev["cover_pit"] == expected).all()
+
+
+def test_cover_pit_is_discreteness_correct_on_an_atomic_distribution() -> None:
+    """The property that motivates the slice: on a lumpy distribution the `[p10,p90]` rule mis-measures
+    an 80% interval, while the randomized-PIT rule hits 80% on the nose.
+
+    Ground truth: draws and realizations from the SAME heavily-atomic law, so a correct 80% coverage
+    metric must return ~0.80. `np.percentile` lands inside an atom and cannot.
+    """
+    rng = np.random.default_rng(0)
+    n, n_sims = 4000, 2000
+    # ~60% of the mass sits on the single value 1 — the FPL "played, returned nothing" atom.
+    draws = np.where(rng.random((n, n_sims)) < 0.6, 1.0, rng.poisson(4.0, size=(n, n_sims)) + 1.0)
+    y = np.where(rng.random(n) < 0.6, 1.0, rng.poisson(4.0, size=n) + 1.0)
+
+    p10, p90 = np.percentile(draws, [10, 90], axis=1)
+    cover_interval = ((p10 <= y) & (y <= p90)).mean()
+
+    below = (draws < y[:, None]).mean(axis=1)
+    eq = (draws == y[:, None]).mean(axis=1)
+    pit = below + rng.random(n) * eq
+    cover_pit = ((pit >= COVERAGE_ALPHA) & (pit <= 1 - COVERAGE_ALPHA)).mean()
+
+    assert abs(cover_pit - 0.80) < 0.02, f"PIT coverage should be ~0.80, got {cover_pit:.3f}"
+    assert abs(cover_interval - 0.80) > 0.05, (
+        f"the [p10,p90] rule should visibly mis-measure on an atomic law, got {cover_interval:.3f}")
 
 
 def test_recalibration_table_shape() -> None:
@@ -56,11 +92,17 @@ def test_calibration_report_seed_pinned_regression() -> None:
     np.testing.assert_array_almost_equal(
         rep["pit_deciles"],
         [0.049, 0.081, 0.092, 0.123, 0.142, 0.122, 0.113, 0.076, 0.079, 0.122], decimal=6)
+    # `cover` (operational [p10,p90]) is unchanged by the discreteness correction — the draw and PIT
+    # streams are untouched; `cover_pit` is the new discreteness-correct gate (coverage-metric slice).
     cover = {"GK": 0.854, "DEF": 0.923, "MID": 0.638, "FWD": 0.821}
+    cover_pit = {"GK": 0.854, "DEF": 0.921, "MID": 0.638, "FWD": 0.792}
     crps = {"GK": 1.783, "DEF": 1.537, "MID": 1.623, "FWD": 1.347}
     for p in POSITIONS:
         np.testing.assert_almost_equal(float(rep["coverage"][p]), cover[p], decimal=6)
+        np.testing.assert_almost_equal(float(rep["coverage_pit"][p]), cover_pit[p], decimal=6)
         np.testing.assert_almost_equal(float(rep["crps"].loc[p, "crps_sim"]), crps[p], decimal=6)
+    # the band is pre-registered and unmoved; it now gates on the discreteness-correct number.
+    assert rep["coverage_in_band"] == {p: bool(0.75 <= cover_pit[p] <= 0.85) for p in POSITIONS}
     np.testing.assert_almost_equal(float(rep["haul_ece"].loc["raw", "ece"]), 0.0206, decimal=6)
     np.testing.assert_almost_equal(float(rep["return_ece"].loc["raw", "ece"]), 0.0834, decimal=6)
     # power surface: per-position event counts reproduce exactly.

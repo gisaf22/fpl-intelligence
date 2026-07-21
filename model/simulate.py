@@ -9,11 +9,22 @@ goals-against mean via ``lambda_ga = -log(p_cs)``, ``p_dc``/``p60`` are Bernoull
 
 Sampling assumptions (kept LOCAL to this file — the Term contract emits point values, not distributions;
 declaring a per-term sampling law is a deferred §2 change). Ported faithfully from the strangled
-``model.forecast.simulator`` (since deleted) and NOT newly validated here (PIT / haul-rate / CRPS is Phase-4 work):
+``model.forecast.simulator`` (since deleted); most are still un-revalidated here, with the one exception
+marked **MEASURED** below:
   * **team goals-against is drawn ONCE per team-fixture and shared** across the team's players, so
     ``clean_sheet = 1{GA=0} & played>=60`` and ``conceded = -floor(GA/2)`` co-move (D-D). Exact for
     full-90 players, approximate for subs.
-  * **DC is drawn independently** (D-A: DC _|_ GA given minutes); **goals _|_ assists** within a player.
+  * **DC is drawn independently** (D-A: DC _|_ GA given minutes).
+  * **goals _|_ assists** within a player — **MEASURED, holds** (2026-07-21, real mart, n=10,110,
+    conditional population). The claim is about the RESIDUAL: marginally the two do correlate (+0.038),
+    but that is only good attackers having high rates for both, which the per-player ``e_goals`` /
+    ``e_assists`` already carry. Net of those, ``corr(g - e_goals, a - e_assists)`` is DEF **-0.008**,
+    MID **+0.019**, FWD **+0.038** — every 95% CI contains 0. Independence understates the variance of
+    attacking points by <=4% (obs/independence-implied: GK 1.00, DEF 1.00, MID 1.03, FWD 1.04), i.e. ~2%
+    on interval width. Mechanistically two effects cancel: shared team attacking form pulls positive,
+    while a goal has one scorer and at most one (different) assister, which pulls negative.
+    Do NOT "fix" this by correlating the draws — see the Phase-4 results correction for the simulated
+    version of the same negative result.
   * **bonus co-varies via the drawn returns** (per draw); its competitive residual is not sampled — this
     is why ``sim_mean`` differs from compose's expected-returns bonus (bonus clip is a Jensen nonlinearity).
 

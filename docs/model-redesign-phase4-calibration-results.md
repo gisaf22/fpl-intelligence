@@ -154,6 +154,20 @@ Coverage moves by −0.002 and CRPS by 0.000 even at an already-implausible φ=0
 `φ·(4λ_g + 3λ_a)²`; FWD λ's are small, so closing the ratio this way would need `φ ≈ 6`. **Do not build
 this slice.**
 
+**Why it does nothing — the correlation isn't there to capture (measured directly, 2026-07-21).** The
+above is the *simulated* refutation; the *direct* one agrees. On the same population (n=10,110), the
+residual correlation `corr(g − e_goals, a − e_assists)` — the quantity the independence assumption is
+actually about — is DEF **−0.008**, MID **+0.019**, FWD **+0.038**, and **every 95% CI contains 0**. The
+marginal correlation (+0.038) is just good attackers having high rates for both, which the per-player
+λ's already carry; it is not a violation. Cost of assuming independence, in variance of attacking points
+(observed / independence-implied): GK 1.00, DEF 1.00, MID **1.03**, FWD **1.04** — ≤4% of variance, ~2%
+of interval width. Mechanistically two effects cancel: shared team attacking form pulls positive, while a
+goal has one scorer and at most one *different* assister, which pulls negative.
+
+Note also that correlation is a **spread-only** question: `E[4G + 3A] = 4E[G] + 3E[A]` regardless of
+dependence, so this assumption cannot move rankings, transfers, or captaincy at all. `goals ⊥ assists` is
+now recorded as **MEASURED** in the `model/simulate.py` assumption block rather than inherited.
+
 ### What the FWD/MID narrowness actually is (next lever)
 
 RMSE about `sim_mean` (FWD: 3.04) far exceeds mean `sim_sd` (2.15). That excess is **mean-model error**,

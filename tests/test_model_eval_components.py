@@ -93,3 +93,70 @@ def test_score_gates_stacks_and_sorts() -> None:
     assert set(out["model"]) == {"signal", "noise"}
     # within MID, the signal ranks above the noise (sorted by spearman desc)
     assert out.iloc[0]["model"] == "signal"
+
+
+# --------------------------------------------------------------------------------------------
+# Level (calibration) metrics — the gate criterion that ranking metrics are structurally blind to
+# --------------------------------------------------------------------------------------------
+
+def test_clustered_ci_is_wider_than_iid_when_errors_repeat_within_player() -> None:
+    """The reason to cluster: a player the model misjudges is misjudged EVERY week, so the
+    effective sample is players, not player-GWs. An i.i.d. interval would overstate precision."""
+    rng = np.random.default_rng(0)
+    n_players, n_gw = 30, 20
+    player_effect = rng.normal(0, 1.0, n_players)          # persistent per-player error
+    values, clusters = [], []
+    for p in range(n_players):
+        values.extend(player_effect[p] + rng.normal(0, 0.1, n_gw))
+        clusters.extend([p] * n_gw)
+    values, clusters = np.asarray(values), np.asarray(clusters)
+
+    _, lo, hi = metrics.clustered_mean_ci(values, clusters)
+    clustered_width = hi - lo
+    # pretend every row is independent
+    _, lo_i, hi_i = metrics.clustered_mean_ci(values, np.arange(len(values)))
+    iid_width = hi_i - lo_i
+    assert clustered_width > 2 * iid_width, (
+        f"clustering must widen the interval materially: {clustered_width:.3f} vs {iid_width:.3f}")
+
+
+def test_position_bias_flags_a_material_bias_and_clears_an_honest_model() -> None:
+    rng = np.random.default_rng(1)
+    n = 600
+    target = rng.poisson(0.5, n).astype(float)
+    df = pd.DataFrame({
+        "player_id": np.repeat(np.arange(n // 10), 10),
+        "position": "FWD",
+        "target": target,
+        "honest": np.full(n, target.mean()),          # right level
+        "biased": np.full(n, target.mean() * 1.6),    # 60% too high — well past the 10% floor
+    })
+    ok = metrics.position_bias(df, "honest", "target").iloc[0]
+    bad = metrics.position_bias(df, "biased", "target").iloc[0]
+    assert ok["ok"] and not ok["material"]
+    assert not bad["ok"] and bad["material"] and bad["detectable"]
+    assert bad["rel_bias"] == pytest.approx(0.6, abs=0.05)
+
+
+def test_position_bias_treats_a_structurally_zero_target_as_material() -> None:
+    """A position whose target is structurally zero (keepers and goals) does not belong in the
+    model's population at all — ANY non-zero prediction is material, and relative bias is undefined."""
+    df = pd.DataFrame({
+        "player_id": np.arange(200) // 5,
+        "position": "GK",
+        "target": np.zeros(200),
+        "pred": np.full(200, 0.06),
+    })
+    row = metrics.position_bias(df, "pred", "target").iloc[0]
+    assert row["material"] and not row["ok"]
+    assert np.isnan(row["rel_bias"])
+
+
+def test_gate_result_passed_all_requires_both_criteria() -> None:
+    """A term is only sound where it ranks AND levels — ranking alone must not carry a position."""
+    from model.terms._base import GateResult as TermGateResult
+    g = TermGateResult(
+        term="t", table=pd.DataFrame(), passed={"DEF": True, "MID": True},
+        calibration=pd.DataFrame(), passed_calibration={"DEF": False, "MID": True},
+    )
+    assert g.passed_all == {"DEF": False, "MID": True}

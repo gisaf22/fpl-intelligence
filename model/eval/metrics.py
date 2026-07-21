@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
+from scipy.stats import norm, spearmanr
 
 # Two-sided coverage for the block-bootstrap interval; block length in gameweeks.
 CI_LEVEL = 0.95
@@ -117,3 +117,82 @@ def ndcg_at_k(pred: np.ndarray, actual: np.ndarray, k: int) -> float:
     dcg = (gains[np.argsort(-pred)][:k] * disc).sum()
     idcg = (np.sort(gains)[::-1][:k] * disc).sum()
     return float(dcg / idcg) if idcg > 0 else np.nan
+
+
+# ---------------------------------------------------------------------------------------------
+# Level (calibration) metrics — the gate's ranking metrics above cannot see a systematic LEVEL
+# error. A model can rank a position perfectly and still be wrong about *how many* points it
+# scores, which is exactly what composition and cross-position comparison depend on.
+# ---------------------------------------------------------------------------------------------
+
+# Pre-registered materiality floor (stated before looking): a per-position mean bias counts as a
+# defect only if it exceeds this fraction of the position's own realized mean. Mirrors the
+# established "material, not merely detectable" pattern used for dispersion in check_assumptions —
+# with thousands of rows, a statistically detectable but trivially small bias is not a defect.
+MATERIAL_BIAS_FRAC = 0.10
+
+
+def clustered_mean_ci(values: np.ndarray, clusters: np.ndarray,
+                      ci_level: float = CI_LEVEL) -> tuple[float, float, float]:
+    """Cluster-robust CI for a mean: ``(mean, lo, hi)``.
+
+    Prediction errors correlate **within a player** across gameweeks (a player the model
+    misjudges is misjudged every week), so an i.i.d. interval would overstate precision by roughly
+    sqrt(rows per player). Clusters on ``clusters`` using the standard sandwich for a mean,
+    with the usual G/(G-1) small-sample correction.
+    """
+    values = np.asarray(values, dtype=float)
+    clusters = np.asarray(clusters)
+    n = len(values)
+    if n == 0:
+        return (np.nan, np.nan, np.nan)
+    mean = float(values.mean())
+    resid = values - mean
+    # sum of residuals within each cluster
+    _, inv = np.unique(clusters, return_inverse=True)
+    g = int(inv.max()) + 1
+    cluster_sums = np.bincount(inv, weights=resid, minlength=g)
+    if g < 2:
+        return (mean, np.nan, np.nan)
+    var = (g / (g - 1)) * (cluster_sums ** 2).sum() / (n ** 2)
+    z = float(norm.ppf(0.5 + ci_level / 2))
+    half = z * float(np.sqrt(max(var, 0.0)))
+    return (mean, mean - half, mean + half)
+
+
+def position_bias(df: pd.DataFrame, pred_col: str, target_col: str,
+                  position_col: str = "position", cluster_col: str = "player_id",
+                  material_frac: float = MATERIAL_BIAS_FRAC) -> pd.DataFrame:
+    """Per-position mean level error ``E[pred] - E[target]``, with a player-clustered interval.
+
+    One row per position: ``n``, ``n_players``, ``mean_pred``, ``mean_target``, ``bias``,
+    ``rel_bias`` (bias as a fraction of the realized mean), the clustered interval, and three flags:
+
+    * ``detectable`` — the clustered CI excludes zero (a *statistical* claim). A thin position gives
+      a wide interval and is simply not detectable — underpowered, which is **inconclusive, not a
+      pass** in spirit, and never a spurious fail.
+    * ``material``   — ``|bias|`` exceeds ``material_frac`` of the realized mean (a *practical*
+      claim). Where the realized mean is **zero** the target is structurally degenerate for that
+      position (e.g. keepers and goals), so *any* non-zero prediction is material: such a position
+      does not belong in the model's population at all.
+    * ``ok``         — not (detectable and material). This is the gate criterion.
+    """
+    rows = []
+    for pos, s in df.dropna(subset=[pred_col, target_col]).groupby(position_col):
+        err = (s[pred_col] - s[target_col]).to_numpy(dtype=float)
+        clusters = s[cluster_col].to_numpy() if cluster_col in s else np.arange(len(s))
+        bias, lo, hi = clustered_mean_ci(err, clusters)
+        mean_target = float(s[target_col].mean())
+        detectable = bool(np.isfinite(lo) and (lo > 0 or hi < 0))
+        material = abs(bias) > material_frac * abs(mean_target) if mean_target != 0 else bias != 0
+        rows.append({
+            "position": pos, "n": len(s), "n_players": int(pd.Series(clusters).nunique()),
+            "mean_pred": round(float(s[pred_col].mean()), 4),
+            "mean_target": round(mean_target, 4),
+            "bias": round(bias, 4),
+            "rel_bias": round(bias / mean_target, 4) if mean_target != 0 else np.nan,
+            "ci_lo": round(lo, 4), "ci_hi": round(hi, 4),
+            "detectable": detectable, "material": bool(material),
+            "ok": not (detectable and material),
+        })
+    return pd.DataFrame(rows)

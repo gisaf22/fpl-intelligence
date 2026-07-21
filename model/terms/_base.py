@@ -70,11 +70,27 @@ class Fitted:
 
 @dataclass(frozen=True)
 class GateResult:
-    """A term's within-position gate vs its own baseline (spec §5, shared eval scorer)."""
+    """A term's per-position gate vs its own baseline (spec §5, shared eval scorer).
+
+    **Two criteria, because they fail independently.** ``passed`` is the *ranking* gate (does the
+    signal out-rank the term's own naive history?). ``passed_calibration`` is the *level* gate (does
+    the term predict the right AMOUNT?). A model can rank a position perfectly and still be
+    systematically wrong about how many goals/points it produces — ranking metrics are invariant to
+    any monotone level error, so the ranking gate is structurally blind to it. Composition and
+    cross-position comparison depend on the level, so it gets its own criterion rather than riding
+    along on Spearman.
+    """
 
     term: str
     table: pd.DataFrame             # per-position spearman for {baseline, model} on the common eval set
-    passed: dict[str, bool]         # position -> model beats its own baseline
+    passed: dict[str, bool]         # position -> model beats its own baseline (RANKING)
+    calibration: pd.DataFrame = field(default_factory=pd.DataFrame)  # per-position bias (metrics.position_bias)
+    passed_calibration: dict[str, bool] = field(default_factory=dict)  # position -> no material level bias
+
+    @property
+    def passed_all(self) -> dict[str, bool]:
+        """Per-position verdict on BOTH criteria — a term is only sound where it ranks *and* levels."""
+        return {p: bool(ok and self.passed_calibration.get(p, True)) for p, ok in self.passed.items()}
 
 
 @dataclass(frozen=True)

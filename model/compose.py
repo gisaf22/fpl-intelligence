@@ -27,7 +27,6 @@ from domain.fpl_scoring import (
     CLEAN_SHEET_POINTS_MID,
     DC_POINTS,
     FULL_APPEARANCE_POINTS,
-    GK_SAVES_PER_POINT,
     GOAL_POINTS_DEF,
     GOAL_POINTS_FWD,
     GOAL_POINTS_GK,
@@ -38,6 +37,7 @@ from model.eval.baselines import expanding_prior_mean
 from model.features.build import broadcast
 from model.terms.bonus.bonus import returns_points  # noqa: F401  (kept for parity/reference)
 from model.terms.registry import BONUS_MODEL, PLAY_MODEL, TERM_MODELS
+from model.terms.saves.saves import saves_points_expectation
 
 _GOAL_MULT = {"GK": GOAL_POINTS_GK, "DEF": GOAL_POINTS_DEF, "MID": GOAL_POINTS_MID, "FWD": GOAL_POINTS_FWD}
 _CS_MULT = {"GK": CLEAN_SHEET_POINTS_GK, "DEF": CLEAN_SHEET_POINTS_DEF, "MID": CLEAN_SHEET_POINTS_MID, "FWD": 0}
@@ -190,7 +190,10 @@ def compose_points(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
     d["assists"] = ASSIST_POINTS * p("e_assists")
     d["clean_sheets"] = cmult * p("p_cs") * p60                             # gated by minutes (>=60')
     d["goals_conceded"] = np.where(pos.isin(_CONCEDED_POS), p("conceded_pts"), 0.0)  # already point-valued (<=0)
-    d["saves"] = np.where(pos.eq("GK"), p("e_saves") / GK_SAVES_PER_POINT, 0.0)
+    # E[floor(S/3)], not E[S]/3: FPL pays a concave step function, so the naive linear conversion
+    # over-counted GK saves points by ~0.33/GW (a Jensen gap). The simulator already draws-then-floors,
+    # so this aligns the point estimate with the distribution rather than diverging from it.
+    d["saves"] = np.where(pos.eq("GK"), saves_points_expectation(p("e_saves")), 0.0)
     d["defensive_contribution"] = np.where(pos.isin(_DC_POS), DC_POINTS * p("p_dc"), 0.0)
 
     # bonus: the per-row scoring map applied to the EXPECTED returns (point value of goals/assists/CS/saves).

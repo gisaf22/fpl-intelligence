@@ -80,3 +80,34 @@ def test_check_assumptions_reports_dispersion_and_detectability() -> None:
     assert report.n_train > 0
     assert isinstance(report.detectable, bool)
     assert isinstance(report.family_ok, bool)  # saves may be over-dispersed — reported, not blocked
+
+
+def test_saves_points_expectation_is_exact_not_linear() -> None:
+    """The scoring-rule fix: FPL pays floor(S/3), so the expected POINTS are E[floor(S/3)], NOT the
+    naive E[S]/3. The gap is a concave-step Jensen effect (~0.33 pt at a typical keeper rate) — the bug
+    that made compose over-count GK saves points and diverge from the simulator (which draws then floors).
+    """
+    from model.terms.saves.saves import saves_points_expectation
+
+    rng = np.random.default_rng(0)
+    for lam in (0.5, 2.6, 5.0, 8.0):
+        exact = float(saves_points_expectation(np.array([lam]))[0])
+        mc = float((rng.poisson(lam, 1_000_000) // 3).mean())     # draw-then-floor: the ground truth
+        assert abs(exact - mc) < 5e-3, f"lam={lam}: exact {exact:.4f} vs MC {mc:.4f}"
+        assert exact < lam / 3.0, f"lam={lam}: exact {exact:.4f} not below naive {lam/3:.4f}"
+    # a typical keeper rate leaves a materially large gap — this is worth ~0.33 pt/GW
+    assert (2.6 / 3.0) - float(saves_points_expectation(np.array([2.6]))[0]) > 0.3
+    # NaN-safe (compose feeds nan_to_num'd values, but the primitive is honest on its own)
+    assert np.isnan(saves_points_expectation(np.array([np.nan]))[0])
+
+
+def test_saves_points_expectation_matches_simulator_mean() -> None:
+    """compose's point estimate must now AGREE with the simulator's floored-draw mean at GK (the two
+    diverged before the fix — E[S]/3 vs E[floor(S/3)]). Same construction as conceded_penalty_expectation.
+    """
+    from model.terms.saves.saves import saves_points_expectation
+
+    rng = np.random.default_rng(1)
+    lam = np.array([1.2, 2.6, 4.1])
+    sim_mean = np.array([(rng.poisson(x, 400_000) // 3).mean() for x in lam])
+    np.testing.assert_allclose(saves_points_expectation(lam), sim_mean, atol=5e-3)

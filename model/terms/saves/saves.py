@@ -16,11 +16,35 @@ conversion (÷3) is a compose-layer concern, so the term emits the raw expected 
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
+from scipy.stats import poisson
 
+from domain.fpl_scoring import GK_SAVES_PER_POINT
 from model.terms._base import Hypothesis
 from model.terms._poisson_component import PlayerComponentTerm, PoissonPlayerComponentModel
 from model.terms.saves.spec import SAVES_POOL
+
+# Saves support for the points expectation. FPL pays 1 pt per 3 saves = floor(S/3); P(S>=40) is
+# negligible for any realistic keeper lambda (~2.6, rarely >8), mirroring team_goals_against's _GA_SUPPORT.
+_SAVES_SUPPORT = np.arange(0, 40)
+_SAVES_POINTS = _SAVES_SUPPORT // GK_SAVES_PER_POINT  # floor(S/3) — the actual FPL payout per save count
+
+
+def saves_points_expectation(e_saves: np.ndarray) -> np.ndarray:
+    """E[floor(S/3)] under S ~ Poisson(e_saves) — the EXACT expected saves points, NaN-safe.
+
+    FPL pays ``floor(S/3)``, a concave step function, so the expectation of the payout is **not** the
+    payout of the expectation: ``E[floor(S/3)] < E[S]/3`` by ~0.33 pt at a typical keeper rate (a Jensen
+    gap the naive ``e_saves / 3`` conversion ignored). Same construction as
+    :func:`model.terms.team_goals_against.conceded_penalty_expectation` (``E[-floor(GA/2)]``) — the shared
+    shape is ``E[floor(Poisson/k)]`` summed over the count support.
+    """
+    e_saves = np.asarray(e_saves, dtype=float)
+    safe = np.nan_to_num(e_saves, nan=0.0)
+    pmf = poisson.pmf(_SAVES_SUPPORT[None, :], safe[:, None])  # (n, K)
+    exp = (pmf * _SAVES_POINTS).sum(axis=1)
+    return np.where(np.isnan(e_saves), np.nan, exp)
 
 
 class SavesModel(PoissonPlayerComponentModel):

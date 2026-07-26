@@ -94,11 +94,40 @@ predictions are now a constant 0.0, and an all-zero spot vector cannot detect dr
 87 tests including every model golden, the strangler-invariant vectors, `compose` and `simulate`. They
 had to be run by hand to be seen. `testpaths` now includes `model`; the suite goes 1327 → 1414.
 
+## Follow-on: the `saves` scoring-rule gap (fixed)
+
+FPL pays `floor(S/3)`, a concave step function, but `compose` scored `E[S]/3` — the payout of the
+expectation, not the expectation of the payout. A Jensen gap of ~0.33 pt at a typical keeper rate, and
+the reason `compose` and the simulator **disagreed** on GK saves (the simulator draws `Poisson(e_saves)`
+then floors, so it was always right; only the point estimate was wrong, and `simulator_consistency`
+excludes GK so nobody caught it).
+
+Fix: `saves_points_expectation(e_saves) = E[floor(S/3)]` summed over the Poisson count support — the same
+construction as `conceded_penalty_expectation` (`E[-floor(GA/2)]`), verified against a draw-then-floor
+Monte-Carlo to 3 dp. Applied at the one buggy line in `compose`; the simulator was already correct, so
+**no draw, no simulate golden, and no calibration vector moved** — the point estimate simply stopped
+diverging from the distribution.
+
+Result (real mart) — every position is now within ±0.10 pt/GW:
+
+| position | after position fix | **after saves fix** |
+|---|---|---|
+| GK | +0.420 | **+0.025** |
+| DEF | +0.064 | +0.064 |
+| MID | +0.098 | +0.098 |
+| FWD | +0.038 | +0.038 |
+
+The GK drop (0.395) is the saves Jensen gap plus its small bonus knock-on (lower saves points → lower
+expected returns → lower `e_bonus`). This also **absorbed the clean-sheet +0.09** I had flagged as a
+separate residual — GK is now essentially unbiased, so that residual was inside the saves error, not
+independent of it.
+
 ## Open, in order
 
-1. **`saves` scoring rule** — `E[S]/3` vs `E[floor(S/3)]`, worth +0.28 pts/GW at GK. `team_goals_against`
-   already computes `E[-floor(GA/2)]` exactly over the count support; `saves` should do the same.
-2. **Clean-sheet GK +0.09** — undiagnosed.
-3. **Parameter-uncertainty propagation** — the remaining MID/FWD interval failure.
-4. **DC unverifiable** — 0.417 pts/GW at DEF with no realized column on the mart.
-5. **Level gate not wired** into the three custom-`validate` terms (`bonus`, `clean_sheet`, `conceded`).
+1. **Parameter-uncertainty propagation** — the remaining MID/FWD interval failure (coverage 0.727 /
+   0.673, still under band). The simulator conditions on point-estimate parameters; the leading
+   hypothesis for the residual narrowness.
+2. **DC unverifiable** — 0.417 pts/GW at DEF with no realized column on the mart.
+3. **Level gate not wired** into the three custom-`validate` terms (`bonus`, `clean_sheet`, `conceded`).
+4. **Scoring-rule conformance check** — the saves gap was a *class* of bug (linear expectation of a
+   nonlinear rule) that no gate could see; a general `E[rule]` vs `rule(E)` check would catch the next one.

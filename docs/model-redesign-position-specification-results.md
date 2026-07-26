@@ -129,5 +129,6 @@ independent of it.
    hypothesis for the residual narrowness.
 2. **DC unverifiable** — 0.417 pts/GW at DEF with no realized column on the mart.
 3. **Level gate not wired** into the three custom-`validate` terms (`bonus`, `clean_sheet`, `conceded`).
-4. **Scoring-rule conformance check** — the saves gap was a *class* of bug (linear expectation of a
-   nonlinear rule) that no gate could see; a general `E[rule]` vs `rule(E)` check would catch the next one.
+4. ~~**Scoring-rule conformance check**~~ — **DONE** ([slice](model-redesign-scoring-conformance-slice.md)):
+   `model/eval/scoring_conformance.py` asserts every exact term equals the simulator's `E[rule]`; `bonus`
+   is the sole (accepted) non-conformer. Confirmed the entire compose↔sim residual is the bonus clip.

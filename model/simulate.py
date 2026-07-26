@@ -71,9 +71,20 @@ def _draw_team_ga(params: pd.DataFrame, n_sims: int, rng: np.random.Generator) -
     return tf_index, ga_by_tf
 
 
-def _simulate_rows(block: pd.DataFrame, ga: np.ndarray, n_sims: int,
-                   rng: np.random.Generator) -> np.ndarray:
-    """Sampled points ``(n_rows, n_sims)`` for a block of player-GW rows (``ga`` already indexed)."""
+# The per-component point decomposition a draw produces — same names/order as compose's DECOMP_COLUMNS,
+# so the two are directly comparable term-by-term (the scoring-conformance check).
+DECOMP_TERMS = ("appearance", "goals", "assists", "clean_sheets", "goals_conceded",
+                "saves", "defensive_contribution", "bonus")
+
+
+def _simulate_components(block: pd.DataFrame, ga: np.ndarray, n_sims: int,
+                         rng: np.random.Generator) -> dict[str, np.ndarray]:
+    """The per-component POINT matrices for a block — each ``(n_rows, n_sims)``, keyed by DECOMP_TERMS.
+
+    This is the single home of the draw+score logic; :func:`_simulate_rows` sums these, and the
+    conformance check means them per term. The rng draw order (play60, goals, assists, saves, dc) is the
+    contract that keeps every downstream golden bit-identical — do not reorder it.
+    """
     n = len(block)
     pos = block["position"].to_numpy()
     gmult = block["position"].map(_GOAL_MULT).to_numpy(dtype=float)[:, None]
@@ -92,17 +103,48 @@ def _simulate_rows(block: pd.DataFrame, ga: np.ndarray, n_sims: int,
     dc = (rng.random((n, n_sims)) < col("p_dc")) & has_dc
 
     goal_pts = gmult * goals                                  # no position gate: the model emits 0 for GK
-    cs = (ga == 0) & play60                                   # clean sheet needs GA=0 AND >=60'
+    assist_pts = 3 * assists
+    cs_pts = cmult * ((ga == 0) & play60)                     # clean sheet needs GA=0 AND >=60'
     conceded = np.where(has_conceded, -(ga // 2), 0)
     saves_pts = np.where(is_gk, saves // GK_SAVES_PER_POINT, 0)
     dc_pts = np.where(dc, 2, 0)
     appearance = 1 + play60                                   # 1 (played) + 1 (>=60')
 
-    returns_pts = goal_pts + 3 * assists + cmult * cs + saves_pts
+    returns_pts = goal_pts + assist_pts + cs_pts + saves_pts
     bonus = np.clip(col("bonus_intercept") + col("bonus_slope") * returns_pts, 0.0, BPS_BONUS_FIRST)
 
-    return (appearance + goal_pts + 3 * assists + cmult * cs
-            + conceded + dc_pts + saves_pts + bonus)
+    return {"appearance": appearance, "goals": goal_pts, "assists": assist_pts,
+            "clean_sheets": cs_pts, "goals_conceded": conceded, "saves": saves_pts,
+            "defensive_contribution": dc_pts, "bonus": bonus}
+
+
+def _simulate_rows(block: pd.DataFrame, ga: np.ndarray, n_sims: int,
+                   rng: np.random.Generator) -> np.ndarray:
+    """Sampled points ``(n_rows, n_sims)`` for a block — the sum of :func:`_simulate_components`.
+
+    The addition order is fixed to the pre-decomposition expression (appearance, goals, assists, CS,
+    conceded, DC, saves, bonus) so the float result is **bit-identical** to the seed-pinned golden.
+    """
+    c = _simulate_components(block, ga, n_sims, rng)
+    return (c["appearance"] + c["goals"] + c["assists"] + c["clean_sheets"]
+            + c["goals_conceded"] + c["defensive_contribution"] + c["saves"] + c["bonus"])
+
+
+def _iter_draw_batches(params: pd.DataFrame, n_sims: int, seed: int, batch_rows: int
+                       ) -> Iterator[tuple[pd.DataFrame, np.ndarray, np.random.Generator]]:
+    """Shared setup for the draw primitives: filter to the scored population, seed one rng, draw team-GA
+    once, then yield ``(block, ga, rng)`` per memory-bounded batch. The single home of the batch loop —
+    both :func:`iter_sample_blocks` and :func:`iter_component_blocks` consume it, so the rng stream and
+    batching are identical across the summed and decomposed views (no duplicated loop, spec Phase-4 §1)."""
+    df = params[params["gw"] > WARMUP_GW].dropna(subset=_REQUIRED).copy().reset_index(drop=True)
+    if df.empty:
+        return
+    rng = np.random.default_rng(seed)
+    tf_index, ga_by_tf = _draw_team_ga(df, n_sims, rng)
+    for start in range(0, len(df), batch_rows):
+        block = df.iloc[start:start + batch_rows]
+        ga = ga_by_tf[tf_index[start:start + batch_rows]]
+        yield block, ga, rng
 
 
 def iter_sample_blocks(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
@@ -112,19 +154,22 @@ def iter_sample_blocks(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
     ``params`` is a :func:`model.compose.compose_parameters` output (any extra columns — e.g. a realized
     ``y`` — ride along on each yielded ``block``). Team goals-against is drawn **once** per team-fixture and
     shared (drawn up front from a single seeded rng), then each block's other components are drawn per row;
-    ``draws`` is the ``(n_block_rows, n_sims)`` sampled-points matrix. The single home of the draw loop:
-    :func:`simulate_points` reduces it to summaries, ``calibration`` scores it against realized points — so
-    the machinery is not duplicated and the rng stream is identical across both.
+    ``draws`` is the ``(n_block_rows, n_sims)`` sampled-points matrix. :func:`simulate_points` reduces it to
+    summaries, ``calibration`` scores it against realized points — so the rng stream is identical across both.
     """
-    df = params[params["gw"] > WARMUP_GW].dropna(subset=_REQUIRED).copy().reset_index(drop=True)
-    if df.empty:
-        return
-    rng = np.random.default_rng(seed)
-    tf_index, ga_by_tf = _draw_team_ga(df, n_sims, rng)
-    for start in range(0, len(df), batch_rows):
-        block = df.iloc[start:start + batch_rows]
-        ga = ga_by_tf[tf_index[start:start + batch_rows]]
+    for block, ga, rng in _iter_draw_batches(params, n_sims, seed, batch_rows):
         yield block, _simulate_rows(block, ga, n_sims, rng)
+
+
+def iter_component_blocks(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
+                          batch_rows: int = 400) -> Iterator[tuple[pd.DataFrame, dict[str, np.ndarray]]]:
+    """Yield ``(block, components)`` per batch — the per-term decomposition of the same draws.
+
+    ``components`` maps each :data:`DECOMP_TERMS` name to its ``(n_block_rows, n_sims)`` point matrix.
+    Shares :func:`_iter_draw_batches` with :func:`iter_sample_blocks`, so the draws are the same stream;
+    this is the ground-truth ``E[rule(X)]`` the scoring-conformance check compares compose against."""
+    for block, ga, rng in _iter_draw_batches(params, n_sims, seed, batch_rows):
+        yield block, _simulate_components(block, ga, n_sims, rng)
 
 
 def simulate_points(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
@@ -154,11 +199,13 @@ def simulate_from_mart(mart: pd.DataFrame, n_sims: int = 10000, seed: int = 0) -
 
 
 def simulator_consistency(mart: pd.DataFrame, n_sims: int = 4000, seed: int = 0) -> dict:
-    """Consistency check: sim mean vs compose ``e_points`` (NOT a predictive gate, NOT bit-identical).
+    """Aggregate consistency smoke-test: sim mean vs compose ``e_points`` (NOT a predictive gate).
 
-    The simulator should reproduce the composition's mean up to MC error and the bonus-clip / saves-floor
-    nonlinearities. **GK rows are excluded** — compose's robust GK ``p60`` diverges from the legacy
-    simulator by design. Returns ``{corr, mean_abs_diff, n}`` on the non-GK rows.
+    A fast corr / mean-abs-diff on the non-GK aggregate. Superseded for diagnosis by
+    :func:`model.eval.scoring_conformance.scoring_conformance`, which is **per term and includes GK** —
+    this aggregate view, and its GK exclusion, is exactly what hid the saves ``rule(E)`` gap. Kept as a
+    cheap top-line check. The only residual nonconformity is now the bonus clip (saves/conceded are exact
+    since the scoring-conformance slice); ``mean_abs_diff`` should be tiny. Returns ``{corr, mean_abs_diff, n}``.
     """
     sim = simulate_points(compose_parameters(mart), n_sims=n_sims, seed=seed)
     ep = compose_points(mart)[["player_id", "gw", "e_points"]]

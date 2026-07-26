@@ -102,6 +102,8 @@ def _process_panel(n_players: int = 120, n_gw: int = 16, seed: int = 7) -> pd.Da
                 "xg": max(0.0, skill + rng.normal(0, 0.08)), "xa": max(0.0, skill * 0.6 + rng.normal(0, 0.05)),
                 "xgi_roll3": skill + rng.normal(0, 0.05), "xgi_roll5": skill + rng.normal(0, 0.04),
                 "minutes_roll3": 90.0, "assists": rng.poisson(skill * 0.6),
+                # fdr_avg: known-future fixture difficulty, drawn by `selected` (mean-features step-1).
+                "fdr_avg": float(rng.integers(2, 6)),
             })
     return pd.DataFrame(rows)
 
@@ -109,9 +111,12 @@ def _process_panel(n_players: int = 120, n_gw: int = 16, seed: int = 7) -> pd.Da
 def test_selected_reproduces_full_pts_assists_frozen() -> None:
     """full_pts reconciliation, frozen: selected (5-feature ASSIST_FEATURES) ≡ points_model's inline fit."""
     panel = _process_panel()
+    # selected draws the shipped ASSIST_FEATURES set + fdr_avg (mean-features step-1: fixture context).
     assert set(AssistsModel(variant="selected").features(AssistsModel.population(panel))) == {
-        "xa_roll3", "xa_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3"}
+        "xa_roll3", "xa_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3", "fdr_avg"}
     got = AssistsModel(variant="selected").fit(panel).predictions.to_numpy()
-    assert_frozen(got, n_scored=1560, sum6=244.991438,
+    # Re-frozen (mean-features step-1): the panel now carries fdr_avg and `selected` draws it, so every
+    # scored prediction moved (the design gained the known-future fixture-difficulty term).
+    assert_frozen(got, n_scored=1560, sum6=273.538712,
                   spot_idx=[3, 387, 771, 1155, 1539],
-                  spot_vals=[0.1542, 0.0515, 0.1967, 0.1269, 0.2568])
+                  spot_vals=[0.1504, 0.2364, 0.1236, 0.2334, 0.374])

@@ -56,6 +56,21 @@ _XGI_ROLL5 = FeatureSpec(
     prior="phase3 points model ASSIST_FEATURES",
 )
 
+# Fixture difficulty of the specific upcoming opponent — a materialized mart column, known before
+# kickoff, so using it for GW t is NOT leakage (a known-future feature, unlike a lagged roll). Added
+# to the assists `selected` design after the mean-features step-1 protocol
+# (docs/model-redesign-mean-features-plan.md): walk-forward, the paired per-GW Spearman delta pooled
+# over the model's (gw, position) cells is +0.0151, block-bootstrap CI [+0.0010, +0.0296] — excludes 0
+# (every position's point estimate is positive; DEF +0.021, FWD +0.021 reproduce the scoping measurement).
+# Level gate (position_bias) unchanged. `was_home` was tested the same way and DROPPED (pooled delta
+# -0.0070, CI [-0.0225, +0.0057] — indistinguishable from zero).
+_FDR = FeatureSpec(
+    name="fdr_avg", source="fdr_avg", grain="player_gw", transform="identity", window=None,
+    lag_safe=True, known_future=True,
+    rationale="fixture difficulty of the specific upcoming opponent — more assists to go round vs a weak defence",
+    prior="families §3: opponent strength; mean-features step-1 (assists pooled Δρ +0.0151, CI [+0.0010, +0.0296])",
+)
+
 # Declared-but-unmaterialized §3 forward agenda for assists: creative process stats and team context the
 # selected model will regularize over once features/build.py builds them (materialize raises until then).
 _CREATIVITY_ROLL3 = FeatureSpec(
@@ -81,6 +96,6 @@ _TEAM_XG_ROLL3 = FeatureSpec(
 
 ASSISTS_POOL = FeaturePool(
     name="assists",
-    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XA_ROLL3, _XA_ROLL5, _XGI_ROLL5, _CREATIVITY_ROLL3, _TEAM_XG_ROLL3),
+    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XA_ROLL3, _XA_ROLL5, _XGI_ROLL5, _FDR, _CREATIVITY_ROLL3, _TEAM_XG_ROLL3),
     minimal=("xgi_roll3", "minutes_roll3"),
 )

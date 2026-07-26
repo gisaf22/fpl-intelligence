@@ -58,6 +58,20 @@ _XGI_ROLL5 = FeatureSpec(
     prior="phase3 points model GOAL_FEATURES",
 )
 
+# Fixture difficulty of the specific upcoming opponent — a materialized mart column, known before
+# kickoff (the fixture is fixed once the schedule is out), so using it for GW t is NOT leakage: it is
+# a known-future feature, unlike a lagged roll. Added to the attacking `selected` design after the
+# mean-features step-1 protocol (docs/model-redesign-mean-features-plan.md): walk-forward, the paired
+# per-GW Spearman delta pooled over the model's (gw, position) cells is +0.0106, block-bootstrap CI
+# [+0.0039, +0.0186] — excludes 0. Level gate (position_bias) unchanged. `was_home` was tested the
+# same way and DROPPED (pooled delta -0.0001, CI [-0.0051, +0.0058] — indistinguishable from zero).
+_FDR = FeatureSpec(
+    name="fdr_avg", source="fdr_avg", grain="player_gw", transform="identity", window=None,
+    lag_safe=True, known_future=True,
+    rationale="fixture difficulty of the specific upcoming opponent — opponent context the own-form rolls miss",
+    prior="families §3: opponent strength; mean-features step-1 (goals pooled Δρ +0.0106, CI [+0.0039, +0.0186])",
+)
+
 # Declared-but-not-yet-materialized §3 forward agenda: candidates the selected model will regularize
 # over once features/build.py opens the aggregation / opponent-forward axes. Listed here so the pool
 # reads as the plan of record; build.materialize raises until they exist, so they are not yet drawn.
@@ -85,6 +99,6 @@ _OPP_XGC_FORWARD = FeatureSpec(
 
 GOALS_POOL = FeaturePool(
     name="goals",
-    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XG_ROLL3, _XG_ROLL5, _XGI_ROLL5, _TEAM_XG_ROLL3, _OPP_XGC_FORWARD),
+    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XG_ROLL3, _XG_ROLL5, _XGI_ROLL5, _FDR, _TEAM_XG_ROLL3, _OPP_XGC_FORWARD),
     minimal=("xgi_roll3", "minutes_roll3"),
 )

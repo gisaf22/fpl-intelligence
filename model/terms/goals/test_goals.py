@@ -115,6 +115,8 @@ def _process_panel(n_players: int = 120, n_gw: int = 16, seed: int = 7) -> pd.Da
                 "xg": max(0.0, skill + rng.normal(0, 0.08)), "xa": max(0.0, skill * 0.5 + rng.normal(0, 0.05)),
                 "xgi_roll3": skill + rng.normal(0, 0.05), "xgi_roll5": skill + rng.normal(0, 0.04),
                 "minutes_roll3": 90.0, "goals_scored": rng.poisson(skill),
+                # fdr_avg: known-future fixture difficulty, drawn by `selected` (mean-features step-1).
+                "fdr_avg": float(rng.integers(2, 6)),
             })
     return pd.DataFrame(rows)
 
@@ -122,13 +124,15 @@ def _process_panel(n_players: int = 120, n_gw: int = 16, seed: int = 7) -> pd.Da
 def test_selected_reproduces_full_pts_goals_frozen() -> None:
     """full_pts reconciliation, frozen: selected (5-feature GOAL_FEATURES) ≡ points_model's inline goals fit."""
     panel = _process_panel()
-    # selected must draw exactly the shipped 5-feature GOAL_FEATURES set (frozen expected set).
+    # selected draws the shipped GOAL_FEATURES set + fdr_avg (mean-features step-1: fixture context).
     assert set(GoalsModel(variant="selected").features(GoalsModel.population(panel))) == {
-        "xg_roll3", "xg_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3"}
+        "xg_roll3", "xg_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3", "fdr_avg"}
     got = GoalsModel(variant="selected").fit(panel).predictions.to_numpy()
-    assert_frozen(got, n_scored=1560, sum6=295.084028,
+    # Re-frozen (mean-features step-1): the panel now carries fdr_avg and `selected` draws it, so every
+    # scored prediction moved (the design gained the known-future fixture-difficulty term).
+    assert_frozen(got, n_scored=1560, sum6=392.630117,
                   spot_idx=[19, 489, 959, 1449, 1919],
-                  spot_vals=[0.0991, 0.1275, 0.6339, 1.0096, 0.4145])
+                  spot_vals=[0.4496, 0.2932, 0.4931, 0.4684, 0.3364])
 
 
 def _lagsafe_mart(n_players: int = 6, n_gw: int = 6) -> pd.DataFrame:

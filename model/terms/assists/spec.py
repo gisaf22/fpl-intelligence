@@ -68,7 +68,7 @@ _FDR = FeatureSpec(
     name="fdr_avg", source="fdr_avg", grain="player_gw", transform="identity", window=None,
     lag_safe=True, known_future=True,
     rationale="fixture difficulty of the specific upcoming opponent — more assists to go round vs a weak defence",
-    prior="families §3: opponent strength; mean-features step-1 (assists pooled Δρ +0.0151, CI [+0.0010, +0.0296])",
+    prior="families §3: opponent strength; mean-features step-1 (assists pooled Δrho +0.0151, CI [+0.0010, +0.0296])",
 )
 
 # Declared-but-unmaterialized §3 forward agenda for assists: creative process stats and team context the
@@ -93,9 +93,15 @@ _TEAM_XG_ROLL3 = FeatureSpec(
     rationale="team attacking context — more team goals means more assists to go round (team-grain broadcast)",
     prior="families §3 axis 5: team attacking context",
 )
+# NOTE — opp_xgc_forward (mean-features step-2, the dynamic defence-side replacement for `fdr_avg`) was
+# built and measured for assists too, and is **REFUTED**: opp_xgc - fdr = -0.0183, block-bootstrap
+# CI[-0.0351,-0.0032] (SIG-negative), and absolute rho falls from +fdr 0.107 to +opp_xgc 0.089 (below the
+# no-opponent base 0.092). Not in the pool; fdr_avg kept. See goals/spec.py and
+# docs/model-redesign-mean-features-plan.md step-2.
 
 ASSISTS_POOL = FeaturePool(
     name="assists",
-    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XA_ROLL3, _XA_ROLL5, _XGI_ROLL5, _FDR, _CREATIVITY_ROLL3, _TEAM_XG_ROLL3),
+    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XA_ROLL3, _XA_ROLL5, _XGI_ROLL5, _FDR, _CREATIVITY_ROLL3,
+                _TEAM_XG_ROLL3),
     minimal=("xgi_roll3", "minutes_roll3"),
 )

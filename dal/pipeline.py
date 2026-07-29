@@ -403,6 +403,30 @@ def load_fixture_map(db_path: Path = DB_PATH) -> pd.DataFrame:
     )
 
 
+def load_opponent_map(db_path: Path = DB_PATH) -> pd.DataFrame:
+    """Return the ``(player_id, gw, opponent_team_id)`` opponent identity for single-fixture player-GWs.
+
+    The analytical mart is ``(player_id, gw)`` grain and deliberately drops the opponent identity
+    (like ``fixture_id``): a double-gameweek row faces two opponents, so the key is ambiguous there.
+    Opponent-forward features — e.g. the specific upcoming opponent's rolling conceded-xG (the dynamic,
+    defence-side replacement for the static one-number-per-team ``fdr_avg``) — need that identity back.
+    This is the sanctioned accessor for it, a sibling of :func:`load_fixture_map`: model code joins it
+    via ``dal.pipeline`` rather than reaching into ``dal.intermediate`` directly (governance G-3).
+
+    Restricted to player-GWs with exactly one fixture (SGW), so the join back onto the mart's non-DGW
+    scored population is 1:1. DGW rows are intentionally absent (their opponent is not a single team).
+    The identity is authoritative — derived from the fixture's home/away assignment, not the FPL API's
+    ``opponent_team`` pass-through (see ``int_player_fixture._resolve_player_side_context``).
+    """
+    fixtures = get_player_fixture_base(load_staged_entities(db_path))
+    n_fix = fixtures.groupby(["player_id", "gw"])["fixture_id"].transform("nunique")
+    return (
+        fixtures.loc[n_fix == 1, ["player_id", "gw", "opponent_team_id"]]
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------

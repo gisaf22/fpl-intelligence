@@ -32,6 +32,39 @@ where the stakes (hauls, captaincy) are highest.
 | D | `was_home` (home/away) | flat home advantage | yes | none — but **measured weak, deprioritize** |
 | E | opponent *attacking* strength | for CS/conceded: how likely the opponent scores | no | opponent join |
 
+## Step 2 result (B `opp_xgc_forward` — BUILT, MEASURED, **REFUTED**)
+
+The sharper opponent signal was built and tested against the crude tier, and **it loses.** A dynamic,
+defence-specific rolling conceded-xG does **not** beat FPL's static one-number-per-team `fdr_avg`.
+
+Built exactly as scoped: `dal.pipeline.load_opponent_map` (sibling of `load_fixture_map`) recovers the
+opponent identity the mart drops; `model.features.build.add_opponent_xgc_forward` aggregates `xgc` to a
+team-fixture frame, lag-rolls it at TEAM grain (`shift(1).rolling(5)` — lag-safe at opponent-team grain,
+asserted by `assert_lag_safe_team`, first fixture NaN), and broadcasts it onto players keyed on the
+**opponent**. Coverage holes (an opponent playing a DGW that gw has no team row) are filled with the
+strictly-prior league-average conceded-xG, so the scored population is same-`n` as fdr-only (measured
+NaN rate on the scored population = 0.0000, no silent row loss).
+
+Walk-forward on the full 2025-26 mart, pooled per-(gw, position) Spearman with a block-bootstrap CI:
+
+| | BEATS: opp_xgc − fdr | ABLATION: drop opp_xgc from (fdr+opp) | verdict |
+|---|---|---|---|
+| **goals** | **−0.0126**, CI [−0.0206, −0.0031] | −0.0032, CI [−0.0083, +0.0020] | worse standalone; not complementary |
+| **assists** | **−0.0183**, CI [−0.0351, −0.0032] | −0.0034, CI [−0.0092, +0.0015] | worse standalone; not complementary |
+
+Absolute pooled ρ makes it plain: goals base 0.117 → **+fdr 0.128** → +opp_xgc **0.115** (below the
+no-opponent base — net-negative noise); assists base 0.092 → **+fdr 0.107** → +opp_xgc **0.089**. Adding
+opp_xgc *on top of* fdr degrades fdr; dropping fdr from the both-design significantly hurts (goals
++0.0094 SIG) — fdr is **not** subsumed. Well-powered (105/107 cells, 35 gws × positions); level gate OK;
+w3 correlates 0.83 with w5, so the window does not rescue it.
+
+**Read.** FPL's `fdr_avg` (a low-variance 2–5 tier, market/strength-derived) is a *cleaner* monotone
+difficulty signal than a noisy 5-game mean-per-appeared-player conceded-xG (minutes-entangled crude
+proxy). "Redesign our own FDR from rolling conceded-xG" is refuted — the crude tier wins. **Decision:**
+keep `fdr_avg`; do **not** materialize `opp_xgc_forward` into `selected` (no opponent join paid in prod);
+`opp_xgc_forward` removed from both pools. The build + accessor + lag-safety machinery are kept as tested
+infrastructure should the minutes-aware opponent variant (`team_xgc_minutes_aware`) ever be revisited.
+
 ## Measurement so far (step-A confirmed, the method demonstrated)
 
 Adding the already-materialized `fdr_avg` to the attacking designs, walk-forward, within-position Spearman
@@ -65,8 +98,9 @@ For each (model × one context feature):
 1. **A → goals + assists (now, zero build).** Materialize `fdr_avg` into the two attacking `selected`
    pools; keep it only where steps 2–3 of the protocol pass. Ships immediately (confirmed positive). Test
    `was_home` in the same commit; expect to drop it.
-2. **Build + test B (`opp_xgc_forward`).** A `features/build` step that joins each fixture's opponent and
-   rolls their conceded xG; test it **replaces or beats** the crude `fdr_avg` on goals/assists.
+2. **Build + test B (`opp_xgc_forward`). — DONE, REFUTED (see "Step 2 result" above).** Built the
+   opponent join + team-grain roll; measured it **worse** than the crude `fdr_avg` on both goals and
+   assists (significantly negative beats-fdr CI). Kept fdr; shelved opp_xgc; kept the build machinery.
 3. **Build + test C (`team_xg_roll3`).** Team attacking aggregation; test on goals/assists.
 4. **E for the CS/conceded side** (opponent attacking strength) — the defensive analogue.
 5. saves (opponent shot volume) and minutes/p_play context — lower priority, revisit after 1–4.

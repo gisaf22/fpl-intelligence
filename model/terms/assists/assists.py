@@ -45,6 +45,10 @@ class AssistsModel(PoissonPlayerComponentModel):
         ``minimal`` still draws only ``xgi_roll3 + minutes_roll3`` (unchanged, golden-pinned); building the
         extra rolls only widens what ``selected`` can draw. On a mart without ``xa`` the build is a no-op.
         ``keep_all=True`` widens to potential-blank rows (rolls then include those rows, by design).
+
+        Deliberately does NOT materialize the opponent-forward ``opp_xgc_forward``: mean-features step-2
+        measured it and it is REFUTED (ranks below the crude ``fdr_avg`` tier for assists too), so the
+        opponent join is not paid here (docs/model-redesign-mean-features-plan.md step-2).
         """
         df = PoissonPlayerComponentModel.population(mart, keep_all=keep_all)
         return add_lagged_rolls(df, ["xa"], (3, 5))

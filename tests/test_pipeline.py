@@ -263,3 +263,22 @@ def test_load_fixture_map_grain_and_single_fixture(db_path: Path) -> None:
     assert fmap["fixture_id"].notna().all()
     # every retained player-GW maps to exactly one fixture (the SGW restriction)
     assert (fmap.groupby(["player_id", "gw"])["fixture_id"].nunique() == 1).all()
+
+
+# ---------------------------------------------------------------------------
+# load_opponent_map — sanctioned (player_id, gw, opponent_team_id) accessor for SGW rows
+# ---------------------------------------------------------------------------
+
+
+def test_load_opponent_map_grain_and_single_opponent(db_path: Path) -> None:
+    """load_opponent_map returns a unique (player_id, gw) key with a non-null single opponent each."""
+    from dal.pipeline import load_opponent_map
+
+    omap = load_opponent_map(db_path)
+
+    assert list(omap.columns) == ["player_id", "gw", "opponent_team_id"]
+    assert not omap.empty
+    assert not omap.duplicated(["player_id", "gw"]).any()  # 1:1 join key onto the non-DGW mart
+    assert omap["opponent_team_id"].notna().all()
+    # a player never faces their own team (opponent identity is the other side of the fixture)
+    assert (omap.groupby(["player_id", "gw"])["opponent_team_id"].nunique() == 1).all()

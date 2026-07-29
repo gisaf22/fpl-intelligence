@@ -69,7 +69,7 @@ _FDR = FeatureSpec(
     name="fdr_avg", source="fdr_avg", grain="player_gw", transform="identity", window=None,
     lag_safe=True, known_future=True,
     rationale="fixture difficulty of the specific upcoming opponent — opponent context the own-form rolls miss",
-    prior="families §3: opponent strength; mean-features step-1 (goals pooled Δρ +0.0106, CI [+0.0039, +0.0186])",
+    prior="families §3: opponent strength; mean-features step-1 (goals pooled Δrho +0.0106, CI [+0.0039, +0.0186])",
 )
 
 # Declared-but-not-yet-materialized §3 forward agenda: candidates the selected model will regularize
@@ -85,20 +85,20 @@ _TEAM_XG_ROLL3 = FeatureSpec(
     rationale="team attacking context (opportunity) — a team-grain feature broadcast to its players",
     prior="families §3 axis 5: team attacking context",
 )
-_OPP_XGC_FORWARD = FeatureSpec(
-    name="opp_xgc_forward",
-    source="opponent_xgc",
-    grain="team_gw",
-    transform="roll",
-    window=5,
-    lag_safe=True,
-    known_future=False,
-    rationale="the specific upcoming opponent's conceded xG — fixture-forward difficulty beyond fdr_avg",
-    prior="families §3 axis 3: fixture-forward",
-)
+# NOTE — opp_xgc_forward (the upcoming opponent's rolling conceded-xG, window 5) was the mean-features
+# step-2 candidate: a dynamic, defence-side replacement for the static `fdr_avg` tier. It was BUILT
+# (features.build.add_opponent_xgc_forward — team-grain roll broadcast on opponent_team_id, coverage-
+# filled) and MEASURED walk-forward on the full mart, and is **REFUTED** — it does not beat fdr_avg. It
+# is not in the pool (would only cost the opponent join for a worse ranking). Measured, pooled Spearman
+# with block-bootstrap CI (docs/model-redesign-mean-features-plan.md step-2):
+#   opp_xgc - fdr : goals -0.0126 CI[-0.0206,-0.0031] (SIG-negative — standalone worse than fdr);
+#   +fdr+opp ablation: dropping opp_xgc costs ~0 (CI spans 0 — not complementary);
+#   absolute rho: base 0.117 → +fdr 0.128 → +opp_xgc 0.115 (ranks BELOW the no-opponent base).
+# Keep fdr_avg. The build + dal.pipeline.load_opponent_map remain as tested infra should a minutes-aware
+# opponent variant (team_xgc_minutes_aware) ever be revisited.
 
 GOALS_POOL = FeaturePool(
     name="goals",
-    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XG_ROLL3, _XG_ROLL5, _XGI_ROLL5, _FDR, _TEAM_XG_ROLL3, _OPP_XGC_FORWARD),
+    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XG_ROLL3, _XG_ROLL5, _XGI_ROLL5, _FDR, _TEAM_XG_ROLL3),
     minimal=("xgi_roll3", "minutes_roll3"),
 )

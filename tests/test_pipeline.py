@@ -244,3 +244,22 @@ def test_failed_layer_records_error_message(tmp_path: Path) -> None:
 
     error_msg = result["layers"]["fct"].get("error", "")
     assert "grain duplicates detected" in error_msg
+
+
+# ---------------------------------------------------------------------------
+# load_fixture_map — sanctioned (player_id, gw, fixture_id) accessor for SGW rows
+# ---------------------------------------------------------------------------
+
+
+def test_load_fixture_map_grain_and_single_fixture(db_path: Path) -> None:
+    """load_fixture_map returns a unique (player_id, gw) key with a non-null single fixture_id each."""
+    from dal.pipeline import load_fixture_map
+
+    fmap = load_fixture_map(db_path)
+
+    assert list(fmap.columns) == ["player_id", "gw", "fixture_id"]
+    assert not fmap.empty
+    assert not fmap.duplicated(["player_id", "gw"]).any()  # 1:1 join key onto the non-DGW mart
+    assert fmap["fixture_id"].notna().all()
+    # every retained player-GW maps to exactly one fixture (the SGW restriction)
+    assert (fmap.groupby(["player_id", "gw"])["fixture_id"].nunique() == 1).all()

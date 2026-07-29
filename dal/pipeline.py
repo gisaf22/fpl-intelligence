@@ -382,6 +382,27 @@ def load(
     )
 
 
+def load_fixture_map(db_path: Path = DB_PATH) -> pd.DataFrame:
+    """Return the ``(player_id, gw, fixture_id)`` physical-match key for single-fixture player-GWs.
+
+    The analytical mart is ``(player_id, gw)`` grain and deliberately drops ``fixture_id`` (a
+    double-gameweek row spans two fixtures, so the key is ambiguous there). Within-fixture analyses
+    — e.g. the bonus competition, which is contested across *every appearing player in the physical
+    match* — need that identity back. This is the sanctioned accessor for it: studies call
+    ``dal.pipeline`` rather than reaching into ``dal.intermediate`` directly (governance G-3).
+
+    Restricted to player-GWs with exactly one fixture (SGW), so the join back onto the mart's
+    non-DGW scored population is 1:1. DGW rows are intentionally absent.
+    """
+    fixtures = get_player_fixture_base(load_staged_entities(db_path))
+    n_fix = fixtures.groupby(["player_id", "gw"])["fixture_id"].transform("nunique")
+    return (
+        fixtures.loc[n_fix == 1, ["player_id", "gw", "fixture_id"]]
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------

@@ -72,19 +72,16 @@ _FDR = FeatureSpec(
     prior="families §3: opponent strength; mean-features step-1 (goals pooled Δrho +0.0106, CI [+0.0039, +0.0186])",
 )
 
-# Declared-but-not-yet-materialized §3 forward agenda: candidates the selected model will regularize
-# over once features/build.py opens the aggregation / opponent-forward axes. Listed here so the pool
-# reads as the plan of record; build.materialize raises until they exist, so they are not yet drawn.
-_TEAM_XG_ROLL3 = FeatureSpec(
-    name="team_xg_roll3",
-    source="team_xg",
-    grain="team_gw",
-    transform="roll",
-    window=3,
-    lag_safe=True,
-    rationale="team attacking context (opportunity) — a team-grain feature broadcast to its players",
-    prior="families §3 axis 5: team attacking context",
-)
+# NOTE — team_xg_roll3 (own-team attacking form, sum of team xG rolled over 3 games, broadcast to the
+# team's players) was the mean-features step-3 candidate. BUILT and MEASURED walk-forward on the full
+# mart, and **REFUTED** — a NULL: it adds ~0 to the shipped design (goals +0.0003, block-bootstrap
+# CI[-0.0013,+0.0021]; assists -0.0008, CI[-0.0025,+0.0013]) and ~0 even on a thin base without the
+# own xG/xA rolls (goals -0.0007 ns), so it is not merely subsumed — own-team recent attacking form
+# carries no usable within-position ranking signal for attacking returns, at any position (per-position
+# CIs all span 0). Removed from the pool. See docs/model-redesign-mean-features-plan.md step-3, which
+# also records the defensive-side asymmetry (fixture context is worth ~10x more for clean sheets than
+# for goals — but fdr_avg already holds it, so team_goals_against needs no new opponent-attack roll).
+#
 # NOTE — opp_xgc_forward (the upcoming opponent's rolling conceded-xG, window 5) was the mean-features
 # step-2 candidate: a dynamic, defence-side replacement for the static `fdr_avg` tier. It was BUILT
 # (features.build.add_opponent_xgc_forward — team-grain roll broadcast on opponent_team_id, coverage-
@@ -99,6 +96,6 @@ _TEAM_XG_ROLL3 = FeatureSpec(
 
 GOALS_POOL = FeaturePool(
     name="goals",
-    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XG_ROLL3, _XG_ROLL5, _XGI_ROLL5, _FDR, _TEAM_XG_ROLL3),
+    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XG_ROLL3, _XG_ROLL5, _XGI_ROLL5, _FDR),
     minimal=("xgi_roll3", "minutes_roll3"),
 )

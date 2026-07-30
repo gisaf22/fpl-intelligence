@@ -83,16 +83,13 @@ _CREATIVITY_ROLL3 = FeatureSpec(
     rationale="chance-creation signal specific to assists, beyond the xGI composite",
     prior="families §3 axis 1: assist-specific creation (key passes / creativity)",
 )
-_TEAM_XG_ROLL3 = FeatureSpec(
-    name="team_xg_roll3",
-    source="team_xg",
-    grain="team_gw",
-    transform="roll",
-    window=3,
-    lag_safe=True,
-    rationale="team attacking context — more team goals means more assists to go round (team-grain broadcast)",
-    prior="families §3 axis 5: team attacking context",
-)
+# NOTE — team_xg_roll3 (own-team attacking form, mean-features step-3) was built and measured for
+# assists too, and is **REFUTED** (a NULL): it adds ~0 to the shipped design (assists -0.0008,
+# block-bootstrap CI[-0.0025,+0.0013]) and ~0 on a thin base (-0.0027 ns), so own-team recent attacking
+# form does not help rank assists — "more team goals means more assists to go round" does not survive
+# measurement (the players' own involvement rolls + fdr already hold what little signal there is).
+# Removed from the pool. See goals/spec.py and docs/model-redesign-mean-features-plan.md step-3.
+#
 # NOTE — opp_xgc_forward (mean-features step-2, the dynamic defence-side replacement for `fdr_avg`) was
 # built and measured for assists too, and is **REFUTED**: opp_xgc - fdr = -0.0183, block-bootstrap
 # CI[-0.0351,-0.0032] (SIG-negative), and absolute rho falls from +fdr 0.107 to +opp_xgc 0.089 (below the
@@ -101,7 +98,6 @@ _TEAM_XG_ROLL3 = FeatureSpec(
 
 ASSISTS_POOL = FeaturePool(
     name="assists",
-    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XA_ROLL3, _XA_ROLL5, _XGI_ROLL5, _FDR, _CREATIVITY_ROLL3,
-                _TEAM_XG_ROLL3),
+    candidates=(_XGI_ROLL3, _MINUTES_ROLL3, _XA_ROLL3, _XA_ROLL5, _XGI_ROLL5, _FDR, _CREATIVITY_ROLL3),
     minimal=("xgi_roll3", "minutes_roll3"),
 )

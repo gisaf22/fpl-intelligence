@@ -65,6 +65,43 @@ keep `fdr_avg`; do **not** materialize `opp_xgc_forward` into `selected` (no opp
 `opp_xgc_forward` removed from both pools. The build + accessor + lag-safety machinery are kept as tested
 infrastructure should the minutes-aware opponent variant (`team_xgc_minutes_aware`) ever be revisited.
 
+## Step 3 result (C `team_xg_roll3` — MEASURED, **REFUTED / NULL**)
+
+Own-team attacking form (sum of the team's xG, rolled over 3 games, broadcast to the team's players)
+adds **nothing** to the shipped design. Walk-forward, pooled per-(gw, position) Spearman, block-bootstrap CI:
+
+| | ADD team_xg to shipped selected(+fdr) | ADD team_xg to a THIN base (no own xG/xA rolls) |
+|---|---|---|
+| **goals** | +0.0003, CI [−0.0013, +0.0021] (ns) | −0.0007, CI [−0.0031, +0.0019] (ns) |
+| **assists** | −0.0008, CI [−0.0025, +0.0013] (ns) | −0.0027, CI [−0.0058, +0.0012] (ns) |
+
+Per-position CIs all span 0 (goals DEF/MID/FWD; assists too — the assists-GK "SIG" is a degenerate
+n=4 point-interval artifact). It is not merely *subsumed* by the own-xG rolls (it's null even without
+them): within a (gw, position) ranking cell `team_xg` is the **same value for every player on a team**,
+so it can only separate players by which team they're on — and a player's own involvement roll + `fdr`
+already carry that. **Decision:** do not ship; removed from both pools. (Same failure family as step-2:
+a context re-aggregation of data already in the design, fighting through the ~88%-weekly noise floor.)
+
+### The attacking/defensive asymmetry (the mechanistic "why")
+
+Matching signal to return exposes why the attacking-side gains are so small. Fixture context (`fdr`)
+is a **weak** lever for attacking returns but a **strong** one for defensive returns:
+
+| axis | value of `fdr` context | does a rolling form feature beat / add to `fdr`? |
+|---|---|---|
+| attacking returns (goals/assists, player grain) | **+0.01** Spearman | no — opp_xgc, team_xg all null/worse |
+| defensive returns (clean sheets, team grain) | **+0.12** Spearman [+0.06,+0.20] | no — opp attack-xG roll is −0.11 vs fdr, +0 on top |
+
+A clean sheet is a team-level, opponent-driven event (are you facing City or a relegation side?); a goal
+is a rare, luck-heavy individual event (~88% of a player's week-to-week points variance is irreducible).
+So fixture context *matters ~10× more on the defensive side* — but (a) the magnitudes are on different
+grains (team CS-ranking vs player goal-ranking), so it is a direction not a clean 10×, and (b) **`fdr_avg`
+already captures it**: `team_goals_against` ships `fdr_avg` (that is why it is the "contextual" model).
+On both attack and defence the fixture axis is real but **owned by `fdr`**; no rolling own/opponent form
+re-encoding beats or supplements it. The remaining headroom is new information (odds / implied fixture
+goals) or a different axis (minutes / availability — the largest *predictable* weekly lever), not more
+context aggregations of past results.
+
 ## Measurement so far (step-A confirmed, the method demonstrated)
 
 Adding the already-materialized `fdr_avg` to the attacking designs, walk-forward, within-position Spearman
@@ -101,8 +138,15 @@ For each (model × one context feature):
 2. **Build + test B (`opp_xgc_forward`). — DONE, REFUTED (see "Step 2 result" above).** Built the
    opponent join + team-grain roll; measured it **worse** than the crude `fdr_avg` on both goals and
    assists (significantly negative beats-fdr CI). Kept fdr; shelved opp_xgc; kept the build machinery.
-3. **Build + test C (`team_xg_roll3`).** Team attacking aggregation; test on goals/assists.
-4. **E for the CS/conceded side** (opponent attacking strength) — the defensive analogue.
+3. **Build + test C (`team_xg_roll3`). — DONE, REFUTED / NULL (see "Step 3 result" above).** Own-team
+   attacking form adds ~0 to goals/assists (CIs span 0), even without the own-xG rolls. Removed from both
+   pools. The defensive-side probe showed fixture context is ~10x more valuable for clean sheets — but
+   `fdr_avg` already holds it (shipped in `team_goals_against`).
+4. **E for the CS/conceded side** (opponent attacking strength) — the defensive analogue. **Previewed
+   during step-3** (opponent rolling attack-xG on the team-GA clean-sheet ranking): it is −0.11 vs `fdr`
+   and adds ~0 on top of it — same result as the attacking side. `fdr_avg` (already shipped in
+   `team_goals_against`) owns the defensive fixture signal too; a rolling opponent-attack feature is not
+   worth building. Not pursued further.
 5. saves (opponent shot volume) and minutes/p_play context — lower priority, revisit after 1–4.
 
 ## Guardrails
@@ -115,7 +159,24 @@ For each (model × one context feature):
 - Full `pytest` + 6/6 contracts + ruff each commit; re-freeze the affected term goldens (a design change
   moves shipped numbers, as with the position slice).
 
-## Recommendation
-Start at **step 1** — it is zero-build, measured-positive, and exercises the full protocol (both gates +
-bootstrap) end to end on the cheapest cell, so the machinery is proven before we pay for opponent/team
-joins in steps 2–3.
+## Recommendation (updated after steps 1–3)
+
+Step 1 shipped `fdr_avg` (small but real, +0.01). Steps 2 and 3 — and the step-4 defensive preview — all
+came back **null-or-worse**: no rolling own-team or opponent form re-encoding (conceded-xG, goals
+conceded, clean-sheet rate, minutes-aware variants, team attack-xG, Elo, opponent-attack) beats or
+supplements `fdr_avg`, on either the attacking or the defensive side. Combined with the variance
+decomposition (**~88% of a player's week-to-week points variance is irreducible weekly noise**; only
+~12% is stable between-player signal), the read is that **the fixture/context axis is essentially
+saturated by `fdr_avg`** — the mart's current features have exhausted the easily-reachable predictable
+ranking signal.
+
+**Where the remaining headroom is** (not more context aggregations of past results):
+- **New information** the mart lacks — bookmaker odds / implied fixture goals (the one thing likely to
+  carry signal `fdr` doesn't: it prices injuries, rotation, and motivation in real time), or set-piece /
+  penalty-taker role.
+- **The availability axis** — a benched player scores ~0, which is far more *predictable* than whether a
+  goal fires; the largest predictable weekly lever, and a different modelling problem (the `minutes` /
+  `p_play` terms) than rate-sharpening context features.
+
+Steps 5+ (saves/minutes context) are lower priority; the honest next bet is odds ingestion or the
+availability axis, not another feature in this table.

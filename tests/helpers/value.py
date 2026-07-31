@@ -1,14 +1,17 @@
-"""Historical evaluation of the value player heuristic.
+"""Historical evaluation of the value player ranking.
 
-Evaluates whether the value composite heuristic (efficiency + form +
-consistency, statically weighted) identifies players who subsequently
-deliver higher per-cost returns than naive selection strategies.
+Evaluates whether the shipped value ranker (now the model forecast — ``e_points_uncond / purchase_price``;
+formerly the xgi efficiency + form + consistency composite) identifies players who subsequently deliver
+higher per-cost returns than naive selection strategies. ``features`` must be enriched with the model
+forecast column (via ``model.predictions.assemble_forecast``) — the same enrichment the operational
+runner applies.
 
 Value evaluation is inherently a multi-GW question: a player identified as
 "value" should sustain returns over several weeks, not just the next game.
 The lookahead window captures this medium-term consistency requirement.
 
-Temporal integrity: same lag-1 guarantee as captain and transfer evaluations.
+Temporal integrity: the model forecast at GW N is lag-safe (its terms fit on GWs 1..N-1). The actual
+per-cost return over the lookahead window is used solely as a post-hoc evaluation target.
 """
 
 from __future__ import annotations

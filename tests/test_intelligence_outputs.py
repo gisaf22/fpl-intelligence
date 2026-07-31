@@ -329,7 +329,8 @@ class TestRankTransferTargets:
 class TestRankValuePlayers:
     def test_returns_expected_columns(self, two_player_features):
         result = rank_value_players(two_player_features, target_gw=5)
-        for col in ["xgi_per_cost", "efficiency_score", "form_score", "consistency_score", "value_score", "value_rank"]:
+        # Model-driven: the expected-points read and its per-cost score, not the retired composite.
+        for col in ["e_points_uncond", "value_score", "value_rank"]:
             assert col in result.columns
 
     def test_is_deterministic(self, two_player_features):
@@ -338,21 +339,35 @@ class TestRankValuePlayers:
         pd.testing.assert_frame_equal(r1, r2)
 
     def test_cheaper_player_may_rank_higher_on_value(self):
-        # Player 1: same xgi, high price → low xgi/cost
-        # Player 2: same xgi, low price → high xgi/cost
+        # Same expected points (both default points_roll3 -> same e_points_uncond), different price:
+        # the cheaper player has the higher e_points_uncond / price and ranks first.
         features = _make_features(
-            _base_row(1, 5, xgi_roll3=0.5, xgi_roll5=0.4, purchase_price=12.0),
-            _base_row(2, 5, xgi_roll3=0.5, xgi_roll5=0.4, purchase_price=5.5),
+            _base_row(1, 5, purchase_price=12.0),
+            _base_row(2, 5, purchase_price=5.5),
         )
         result = rank_value_players(features, target_gw=5)
-        # P2 xgi_per_cost = 0.4/5.5 ≈ 0.073; P1 = 0.4/12 ≈ 0.033 → P2 ranks higher
         assert result.iloc[0]["player_id"] == 2
 
-    def test_xgi_per_cost_computed_correctly(self, two_player_features):
+    def test_value_score_is_e_points_uncond_per_price(self, two_player_features):
         result = rank_value_players(two_player_features, target_gw=5)
         for _, row in result.iterrows():
-            expected_xpc = row["xgi_roll5"] / row["purchase_price"]
-            assert abs(row["xgi_per_cost"] - expected_xpc) < 1e-6
+            expected = row["e_points_uncond"] / row["purchase_price"]
+            assert abs(row["value_score"] - expected) < 1e-9
+
+    def test_higher_expected_points_ranks_higher_at_equal_price(self):
+        # Same price, different expected points -> higher e_points_uncond ranks first.
+        features = _make_features(
+            _base_row(1, 5, purchase_price=7.0, e_points_uncond=6.0),
+            _base_row(2, 5, purchase_price=7.0, e_points_uncond=2.0),
+        )
+        result = rank_value_players(features, target_gw=5)
+        assert result.iloc[0]["player_id"] == 1
+
+    def test_missing_forecast_column_raises(self, two_player_features):
+        # Without the model forecast enrichment (e_points_uncond), value cannot rank — a clear input error.
+        df = two_player_features.drop(columns=["e_points_uncond"])
+        with pytest.raises(IntelligenceInputError, match="forecast"):
+            rank_value_players(df, target_gw=5)
 
     def test_max_price_filter_works(self):
         features = _make_features(
@@ -588,7 +603,8 @@ class TestIntelligenceGovernance:
 
     def test_value_explainability_columns_present(self, two_player_features):
         result = rank_value_players(two_player_features, target_gw=5)
-        for col in ["xgi_per_cost", "efficiency_score", "consistency_score"]:
+        # Model-driven explainability: the expected-points read and the per-cost score.
+        for col in ["e_points_uncond", "value_score"]:
             assert col in result.columns
 
     def test_availability_explainability_columns_present(self, two_player_features):

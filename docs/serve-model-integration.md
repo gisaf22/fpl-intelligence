@@ -1,6 +1,6 @@
 # Serve ↔ model integration — record
 
-**Type:** `changelog` · **Status:** in progress (captain migrated) · **Started:** 2026-07-31
+**Type:** `changelog` · **Status:** in progress (captain + value migrated) · **Started:** 2026-07-31
 
 Wiring the validated predictive layer (`model` — terms → `compose_points` → `simulate_points`) into the
 operational advice layer (`serve`), replacing the pre-model **signal composites** module by module. Each
@@ -56,10 +56,45 @@ scope-guard tests in `test_governance_compliance.py` · the captain weight/prove
 
 ---
 
+## value — DONE (2026-07-31)
+
+Ranks by the forecaster's ex-ante expected points per £m: `value_score = e_points_uncond / purchase_price`.
+Because `e_points_uncond` = P(play) × E[points | played] already prices appearance risk, a rotation-doubtful
+cheap punt is no longer flattered by a high per-cost score the way the raw xgi/cost composite flattered it.
+Replaced: the xgi efficiency (`xgi_roll5/price`) + form (`xgi_roll3`) + consistency composite
+(`weight_registry` `value` block, the FWD/MID xgi scope-guards, `get_module_weights("value")`, and value's
+weight-provenance).
+
+### Head-to-head (real mart, 2025-26, GW6–34, n=29; frozen)
+
+Metric: mean **points-per-£m** over a 4-GW forward window (the existing value backtest,
+`tests/helpers/value._points_per_cost`), top-10 of each ranker, paired per GW.
+
+| value ranker | avg points-per-£m / GW |
+|---|---|
+| OLD — xgi composite | 2.214 |
+| **NEW — model `e_points_uncond / price`** | **2.351** |
+
+**Δ (new − old) = +0.137 ppc/GW**, paired 95% CI **[−0.165, +0.439]**; NEW wins **17/29** GWs. Better on
+the point estimate (+6.2%) and **never significantly worse** — the CI spans zero, the same *promising, not
+proven on one season* standing as captain (which cleared the identical bar at +1.9 pts/GW). This meets the
+prove-then-delete bar: the model is not worse.
+
+*(Measurement is a real-mart backtest — non-deterministic across data refreshes; the numbers above are the
+interpretation, frozen at migration.)*
+
+### Deletions (the clean break)
+`weight_registry.yaml` `value` block · value's `_MODULE_SIGNAL_MAP` provenance entry · the `TestValueMidXgiGuard`
++ `test_value_fwd_efficiency_score_neutral` guards in `test_governance_compliance.py` · value's rows in
+`test_runtime_consumer_alignment.py` (module-paths list, weight-loader/metadata/provenance parametrizations).
+Nothing in the model layer moved; the term goldens reproduce.
+
+---
+
 ## Remaining
 - **Operational runner** — a top-level orchestrator that builds the enriched frame (`assemble_forecast` →
   merge) and feeds the serve modules; captain is migrated but not yet wired into a production entry point.
-- **value / transfers / fixtures** — migrate to `e_points_uncond` / forward-window `e_points` (fixtures ≈
+- **transfers / fixtures** — migrate to forward-window `Σ e_points_uncond` / aggregate `e_points` (fixtures ≈
   transfers — candidate merge); retire the rest of `weight_registry` after the last leaves it.
 - **availability** — descriptive; optional `p_play`/`p60` enrich, low priority.
 - **Report pipeline** (`serve/scoring` + `serve/reporting`, the rho-composite surface) — a separate

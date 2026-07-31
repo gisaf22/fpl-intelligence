@@ -35,6 +35,7 @@ def _state_row(
     fdr_avg: float = 3.0,
     purchase_price: float = 7.5,
     position_label: str = "MID",
+    e_points_uncond: float | None = None,
 ) -> dict:
     return {
         "player_id": player_id,
@@ -69,6 +70,9 @@ def _state_row(
         "minutes_trend": "stable",
         "minutes_roll8": 88.0,
         "fixture_context": "SGW",
+        # Model forecast column (enriched onto the mart by the runner; see model.predictions).
+        # Scales with the lag-safe points_roll3 so a "better" player gets the higher value score.
+        "e_points_uncond": (0.5 * points_roll3) if e_points_uncond is None else e_points_uncond,
     }
 
 

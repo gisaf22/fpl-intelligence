@@ -41,43 +41,8 @@ modules:
   # captain: RETIRED — ranked by the model forecast (p_haul/p90), not a weight composite.
   #   See serve/captain.py and docs/model-redesign-changelog.md (serve integration).
 
-  value:
-    provenance: PROVISIONAL-EDITORIAL
-    note: >
-      Value scoring was not a target in any lens study; requires a dedicated
-      study post-synthesis. All three components are editorially motivated.
-    weights:
-      efficiency_score:
-        value: 0.50
-        signal: xgi_roll5_per_purchase_price
-        signal_id: xgi_roll5@form:total_points
-        note: >
-          PROVISIONAL-EDITORIAL. xgi_roll5/purchase_price composite; xgi_roll5
-          governed at DEF/MID (xgi_roll5@form:total_points). FWD scope guard enforced: both xgi_roll5
-          and efficiency numerator zeroed at FWD (xgi_roll5 excluded at FWD by
-          lens evaluation — non-monotonic quintile ordering, G2-FAIL).
-      form_score:
-        value: 0.30
-        signal: xgi_roll3
-        signal_id: xgi_roll3@form:total_points
-        note: >
-          PROVISIONAL-EDITORIAL. FWD scope guard enforced: xgi_roll3 excluded at
-          FWD by lens evaluation (non-monotonic quintile ordering, G2-FAIL).
-      consistency_score:
-        value: 0.20
-        signal: xgi_roll3_vs_xgi_roll5_divergence
-        signal_id: null
-        derived_from:
-          features:
-            - xgi_roll3
-            - xgi_roll5
-          findings:
-            - xgi_roll3@form:total_points
-            - xgi_roll5@form:total_points
-        note: >
-          PROVISIONAL-EDITORIAL. Inverted absolute divergence |xgi_roll3 - xgi_roll5|;
-          low divergence = consistent contributor. FWD scope guard applied to both
-          underlying signals (both excluded at FWD by lens evaluation).
+  # value: RETIRED — ranked by the model forecast (e_points_uncond / purchase_price), not a weight
+  #   composite. See serve/value.py and docs/serve-model-integration.md (serve integration).
 
   fixtures:
     provenance: PROVISIONAL-EDITORIAL

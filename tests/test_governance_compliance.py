@@ -4,14 +4,18 @@ These tests guard against regression of documented SYNTH-01 scope decisions
 and confirmed governance violations. Each test names the gate decision it
 enforces.
 
+captain.py and value.py are RETIRED from these guards — both rank by the model forecast, not an xgi
+composite, so their per-position validity is enforced upstream by the term gates, not a serve
+scope-guard. The guards below cover the still-composite modules (transfers.py, fixtures.py) and
+availability.py.
+
 SYNTH-01 decisions guarded:
-- G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID (captain.py, value.py, transfers.py)
-- FORM-001/002: xgi_roll3/xgi_roll5 excluded at FWD (all modules)
+- G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID (transfers.py)
+- FORM-001/002: xgi_roll3/xgi_roll5 excluded at FWD (transfers.py)
 - AVAIL-003: minutes_roll8 positional guard (DEF/MID only in availability.py)
 - FIXTURE-001: fdr_avg must not contribute to fixture_opportunity_score
 
 Novel unevaluated metrics flagged:
-- PENDING-EVAL-01: consistency_score in value.py
 - PENDING-EVAL-02: team_goals_roll5 in fixtures.py
 - PENDING-EVAL-03: form_momentum_score in transfers.py
 """
@@ -24,7 +28,6 @@ import pytest
 from serve.availability import flag_availability_risk
 from serve.fixtures import rank_fixture_opportunities
 from serve.transfers import rank_transfer_targets
-from serve.value import rank_value_players
 
 pytestmark = pytest.mark.unit
 
@@ -84,72 +87,8 @@ def _features(*rows: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# captain.py: RETIRED from these guards — it no longer consumes xgi (ranked by the model forecast
-# p_haul/p90). Per-position validity is enforced upstream by the term gates, not a serve scope-guard.
-# ---------------------------------------------------------------------------
-# SYNTH-01 G-SYNTH1-07: xgi_roll3 zeroed at MID in value.py
-# ---------------------------------------------------------------------------
-
-
-class TestValueMidXgiGuard:
-    """G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID in value.py.
-
-    form_score and consistency_score must be neutral 0.5 for all MID players
-    regardless of xgi_roll3 value. efficiency_score (driven by xgi_roll5, which
-    is approved at MID) must still differentiate MID players.
-    """
-
-    def test_mid_form_score_is_neutral_regardless_of_xgi(self):
-        """Two MID players with different xgi_roll3 must have equal form_score (0.5)."""
-        features = _features(
-            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5, minutes_roll5=85.0, purchase_price=7.5),
-            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5, minutes_roll5=85.0, purchase_price=7.5),
-        )
-        result = rank_value_players(features, target_gw=5)
-        mid_rows = result[result["position_label"] == "MID"]
-        assert len(mid_rows) == 2
-
-        scores = mid_rows["form_score"].unique()
-        assert len(scores) == 1, (
-            f"G-SYNTH1-07: MID form_score must be equal for all MID players. Got {mid_rows['form_score'].tolist()}"
-        )
-        assert abs(scores[0] - 0.5) < 1e-9, f"G-SYNTH1-07: MID form_score must be 0.5, got {scores[0]}"
-
-    def test_mid_consistency_score_is_neutral_regardless_of_xgi(self):
-        """MID consistency_score must be 0.5 regardless of xgi_roll3 value.
-
-        Consistency compares xgi_roll3 vs xgi_roll5. Since xgi_roll3 is zeroed
-        at MID, the comparison is neutralised to prevent perverse ranking.
-        """
-        features = _features(
-            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.8, minutes_roll5=85.0, purchase_price=7.5),
-            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.8, minutes_roll5=85.0, purchase_price=7.5),
-        )
-        result = rank_value_players(features, target_gw=5)
-        mid_rows = result[result["position_label"] == "MID"]
-
-        scores = mid_rows["consistency_score"].unique()
-        assert len(scores) == 1, (
-            f"G-SYNTH1-07: MID consistency_score must be equal (neutralised). "
-            f"Got {mid_rows['consistency_score'].tolist()}"
-        )
-        assert abs(scores[0] - 0.5) < 1e-9, f"G-SYNTH1-07: MID consistency_score must be 0.5, got {scores[0]}"
-
-    def test_mid_efficiency_score_not_neutralized(self):
-        """efficiency_score uses xgi_roll5 which is approved at MID (not excluded).
-        MID players must be differentiated by efficiency_score."""
-        features = _features(
-            _row(1, 5, position_label="MID", xgi_roll5=0.9, xgi_roll3=0.5, minutes_roll5=85.0, purchase_price=7.5),
-            _row(2, 5, position_label="MID", xgi_roll5=0.1, xgi_roll3=0.5, minutes_roll5=85.0, purchase_price=7.5),
-        )
-        result = rank_value_players(features, target_gw=5)
-        mid_rows = result[result["position_label"] == "MID"].set_index("player_id")
-
-        assert mid_rows.loc[1, "efficiency_score"] > mid_rows.loc[2, "efficiency_score"], (
-            "G-SYNTH1-07: MID efficiency_score (xgi_roll5) must differentiate players"
-        )
-
-
+# captain.py and value.py: RETIRED from these guards — neither consumes xgi (both rank by the model
+# forecast). Per-position validity is enforced upstream by the term gates, not a serve scope-guard.
 # ---------------------------------------------------------------------------
 # SYNTH-01 G-SYNTH1-07: xgi_roll3 zeroed at MID in transfers.py
 # ---------------------------------------------------------------------------
@@ -216,19 +155,19 @@ class TestTransfersMidXgiGuard:
 
 
 # ---------------------------------------------------------------------------
-# FORM-001/002: FWD zeroing guard in captain.py, value.py, transfers.py
+# FORM-001/002: FWD zeroing guard in transfers.py
 # ---------------------------------------------------------------------------
 
 
 class TestFwdZeroingGuard:
-    """FORM-001/002 G2-FAIL: xgi signals excluded at FWD across all three modules.
+    """FORM-001/002 G2-FAIL: xgi signals excluded at FWD in transfers.py.
 
     Zeroing produces neutral 0.5 for all FWD players — they are not ranked by
     xgi, but they remain in the output. This is different from positional exclusion.
     """
 
-    # captain FWD xgi guards RETIRED with the composite — captain ranks by the model forecast, which
-    # is per-position valid by construction (the term gates), so there is no xgi to neutralise.
+    # captain and value FWD xgi guards RETIRED with their composites — both rank by the model forecast,
+    # which is per-position valid by construction (the term gates), so there is no xgi to neutralise.
 
     def test_transfers_fwd_form_scores_neutral(self):
         """FWD recent_form_score and involvement_score must be 0.5 in transfers.py."""
@@ -247,22 +186,6 @@ class TestFwdZeroingGuard:
             assert abs(row["involvement_score"] - 0.5) < 1e-9, (
                 f"FORM-001: FWD involvement_score must be 0.5, got {row['involvement_score']}"
             )
-
-    def test_value_fwd_efficiency_score_neutral(self):
-        """FWD efficiency_score and form_score must be 0.5 in value.py."""
-        features = _features(
-            _row(1, 5, position_label="FWD", xgi_roll3=0.9, xgi_roll5=0.8, minutes_roll5=85.0, purchase_price=8.0),
-            _row(2, 5, position_label="FWD", xgi_roll3=0.1, xgi_roll5=0.1, minutes_roll5=85.0, purchase_price=8.0),
-        )
-        result = rank_value_players(features, target_gw=5)
-        fwd_rows = result[result["position_label"] == "FWD"]
-        assert len(fwd_rows) == 2
-
-        for _, row in fwd_rows.iterrows():
-            assert abs(row["efficiency_score"] - 0.5) < 1e-9, (
-                f"FORM-002: FWD efficiency_score must be 0.5, got {row['efficiency_score']}"
-            )
-            assert abs(row["form_score"] - 0.5) < 1e-9, f"FORM-001: FWD form_score must be 0.5, got {row['form_score']}"
 
 
 # ---------------------------------------------------------------------------

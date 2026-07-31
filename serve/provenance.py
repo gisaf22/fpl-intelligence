@@ -27,15 +27,11 @@ from serve.weight_registry import get_module_weights, get_weight_metadata
 # Map from module name → component → list of STATE columns that feed the component.
 # Encodes the computational relationship between weight components and STATE values.
 #
-# ``captain`` is deliberately absent: it is now ranked by the model forecast (``p_haul``/``p90``), not a
-# weight composite, so it has no weight-registry provenance. Its traceability lives in the model layer
+# ``captain`` and ``value`` are deliberately absent: both are now ranked by the model forecast
+# (captain by ``p_haul``/``p90``, value by ``e_points_uncond`` / ``purchase_price``), not a weight
+# composite, so they have no weight-registry provenance. Their traceability lives in the model layer
 # (assemble_forecast -> compose/simulate -> the gated terms), not here.
 _MODULE_SIGNAL_MAP: dict[str, dict[str, list[str]]] = {
-    "value": {
-        "efficiency_score": ["xgi_roll5", "purchase_price"],
-        "form_score": ["xgi_roll3"],
-        "consistency_score": ["xgi_roll3", "xgi_roll5"],
-    },
     "fixtures": {
         "team_attack_score": ["goals_scored"],
         "dgw_bonus_score": ["fixture_context"],

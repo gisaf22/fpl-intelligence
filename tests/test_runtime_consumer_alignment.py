@@ -26,12 +26,12 @@ pytestmark = pytest.mark.unit
 def _intelligence_module_paths() -> list[Path]:
     """Return paths to the composite-scored intelligence modules.
 
-    ``captain.py`` is deliberately absent: it is ranked by the model forecast (p_haul/p90), not a weight
-    composite, so the weight-registry / hardcoded-weight contracts below do not apply to it.
+    ``captain.py`` and ``value.py`` are deliberately absent: both are ranked by the model forecast
+    (captain by p_haul/p90, value by e_points_uncond / purchase_price), not a weight composite, so the
+    weight-registry / hardcoded-weight contracts below do not apply to them.
     """
     root = Path("serve")
     return [
-        root / "value.py",
         root / "fixtures.py",
         root / "transfers.py",
     ]
@@ -159,7 +159,7 @@ class TestWeightRegistryLoader:
     def test_known_modules_load(self) -> None:
         from serve.weight_registry import get_module_weights
 
-        for module in ("value", "fixtures", "transfers"):
+        for module in ("fixtures", "transfers"):
             weights = get_module_weights(module)
             assert isinstance(weights, dict), f"{module}: expected dict"
             assert len(weights) > 0, f"{module}: empty weights dict"
@@ -169,7 +169,7 @@ class TestWeightRegistryLoader:
     def test_all_weights_positive(self) -> None:
         from serve.weight_registry import get_module_weights
 
-        for module in ("value", "fixtures", "transfers"):
+        for module in ("fixtures", "transfers"):
             weights = get_module_weights(module)
             for k, v in weights.items():
                 assert v > 0, f"{module}.{k}: weight must be positive, got {v}"
@@ -183,7 +183,7 @@ class TestWeightRegistryLoader:
     def test_get_weight_metadata_returns_dict(self) -> None:
         from serve.weight_registry import get_weight_metadata
 
-        meta = get_weight_metadata("value", "efficiency_score")
+        meta = get_weight_metadata("transfers", "recent_form_score")
         assert isinstance(meta, dict)
         assert "value" in meta
 
@@ -191,7 +191,7 @@ class TestWeightRegistryLoader:
         from serve.weight_registry import WeightRegistryError, get_weight_metadata
 
         with pytest.raises(WeightRegistryError):
-            get_weight_metadata("value", "nonexistent_key_xyz")
+            get_weight_metadata("transfers", "nonexistent_key_xyz")
 
     def test_fdr_opportunity_score_not_in_fixtures(self) -> None:
         """fdr_opportunity_score must not appear in fixtures registry."""
@@ -294,7 +294,7 @@ class TestScoreProvenance:
             _base_features_row(player_id=3, gw=5, position_label="DEF"),
         )
 
-    @pytest.mark.parametrize("module", ["value", "fixtures", "transfers"])
+    @pytest.mark.parametrize("module", ["fixtures", "transfers"])
     def test_provenance_top_level_keys(self, module: str, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
 
@@ -308,7 +308,7 @@ class TestScoreProvenance:
         assert "signals" in result
         assert isinstance(result["signals"], dict)
 
-    @pytest.mark.parametrize("module", ["value", "fixtures", "transfers"])
+    @pytest.mark.parametrize("module", ["fixtures", "transfers"])
     def test_provenance_signal_structure(self, module: str, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
         from serve.weight_registry import get_module_weights
@@ -331,7 +331,7 @@ class TestScoreProvenance:
             assert "caveats" in entry, f"{module}.{component}: missing 'caveats'"
             assert isinstance(entry["caveats"], list), f"{module}.{component}: 'caveats' must be a list"
 
-    @pytest.mark.parametrize("module", ["value", "fixtures", "transfers"])
+    @pytest.mark.parametrize("module", ["fixtures", "transfers"])
     def test_provenance_weights_match_registry(self, module: str, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
         from serve.weight_registry import get_module_weights
@@ -355,16 +355,16 @@ class TestScoreProvenance:
         from serve.provenance import score_provenance
 
         with pytest.raises(ValueError, match="no data for player_id=999"):
-            score_provenance(synthetic_features, player_id=999, gw=5, module="value")
+            score_provenance(synthetic_features, player_id=999, gw=5, module="transfers")
 
     def test_provenance_registry_source_references_yaml(self, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
 
-        result = score_provenance(synthetic_features, player_id=1, gw=5, module="value")
+        result = score_provenance(synthetic_features, player_id=1, gw=5, module="transfers")
         assert "weight_registry.yaml" in result["registry_source"]
         for component, entry in result["signals"].items():
             assert "weight_registry.yaml" in entry["registry_source"], (
-                f"value.{component}: registry_source should reference weight_registry.yaml"
+                f"transfers.{component}: registry_source should reference weight_registry.yaml"
             )
 
     def test_provenance_fwd_position_present(self, synthetic_features: pd.DataFrame) -> None:

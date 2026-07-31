@@ -13,7 +13,7 @@
 frozen_at: "2026-05-27"
 frozen_by: "Phase 4 — SYNTH-01 Readiness"
 source_doc: "docs/governance/synth01-candidate-set.md"
-design_doc: "docs/governance/synth01-design.md"
+design_doc: "docs/decisions/010-layered-decision-model.md"
 candidate_count: 14
 modification_policy: "IMMUTABLE — any change requires documented Phase 4 restart"
 
@@ -235,8 +235,7 @@ candidates:
   # ---------------------------------------------------------------------------
   # GK synthesis is not in scope for SYNTH-01.
   # No evaluation_metadata.yaml entry carries lifecycle_state=candidate at GK.
-  # See docs/governance/synth01-design.md §GK Scope Decision for full rationale.
-  # Action: Deferred pending dedicated LENS-GK study (post-Phase-6).
+  # Rationale is inline above; GK synthesis deferred pending a dedicated LENS-GK study (post-Phase-6).
 
 excluded_positions:
   FWD:
@@ -249,7 +248,7 @@ excluded_positions:
     synthesis_eligible: false
     candidate_count: 0
     reason: "No candidates in evaluation_metadata.yaml from any lens (FORM, AVAIL, MARKET, FIXTURE-GW)."
-    action: "Deferred. Requires dedicated LENS-GK study. See synth01-design.md §GK Scope Decision."
+    action: "Deferred. Requires dedicated LENS-GK study."
 
 high_redundancy_pairs:
   - signal_a: ownership_count

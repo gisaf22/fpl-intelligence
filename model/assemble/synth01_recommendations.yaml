@@ -5,7 +5,7 @@ version: synth01
 produced: '2026-06-06'
 authority: Operational Convergence Plan Phase 7
 candidate_registry: model/assemble/synth01_candidates.yaml
-design_doc: docs/governance/synth01-design.md
+design_doc: docs/decisions/010-layered-decision-model.md
 fdr_moderation_check:
   material: true
   n_material_groups: 3

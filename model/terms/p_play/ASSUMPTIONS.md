@@ -2,7 +2,7 @@
 
 **Type:** spec (per-term assumptions) · **Model:** `model/terms/p_play/p_play.py` → `PlayModel` / `PlayTerm`
 **Shared shape:** `model/terms/_binary_component.py` (the per-position logistic base)
-**Spec:** [docs/model-redesign-pplay-blanktail-slice.md](../../../docs/model-redesign-pplay-blanktail-slice.md) · [docs/model-redesign-spec.md](../../../docs/model-redesign-spec.md) X1
+**Spec:** [docs/model-redesign-changelog.md](../../../docs/model-redesign-changelog.md) (P(play) + blank-tail) · [docs/model-redesign-spec.md](../../../docs/model-redesign-spec.md) X1
 
 The p_play term predicts **P(play) = P(minutes > 0)** one gameweek ahead — the probability a player
 features *at all*. It is the appearance gate *before* the `minutes` term's P(>=60' | played), so the two

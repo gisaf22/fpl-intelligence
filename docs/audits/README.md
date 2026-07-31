@@ -19,3 +19,11 @@ data-scientist lenses to reuse shared components, delete redundancy, and set con
 **Rule for every run:** assessment + plan only; behavior-preserving (the frozen results docs are the
 reproduction oracle); execution is a separate approved step, one phase per branch, numbers verified
 before merge.
+
+---
+
+## Related: whole-system audit
+
+[ARCHITECTURE_AUDIT_PROMPT.md](ARCHITECTURE_AUDIT_PROMPT.md) is a separate, system-wide audit prompt
+(correctness / governance integrity / layer consistency — code-truth bound, non-designing). Use it for
+a cross-layer architecture pass, distinct from the per-phase code-quality kit above.

@@ -3,7 +3,7 @@
 This is a STOCHASTIC step, so there is no bit-identical god-file golden (a Monte-Carlo mean cannot equal
 an analytic reference to the bit). The reproducibility gate is instead a **seed-pinned regression vector**
 (fixed seed -> summaries reproduce to 4dp) plus a **tolerance consistency check** that ``sim_mean`` tracks
-compose ``e_points`` on non-GK rows. See docs/model-redesign-simulate-slice.md (Fork B).
+compose ``e_points`` on non-GK rows. See docs/model-redesign-changelog.md (simulate.py extraction, Fork B).
 """
 
 from __future__ import annotations

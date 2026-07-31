@@ -1,7 +1,7 @@
 # Smarter mean models — systematic feature program (one model × one context at a time)
 
 **Status:** plan (grounded in a measurement; step 1 confirmed) · **Type:** spec
-**Parent:** [interval-dispersion scoping](model-redesign-interval-dispersion-scoping.md) (fork A:
+**Parent:** [interval-dispersion scoping (REFUTED — changelog)](model-redesign-changelog.md#interval-dispersion) (fork A:
 improve the mean, not the interval). **Goal:** improve the *mean* forecasts by adding fixture/opponent/team
 context, one feature at a time, each accepted only if it passes **both** gates (ranking **and** level) out
 of sample. Better means help ranking *and* tighten calibration honestly.

@@ -470,7 +470,7 @@ def run(db_path: Path = DB_PATH) -> Path:
         "produced": datetime.now().strftime("%Y-%m-%d"),
         "authority": "Operational Convergence Plan Phase 7",
         "candidate_registry": "model/assemble/synth01_candidates.yaml",
-        "design_doc": "docs/governance/synth01-design.md",
+        "design_doc": "docs/decisions/010-layered-decision-model.md",
         "fdr_moderation_check": moderation,
         "group_summary": group_summaries,
         "recommendations": all_recommendations,

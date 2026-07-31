@@ -24,10 +24,13 @@ pytestmark = pytest.mark.unit
 
 
 def _intelligence_module_paths() -> list[Path]:
-    """Return paths to the four operational intelligence modules."""
+    """Return paths to the composite-scored intelligence modules.
+
+    ``captain.py`` is deliberately absent: it is ranked by the model forecast (p_haul/p90), not a weight
+    composite, so the weight-registry / hardcoded-weight contracts below do not apply to it.
+    """
     root = Path("serve")
     return [
-        root / "captain.py",
         root / "value.py",
         root / "fixtures.py",
         root / "transfers.py",
@@ -156,7 +159,7 @@ class TestWeightRegistryLoader:
     def test_known_modules_load(self) -> None:
         from serve.weight_registry import get_module_weights
 
-        for module in ("captain", "value", "fixtures", "transfers"):
+        for module in ("value", "fixtures", "transfers"):
             weights = get_module_weights(module)
             assert isinstance(weights, dict), f"{module}: expected dict"
             assert len(weights) > 0, f"{module}: empty weights dict"
@@ -166,7 +169,7 @@ class TestWeightRegistryLoader:
     def test_all_weights_positive(self) -> None:
         from serve.weight_registry import get_module_weights
 
-        for module in ("captain", "value", "fixtures", "transfers"):
+        for module in ("value", "fixtures", "transfers"):
             weights = get_module_weights(module)
             for k, v in weights.items():
                 assert v > 0, f"{module}.{k}: weight must be positive, got {v}"
@@ -180,7 +183,7 @@ class TestWeightRegistryLoader:
     def test_get_weight_metadata_returns_dict(self) -> None:
         from serve.weight_registry import get_weight_metadata
 
-        meta = get_weight_metadata("captain", "form_score")
+        meta = get_weight_metadata("value", "efficiency_score")
         assert isinstance(meta, dict)
         assert "value" in meta
 
@@ -188,7 +191,7 @@ class TestWeightRegistryLoader:
         from serve.weight_registry import WeightRegistryError, get_weight_metadata
 
         with pytest.raises(WeightRegistryError):
-            get_weight_metadata("captain", "nonexistent_key_xyz")
+            get_weight_metadata("value", "nonexistent_key_xyz")
 
     def test_fdr_opportunity_score_not_in_fixtures(self) -> None:
         """fdr_opportunity_score must not appear in fixtures registry."""
@@ -291,7 +294,7 @@ class TestScoreProvenance:
             _base_features_row(player_id=3, gw=5, position_label="DEF"),
         )
 
-    @pytest.mark.parametrize("module", ["captain", "value", "fixtures", "transfers"])
+    @pytest.mark.parametrize("module", ["value", "fixtures", "transfers"])
     def test_provenance_top_level_keys(self, module: str, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
 
@@ -305,7 +308,7 @@ class TestScoreProvenance:
         assert "signals" in result
         assert isinstance(result["signals"], dict)
 
-    @pytest.mark.parametrize("module", ["captain", "value", "fixtures", "transfers"])
+    @pytest.mark.parametrize("module", ["value", "fixtures", "transfers"])
     def test_provenance_signal_structure(self, module: str, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
         from serve.weight_registry import get_module_weights
@@ -328,7 +331,7 @@ class TestScoreProvenance:
             assert "caveats" in entry, f"{module}.{component}: missing 'caveats'"
             assert isinstance(entry["caveats"], list), f"{module}.{component}: 'caveats' must be a list"
 
-    @pytest.mark.parametrize("module", ["captain", "value", "fixtures", "transfers"])
+    @pytest.mark.parametrize("module", ["value", "fixtures", "transfers"])
     def test_provenance_weights_match_registry(self, module: str, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
         from serve.weight_registry import get_module_weights
@@ -352,16 +355,16 @@ class TestScoreProvenance:
         from serve.provenance import score_provenance
 
         with pytest.raises(ValueError, match="no data for player_id=999"):
-            score_provenance(synthetic_features, player_id=999, gw=5, module="captain")
+            score_provenance(synthetic_features, player_id=999, gw=5, module="value")
 
     def test_provenance_registry_source_references_yaml(self, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
 
-        result = score_provenance(synthetic_features, player_id=1, gw=5, module="captain")
+        result = score_provenance(synthetic_features, player_id=1, gw=5, module="value")
         assert "weight_registry.yaml" in result["registry_source"]
         for component, entry in result["signals"].items():
             assert "weight_registry.yaml" in entry["registry_source"], (
-                f"captain.{component}: registry_source should reference weight_registry.yaml"
+                f"value.{component}: registry_source should reference weight_registry.yaml"
             )
 
     def test_provenance_fwd_position_present(self, synthetic_features: pd.DataFrame) -> None:
@@ -428,40 +431,8 @@ class TestFdrRemovedFromScoring:
             f"Player 1 (fdr=1.0): {scores[1]:.4f}, Player 2 (fdr=5.0): {scores[2]:.4f}"
         )
 
-    def test_captain_score_unaffected_by_fdr_alone(self) -> None:
-        """Captain scores must not vary when only fdr_avg differs."""
-        from serve.captain import rank_captain_candidates as rank_captains
-
-        rows = [
-            _base_features_row(
-                player_id=1,
-                gw=5,
-                position_label="MID",
-                fdr_avg=1.0,
-                fixture_context="SGW",
-                xgi_roll5=0.5,
-                xgi_roll3=0.5,
-                minutes_roll3=90.0,
-            ),
-            _base_features_row(
-                player_id=2,
-                gw=5,
-                position_label="MID",
-                fdr_avg=5.0,
-                fixture_context="SGW",
-                xgi_roll5=0.5,
-                xgi_roll3=0.5,
-                minutes_roll3=90.0,
-            ),
-        ]
-        features = _make_features(*rows)
-        result = rank_captains(features, target_gw=5)
-
-        scores = result.set_index("player_id")["captain_score"]
-        assert scores[1] == pytest.approx(scores[2]), (
-            "captain_score must not differ by fdr_avg alone. "
-            f"Player 1 (fdr=1.0): {scores[1]:.4f}, Player 2 (fdr=5.0): {scores[2]:.4f}"
-        )
+    # captain fdr-invariance RETIRED: captain no longer reads any signal (ranks by the model forecast),
+    # so it is trivially invariant to fdr_avg — nothing to guard.
 
 
 # ---------------------------------------------------------------------------
@@ -507,21 +478,8 @@ class TestFwdScopeGuard:
             f"Player 10 (xgi=2.0): {scores[10]:.4f}, Player 11 (xgi=0.01): {scores[11]:.4f}"
         )
 
-    def test_captain_fwd_xgi_neutralised(self) -> None:
-        from serve.captain import rank_captain_candidates
-
-        features = self._fwd_features_varying_xgi()
-        result = rank_captain_candidates(features, target_gw=5)
-        fwd = result[result["position_label"] == "FWD"]
-
-        if len(fwd) < 2:
-            pytest.skip("Not enough FWD players in result to compare")
-
-        scores = fwd.set_index("player_id")["captain_score"]
-        assert scores[10] == pytest.approx(scores[11], abs=1e-6), (
-            "FWD captain_score must be neutralised when xgi differs. "
-            f"Player 10 (xgi=2.0): {scores[10]:.4f}, Player 11 (xgi=0.01): {scores[11]:.4f}"
-        )
+    # captain FWD xgi-neutralisation RETIRED with the composite — captain ranks by the model forecast,
+    # which is per-position valid by construction (the term gates); there is no xgi to neutralise.
 
 
 # ---------------------------------------------------------------------------

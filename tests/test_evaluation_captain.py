@@ -33,6 +33,9 @@ def _state_row(
     fdr_avg: float = 3.0,
     purchase_price: float = 7.5,
     position_label: str = "MID",
+    p_haul: float | None = None,
+    p90: float | None = None,
+    e_points_uncond: float | None = None,
 ) -> dict:
     return {
         "player_id": player_id,
@@ -67,6 +70,11 @@ def _state_row(
         "minutes_trend": "stable",
         "minutes_roll8": 88.0,
         "fixture_context": "SGW",
+        # Model forecast columns (enriched onto the mart by the runner). Scaled by the lag-safe
+        # points_roll3 so the in-form player still gets the higher haul probability -> picked.
+        "p_haul": (0.02 + 0.01 * points_roll3) if p_haul is None else p_haul,
+        "p90": (2.0 + points_roll3) if p90 is None else p90,
+        "e_points_uncond": (0.5 * points_roll3) if e_points_uncond is None else e_points_uncond,
     }
 
 

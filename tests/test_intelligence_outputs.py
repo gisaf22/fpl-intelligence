@@ -49,8 +49,16 @@ def _base_row(
     is_dgw: bool = False,
     fixture_context: str = "SGW",
     is_warmup_gw: bool = False,
+    p_haul: float | None = None,
+    p90: float | None = None,
+    e_points_uncond: float | None = None,
 ) -> dict:
-    """Produce a single row with all required intelligence columns."""
+    """Produce a single row with all required intelligence columns.
+
+    The model forecast columns (p_haul/p90/e_points_uncond) are the enriched inputs the operational
+    runner merges on; they default to values that scale with ``points_roll3`` so a "better" row ranks
+    higher, and can be overridden per row to drive a specific ranking.
+    """
     return {
         "player_id": player_id,
         "gw": gw,
@@ -80,6 +88,10 @@ def _base_row(
         "goals_conceded_roll5": 0.4,
         "minutes_trend": minutes_trend,
         "fixture_context": fixture_context,
+        # Model forecast columns (enriched onto the mart by the runner; see model.predictions).
+        "p_haul": (0.02 + 0.01 * points_roll3) if p_haul is None else p_haul,
+        "p90": (2.0 + points_roll3) if p90 is None else p90,
+        "e_points_uncond": (0.5 * points_roll3) if e_points_uncond is None else e_points_uncond,
     }
 
 
@@ -178,14 +190,8 @@ class TestValidateIntelligenceInputs:
 class TestRankCaptainCandidates:
     def test_returns_expected_columns(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)
-        for col in [
-            "form_score",
-            "involvement_score",
-            "fixture_score",
-            "minutes_score",
-            "captain_score",
-            "captain_rank",
-        ]:
+        # Model-driven: the ceiling/haul reads, not the retired composite components.
+        for col in ["e_points_uncond", "p90", "p_haul", "captain_score", "captain_rank"]:
             assert col in result.columns, f"missing column: {col}"
 
     def test_is_deterministic(self, two_player_features):
@@ -197,10 +203,27 @@ class TestRankCaptainCandidates:
         result = rank_captain_candidates(two_player_features, target_gw=5)
         assert result["captain_score"].is_monotonic_decreasing
 
-    def test_higher_form_player_ranks_first(self, two_player_features):
+    def test_captain_score_is_the_haul_probability(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)
-        # player 1 has better form and involvement — should be top
+        # captaincy is a ceiling bet: the score IS p_haul.
+        assert (result["captain_score"] == result["p_haul"]).all()
+
+    def test_higher_haul_prob_player_ranks_first(self):
+        # player 1 has the higher haul probability -> ranks first (tie-broken by p90).
+        features = _make_features(
+            _base_row(1, 5, p_haul=0.20, p90=9.0),
+            _base_row(2, 5, p_haul=0.05, p90=6.0),
+        )
+        result = rank_captain_candidates(features, target_gw=5)
         assert result.iloc[0]["player_id"] == 1
+
+    def test_ties_broken_by_p90_ceiling(self):
+        features = _make_features(
+            _base_row(1, 5, p_haul=0.10, p90=7.0),
+            _base_row(2, 5, p_haul=0.10, p90=11.0),  # same haul prob, higher ceiling
+        )
+        result = rank_captain_candidates(features, target_gw=5)
+        assert result.iloc[0]["player_id"] == 2
 
     def test_filters_low_minutes_players(self):
         features = _make_features(
@@ -226,15 +249,16 @@ class TestRankCaptainCandidates:
         result = rank_captain_candidates(two_player_features, target_gw=5, n=1)
         assert len(result) <= 1
 
-    def test_missing_column_raises_governance_error(self, two_player_features):
-        df = two_player_features.drop(columns=["xgi_roll3"])
-        with pytest.raises(IntelligenceInputError):
+    def test_missing_forecast_column_raises(self, two_player_features):
+        # Without the model forecast enrichment (p_haul), captain cannot rank — a clear input error.
+        df = two_player_features.drop(columns=["p_haul"])
+        with pytest.raises(IntelligenceInputError, match="forecast"):
             rank_captain_candidates(df, target_gw=5)
 
-    def test_scores_in_0_1_range(self, two_player_features):
+    def test_haul_probability_in_0_1_range(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)
-        for col in ["form_score", "involvement_score", "fixture_score", "minutes_score", "captain_score"]:
-            assert result[col].between(0.0, 1.0).all(), f"{col} out of [0,1]"
+        assert result["captain_score"].between(0.0, 1.0).all()
+        assert result["p_haul"].between(0.0, 1.0).all()
 
 
 # ---------------------------------------------------------------------------
@@ -553,7 +577,8 @@ class TestIntelligenceGovernance:
 
     def test_captain_explainability_columns_present(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)
-        for col in ["form_score", "involvement_score", "fixture_score", "minutes_score"]:
+        # Model-driven explainability: the ceiling/haul/expected-points reads.
+        for col in ["e_points_uncond", "p90", "p_haul"]:
             assert col in result.columns
 
     def test_transfers_explainability_columns_present(self, two_player_features):

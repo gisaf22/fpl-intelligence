@@ -1,13 +1,13 @@
-"""Historical evaluation of the captain ranking heuristic.
+"""Historical evaluation of the captain ranking.
 
-Determines whether the captain composite heuristic (form + involvement +
-fixture + minutes, statically weighted) produces better outcomes than
-naive single-signal alternatives across historical gameweeks.
+Determines whether the shipped captain ranker (now the model forecast — ``p_haul`` ceiling; formerly the
+xgi composite) produces better outcomes than naive single-signal alternatives across historical
+gameweeks. ``features`` must be enriched with the model forecast columns (via
+``model.predictions.assemble_forecast``) — the same enrichment the operational runner applies.
 
-Temporal integrity: the intelligence layer already enforces lag-1 via the
-state layer's shift(1) rolling windows. Features at GW N encode only GWs
-1..N-1. The actual outcome (total_points at GW N) is used solely as a
-post-hoc evaluation target — it plays no role in generating rankings.
+Temporal integrity: the model forecast at GW N is lag-safe (its terms fit on GWs 1..N-1), and the
+rolling windows are shift(1). The actual outcome (total_points at GW N) is used solely as a post-hoc
+evaluation target — it plays no role in generating rankings.
 """
 
 from __future__ import annotations

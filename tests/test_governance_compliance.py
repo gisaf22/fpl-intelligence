@@ -22,7 +22,6 @@ import pandas as pd
 import pytest
 
 from serve.availability import flag_availability_risk
-from serve.captain import rank_captain_candidates
 from serve.fixtures import rank_fixture_opportunities
 from serve.transfers import rank_transfer_targets
 from serve.value import rank_value_players
@@ -85,50 +84,8 @@ def _features(*rows: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# SYNTH-01 G-SYNTH1-07: xgi_roll3 zeroed at MID in captain.py
-# ---------------------------------------------------------------------------
-
-
-class TestCaptainMidXgiGuard:
-    """G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID in captain.py.
-
-    involvement_score for MID must be neutral 0.5 regardless of xgi_roll3
-    value, because all MID players are zeroed before normalize_within_position.
-    """
-
-    def test_mid_involvement_score_is_neutral_regardless_of_xgi(self):
-        """Two MID players with very different xgi_roll3 must have the same
-        involvement_score (both zeroed → all-equal group → 0.5 from normalization)."""
-        features = _features(
-            _row(1, 5, position_label="MID", xgi_roll3=0.9, minutes_roll3=85.0),
-            _row(2, 5, position_label="MID", xgi_roll3=0.1, minutes_roll3=85.0),
-        )
-        result = rank_captain_candidates(features, target_gw=5)
-        mid_rows = result[result["position_label"] == "MID"]
-        assert len(mid_rows) == 2
-
-        scores = mid_rows["involvement_score"].unique()
-        assert len(scores) == 1, (
-            f"G-SYNTH1-07: MID players with different xgi_roll3 must have identical "
-            f"involvement_score (all zeroed → 0.5). Got {mid_rows['involvement_score'].tolist()}"
-        )
-        assert abs(scores[0] - 0.5) < 1e-9, f"G-SYNTH1-07: MID involvement_score must be 0.5, got {scores[0]}"
-
-    def test_mid_form_score_not_neutralized(self):
-        """form_score uses xgi_roll5 which is NOT excluded at MID.
-        Verify differentiation at MID via form_score (xgi_roll5)."""
-        features = _features(
-            _row(1, 5, position_label="MID", xgi_roll5=0.9, xgi_roll3=0.5, minutes_roll3=85.0),
-            _row(2, 5, position_label="MID", xgi_roll5=0.1, xgi_roll3=0.5, minutes_roll3=85.0),
-        )
-        result = rank_captain_candidates(features, target_gw=5)
-        mid_rows = result[result["position_label"] == "MID"].set_index("player_id")
-
-        assert mid_rows.loc[1, "form_score"] > mid_rows.loc[2, "form_score"], (
-            "MID form_score (xgi_roll5) must differentiate players"
-        )
-
-
+# captain.py: RETIRED from these guards — it no longer consumes xgi (ranked by the model forecast
+# p_haul/p90). Per-position validity is enforced upstream by the term gates, not a serve scope-guard.
 # ---------------------------------------------------------------------------
 # SYNTH-01 G-SYNTH1-07: xgi_roll3 zeroed at MID in value.py
 # ---------------------------------------------------------------------------
@@ -270,34 +227,8 @@ class TestFwdZeroingGuard:
     xgi, but they remain in the output. This is different from positional exclusion.
     """
 
-    def test_captain_fwd_form_score_neutral(self):
-        """FWD form_score (xgi_roll5) must be 0.5 regardless of xgi_roll5."""
-        features = _features(
-            _row(1, 5, position_label="FWD", xgi_roll5=0.9, minutes_roll3=85.0),
-            _row(2, 5, position_label="FWD", xgi_roll5=0.1, minutes_roll3=85.0),
-        )
-        result = rank_captain_candidates(features, target_gw=5)
-        fwd_rows = result[result["position_label"] == "FWD"]
-        assert len(fwd_rows) == 2
-
-        for _, row in fwd_rows.iterrows():
-            assert abs(row["form_score"] - 0.5) < 1e-9, (
-                f"FORM-002: FWD form_score must be 0.5, got {row['form_score']} for player {row['player_id']}"
-            )
-
-    def test_captain_fwd_involvement_score_neutral(self):
-        """FWD involvement_score (xgi_roll3) must be 0.5 regardless of xgi_roll3."""
-        features = _features(
-            _row(1, 5, position_label="FWD", xgi_roll3=0.9, minutes_roll3=85.0),
-            _row(2, 5, position_label="FWD", xgi_roll3=0.1, minutes_roll3=85.0),
-        )
-        result = rank_captain_candidates(features, target_gw=5)
-        fwd_rows = result[result["position_label"] == "FWD"]
-
-        for _, row in fwd_rows.iterrows():
-            assert abs(row["involvement_score"] - 0.5) < 1e-9, (
-                f"FORM-001: FWD involvement_score must be 0.5, got {row['involvement_score']}"
-            )
+    # captain FWD xgi guards RETIRED with the composite — captain ranks by the model forecast, which
+    # is per-position valid by construction (the term gates), so there is no xgi to neutralise.
 
     def test_transfers_fwd_form_scores_neutral(self):
         """FWD recent_form_score and involvement_score must be 0.5 in transfers.py."""
@@ -419,24 +350,11 @@ class TestFdrAvgNotScored:
 
 
 class TestFixtureContextWired:
-    """fixture_context candidate consumed by captain.py and transfers.py.
+    """fixture_context candidate consumed by transfers.py.
 
-    fixture_score must differ between DGW and SGW players.
+    fixture_score must differ between DGW and SGW players. (captain.py no longer scores fixture_context —
+    it ranks by the model forecast, which already carries fixture context through the terms.)
     """
-
-    def test_captain_fixture_score_higher_for_dgw(self):
-        """DGW player must score higher on fixture_score than SGW player
-        when all other inputs are equal."""
-        features = _features(
-            _row(1, 5, fixture_context="DGW", minutes_roll3=85.0),
-            _row(2, 5, fixture_context="SGW", minutes_roll3=85.0),
-        )
-        result = rank_captain_candidates(features, target_gw=5)
-        p1 = result[result["player_id"] == 1]["fixture_score"].iloc[0]
-        p2 = result[result["player_id"] == 2]["fixture_score"].iloc[0]
-        assert p1 > p2, (
-            f"captain.py: DGW player must have higher fixture_score than SGW. Got DGW={p1:.3f}, SGW={p2:.3f}"
-        )
 
     def test_transfers_fixture_score_higher_for_dgw(self):
         """DGW player must score higher on fixture_score than SGW player

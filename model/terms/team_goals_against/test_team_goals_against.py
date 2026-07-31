@@ -142,6 +142,25 @@ def test_clean_sheet_gate_reproduces_godfile_cs_validation_frozen() -> None:
         assert round(float(got.loc[pos, "p_cs"]), 4) == want
 
 
+def test_level_gate_is_wired_and_frozen() -> None:
+    """Both team-GA terms now run the LEVEL gate (spec §5), not just ranking.
+
+    Freeze the per-position bias on the deterministic synthetic panel (regression anchor). The
+    synthetic pass/fail is a property of the toy generator, NOT the real-mart verdict — the meaningful
+    interpretation (p_cs over-predicts the p60-gated player clean-sheet at DEF/MID) lives in
+    ASSUMPTIONS.md. Here we only guard that the gate is present, populated, and numerically stable.
+    """
+    cs = CleanSheetTerm().validate(_mart())
+    conc = ConcededTerm().validate(_mart())
+    # passed_calibration must be populated for every claimed position (no silent .get(p, True) default).
+    assert set(cs.passed_calibration) == {"GK", "DEF", "MID"}
+    assert set(conc.passed_calibration) == {"GK", "DEF"}
+    cs_bias = cs.calibration.set_index("position")["bias"].round(4).to_dict()
+    conc_bias = conc.calibration.set_index("position")["bias"].round(4).to_dict()
+    assert cs_bias == {"GK": -0.055, "DEF": -0.0497, "MID": -0.0497}
+    assert conc_bias == {"GK": -0.0227, "DEF": -0.0281}
+
+
 def test_diagnose_returns_residuals_and_ablation() -> None:
     diag = CleanSheetTerm().diagnose(_mart(seed=2))
     assert isinstance(diag, Diagnostics)

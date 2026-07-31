@@ -196,3 +196,20 @@ def position_bias(df: pd.DataFrame, pred_col: str, target_col: str,
             "ok": not (detectable and material),
         })
     return pd.DataFrame(rows)
+
+
+def level_gate(df: pd.DataFrame, pred_col: str, target_col: str,
+               **kwargs) -> tuple[pd.DataFrame, dict[str, bool]]:
+    """The per-position LEVEL gate: :func:`position_bias` plus the position -> pass mapping.
+
+    Every term's ``validate`` pairs its ranking table with this level check (spec §5): ranking is
+    invariant to a monotone level error, so a term can out-rank its baseline and still predict the
+    wrong AMOUNT. Returns ``(calibration_table, passed_calibration)`` ready to drop straight into a
+    :class:`~model.terms._base.GateResult` — one call so no term hand-rolls, or *forgets*, the level
+    criterion. The caller passes exactly the rows to judge: a term hands in every position it
+    predicts, so an over-reaching structural assumption (e.g. a keeper assist rate) is caught here
+    rather than silently omitted. An empty row set yields an empty table and ``{}`` (no claim).
+    """
+    cal = position_bias(df, pred_col, target_col, **kwargs)
+    passed = dict(zip(cal["position"], cal["ok"], strict=True)) if not cal.empty else {}
+    return cal, passed

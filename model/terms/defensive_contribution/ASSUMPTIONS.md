@@ -51,3 +51,14 @@ DC is the **first logistic term**. It is written standalone but cleanly factored
 target, `_fit_predict` is the per-position logistic, `fit` is the position × gw loop) so a shared
 `BinaryPerPositionComponent` base can be lifted out **mechanically once `minutes` (the second logistic
 term) confirms the shape** — the same rule-of-three discipline that produced the Poisson-player base.
+
+## 8. Level gate runs, but the ground truth is a reconstruction (the one unverifiable term)
+
+DC now runs the per-position **level** gate via the shared binary base (`metrics.level_gate`) — the model
+is checked that it predicts the right *rate* of DC hits, not only that it ranks them. The honest caveat:
+unlike goals/assists/CS/saves, **there is no independent realized "DC points" column on the mart.** The
+target is *derived* — `1{CBIT ≥ threshold}` — from the **UNVERIFIED** thresholds in §6. So the level gate
+validates DC against a **reconstruction of its own outcome**, and any verdict (pass or fail) is only as
+trustworthy as those thresholds. This is why DC is the term the changelog flags as *unverifiable*: closing
+it needs an independent realized-DC column (a **data** dependency, ingest-side), not a modelling change.
+Recorded here, gated as far as the reconstruction allows, not silently passed.

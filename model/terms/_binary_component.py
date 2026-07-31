@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
-from model.eval.metrics import grouped_spearman, position_bias
+from model.eval.metrics import grouped_spearman, level_gate
 from model.eval.walkforward import MIN_ROWS_PER_POS, POSITIONS, WARMUP_GW
 from model.features.spec import FeaturePool
 from model.terms._base import (
@@ -196,9 +196,9 @@ class BinaryComponentTerm:
             table["position"] = pd.Categorical(table["position"], categories=POSITIONS, ordered=True)
             table = table.sort_values("position").reset_index(drop=True)
         # level gate: for a binary term this is P(event) vs the realized base rate — ranking cannot see it.
-        cal = position_bias(ev[ev["position"].isin(self.positions)], self.view_col, target)
-        return GateResult(term=self.name, table=table, passed=passed, calibration=cal,
-                          passed_calibration=dict(zip(cal["position"], cal["ok"], strict=True)))
+        cal, passed_cal = level_gate(ev[ev["position"].isin(self.positions)], self.view_col, target)
+        return GateResult(term=self.name, table=table, passed=passed,
+                          calibration=cal, passed_calibration=passed_cal)
 
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
         """Residuals (worst-missed rows) + per-feature ablation on the ranking (post-gate)."""

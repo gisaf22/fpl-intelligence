@@ -114,6 +114,9 @@ def test_validate_scores_model_vs_lagged_minutes_baseline() -> None:
     # the view column in the gate table holds the within-position Spearman (a correlation, not a prob).
     assert res.table["p_play"].between(-1, 1).all()
     assert set(res.passed).issubset(set(_POS))
+    # the LEVEL gate ran too (P(play) vs realized play rate): every ranked position carries a verdict.
+    assert not res.calibration.empty
+    assert set(res.passed) <= set(res.passed_calibration)
 
 
 def test_check_assumptions_reports_class_balance() -> None:

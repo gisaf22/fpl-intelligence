@@ -33,7 +33,7 @@ from domain.fpl_scoring import (
     GOAL_POINTS_GK,
     GOAL_POINTS_MID,
 )
-from model.eval.metrics import grouped_spearman
+from model.eval.metrics import grouped_spearman, level_gate
 from model.eval.walkforward import MIN_ROWS_PER_POS, POSITIONS, WARMUP_GW
 from model.terms._base import (
     AssumptionReport,
@@ -186,7 +186,11 @@ class BonusTerm:
         if not table.empty:
             table["position"] = pd.Categorical(table["position"], categories=POSITIONS, ordered=True)
             table = table.sort_values("position").reset_index(drop=True)
-        return GateResult(term=self.name, table=table, passed=passed)
+        # level gate: is E[bonus] calibrated to realized bonus? This is a DIFFERENT quantity from the
+        # scoring_conformance clip (compose vs sim); it catches over/under-statement vs realized. See ASSUMPTIONS.
+        cal, passed_cal = level_gate(ev, self.view_col, target)
+        return GateResult(term=self.name, table=table, passed=passed,
+                          calibration=cal, passed_calibration=passed_cal)
 
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
         """Residuals (worst-missed bonus rows) + the per-(position, gw) calibration coefficients."""

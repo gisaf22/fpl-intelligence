@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
-from model.eval.metrics import grouped_spearman, position_bias
+from model.eval.metrics import grouped_spearman, level_gate
 from model.eval.walkforward import MIN_ROWS_PER_POS, POSITIONS, WARMUP_GW
 from model.features.spec import FeaturePool
 from model.forecast.count_models import diagnose_overdispersion
@@ -269,9 +269,9 @@ class PlayerComponentTerm:
             table["position"] = pd.Categorical(table["position"], categories=POSITIONS, ordered=True)
             table = table.sort_values("position").reset_index(drop=True)
         # level gate: ranking is invariant to a per-position level error, so it is checked separately.
-        cal = position_bias(ev, self.view_col, target)
-        return GateResult(term=self.name, table=table, passed=passed, calibration=cal,
-                          passed_calibration=dict(zip(cal["position"], cal["ok"], strict=True)))
+        cal, passed_cal = level_gate(ev, self.view_col, target)
+        return GateResult(term=self.name, table=table, passed=passed,
+                          calibration=cal, passed_calibration=passed_cal)
 
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
         """Post-gate residual + ablation report (spec §4 stage 5).

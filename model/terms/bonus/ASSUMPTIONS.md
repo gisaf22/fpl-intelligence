@@ -53,3 +53,25 @@ wiring step, deferred here (like the other consumer repoints), not part of this 
 Bonus is OLS + contemporaneous, unlike the Poisson-player and binary-per-position families, and it is the
 **last** term — no second instance is coming, so there is no rule-of-three trigger. It is written
 standalone; abstracting an OLS base off one terminal instance would be premature.
+
+## 8. Level gate — a small over-statement, bounded by the accepted clip (measured, not fixed)
+
+Bonus now runs the per-position **level** gate (`metrics.level_gate`, uniform with every other term),
+distinct from its ranking gate (§4). On the **real mart** it flags a mild over-prediction of *realized*
+bonus:
+
+| position | GK | DEF | MID | FWD |
+|---|---|---|---|---|
+| bias (E[bonus] − realized) | +0.010 | **+0.021 (+12%)** | +0.006 | **+0.034 (+10%)** |
+| gate | pass | **flag** | pass | **flag** |
+
+**This is NOT the `scoring_conformance` clip number.** That check is compose-vs-**simulator** (≈ −0.02,
+the Jensen gap of `clip(E)` vs `E[clip]`, ratified *accept+document*, Fork B1). This is compose-vs-**realized**
+— a different quantity and sign. But it is **bounded by** the same accepted `clip(·,0,3)` approximation:
+the absolute bias here (≤ 0.034 pt/GW) sits inside the clip band `scoring_conformance` already accepted
+(≤ 0.044). It trips the gate only on the **relative** (>10%) criterion, because realized bonus per GW is
+small (0.17–0.33). Pre-registered ruling (set before measuring): a bias **within the accepted clip
+magnitude is accepted, documented** — which this is — so it is **not** treated as a new defect. The raw
+gate flag is left visible (not special-cased) and explained here; closing it would mean re-calibrating the
+OLS map, a modelling change out of scope. Nothing in `serve/`/governance consumes `passed_calibration`, so
+the flag changes no shipped number.

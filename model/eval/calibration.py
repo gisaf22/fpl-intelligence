@@ -26,6 +26,18 @@ Pre-registered tolerance (A4.1, stated before looking): haul **ECE <= 0.02**; 80
 ``cover_pit`` (the quantity changed, not the goalposts). Gate = within tolerance after at most one
 recalibration pass, else documented residual miscalibration. This is an internal-honesty gate on
 trustworthiness, not a ranking.
+
+**Documented residual (MID/FWD ``cover_pit`` ~0.72/0.65, below band) — intrinsic atomicity, not a
+fixable defect.** Diagnosed on the real mart (grounded, not assumed): the miss is the **lower tail
+only** (realized lands below ``p10`` too often; the upper/haul tail and haul ECE are in tolerance), and
+it is driven by MID/FWD outcomes being dominated by the **appearance atom** — ~39%/47% of *played* rows
+are sub-60' cameos worth exactly 1 pt, and unlike DEF/GK these positions have no downside term
+(conceded/clean_sheet) to spread the lower tail. The per-position mean is now well-centred (see the
+position-specification fix), so this is *not* mean bias and *not* under-dispersion. It is therefore the
+**sanctioned "documented residual"** outcome above, not a target for surgery. A distributional-PIT
+recalibrator forced into band was rejected: it would paper over an intrinsic atom (metric-gaming) and its
+only motivation was improving captaincy strategies, which is decision value, not calibration. The honest
+levers are a better mean model or new data, not interval inflation.
 """
 
 from __future__ import annotations

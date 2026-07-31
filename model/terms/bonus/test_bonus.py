@@ -96,3 +96,15 @@ def test_validate_covers_all_positions() -> None:
     assert isinstance(res, GateResult)
     assert set(res.table["position"]).issubset({"GK", "DEF", "MID", "FWD"})
     assert {"baseline", "e_bonus", "delta"} <= set(res.table.columns)
+
+
+def test_level_gate_is_wired_and_frozen() -> None:
+    """Bonus runs the LEVEL gate (E[bonus] vs realized), distinct from the scoring_conformance clip.
+
+    Frozen on the deterministic synthetic panel (regression anchor); the real-mart interpretation — a
+    small over-statement of realized bonus at DEF/FWD, NOT the clip — lives in ASSUMPTIONS.md.
+    """
+    res = BonusTerm().validate(_panel())
+    assert set(res.passed_calibration) == {"GK", "DEF", "MID", "FWD"}  # no silent .get(p, True) default
+    bias = res.calibration.set_index("position")["bias"].round(4).to_dict()
+    assert bias == {"GK": -0.0005, "DEF": -0.0176, "MID": 0.0116, "FWD": 0.0413}

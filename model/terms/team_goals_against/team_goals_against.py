@@ -23,7 +23,7 @@ import pandas as pd
 import statsmodels.api as sm
 from scipy.stats import poisson
 
-from model.eval.metrics import grouped_spearman
+from model.eval.metrics import grouped_spearman, level_gate
 from model.eval.walkforward import MIN_ROWS_PER_POS, POSITIONS, WARMUP_GW
 from model.features.build import broadcast
 from model.forecast.count_models import diagnose_overdispersion
@@ -212,7 +212,11 @@ class CleanSheetTerm:
             rows.append({"position": pos, "baseline": round(r_base, 4), "p_cs": round(r_model, 4),
                          "delta": round(r_model - r_base, 4), "n_gw": int(sub["gw"].nunique())})
             passed[pos] = r_model > r_base
-        return GateResult(term=self.name, table=_ordered(rows, _CS_POSITIONS), passed=passed)
+        # level gate: is the predicted CS probability calibrated to the realized clean-sheet rate?
+        # (broadcast team-CS scored on the positions the term actually claims — GK/DEF/MID; FWD get no CS.)
+        cal, passed_cal = level_gate(ev[ev["position"].isin(_CS_POSITIONS)], "p_cs", "clean_sheets")
+        return GateResult(term=self.name, table=_ordered(rows, _CS_POSITIONS), passed=passed,
+                          calibration=cal, passed_calibration=passed_cal)
 
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
         """Residuals (worst-missed CS rows) + per-feature ablation on the CS ranking (post-gate)."""
@@ -263,7 +267,11 @@ class ConcededTerm:
             rows.append({"position": pos, "baseline": round(r_base, 4), "e_conceded": round(r_model, 4),
                          "delta": round(r_model - r_base, 4), "n_gw": int(sub["gw"].nunique())})
             passed[pos] = r_model > r_base
-        return GateResult(term=self.name, table=_ordered(rows, _CONCEDED_POSITIONS), passed=passed)
+        # level gate: is E[-floor(GA/2)] calibrated to the realized conceded penalty? (GK/DEF — ev is
+        # already scoped to _CONCEDED_POSITIONS by _scored_rows.)
+        cal, passed_cal = level_gate(ev, "e_conceded", "conceded_actual")
+        return GateResult(term=self.name, table=_ordered(rows, _CONCEDED_POSITIONS), passed=passed,
+                          calibration=cal, passed_calibration=passed_cal)
 
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
         """Residuals (worst-missed conceded rows) + per-feature ablation on the conceded ranking."""

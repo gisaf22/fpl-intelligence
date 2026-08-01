@@ -15,15 +15,7 @@ from domain.registry.governance_types import GovernanceMetadata
 
 pytestmark = pytest.mark.unit
 
-_WEIGHT_REGISTRY_PATH = Path("serve/weight_registry.yaml")
 _TRACEABILITY_PATH = Path("model/governance/signal_traceability.yaml")
-
-
-def _load_weight_registry() -> dict:
-    with _WEIGHT_REGISTRY_PATH.open() as fh:
-        data = yaml.safe_load(fh)
-    assert isinstance(data, dict)
-    return data
 
 
 def _load_traceability() -> dict:
@@ -42,68 +34,6 @@ def test_feature_registry_gate_values_are_non_empty():
     """Every governed feature record keeps a non-empty gate reference."""
     violations = [feature for feature, record in FEATURE_REGISTRY.items() if not record.gate]
     assert not violations, "FEATURE_REGISTRY entries with empty gate:\n" + "\n".join(sorted(violations))
-
-
-def test_weight_registry_signal_ids_resolve_when_present():
-    """Every explicit decision signal_id resolves through governance metadata."""
-    registry = _load_weight_registry()
-    failures = []
-
-    for module_name, module in registry.get("modules", {}).items():
-        for weight_name, entry in module.get("weights", {}).items():
-            signal_id = entry.get("signal_id")
-            if signal_id is None:
-                continue
-            try:
-                governance = get_signal_governance_by_key(signal_id)
-                assert isinstance(governance, GovernanceMetadata)
-            except Exception as exc:
-                failures.append(f"{module_name}.{weight_name}: {signal_id}: {type(exc).__name__}: {exc}")
-
-    assert not failures, "Weight registry signal_id values that failed to resolve:\n" + "\n".join(failures)
-
-
-def test_weight_registry_entries_have_signal_id_or_structured_derivation():
-    """Every decision weight has either a governed finding id or explicit derivation metadata."""
-    registry = _load_weight_registry()
-    failures = []
-
-    for module_name, module in registry.get("modules", {}).items():
-        for weight_name, entry in module.get("weights", {}).items():
-            if entry.get("signal_id") is not None:
-                continue
-            derived_from = entry.get("derived_from")
-            if not isinstance(derived_from, dict):
-                failures.append(f"{module_name}.{weight_name}: missing structured derived_from")
-                continue
-            features = derived_from.get("features")
-            findings = derived_from.get("findings")
-            if not isinstance(features, list) or not isinstance(findings, list):
-                failures.append(f"{module_name}.{weight_name}: derived_from must contain features and findings lists")
-            elif not features and not findings:
-                failures.append(f"{module_name}.{weight_name}: derived_from cannot be empty")
-
-    assert not failures, "Weight entries without deterministic derivation metadata:\n" + "\n".join(failures)
-
-
-def test_weight_registry_derived_findings_resolve_when_present():
-    """Every derived_from.findings key resolves through governance metadata."""
-    registry = _load_weight_registry()
-    failures = []
-
-    for module_name, module in registry.get("modules", {}).items():
-        for weight_name, entry in module.get("weights", {}).items():
-            derived_from = entry.get("derived_from")
-            if not isinstance(derived_from, dict):
-                continue
-            for finding_key in derived_from.get("findings", []):
-                try:
-                    governance = get_signal_governance_by_key(finding_key)
-                    assert isinstance(governance, GovernanceMetadata)
-                except Exception as exc:
-                    failures.append(f"{module_name}.{weight_name}: {finding_key}: {type(exc).__name__}: {exc}")
-
-    assert not failures, "Weight registry derived findings that failed to resolve:\n" + "\n".join(failures)
 
 
 def test_traceability_declares_analysis_paths_for_evaluation_lenses():

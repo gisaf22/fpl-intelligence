@@ -1,6 +1,6 @@
 # Serve ↔ model integration — record
 
-**Type:** `changelog` · **Status:** in progress (captain + value + transfers + fixtures migrated; shared-root sweep next) · **Started:** 2026-07-31
+**Type:** `changelog` · **Status:** in progress (all composites retired + shared-root sweep done; ADR-011 + doc cleanup next) · **Started:** 2026-07-31
 
 Wiring the validated predictive layer (`model` — terms → `compose_points` → `simulate_points`) into the
 operational advice layer (`serve`), replacing the pre-model **signal composites** module by module. Each
@@ -178,14 +178,43 @@ registry/provenance entries have no separate consumer.
 
 ---
 
+## shared-root sweep — DONE (2026-08-01)
+
+With every serve composite retired (captain/value/transfers/fixtures all rank by the model forecast), the
+weighting machinery has no consumer left. Deletion-only — no head-to-head (the prove-then-delete already
+happened per module; nothing new is being introduced). Grepped to confirm zero live consumers first.
+
+### Deleted
+- `serve/weight_registry.py` + `serve/weight_registry.yaml` — the module weight loader and its registry
+  (the `fixtures` block was the last entry; no module reads it any more).
+- `serve/provenance.py` — `score_provenance` traced weight-composite scores to governance; with no
+  composite left it is subjectless. (Unrelated to `serve/scoring/renderer._render_provenance`, the report
+  pipeline's own HTML provenance, which stays.)
+- `weighted_composite` + `normalize_within_position` from `serve/input_contracts.py` — kept
+  `validate_intelligence_inputs` (+ `IntelligenceInputError`, the required-column sets), still the shared
+  input contract every serve module calls.
+- Tests: `test_weighting_authority.py` (whole file — ADR-010 weight-registry authority); the weight/
+  provenance classes in `test_runtime_consumer_alignment.py` (`TestNoHardcodedWeights`,
+  `TestWeightRegistryLoader`, `TestScoreProvenance`) — that file now covers only lifecycle enforcement +
+  availability wiring; the `normalize_within_position`/`weighted_composite` tests in
+  `test_intelligence_outputs.py`; the three `weight_registry`-loading tests in
+  `test_spine_traversal_metadata.py` (its FEATURE_REGISTRY + traceability tests stay).
+
+### Left intact (deliberately, per the constraints)
+The report pipeline (`serve/scoring/*`, `serve/reporting/*`, `signal_selector`, `SignalManifest`) — a
+separate rho-based surface, not `weight_registry`. The `model/governance/signal_traceability.yaml` +
+evidence in `evaluation_metadata.yaml` — the anti-re-litigation trail. Import-linter 6/6.
+
+---
+
 ## Remaining
 - **Operational runner** — a top-level orchestrator that builds the enriched frame (`assemble_forecast` →
   merge) and feeds the serve modules; captain is migrated but not yet wired into a production entry point.
-- **shared-root sweep** (next) — with every composite retired, delete `serve/weight_registry.{yaml,py}`,
-  `weighted_composite`/`normalize_within_position` from `input_contracts.py` (keep
-  `validate_intelligence_inputs`), `serve/provenance.py`, and their now-subjectless tests
-  (`test_weighting_authority.py`, the weight/provenance test classes). Then ADR-011 (supersede ADR-002) +
-  doc cleanup.
+- **ADR-011 + doc cleanup** (next) — write ADR-011 marking ADR-002 superseded (don't delete it); remove
+  composite rows from `signal-traceability-matrix.md`; correct/keep the live thresholds and fix stale
+  `intelligence/`→`serve/` paths in `threshold-registry.md` / `eng-issues-2026.md`; rewrite
+  `architecture/intelligence-layer.md`; scrub the now-dangling `weight_registry.yaml` prose mentions in
+  the captain/value/transfers docstrings.
 - **availability** — descriptive; optional `p_play`/`p60` enrich, low priority.
 - **Report pipeline** (`serve/scoring` + `serve/reporting`, the rho-composite surface) — a separate
   decision: keep as a descriptive signal report, or migrate later.

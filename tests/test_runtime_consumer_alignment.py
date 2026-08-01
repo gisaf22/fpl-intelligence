@@ -1,17 +1,16 @@
 """Runtime consumer alignment tests for the intelligence layer.
 
 Verifies that:
-1. No intelligence module contains hardcoded weight values — all weights are
-   loaded from serve/weight_registry.yaml.
-2. The weight registry loader hard-fails on missing entries.
-3. signals.py lifecycle enforcement raises LifecycleViolationError for excluded signals.
-4. score_provenance() returns a complete audit trail for a synthetic test case.
+1. Lifecycle enforcement raises LifecycleViolationError for excluded signals / exploratory paths.
+2. availability.py wires minutes_roll8 for DEF/MID long-horizon flags (AVAIL-003).
+
+The weight-registry / hardcoded-weight / score_provenance consumer contracts that used to live here were
+removed with the serve signal composites: captain, value, transfers, and fixtures now all rank by the
+model forecast (assemble_forecast columns), not a weight composite, so there is no weight_registry or
+provenance surface left to align against. See docs/serve-model-integration.md.
 """
 
 from __future__ import annotations
-
-import ast
-from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -21,21 +20,6 @@ pytestmark = pytest.mark.unit
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _intelligence_module_paths() -> list[Path]:
-    """Return paths to the composite-scored intelligence modules.
-
-    Empty: every serve ranking module (captain, value, transfers, fixtures) now ranks by the model
-    forecast, not a weight composite, so no module is subject to the weight-registry / hardcoded-weight
-    contracts. The weight_registry / provenance machinery and these now-vacuous contracts are removed
-    wholesale in the shared-root sweep (the next step after fixtures).
-    """
-    return []
-
-
-def _module_source(path: Path) -> str:
-    return path.read_text()
 
 
 def _base_features_row(
@@ -95,123 +79,7 @@ def _make_features(*rows: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# 1. No hardcoded weight dicts in intelligence modules
-# ---------------------------------------------------------------------------
-
-
-class TestNoHardcodedWeights:
-    """Verify intelligence modules do not contain literal float weight dicts.
-
-    A hardcoded weight dict looks like:
-        _WEIGHTS = {"form_score": 0.35, "fixture_score": 0.20, ...}
-
-    The weight registry enforces that all such dicts are replaced by get_module_weights()
-    registry calls. This test parses each module's AST and asserts no
-    top-level assignment to _WEIGHTS (or similar) uses a plain Dict literal
-    with float values.
-    """
-
-    @pytest.mark.parametrize("path", _intelligence_module_paths(), ids=lambda p: p.name)
-    def test_no_hardcoded_weight_dict(self, path: Path) -> None:
-        source = _module_source(path)
-        tree = ast.parse(source)
-
-        for node in ast.walk(tree):
-            # Look for assignments like _WEIGHTS = {...} where values are floats
-            if not isinstance(node, ast.Assign):
-                continue
-            for target in node.targets:
-                if not (isinstance(target, ast.Name) and "_WEIGHTS" in target.id):
-                    continue
-                # The RHS must not be a plain Dict literal with float values.
-                # A registry call looks like a Call node, not a Dict.
-                if isinstance(node.value, ast.Dict):
-                    float_vals = [
-                        v for v in node.value.values if isinstance(v, ast.Constant) and isinstance(v.value, float)
-                    ]
-                    assert float_vals == [], (
-                        f"{path}: _WEIGHTS is assigned a literal dict with float values "
-                        f"({len(float_vals)} entries). Replace with get_module_weights() "
-                        "from serve.weight_registry."
-                    )
-
-    @pytest.mark.parametrize("path", _intelligence_module_paths(), ids=lambda p: p.name)
-    def test_uses_get_module_weights(self, path: Path) -> None:
-        """Each module must call get_module_weights() to load its weights."""
-        source = _module_source(path)
-        assert "get_module_weights" in source, (
-            f"{path}: does not import or call get_module_weights(). "
-            "All module weights must be loaded from the governance registry."
-        )
-
-
-# ---------------------------------------------------------------------------
-# 2. Weight registry loader contracts
-# ---------------------------------------------------------------------------
-
-
-class TestWeightRegistryLoader:
-    """Verify weight_registry.py loads correctly and hard-fails on bad input."""
-
-    def test_known_modules_load(self) -> None:
-        from serve.weight_registry import get_module_weights
-
-        for module in ("fixtures",):
-            weights = get_module_weights(module)
-            assert isinstance(weights, dict), f"{module}: expected dict"
-            assert len(weights) > 0, f"{module}: empty weights dict"
-            for k, v in weights.items():
-                assert isinstance(v, float), f"{module}.{k}: weight must be float, got {type(v)}"
-
-    def test_all_weights_positive(self) -> None:
-        from serve.weight_registry import get_module_weights
-
-        for module in ("fixtures",):
-            weights = get_module_weights(module)
-            for k, v in weights.items():
-                assert v > 0, f"{module}.{k}: weight must be positive, got {v}"
-
-    def test_missing_module_raises(self) -> None:
-        from serve.weight_registry import WeightRegistryError, get_module_weights
-
-        with pytest.raises(WeightRegistryError):
-            get_module_weights("nonexistent_module_xyz")
-
-    def test_get_weight_metadata_returns_dict(self) -> None:
-        from serve.weight_registry import get_weight_metadata
-
-        meta = get_weight_metadata("fixtures", "team_attack_score")
-        assert isinstance(meta, dict)
-        assert "value" in meta
-
-    def test_get_weight_metadata_missing_raises(self) -> None:
-        from serve.weight_registry import WeightRegistryError, get_weight_metadata
-
-        with pytest.raises(WeightRegistryError):
-            get_weight_metadata("fixtures", "nonexistent_key_xyz")
-
-    def test_fdr_opportunity_score_not_in_fixtures(self) -> None:
-        """fdr_opportunity_score must not appear in fixtures registry."""
-        from serve.weight_registry import get_module_weights
-
-        weights = get_module_weights("fixtures")
-        assert "fdr_opportunity_score" not in weights, (
-            "fixtures registry must not contain fdr_opportunity_score — "
-            "fdr_avg excluded at all positions (FIXTURE-001 G2-FAIL: non-monotonic quintile ordering)."
-        )
-
-    def test_fixtures_has_two_components(self) -> None:
-        """fixtures module scoring uses exactly team_attack_score and dgw_bonus_score."""
-        from serve.weight_registry import get_module_weights
-
-        weights = get_module_weights("fixtures")
-        assert set(weights.keys()) == {"team_attack_score", "dgw_bonus_score"}, (
-            f"fixtures weights: expected {{team_attack_score, dgw_bonus_score}}, got {set(weights.keys())}"
-        )
-
-
-# ---------------------------------------------------------------------------
-# 3. Lifecycle enforcement: excluded signals raise LifecycleViolationError
+# 1. Lifecycle enforcement: excluded signals raise LifecycleViolationError
 # ---------------------------------------------------------------------------
 
 
@@ -276,120 +144,7 @@ class TestLifecycleEnforcement:
 
 
 # ---------------------------------------------------------------------------
-# 4. score_provenance() completeness
-# ---------------------------------------------------------------------------
-
-
-class TestScoreProvenance:
-    """Verify score_provenance() returns a complete, well-structured audit trail."""
-
-    @pytest.fixture
-    def synthetic_features(self) -> pd.DataFrame:
-        return _make_features(
-            _base_features_row(player_id=1, gw=5, position_label="MID"),
-            _base_features_row(player_id=2, gw=5, position_label="FWD"),
-            _base_features_row(player_id=3, gw=5, position_label="DEF"),
-        )
-
-    @pytest.mark.parametrize("module", ["fixtures"])
-    def test_provenance_top_level_keys(self, module: str, synthetic_features: pd.DataFrame) -> None:
-        from serve.provenance import score_provenance
-
-        result = score_provenance(synthetic_features, player_id=1, gw=5, module=module)
-
-        assert result["player_id"] == 1
-        assert result["gw"] == 5
-        assert result["module"] == module
-        assert "position" in result
-        assert "registry_source" in result
-        assert "signals" in result
-        assert isinstance(result["signals"], dict)
-
-    @pytest.mark.parametrize("module", ["fixtures"])
-    def test_provenance_signal_structure(self, module: str, synthetic_features: pd.DataFrame) -> None:
-        from serve.provenance import score_provenance
-        from serve.weight_registry import get_module_weights
-
-        result = score_provenance(synthetic_features, player_id=1, gw=5, module=module)
-        weights = get_module_weights(module)
-
-        # Every weight component must appear in the provenance signals dict.
-        for component in weights:
-            assert component in result["signals"], (
-                f"module={module}: component {component!r} missing from provenance signals"
-            )
-            entry = result["signals"][component]
-            assert "weight" in entry, f"{module}.{component}: missing 'weight'"
-            assert "signals" in entry, f"{module}.{component}: missing 'signals'"
-            assert "state_values" in entry, f"{module}.{component}: missing 'state_values'"
-            assert "registry_source" in entry, f"{module}.{component}: missing 'registry_source'"
-            assert "signal_id" in entry, f"{module}.{component}: missing 'signal_id'"
-            assert "provenance" in entry, f"{module}.{component}: missing 'provenance'"
-            assert "caveats" in entry, f"{module}.{component}: missing 'caveats'"
-            assert isinstance(entry["caveats"], list), f"{module}.{component}: 'caveats' must be a list"
-
-    @pytest.mark.parametrize("module", ["fixtures"])
-    def test_provenance_weights_match_registry(self, module: str, synthetic_features: pd.DataFrame) -> None:
-        from serve.provenance import score_provenance
-        from serve.weight_registry import get_module_weights
-
-        result = score_provenance(synthetic_features, player_id=1, gw=5, module=module)
-        registry_weights = get_module_weights(module)
-
-        for component, expected_weight in registry_weights.items():
-            actual_weight = result["signals"][component]["weight"]
-            assert actual_weight == pytest.approx(expected_weight), (
-                f"{module}.{component}: provenance weight {actual_weight} != registry weight {expected_weight}"
-            )
-
-    def test_provenance_unknown_module_raises(self, synthetic_features: pd.DataFrame) -> None:
-        from serve.provenance import score_provenance
-
-        with pytest.raises(ValueError, match="not in provenance map"):
-            score_provenance(synthetic_features, player_id=1, gw=5, module="unknown_xyz")
-
-    def test_provenance_missing_player_raises(self, synthetic_features: pd.DataFrame) -> None:
-        from serve.provenance import score_provenance
-
-        with pytest.raises(ValueError, match="no data for player_id=999"):
-            score_provenance(synthetic_features, player_id=999, gw=5, module="fixtures")
-
-    def test_provenance_registry_source_references_yaml(self, synthetic_features: pd.DataFrame) -> None:
-        from serve.provenance import score_provenance
-
-        result = score_provenance(synthetic_features, player_id=1, gw=5, module="fixtures")
-        assert "weight_registry.yaml" in result["registry_source"]
-        for component, entry in result["signals"].items():
-            assert "weight_registry.yaml" in entry["registry_source"], (
-                f"fixtures.{component}: registry_source should reference weight_registry.yaml"
-            )
-
-    def test_provenance_fwd_position_present(self, synthetic_features: pd.DataFrame) -> None:
-        """FWD players must return valid provenance — FWD guard affects scores, not lookup."""
-        from serve.provenance import score_provenance
-
-        result = score_provenance(synthetic_features, player_id=2, gw=5, module="fixtures")
-        assert result["position"] == "FWD"
-        assert "signals" in result
-        assert len(result["signals"]) > 0
-
-
-# ---------------------------------------------------------------------------
-# 5. fdr_avg excluded from scoring: RETIRED — no serve module scores fdr_avg any more. captain, value,
-#    transfers, and fixtures all rank by the model forecast, where fixture difficulty enters through the
-#    fdr term (gated), not a serve composite. There is no scored serve output left to hold fdr-invariant.
-# ---------------------------------------------------------------------------
-
-
-# ---------------------------------------------------------------------------
-# FWD scope guard: RETIRED. The xgi FWD-neutralisation guard covered captain/value/transfers, all now
-# ranked by the model forecast (per-position valid by construction via the term gates — no xgi to
-# neutralise). fixtures.py scores team_attack (goals_scored) + DGW, neither xgi-based, so no FWD guard.
-# ---------------------------------------------------------------------------
-
-
-# ---------------------------------------------------------------------------
-# 7. minutes_roll8 wired for DEF/MID long-horizon availability flag
+# 2. minutes_roll8 wired for DEF/MID long-horizon availability flag
 # ---------------------------------------------------------------------------
 
 

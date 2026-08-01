@@ -16,9 +16,7 @@ from serve.availability import flag_availability_risk
 from serve.captain import rank_captain_candidates
 from serve.input_contracts import (
     IntelligenceInputError,
-    normalize_within_position,
     validate_intelligence_inputs,
-    weighted_composite,
 )
 from serve.transfers import rank_transfer_targets
 from serve.value import rank_value_players
@@ -121,47 +119,6 @@ def multi_gw_features():
 # ---------------------------------------------------------------------------
 # _base utilities
 # ---------------------------------------------------------------------------
-
-
-class TestNormalizeWithinPosition:
-    def test_values_in_0_1_range(self, two_player_features):
-        result = normalize_within_position(two_player_features, "points_roll3")
-        assert result.between(0.0, 1.0).all()
-
-    def test_higher_value_gets_higher_score(self, two_player_features):
-        result = normalize_within_position(two_player_features, "points_roll3")
-        # player 1 (row 0) has higher points_roll3 → higher normalized score
-        assert result.iloc[0] > result.iloc[1]
-
-    def test_all_equal_returns_half(self):
-        df = _make_features(
-            _base_row(1, 1, points_roll3=5.0),
-            _base_row(2, 1, points_roll3=5.0),
-        )
-        result = normalize_within_position(df, "points_roll3")
-        assert (result == 0.5).all()
-
-    def test_nan_filled_with_neutral(self):
-        df = _make_features(
-            _base_row(1, 1, points_roll3=6.0),
-            _base_row(2, 1, points_roll3=float("nan")),
-        )
-        df["points_roll3"] = df["points_roll3"].astype(float)
-        result = normalize_within_position(df, "points_roll3")
-        assert not result.isna().any()
-
-
-class TestWeightedComposite:
-    def test_equal_weights_averages_components(self):
-        df = pd.DataFrame({"a": [1.0], "b": [0.0]})
-        result = weighted_composite(df, ["a", "b"], {"a": 0.5, "b": 0.5})
-        assert abs(result.iloc[0] - 0.5) < 1e-9
-
-    def test_unequal_weights_applied_correctly(self):
-        df = pd.DataFrame({"a": [1.0], "b": [0.0]})
-        result = weighted_composite(df, ["a", "b"], {"a": 0.8, "b": 0.2})
-        # 1.0 * 0.8 / 1.0 + 0.0 * 0.2 / 1.0 = 0.8
-        assert abs(result.iloc[0] - 0.8) < 1e-9
 
 
 class TestValidateIntelligenceInputs:

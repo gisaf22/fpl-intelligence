@@ -1,6 +1,6 @@
 # Serve ↔ model integration — record
 
-**Type:** `changelog` · **Status:** in progress (captain + value + transfers migrated) · **Started:** 2026-07-31
+**Type:** `changelog` · **Status:** in progress (captain + value + transfers + fixtures migrated; shared-root sweep next) · **Started:** 2026-07-31
 
 Wiring the validated predictive layer (`model` — terms → `compose_points` → `simulate_points`) into the
 operational advice layer (`serve`), replacing the pre-model **signal composites** module by module. Each
@@ -135,12 +135,57 @@ moved; the term goldens reproduce.
 
 ---
 
+## fixtures — DONE / MERGED INTO transfers (2026-08-01)
+
+**Decision: merge, don't rebuild.** "Fixtures" asks *which players have a good fixture run ahead* — a
+multi-week question that needs a per-decision multi-step forecast frozen at the deadline (the deferred
+model piece). Under the lag-safe rule (the transfers ruling), the only honest signal available is the
+model's expected points for the **upcoming** GW — which is exactly what `transfers` now ranks by, and
+which already prices fixture difficulty through the gated `fdr` term. So a lag-safe fixtures ranking is a
+duplicate of transfers. Rather than ship a redundant surface, **`fixtures` is retired and transfers
+subsumes it.** (The old composite's forward-window read of `fixture_context`/`fdr` was schedule data —
+not itself leaky — but its scored signal was the refuted `fdr` + an unvalidated team-attack proxy.)
+
+### Head-to-head (real mart, 2025-26, GW6–35, n=30, horizon 3; frozen)
+
+Prove-then-delete: OLD fixtures composite vs the model `e_points_uncond` @ target_gw (the transfers
+ranker), on mean cumulative `total_points` over the next 3 GWs, top-10 each, paired per GW.
+
+| ranker | avg cumulative return / decision |
+|---|---|
+| OLD — fixtures composite | 8.65 |
+| **NEW — model `e_points_uncond`** | **10.87** |
+
+**Δ (new − old) = +2.23 pts**, paired 95% CI **[+1.18, +3.27]**; NEW wins **25/30** GWs — **significantly
+better**, CI excludes zero. NEW's column is identical to the transfers head-to-head, confirming the merge
+(fixtures collapses to transfers under lag-safety).
+
+*(Real-mart backtest — non-deterministic across refreshes; frozen at migration.)*
+
+### Deletions (this commit)
+`serve/fixtures.py` (whole module) · its `serve/__init__.py` export · the `rank_fixture_opportunities`
+behavioral tests (`TestRankFixtureOpportunities` + fixtures explainability + `_ALL_FUNCTIONS` entry in
+`test_intelligence_outputs.py`; `TestFdrAvgNotScored` in `test_governance_compliance.py`;
+`TestFdrRemovedFromScoring` in `test_runtime_consumer_alignment.py`). The `_intelligence_module_paths()`
+list is now empty.
+
+### Deliberately deferred to the shared-root sweep (next commit)
+The `weight_registry.yaml` `fixtures` block, `provenance._MODULE_SIGNAL_MAP["fixtures"]`, and the
+registry/provenance machinery tests (`TestWeightRegistryLoader`, `TestScoreProvenance`,
+`TestNoHardcodedWeights`) are left intact and green here — they are removed **wholesale** when
+`weight_registry.{yaml,py}` + `provenance.py` are deleted, since `fixtures` is the last module and its
+registry/provenance entries have no separate consumer.
+
+---
+
 ## Remaining
 - **Operational runner** — a top-level orchestrator that builds the enriched frame (`assemble_forecast` →
   merge) and feeds the serve modules; captain is migrated but not yet wired into a production entry point.
-- **fixtures** — the last composite; migrate to a forward-window aggregate `e_points` (decide merge-with-
-  transfers vs keep-separate), then the shared-root sweep retires `weight_registry.{yaml,py}` +
-  `weighted_composite`/`normalize_within_position` + `provenance.py`.
+- **shared-root sweep** (next) — with every composite retired, delete `serve/weight_registry.{yaml,py}`,
+  `weighted_composite`/`normalize_within_position` from `input_contracts.py` (keep
+  `validate_intelligence_inputs`), `serve/provenance.py`, and their now-subjectless tests
+  (`test_weighting_authority.py`, the weight/provenance test classes). Then ADR-011 (supersede ADR-002) +
+  doc cleanup.
 - **availability** — descriptive; optional `p_play`/`p60` enrich, low priority.
 - **Report pipeline** (`serve/scoring` + `serve/reporting`, the rho-composite surface) — a separate
   decision: keep as a descriptive signal report, or migrate later.

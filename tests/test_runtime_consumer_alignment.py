@@ -26,15 +26,12 @@ pytestmark = pytest.mark.unit
 def _intelligence_module_paths() -> list[Path]:
     """Return paths to the composite-scored intelligence modules.
 
-    ``captain.py``, ``value.py``, and ``transfers.py`` are deliberately absent: all three are ranked by
-    the model forecast (captain by p_haul/p90, value by e_points_uncond / purchase_price, transfers by
-    e_points_uncond), not a weight composite, so the weight-registry / hardcoded-weight contracts below
-    do not apply to them. ``fixtures.py`` is the last remaining composite.
+    Empty: every serve ranking module (captain, value, transfers, fixtures) now ranks by the model
+    forecast, not a weight composite, so no module is subject to the weight-registry / hardcoded-weight
+    contracts. The weight_registry / provenance machinery and these now-vacuous contracts are removed
+    wholesale in the shared-root sweep (the next step after fixtures).
     """
-    root = Path("serve")
-    return [
-        root / "fixtures.py",
-    ]
+    return []
 
 
 def _module_source(path: Path) -> str:
@@ -378,61 +375,10 @@ class TestScoreProvenance:
 
 
 # ---------------------------------------------------------------------------
-# 5. fdr_avg excluded from scoring (informational output only)
+# 5. fdr_avg excluded from scoring: RETIRED — no serve module scores fdr_avg any more. captain, value,
+#    transfers, and fixtures all rank by the model forecast, where fixture difficulty enters through the
+#    fdr term (gated), not a serve composite. There is no scored serve output left to hold fdr-invariant.
 # ---------------------------------------------------------------------------
-
-
-class TestFdrRemovedFromScoring:
-    """fdr_avg must not contribute to any scored output.
-
-    LENS-FIXTURE-GW found non-monotonic quintile ordering at all positions;
-    fdr_avg is retained as an informational output column only.
-    """
-
-    def _features_with_varying_fdr(self) -> pd.DataFrame:
-        """Two players: identical except one has a much better (lower) FDR."""
-        rows = [
-            _base_features_row(
-                player_id=1,
-                gw=5,
-                team_id=1,
-                fdr_avg=1.0,  # very easy fixture
-                fixture_context="SGW",
-                minutes_roll5=85.0,
-            ),
-            _base_features_row(
-                player_id=2,
-                gw=5,
-                team_id=2,
-                fdr_avg=5.0,  # very hard fixture
-                fixture_context="SGW",
-                minutes_roll5=85.0,
-            ),
-        ]
-        # Add prior-gw rows for team attack strength computation
-        prior = [
-            _base_features_row(player_id=1, gw=4, team_id=1, goals_scored=2.0),
-            _base_features_row(player_id=2, gw=4, team_id=2, goals_scored=2.0),
-        ]
-        return _make_features(*rows, *prior)
-
-    def test_fixtures_score_unaffected_by_fdr_alone(self) -> None:
-        """Players with identical fixture_context but different fdr_avg get equal scores."""
-        from serve.fixtures import rank_fixture_opportunities
-
-        features = self._features_with_varying_fdr()
-        result = rank_fixture_opportunities(features, target_gw=5)
-
-        assert len(result) == 2
-        scores = result.set_index("player_id")["fixture_opportunity_score"]
-        # Both players have SGW context and same team attack data — scores should be equal.
-        assert scores[1] == pytest.approx(scores[2]), (
-            "fixture_opportunity_score must not differ by fdr_avg alone. "
-            f"Player 1 (fdr=1.0): {scores[1]:.4f}, Player 2 (fdr=5.0): {scores[2]:.4f}"
-        )
-
-    # captain fdr-invariance RETIRED: captain no longer reads any signal (ranks by the model forecast),
-    # so it is trivially invariant to fdr_avg — nothing to guard.
 
 
 # ---------------------------------------------------------------------------

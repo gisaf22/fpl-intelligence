@@ -14,7 +14,6 @@ import pytest
 
 from serve.availability import flag_availability_risk
 from serve.captain import rank_captain_candidates
-from serve.fixtures import rank_fixture_opportunities
 from serve.input_contracts import (
     IntelligenceInputError,
     normalize_within_position,
@@ -477,78 +476,6 @@ class TestFlagAvailabilityRisk:
 
 
 # ---------------------------------------------------------------------------
-# Fixture opportunities
-# ---------------------------------------------------------------------------
-
-
-class TestRankFixtureOpportunities:
-    def test_returns_expected_columns(self, multi_gw_features):
-        result = rank_fixture_opportunities(multi_gw_features, target_gw=5)
-        # fdr_opportunity_score not in fixtures registry (fdr_avg G2-FAIL at all positions)
-        for col in [
-            "fdr_window_avg",
-            "dgw_in_window",
-            "team_goals_roll5",
-            "team_attack_score",
-            "dgw_bonus_score",
-            "fixture_opportunity_score",
-            "fixture_opportunity_rank",
-        ]:
-            assert col in result.columns
-        # Confirm fdr_opportunity_score is no longer present
-        assert "fdr_opportunity_score" not in result.columns
-
-    def test_is_deterministic(self, multi_gw_features):
-        r1 = rank_fixture_opportunities(multi_gw_features, target_gw=5)
-        r2 = rank_fixture_opportunities(multi_gw_features, target_gw=5)
-        pd.testing.assert_frame_equal(r1, r2)
-
-    def test_dgw_fixture_scores_higher(self):
-        # fixture_score uses binary DGW indicator from STATE fixture_context column
-        features = _make_features(
-            _base_row(1, 5, fixture_context="DGW"),  # double gameweek → higher score
-            _base_row(2, 5, fixture_context="SGW"),  # single gameweek
-        )
-        result = rank_fixture_opportunities(features, target_gw=5)
-        assert result.iloc[0]["player_id"] == 1
-
-    def test_dgw_bonus_applied(self):
-        # DGW detection reads STATE fixture_context, not spine is_dgw (governed column access)
-        features = _make_features(
-            _base_row(1, 5, fixture_context="DGW", fdr_avg=3.0),
-            _base_row(2, 5, fixture_context="SGW", fdr_avg=3.0),
-        )
-        result = rank_fixture_opportunities(features, target_gw=5)
-        dgw_row = result[result["player_id"] == 1].iloc[0]
-        non_dgw_row = result[result["player_id"] == 2].iloc[0]
-        assert dgw_row["dgw_bonus_score"] == 1.0
-        assert non_dgw_row["dgw_bonus_score"] == 0.0
-        # DGW player should score higher (all else equal)
-        assert dgw_row["fixture_opportunity_score"] > non_dgw_row["fixture_opportunity_score"]
-
-    def test_filters_low_minutes_players(self):
-        features = _make_features(
-            _base_row(1, 5, minutes_roll5=90.0),
-            _base_row(2, 5, minutes_roll5=5.0),  # below threshold
-        )
-        result = rank_fixture_opportunities(features, target_gw=5)
-        assert 2 not in result["player_id"].values
-
-    def test_no_data_for_gw_raises(self, multi_gw_features):
-        with pytest.raises(IntelligenceInputError, match="no data for gw=99"):
-            rank_fixture_opportunities(multi_gw_features, target_gw=99)
-
-    def test_n_limits_output_rows(self, multi_gw_features):
-        result = rank_fixture_opportunities(multi_gw_features, target_gw=5, n=1)
-        assert len(result) <= 1
-
-    def test_missing_column_raises(self, multi_gw_features):
-        df = multi_gw_features.drop(columns=["fdr_avg"])
-        with pytest.raises(IntelligenceInputError):
-            rank_fixture_opportunities(df, target_gw=5)
-
-
-# ---------------------------------------------------------------------------
 # Cross-module: governance and explainability
 # ---------------------------------------------------------------------------
 
@@ -561,7 +488,6 @@ class TestIntelligenceGovernance:
         ("rank_transfer_targets", rank_transfer_targets),
         ("rank_value_players", rank_value_players),
         ("flag_availability_risk", flag_availability_risk),
-        ("rank_fixture_opportunities", rank_fixture_opportunities),
     )
 
     @pytest.mark.parametrize("name,fn", _ALL_FUNCTIONS)
@@ -574,7 +500,6 @@ class TestIntelligenceGovernance:
         """Intelligence modules must not depend on research EDA paths."""
         import serve.availability as avail_mod
         import serve.captain as cap_mod
-        import serve.fixtures as fix_mod
         import serve.transfers as trans_mod
         import serve.value as val_mod
 
@@ -582,7 +507,7 @@ class TestIntelligenceGovernance:
         # studies/ tree is gone; the exploratory seed registry now lives under
         # research/findings/ (the lifecycle gate's exploratory prefix).
         forbidden_research_paths = ("research/foundation", "research/families", "research/findings")
-        for mod in [cap_mod, trans_mod, val_mod, avail_mod, fix_mod]:
+        for mod in [cap_mod, trans_mod, val_mod, avail_mod]:
             src = mod.__file__
             with open(src) as f:
                 content = f.read()
@@ -613,9 +538,4 @@ class TestIntelligenceGovernance:
     def test_availability_explainability_columns_present(self, two_player_features):
         result = flag_availability_risk(two_player_features, target_gw=5)
         for col in ["low_minutes_flag", "falling_trend_flag", "divergence_flag", "risk_reason"]:
-            assert col in result.columns
-
-    def test_fixtures_explainability_columns_present(self, multi_gw_features):
-        result = rank_fixture_opportunities(multi_gw_features, target_gw=5)
-        for col in ["fdr_window_avg", "dgw_in_window", "team_goals_roll5"]:
             assert col in result.columns

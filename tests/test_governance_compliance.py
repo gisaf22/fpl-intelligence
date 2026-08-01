@@ -4,17 +4,12 @@ These tests guard against regression of documented SYNTH-01 scope decisions
 and confirmed governance violations. Each test names the gate decision it
 enforces.
 
-captain.py, value.py, and transfers.py are RETIRED from these guards — all three rank by the model
-forecast, not an xgi composite, so their per-position validity is enforced upstream by the term gates,
-not a serve scope-guard. The guards below cover the last remaining composite module (fixtures.py) and
-availability.py.
+captain.py, value.py, transfers.py, and fixtures.py are RETIRED from these guards — all rank by the
+model forecast, not a serve composite, so their per-position validity (and fixture context) is enforced
+upstream by the term gates, not a serve scope-guard. Only availability.py remains guarded here.
 
 Decisions guarded:
 - AVAIL-003: minutes_roll8 positional guard (DEF/MID only in availability.py)
-- FIXTURE-001: fdr_avg must not contribute to fixture_opportunity_score
-
-Novel unevaluated metrics flagged:
-- PENDING-EVAL-02: team_goals_roll5 in fixtures.py
 """
 
 from __future__ import annotations
@@ -23,7 +18,6 @@ import pandas as pd
 import pytest
 
 from serve.availability import flag_availability_risk
-from serve.fixtures import rank_fixture_opportunities
 
 pytestmark = pytest.mark.unit
 
@@ -136,30 +130,6 @@ class TestMinutesRoll8PositionalGuard:
         )
 
 
-# ---------------------------------------------------------------------------
-# FIXTURE-001: fdr_avg must not affect fixture_opportunity_score
-# ---------------------------------------------------------------------------
-
-
-class TestFdrAvgNotScored:
-    """FIXTURE-001 G2-FAIL: fdr_avg excluded at all positions.
-
-    fixture_opportunity_score must be invariant to changes in fdr_avg.
-    """
-
-    def test_fixture_score_invariant_to_fdr_avg(self):
-        """Two players identical except for fdr_avg must have equal
-        fixture_opportunity_score (FIXTURE-001: fdr_avg not scored)."""
-        features = _features(
-            _row(1, 5, fdr_avg=2.0, fixture_context="SGW", goals_scored=1.0, minutes_roll5=80.0, team_id=10),
-            _row(2, 5, fdr_avg=5.0, fixture_context="SGW", goals_scored=1.0, minutes_roll5=80.0, team_id=10),
-        )
-        result = rank_fixture_opportunities(features, target_gw=5, horizon=1)
-        assert len(result) == 2
-
-        p1 = result[result["player_id"] == 1]["fixture_opportunity_score"].iloc[0]
-        p2 = result[result["player_id"] == 2]["fixture_opportunity_score"].iloc[0]
-        assert abs(p1 - p2) < 1e-9, (
-            f"FIXTURE-001: fixture_opportunity_score must be invariant to fdr_avg. "
-            f"Got p1={p1:.4f}, p2={p2:.4f} despite identical non-fdr inputs"
-        )
+# FIXTURE-001 (fdr_avg not scored) / PENDING-EVAL-02 (team_goals_roll5): RETIRED — the fixtures composite
+# is gone (transfers subsumes it via the model forecast). fdr's fixture context lives inside e_points
+# (the fdr term), not a serve scope-guard, so there is no fixture_opportunity_score left to keep invariant.

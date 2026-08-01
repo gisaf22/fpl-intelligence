@@ -1,15 +1,18 @@
-"""Historical evaluation of the transfer target heuristic.
+"""Historical evaluation of the transfer target ranking.
 
-Evaluates whether recommended transfer targets subsequently deliver better
-cumulative returns than naive alternatives over a lookahead window.
+Evaluates whether the shipped transfer ranker (now the model forecast — ``e_points_uncond`` at the
+target GW; formerly the xgi form + momentum + fixture + involvement + minutes composite) recommends
+players who subsequently deliver better cumulative returns than naive alternatives over a lookahead
+window. ``features`` must be enriched with the model forecast column (via
+``model.predictions.assemble_forecast``) — the same enrichment the operational runner applies.
 
 The evaluation horizon is forward-looking by design: transfer decisions are
 made at GW N, and the benefit (or cost) accrues over the next K gameweeks.
 This is different from captain evaluation, where the outcome is single-GW.
 
-Temporal integrity: rankings at GW N use only features[gw == N], which
-encodes pre-deadline rolling state. Future outcomes (GW N+1 .. N+K) are
-used solely as evaluation targets, never as ranking inputs.
+Temporal integrity: rankings at GW N use only features[gw == N] — the model forecast at GW N is
+lag-safe (its terms fit on GWs 1..N-1). Future outcomes (GW N+1 .. N+K) are used solely as evaluation
+targets, never as ranking inputs.
 """
 
 from __future__ import annotations

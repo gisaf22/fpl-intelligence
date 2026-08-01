@@ -26,14 +26,14 @@ pytestmark = pytest.mark.unit
 def _intelligence_module_paths() -> list[Path]:
     """Return paths to the composite-scored intelligence modules.
 
-    ``captain.py`` and ``value.py`` are deliberately absent: both are ranked by the model forecast
-    (captain by p_haul/p90, value by e_points_uncond / purchase_price), not a weight composite, so the
-    weight-registry / hardcoded-weight contracts below do not apply to them.
+    ``captain.py``, ``value.py``, and ``transfers.py`` are deliberately absent: all three are ranked by
+    the model forecast (captain by p_haul/p90, value by e_points_uncond / purchase_price, transfers by
+    e_points_uncond), not a weight composite, so the weight-registry / hardcoded-weight contracts below
+    do not apply to them. ``fixtures.py`` is the last remaining composite.
     """
     root = Path("serve")
     return [
         root / "fixtures.py",
-        root / "transfers.py",
     ]
 
 
@@ -159,7 +159,7 @@ class TestWeightRegistryLoader:
     def test_known_modules_load(self) -> None:
         from serve.weight_registry import get_module_weights
 
-        for module in ("fixtures", "transfers"):
+        for module in ("fixtures",):
             weights = get_module_weights(module)
             assert isinstance(weights, dict), f"{module}: expected dict"
             assert len(weights) > 0, f"{module}: empty weights dict"
@@ -169,7 +169,7 @@ class TestWeightRegistryLoader:
     def test_all_weights_positive(self) -> None:
         from serve.weight_registry import get_module_weights
 
-        for module in ("fixtures", "transfers"):
+        for module in ("fixtures",):
             weights = get_module_weights(module)
             for k, v in weights.items():
                 assert v > 0, f"{module}.{k}: weight must be positive, got {v}"
@@ -183,7 +183,7 @@ class TestWeightRegistryLoader:
     def test_get_weight_metadata_returns_dict(self) -> None:
         from serve.weight_registry import get_weight_metadata
 
-        meta = get_weight_metadata("transfers", "recent_form_score")
+        meta = get_weight_metadata("fixtures", "team_attack_score")
         assert isinstance(meta, dict)
         assert "value" in meta
 
@@ -191,7 +191,7 @@ class TestWeightRegistryLoader:
         from serve.weight_registry import WeightRegistryError, get_weight_metadata
 
         with pytest.raises(WeightRegistryError):
-            get_weight_metadata("transfers", "nonexistent_key_xyz")
+            get_weight_metadata("fixtures", "nonexistent_key_xyz")
 
     def test_fdr_opportunity_score_not_in_fixtures(self) -> None:
         """fdr_opportunity_score must not appear in fixtures registry."""
@@ -294,7 +294,7 @@ class TestScoreProvenance:
             _base_features_row(player_id=3, gw=5, position_label="DEF"),
         )
 
-    @pytest.mark.parametrize("module", ["fixtures", "transfers"])
+    @pytest.mark.parametrize("module", ["fixtures"])
     def test_provenance_top_level_keys(self, module: str, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
 
@@ -308,7 +308,7 @@ class TestScoreProvenance:
         assert "signals" in result
         assert isinstance(result["signals"], dict)
 
-    @pytest.mark.parametrize("module", ["fixtures", "transfers"])
+    @pytest.mark.parametrize("module", ["fixtures"])
     def test_provenance_signal_structure(self, module: str, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
         from serve.weight_registry import get_module_weights
@@ -331,7 +331,7 @@ class TestScoreProvenance:
             assert "caveats" in entry, f"{module}.{component}: missing 'caveats'"
             assert isinstance(entry["caveats"], list), f"{module}.{component}: 'caveats' must be a list"
 
-    @pytest.mark.parametrize("module", ["fixtures", "transfers"])
+    @pytest.mark.parametrize("module", ["fixtures"])
     def test_provenance_weights_match_registry(self, module: str, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
         from serve.weight_registry import get_module_weights
@@ -355,23 +355,23 @@ class TestScoreProvenance:
         from serve.provenance import score_provenance
 
         with pytest.raises(ValueError, match="no data for player_id=999"):
-            score_provenance(synthetic_features, player_id=999, gw=5, module="transfers")
+            score_provenance(synthetic_features, player_id=999, gw=5, module="fixtures")
 
     def test_provenance_registry_source_references_yaml(self, synthetic_features: pd.DataFrame) -> None:
         from serve.provenance import score_provenance
 
-        result = score_provenance(synthetic_features, player_id=1, gw=5, module="transfers")
+        result = score_provenance(synthetic_features, player_id=1, gw=5, module="fixtures")
         assert "weight_registry.yaml" in result["registry_source"]
         for component, entry in result["signals"].items():
             assert "weight_registry.yaml" in entry["registry_source"], (
-                f"transfers.{component}: registry_source should reference weight_registry.yaml"
+                f"fixtures.{component}: registry_source should reference weight_registry.yaml"
             )
 
     def test_provenance_fwd_position_present(self, synthetic_features: pd.DataFrame) -> None:
         """FWD players must return valid provenance — FWD guard affects scores, not lookup."""
         from serve.provenance import score_provenance
 
-        result = score_provenance(synthetic_features, player_id=2, gw=5, module="transfers")
+        result = score_provenance(synthetic_features, player_id=2, gw=5, module="fixtures")
         assert result["position"] == "FWD"
         assert "signals" in result
         assert len(result["signals"]) > 0
@@ -436,50 +436,10 @@ class TestFdrRemovedFromScoring:
 
 
 # ---------------------------------------------------------------------------
-# 6. FWD scope guard: xgi_roll3/xgi_roll5 excluded at FWD
+# FWD scope guard: RETIRED. The xgi FWD-neutralisation guard covered captain/value/transfers, all now
+# ranked by the model forecast (per-position valid by construction via the term gates — no xgi to
+# neutralise). fixtures.py scores team_attack (goals_scored) + DGW, neither xgi-based, so no FWD guard.
 # ---------------------------------------------------------------------------
-
-
-class TestFwdScopeGuard:
-    """xgi_roll3/xgi_roll5 excluded at FWD (FORM-001/002 G2-FAIL); scores neutralised to 0.5."""
-
-    def _fwd_features_varying_xgi(self) -> pd.DataFrame:
-        """Two FWD players with very different xgi — scores should be equal (0.5)."""
-        return _make_features(
-            _base_features_row(
-                player_id=10,
-                gw=5,
-                position_label="FWD",
-                xgi_roll3=2.0,
-                xgi_roll5=2.0,
-            ),
-            _base_features_row(
-                player_id=11,
-                gw=5,
-                position_label="FWD",
-                xgi_roll3=0.01,
-                xgi_roll5=0.01,
-            ),
-        )
-
-    def test_transfers_fwd_xgi_neutralised(self) -> None:
-        from serve.transfers import rank_transfer_targets
-
-        features = self._fwd_features_varying_xgi()
-        result = rank_transfer_targets(features, target_gw=5)
-        fwd = result[result["position_label"] == "FWD"]
-
-        if len(fwd) < 2:
-            pytest.skip("Not enough FWD players in result to compare")
-
-        scores = fwd.set_index("player_id")["recent_form_score"]
-        assert scores[10] == pytest.approx(scores[11], abs=1e-6), (
-            "FWD recent_form_score must be neutralised (0.5) regardless of xgi_roll3. "
-            f"Player 10 (xgi=2.0): {scores[10]:.4f}, Player 11 (xgi=0.01): {scores[11]:.4f}"
-        )
-
-    # captain FWD xgi-neutralisation RETIRED with the composite — captain ranks by the model forecast,
-    # which is per-position valid by construction (the term gates); there is no xgi to neutralise.
 
 
 # ---------------------------------------------------------------------------

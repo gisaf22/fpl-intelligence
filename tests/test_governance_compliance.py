@@ -4,20 +4,17 @@ These tests guard against regression of documented SYNTH-01 scope decisions
 and confirmed governance violations. Each test names the gate decision it
 enforces.
 
-captain.py and value.py are RETIRED from these guards — both rank by the model forecast, not an xgi
-composite, so their per-position validity is enforced upstream by the term gates, not a serve
-scope-guard. The guards below cover the still-composite modules (transfers.py, fixtures.py) and
+captain.py, value.py, and transfers.py are RETIRED from these guards — all three rank by the model
+forecast, not an xgi composite, so their per-position validity is enforced upstream by the term gates,
+not a serve scope-guard. The guards below cover the last remaining composite module (fixtures.py) and
 availability.py.
 
-SYNTH-01 decisions guarded:
-- G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID (transfers.py)
-- FORM-001/002: xgi_roll3/xgi_roll5 excluded at FWD (transfers.py)
+Decisions guarded:
 - AVAIL-003: minutes_roll8 positional guard (DEF/MID only in availability.py)
 - FIXTURE-001: fdr_avg must not contribute to fixture_opportunity_score
 
 Novel unevaluated metrics flagged:
 - PENDING-EVAL-02: team_goals_roll5 in fixtures.py
-- PENDING-EVAL-03: form_momentum_score in transfers.py
 """
 
 from __future__ import annotations
@@ -27,7 +24,6 @@ import pytest
 
 from serve.availability import flag_availability_risk
 from serve.fixtures import rank_fixture_opportunities
-from serve.transfers import rank_transfer_targets
 
 pytestmark = pytest.mark.unit
 
@@ -87,107 +83,9 @@ def _features(*rows: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# captain.py and value.py: RETIRED from these guards — neither consumes xgi (both rank by the model
-# forecast). Per-position validity is enforced upstream by the term gates, not a serve scope-guard.
-# ---------------------------------------------------------------------------
-# SYNTH-01 G-SYNTH1-07: xgi_roll3 zeroed at MID in transfers.py
-# ---------------------------------------------------------------------------
-
-
-class TestTransfersMidXgiGuard:
-    """G-SYNTH1-07: xgi_roll3 EXCLUDED-REDUNDANT at MID in transfers.py.
-
-    recent_form_score, involvement_score, and form_momentum_score must be neutral
-    0.5 for all MID players regardless of xgi_roll3 value. fixture_score and
-    minutes_stability_score must still differentiate MID players.
-    """
-
-    def test_mid_form_and_involvement_scores_neutral(self):
-        """recent_form_score and involvement_score must be 0.5 for all MID players."""
-        features = _features(
-            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5, minutes_roll5=85.0),
-            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5, minutes_roll5=85.0),
-        )
-        result = rank_transfer_targets(features, target_gw=5)
-        mid_rows = result[result["position_label"] == "MID"]
-        assert len(mid_rows) == 2
-
-        for score_col in ("recent_form_score", "involvement_score"):
-            scores = mid_rows[score_col].unique()
-            assert len(scores) == 1, (
-                f"G-SYNTH1-07: MID {score_col} must be equal for all MID. Got {mid_rows[score_col].tolist()}"
-            )
-            assert abs(scores[0] - 0.5) < 1e-9, f"G-SYNTH1-07: MID {score_col} must be 0.5, got {scores[0]}"
-
-    def test_mid_momentum_score_neutral(self):
-        """form_momentum_score must be 0.5 for all MID players.
-
-        Momentum = xgi_roll3 - xgi_roll5. Since xgi_roll3 is zeroed at MID,
-        the comparison is neutralised to prevent always-negative momentum.
-        """
-        features = _features(
-            _row(1, 5, position_label="MID", xgi_roll3=0.9, xgi_roll5=0.5, minutes_roll5=85.0),
-            _row(2, 5, position_label="MID", xgi_roll3=0.1, xgi_roll5=0.5, minutes_roll5=85.0),
-        )
-        result = rank_transfer_targets(features, target_gw=5)
-        mid_rows = result[result["position_label"] == "MID"]
-
-        scores = mid_rows["form_momentum_score"].unique()
-        assert len(scores) == 1, (
-            f"G-SYNTH1-07: MID form_momentum_score must be equal (neutralised). "
-            f"Got {mid_rows['form_momentum_score'].tolist()}"
-        )
-        assert abs(scores[0] - 0.5) < 1e-9, f"G-SYNTH1-07: MID form_momentum_score must be 0.5, got {scores[0]}"
-
-    def test_mid_fixture_score_not_neutralized(self):
-        """fixture_score uses fixture_context which is not xgi-based.
-        MID players must still be differentiated by fixture_score."""
-        features = _features(
-            _row(1, 5, position_label="MID", fixture_context="DGW", minutes_roll5=85.0),
-            _row(2, 5, position_label="MID", fixture_context="SGW", minutes_roll5=85.0),
-        )
-        result = rank_transfer_targets(features, target_gw=5)
-        mid_rows = result[result["position_label"] == "MID"].set_index("player_id")
-
-        assert mid_rows.loc[1, "fixture_score"] > mid_rows.loc[2, "fixture_score"], (
-            "G-SYNTH1-07: MID fixture_score must differentiate DGW vs SGW players"
-        )
-
-
-# ---------------------------------------------------------------------------
-# FORM-001/002: FWD zeroing guard in transfers.py
-# ---------------------------------------------------------------------------
-
-
-class TestFwdZeroingGuard:
-    """FORM-001/002 G2-FAIL: xgi signals excluded at FWD in transfers.py.
-
-    Zeroing produces neutral 0.5 for all FWD players — they are not ranked by
-    xgi, but they remain in the output. This is different from positional exclusion.
-    """
-
-    # captain and value FWD xgi guards RETIRED with their composites — both rank by the model forecast,
-    # which is per-position valid by construction (the term gates), so there is no xgi to neutralise.
-
-    def test_transfers_fwd_form_scores_neutral(self):
-        """FWD recent_form_score and involvement_score must be 0.5 in transfers.py."""
-        features = _features(
-            _row(1, 5, position_label="FWD", xgi_roll3=0.9, xgi_roll5=0.8, minutes_roll5=85.0),
-            _row(2, 5, position_label="FWD", xgi_roll3=0.1, xgi_roll5=0.1, minutes_roll5=85.0),
-        )
-        result = rank_transfer_targets(features, target_gw=5)
-        fwd_rows = result[result["position_label"] == "FWD"]
-        assert len(fwd_rows) == 2
-
-        for _, row in fwd_rows.iterrows():
-            assert abs(row["recent_form_score"] - 0.5) < 1e-9, (
-                f"FORM-001: FWD recent_form_score must be 0.5, got {row['recent_form_score']}"
-            )
-            assert abs(row["involvement_score"] - 0.5) < 1e-9, (
-                f"FORM-001: FWD involvement_score must be 0.5, got {row['involvement_score']}"
-            )
-
-
+# captain.py, value.py, transfers.py: RETIRED from these guards — none consume xgi (all rank by the
+# model forecast). Per-position validity is enforced upstream by the term gates, not a serve
+# scope-guard. Only fixtures.py and availability.py remain guarded below.
 # ---------------------------------------------------------------------------
 # AVAIL-003: minutes_roll8 positional guard in availability.py
 # ---------------------------------------------------------------------------
@@ -264,31 +162,4 @@ class TestFdrAvgNotScored:
         assert abs(p1 - p2) < 1e-9, (
             f"FIXTURE-001: fixture_opportunity_score must be invariant to fdr_avg. "
             f"Got p1={p1:.4f}, p2={p2:.4f} despite identical non-fdr inputs"
-        )
-
-
-# ---------------------------------------------------------------------------
-# fixture_context: DGW detection wired in captain.py and transfers.py
-# ---------------------------------------------------------------------------
-
-
-class TestFixtureContextWired:
-    """fixture_context candidate consumed by transfers.py.
-
-    fixture_score must differ between DGW and SGW players. (captain.py no longer scores fixture_context —
-    it ranks by the model forecast, which already carries fixture context through the terms.)
-    """
-
-    def test_transfers_fixture_score_higher_for_dgw(self):
-        """DGW player must score higher on fixture_score than SGW player
-        in transfers.py ranking."""
-        features = _features(
-            _row(1, 5, fixture_context="DGW", minutes_roll5=82.0),
-            _row(2, 5, fixture_context="SGW", minutes_roll5=82.0),
-        )
-        result = rank_transfer_targets(features, target_gw=5)
-        p1 = result[result["player_id"] == 1]["fixture_score"].iloc[0]
-        p2 = result[result["player_id"] == 2]["fixture_score"].iloc[0]
-        assert p1 > p2, (
-            f"transfers.py: DGW player must have higher fixture_score than SGW. Got DGW={p1:.3f}, SGW={p2:.3f}"
         )

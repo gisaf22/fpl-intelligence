@@ -1,6 +1,6 @@
 # Serve ↔ model integration — record
 
-**Type:** `changelog` · **Status:** in progress (captain + value migrated) · **Started:** 2026-07-31
+**Type:** `changelog` · **Status:** in progress (captain + value + transfers migrated) · **Started:** 2026-07-31
 
 Wiring the validated predictive layer (`model` — terms → `compose_points` → `simulate_points`) into the
 operational advice layer (`serve`), replacing the pre-model **signal composites** module by module. Each
@@ -91,11 +91,56 @@ Nothing in the model layer moved; the term goldens reproduce.
 
 ---
 
+## transfers — DONE (2026-07-31)
+
+Ranks incoming candidates by the forecaster's ex-ante expected points for the **upcoming** GW:
+`transfer_score = e_points_uncond` at `target_gw`. Price is carried in the output as a budget aid, not
+in the score. Replaced: the xgi form + momentum + fixture + involvement + minutes composite
+(`weight_registry` `transfers` block, the FWD/MID xgi scope-guards, `get_module_weights("transfers")`,
+and transfers' weight-provenance).
+
+**Forward-window decision (temporal integrity).** A transfer is a multi-week hold, so the natural score
+is Σ `e_points_uncond` over the next K GWs. But the forecast column past `target_gw` is **not**
+decision-time-available: by the lag-1 contract, `e_points_uncond[N+1]` is built from rolling state
+through GW N and `[N+2]` through N+1 — both post-deadline. Summing the precomputed column would let the
+ranker peek into the outcome window, inflating the head-to-head and producing a ranking no live run could
+reproduce. So transfers scores the **upcoming GW only** (strictly lag-safe, same footing as OLD, which
+reads `features[gw==N]`). A true fixture-aware forward hold needs per-decision multi-step forecasts frozen
+at the deadline — deferred as a separate model-layer piece, not faked here.
+
+### Head-to-head (real mart, 2025-26, GW6–35, n=30, 3-GW forward hold; frozen)
+
+Metric: mean **cumulative `total_points`** over the next 3 GWs (the existing transfer backtest,
+`tests/helpers/transfers._cumulative_future_returns`), top-10 of each ranker, paired per GW.
+
+| transfer ranker | avg cumulative return / decision |
+|---|---|
+| OLD — xgi composite | 9.14 |
+| **NEW — model `e_points_uncond` @ target_gw** | **10.87** |
+
+**Δ (new − old) = +1.73 pts**, paired 95% CI **[+0.76, +2.70]**; NEW wins **24/30** GWs. This one is
+**significantly better** — the CI excludes zero, a stronger result than captain (CI touched zero) or value
+(CI spanned zero). The ranker uses only pre-deadline data, so the edge is real, not a peek.
+
+*(Measurement is a real-mart backtest — non-deterministic across data refreshes; the numbers above are the
+interpretation, frozen at migration.)*
+
+### Deletions (the clean break)
+`weight_registry.yaml` `transfers` block · transfers' `_MODULE_SIGNAL_MAP` provenance entry · the
+`TestTransfersMidXgiGuard` / `TestFwdZeroingGuard` / `TestFixtureContextWired` guards in
+`test_governance_compliance.py` · transfers' rows in `test_runtime_consumer_alignment.py` (module-paths,
+weight-loader/metadata/provenance parametrizations, the `TestFwdScopeGuard` xgi-neutralisation class).
+**`fixtures` is now the last composite** — the shared-root sweep follows it. Nothing in the model layer
+moved; the term goldens reproduce.
+
+---
+
 ## Remaining
 - **Operational runner** — a top-level orchestrator that builds the enriched frame (`assemble_forecast` →
   merge) and feeds the serve modules; captain is migrated but not yet wired into a production entry point.
-- **transfers / fixtures** — migrate to forward-window `Σ e_points_uncond` / aggregate `e_points` (fixtures ≈
-  transfers — candidate merge); retire the rest of `weight_registry` after the last leaves it.
+- **fixtures** — the last composite; migrate to a forward-window aggregate `e_points` (decide merge-with-
+  transfers vs keep-separate), then the shared-root sweep retires `weight_registry.{yaml,py}` +
+  `weighted_composite`/`normalize_within_position` + `provenance.py`.
 - **availability** — descriptive; optional `p_play`/`p60` enrich, low priority.
 - **Report pipeline** (`serve/scoring` + `serve/reporting`, the rho-composite surface) — a separate
   decision: keep as a descriptive signal report, or migrate later.

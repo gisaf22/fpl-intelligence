@@ -269,15 +269,8 @@ class TestRankCaptainCandidates:
 class TestRankTransferTargets:
     def test_returns_expected_columns(self, two_player_features):
         result = rank_transfer_targets(two_player_features, target_gw=5)
-        for col in [
-            "recent_form_score",
-            "form_momentum_score",
-            "fixture_score",
-            "involvement_score",
-            "minutes_stability_score",
-            "transfer_score",
-            "transfer_rank",
-        ]:
+        # Model-driven: the expected-points read and its score, not the retired composite components.
+        for col in ["e_points_uncond", "transfer_score", "transfer_rank"]:
             assert col in result.columns
 
     def test_is_deterministic(self, two_player_features):
@@ -293,15 +286,18 @@ class TestRankTransferTargets:
         result = rank_transfer_targets(two_player_features, target_gw=5, position="GK")
         assert result.empty
 
-    def test_rising_form_player_preferred(self):
-        # Player 1: xgi_roll3 > xgi_roll5 (rising xgi momentum)
-        # Player 2: xgi_roll3 < xgi_roll5 (declining xgi momentum)
+    def test_higher_expected_points_player_preferred(self):
+        # Higher e_points_uncond ranks first — the best incoming pick for the upcoming GW.
         features = _make_features(
-            _base_row(1, 5, xgi_roll3=0.8, xgi_roll5=0.4),
-            _base_row(2, 5, xgi_roll3=0.4, xgi_roll5=0.8),
+            _base_row(1, 5, e_points_uncond=6.0),
+            _base_row(2, 5, e_points_uncond=2.0),
         )
         result = rank_transfer_targets(features, target_gw=5)
         assert result.iloc[0]["player_id"] == 1
+
+    def test_transfer_score_is_e_points_uncond(self, two_player_features):
+        result = rank_transfer_targets(two_player_features, target_gw=5)
+        assert (result["transfer_score"] == result["e_points_uncond"]).all()
 
     def test_filters_low_minutes_roll5(self):
         features = _make_features(
@@ -318,6 +314,12 @@ class TestRankTransferTargets:
     def test_missing_column_raises(self, two_player_features):
         df = two_player_features.drop(columns=["xgi_roll5"])
         with pytest.raises(IntelligenceInputError):
+            rank_transfer_targets(df, target_gw=5)
+
+    def test_missing_forecast_column_raises(self, two_player_features):
+        # Without the model forecast enrichment (e_points_uncond), transfers cannot rank.
+        df = two_player_features.drop(columns=["e_points_uncond"])
+        with pytest.raises(IntelligenceInputError, match="forecast"):
             rank_transfer_targets(df, target_gw=5)
 
 
@@ -598,7 +600,8 @@ class TestIntelligenceGovernance:
 
     def test_transfers_explainability_columns_present(self, two_player_features):
         result = rank_transfer_targets(two_player_features, target_gw=5)
-        for col in ["recent_form_score", "form_momentum_score", "fixture_score"]:
+        # Model-driven explainability: the expected-points read and the score.
+        for col in ["e_points_uncond", "transfer_score"]:
             assert col in result.columns
 
     def test_value_explainability_columns_present(self, two_player_features):

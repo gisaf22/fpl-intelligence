@@ -1,38 +1,38 @@
-"""Transfer target ranking.
+"""Transfer target ranking — model-driven.
 
-Identifies strong incoming transfer candidates based on rising form, fixture
-context, involvement, and minutes stability. Does not model price movements,
-ownership shifts, or market dynamics.
+Ranks incoming transfer candidates by the forecaster's ex-ante expected points for the upcoming
+gameweek: ``transfer_score = e_points_uncond`` (= ``P(play) x E[points | played]``, so appearance risk
+is already priced in). A transfer is a squad-in decision — you want the highest expected return, and
+price is a separate budget constraint (carried in the output for the manager, not in the score).
 
-Weights are loaded from the module weight registry (serve/weight_registry.yaml).
+This replaces the former composite (xgi form + momentum + fixture + involvement + minutes, statically
+weighted from ``weight_registry.yaml``). Head-to-head over 2025-26 GW6-35 (3-GW forward hold): the model
+ranker returned **+1.73 cumulative pts/decision** vs the composite (10.87 vs 9.14; paired 95% CI
+[+0.76, +2.70], wins 24/30 GWs) — **significantly better**. Per-position validity is enforced upstream
+by the term gates, so the old xgi scope-guards (excluded at FWD/MID) are gone with the composite.
 
-Scope constraints:
-- xgi_roll3 and xgi_roll5 excluded at FWD (xgi_roll3@form:total_points / xgi_roll5@form:total_points G2-FAIL).
-- xgi_roll3 excluded at MID (xgi_roll3@form:total_points#MID EXCLUDED-REDUNDANT vs xgi_roll5 (set-synth-weights)).
-FWD players receive neutral 0.5 on recent_form_score, form_momentum_score, and
-involvement_score. MID players receive neutral 0.5 on those same scores — xgi_roll3
-zeroed before normalization, momentum also neutralised at MID.
+The ranker scores the **upcoming** GW only (``e_points_uncond`` at ``target_gw``), which is strictly
+lag-safe (the terms fit on ``gw < target_gw``). A multi-week forward hold would need per-decision
+multi-step forecasts frozen at the deadline; summing the precomputed forecast column across future GWs
+would leak post-decision state, so it is deliberately not done here.
 
-fixture_score uses binary DGW indicator from STATE fixture_context column.
+Input: the DAL mart **enriched** with the model forecast column ``e_points_uncond`` from
+:func:`model.predictions.assemble_forecast`, merged on ``(player_id, gw)`` by the operational runner —
+``serve`` does not import ``model`` (import-linter ``no_serve_to_research_or_model``), so the forecast
+arrives as data, not a call.
 """
 
 from __future__ import annotations
 
 import pandas as pd
 
-from serve.input_contracts import (
-    IntelligenceInputError,
-    normalize_within_position,
-    validate_intelligence_inputs,
-    weighted_composite,
-)
-from serve.weight_registry import get_module_weights
-
-# Weights loaded from governance registry — fails hard if entry missing.
-_WEIGHTS: dict[str, float] = get_module_weights("transfers")
+from serve.input_contracts import IntelligenceInputError, validate_intelligence_inputs
 
 # threshold not evaluation-derived — see threshold-registry.md §TRANS-T-01
 _MIN_MINUTES_ROLL5 = 30.0
+
+# The model forecast column the runner must have merged onto the mart (see model.predictions).
+_FORECAST_COLS = ("e_points_uncond",)
 
 _OUTPUT_COLS = [
     "player_id",
@@ -40,15 +40,8 @@ _OUTPUT_COLS = [
     "position_label",
     "team_id",
     "purchase_price",
-    "xgi_roll3",
-    "xgi_roll5",
-    "fixture_context",
     "minutes_roll5",
-    "recent_form_score",
-    "form_momentum_score",
-    "fixture_score",
-    "involvement_score",
-    "minutes_stability_score",
+    "e_points_uncond",
     "transfer_score",
     "transfer_rank",
 ]
@@ -60,14 +53,16 @@ def rank_transfer_targets(
     n: int = 20,
     position: str | None = None,
 ) -> pd.DataFrame:
-    """Rank transfer-in candidates for a target gameweek.
+    """Rank transfer-in candidates for a target gameweek by model expected points.
 
     Parameters
     ----------
     features:
-        Full DAL state output at (player_id, gw) grain.
+        DAL mart at (player_id, gw) grain, **enriched** with the model forecast column
+        ``e_points_uncond`` via :func:`model.predictions.assemble_forecast`.
     target_gw:
-        Gameweek being prepared for.
+        Gameweek being prepared for. The forecast at ``target_gw`` is lag-safe (the terms fit on
+        ``gw < target_gw``).
     n:
         Maximum candidates to return.
     position:
@@ -76,19 +71,19 @@ def rank_transfer_targets(
 
     Returns
     -------
-    DataFrame ranked by transfer_score descending with explicit component
-    columns for explainability.
+    DataFrame ranked by ``transfer_score`` (= ``e_points_uncond``) descending, with the expected-points
+    read carried for explainability. ``transfer_rank`` is the within-position rank.
 
-    Scoring components (registry weights):
-    - recent_form_score    30%: xgi_roll3; excluded at FWD+MID → neutral 0.5
-    - form_momentum_score  25%: xgi_roll3 - xgi_roll5; FWD+MID neutralised → neutral 0.5
-    - fixture_score        20%: binary DGW flag from STATE fixture_context
-    - involvement_score    15%: xgi_roll3; excluded at FWD+MID → neutral 0.5
-    - minutes_stability    10%: minutes_roll5, normalized within position
-
-    Only players with minutes_roll5 >= 30 are eligible.
+    Only players with ``minutes_roll5 >= 30`` (and a scored forecast row) are eligible.
     """
     validate_intelligence_inputs(features, "rank_transfer_targets")
+    missing = [c for c in _FORECAST_COLS if c not in features.columns]
+    if missing:
+        raise IntelligenceInputError(
+            f"rank_transfer_targets: missing model forecast columns {missing}. Enrich the mart with "
+            "model.predictions.assemble_forecast before ranking (serve does not import model; the "
+            "operational runner merges the forecast on (player_id, gw))."
+        )
 
     gw_df = features[features["gw"] == target_gw].copy()
     if gw_df.empty:
@@ -100,39 +95,16 @@ def rank_transfer_targets(
             return pd.DataFrame(columns=_OUTPUT_COLS)
 
     eligible = gw_df[~gw_df["is_warmup_gw"] & (gw_df["minutes_roll5"] >= _MIN_MINUTES_ROLL5)].copy()
+    # A scored forecast row (e_points_uncond defined) is required to rank.
+    eligible = eligible.dropna(subset=["e_points_uncond"])
     if eligible.empty:
         return pd.DataFrame(columns=_OUTPUT_COLS)
 
-    # xgi_roll5 excluded at FWD: xgi_roll5@form:total_points G2-FAIL.
-    # xgi_roll3 excluded at FWD (xgi_roll3@form:total_points G2-FAIL) and MID (xgi_roll3@form:total_points#MID:
-    # EXCLUDED-REDUNDANT vs xgi_roll5). Zeroed groups return 0.5 from normalization.
-    fwd_mask = eligible["position_label"] == "FWD"
-    mid_mask = eligible["position_label"] == "MID"
-    xgi_roll3_scored = eligible["xgi_roll3"].where(~(fwd_mask | mid_mask), 0.0)
-    xgi_roll5_scored = eligible["xgi_roll5"].where(~fwd_mask, 0.0)
-
-    eligible["_xgi_roll3_scored"] = xgi_roll3_scored
-    eligible["_xgi_roll5_scored"] = xgi_roll5_scored
-
-    # Form momentum: positive when recent xgi (roll3) exceeds medium-term (roll5).
-    # FWD: both operands zeroed → momentum = 0 → neutral 0.5.
-    # MID: xgi_roll3 zeroed but xgi_roll5 live — comparison is invalid (always negative).
-    # Neutralise by setting _momentum to 0 for all MID; all-same → normalize → 0.5.
-    eligible["_momentum"] = xgi_roll3_scored - xgi_roll5_scored
-    eligible.loc[mid_mask, "_momentum"] = 0.0
-
-    # Binary DGW flag from STATE fixture_context column.
-    eligible["_fixture_context_dgw"] = (eligible["fixture_context"] == "DGW").astype(float)
-
-    eligible["recent_form_score"] = normalize_within_position(eligible, "_xgi_roll3_scored")
-    eligible["form_momentum_score"] = normalize_within_position(eligible, "_momentum")
-    eligible["fixture_score"] = normalize_within_position(eligible, "_fixture_context_dgw")
-    eligible["involvement_score"] = normalize_within_position(eligible, "_xgi_roll3_scored")
-    eligible["minutes_stability_score"] = normalize_within_position(eligible, "minutes_roll5")
-
-    eligible["transfer_score"] = weighted_composite(eligible, list(_WEIGHTS.keys()), _WEIGHTS)
+    # Best incoming pick = highest ex-ante expected points for the upcoming GW.
+    eligible["transfer_score"] = eligible["e_points_uncond"].astype(float)
+    eligible = eligible.sort_values("transfer_score", ascending=False)
     eligible["transfer_rank"] = (
         eligible.groupby("position_label")["transfer_score"].rank(ascending=False, method="min").astype(int)
     )
 
-    return eligible[_OUTPUT_COLS].sort_values("transfer_score", ascending=False).head(n).reset_index(drop=True)
+    return eligible[_OUTPUT_COLS].head(n).reset_index(drop=True)

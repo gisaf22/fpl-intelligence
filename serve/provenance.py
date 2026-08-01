@@ -27,21 +27,15 @@ from serve.weight_registry import get_module_weights, get_weight_metadata
 # Map from module name → component → list of STATE columns that feed the component.
 # Encodes the computational relationship between weight components and STATE values.
 #
-# ``captain`` and ``value`` are deliberately absent: both are now ranked by the model forecast
-# (captain by ``p_haul``/``p90``, value by ``e_points_uncond`` / ``purchase_price``), not a weight
-# composite, so they have no weight-registry provenance. Their traceability lives in the model layer
-# (assemble_forecast -> compose/simulate -> the gated terms), not here.
+# ``captain``, ``value``, and ``transfers`` are deliberately absent: all three are now ranked by the
+# model forecast (captain by ``p_haul``/``p90``, value by ``e_points_uncond`` / ``purchase_price``,
+# transfers by ``e_points_uncond``), not a weight composite, so they have no weight-registry provenance.
+# Their traceability lives in the model layer (assemble_forecast -> compose/simulate -> the gated terms),
+# not here. ``fixtures`` is the last remaining composite.
 _MODULE_SIGNAL_MAP: dict[str, dict[str, list[str]]] = {
     "fixtures": {
         "team_attack_score": ["goals_scored"],
         "dgw_bonus_score": ["fixture_context"],
-    },
-    "transfers": {
-        "recent_form_score": ["xgi_roll3"],
-        "form_momentum_score": ["xgi_roll3", "xgi_roll5"],
-        "fixture_score": ["fixture_context"],
-        "involvement_score": ["xgi_roll3"],
-        "minutes_stability_score": ["minutes_roll5"],
     },
 }
 

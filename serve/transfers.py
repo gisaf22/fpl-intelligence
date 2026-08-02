@@ -6,7 +6,8 @@ is already priced in). A transfer is a squad-in decision — you want the highes
 price is a separate budget constraint (carried in the output for the manager, not in the score).
 
 This replaces the former composite (xgi form + momentum + fixture + involvement + minutes, statically
-weighted from ``weight_registry.yaml``). Head-to-head over 2025-26 GW6-35 (3-GW forward hold): the model
+weighted from a serve weight registry — since retired, see ADR-011). Head-to-head over 2025-26 GW6-35
+(3-GW forward hold): the model
 ranker returned **+1.73 cumulative pts/decision** vs the composite (10.87 vs 9.14; paired 95% CI
 [+0.76, +2.70], wins 24/30 GWs) — **significantly better**. Per-position validity is enforced upstream
 by the term gates, so the old xgi scope-guards (excluded at FWD/MID) are gone with the composite.

@@ -5,135 +5,86 @@
 
 ## Purpose
 
-The serve layer (`serve/`) produces concrete FPL decision-support outputs
-from trusted, governed signal data. It sits at the top of the data pipeline:
+The serve layer (`serve/`) produces concrete FPL decision-support outputs from trusted, governed data.
+It sits at the top of the pipeline:
 
 ```
 fpl.db (source database)
   ↓
-dal/ — validated, deterministic (player_id, gw) spine + state features
+dal/ — validated, deterministic (player_id, gw) spine + state features (the mart)
   ↓
-outputs/registry/gw{N}/ — governed signal registry artifact
-  ↓
-serve/ — player scoring and weekly reporting  ← this layer
+model/ — gated terms → compose_points (e_points, e_points_uncond) → simulate_points (p10/p50/p90, p_haul)
+  ↓   [assemble_forecast(mart): the forecast columns, merged onto the mart by an operational runner]
+serve/ — player ranking and weekly reporting  ← this layer
 ```
 
-The layer answers: *"Can FPL-derived signals improve FPL decisions?"* through explicit,
-reproducible artifacts — not through infrastructure alone.
+The layer answers *"which players should I pick this week?"* through explicit, reproducible artifacts.
+
+**The boundary is preserved as data.** `serve` **must not import `model`** (import-linter
+`no_serve_to_research_or_model`). The forecast crosses as columns, not a call: an operational runner
+merges `model.predictions.assemble_forecast(mart)` (`e_points`, `e_points_uncond`, `p10/p50/p90`,
+`p_haul`) onto the mart on `(player_id, gw)`, and the serve modules read those columns.
 
 ---
 
-## Registry consumption and lifecycle gate
+## Recommendation modules — ranked by the model forecast (ADR-011)
 
-The intelligence layer never reads directly from `research/findings/`. It consumes only
-governed registry artifacts from `outputs/registry/gw{N}/`.
+Each module ranks by the validated model forecast, not a hand-weighted signal composite. The former
+composites (xgi/fdr/minutes, statically weighted from a `weight_registry`) were retired module-by-module
+after a real-mart head-to-head showed the forecast is never worse (and significantly better for
+transfers/fixtures). See [ADR-011](../decisions/011-model-forecast-supersedes-composites.md) and
+[docs/serve-model-integration.md](../serve-model-integration.md) for the frozen head-to-head numbers.
 
-The gate is enforced at runtime by `domain/registry/lifecycle.py`:
-
-```python
-# Both operational runners call this before loading any registry:
-assert_operational_safe(registry_path)
-# Raises LifecycleViolationError if registry_path is under research/findings/
-```
-
-This means the registry can only reach the scorer after:
-1. Signals have `promotion_class` in `{core_signal, review_signal}` from system EDA
-2. Promotion (`model/governance/promote.py`) has validated the contract and written the registry to `outputs/registry/gw{N}/` (the finding is built by `research/registry/build.py`)
-3. The operational runner receives the path via `--registry-path outputs/registry/gw{N}/registry.csv`
-
-See [docs/registry-governance.md](../registry-governance.md) for the full exploratory-vs-operational distinction.
-
----
-
-## Signal filtering in the scorer
-
-`serve/scoring/signal_selector.py` applies three filters when loading a registry:
-
-| Filter | Condition | Rationale |
-|--------|-----------|-----------|
-| Promotion class | `promotion_class in {core_signal, review_signal}` | Only EDA-confirmed signals |
-| Role exclusion | `layer_role not in {points_component, contribution_index}` | Leakage and outcome-component signals excluded |
-| Non-null rho | `rho_pooled` not null (lens CI gate) | `MIN_RHO = 0.15` was removed; the CI gate is the sole magnitude authority |
-
-After filtering, each retained signal contributes to composite scores weighted by its `rho_pooled`
-value. Stronger correlations carry more weight; the weighting is transparent and declared in the
-registry artifact, not hidden in code constants.
-
-## Operational Outputs
-
-Each output function accepts a features DataFrame produced by the canonical DAL entry points:
+Per-position validity — which the composites hand-encoded as serve-side scope-guards (xgi excluded at
+FWD/MID, fdr excluded everywhere) — is now enforced **upstream** by the model's per-position term gates
+(ranking + level) and lag-safety. It moved up a layer; it was not dropped.
 
 ```python
 from dal.pipeline import load as load_mart
+from model.predictions import assemble_forecast   # done in the operational runner, not in serve
 from serve import (
     rank_captain_candidates,
     rank_transfer_targets,
     rank_value_players,
     flag_availability_risk,
-    rank_fixture_opportunities,
 )
 
-features = load_mart().mart
+mart = load_mart().mart
+enriched = mart.merge(assemble_forecast(mart), on=["player_id", "gw"], how="left")
 
-captains  = rank_captain_candidates(features, target_gw=28)
-transfers = rank_transfer_targets(features, target_gw=28)
-value     = rank_value_players(features, target_gw=28)
-risk      = flag_availability_risk(features, target_gw=28)
-fixtures  = rank_fixture_opportunities(features, target_gw=28)
+captains  = rank_captain_candidates(enriched, target_gw=28)
+transfers = rank_transfer_targets(enriched, target_gw=28)
+value     = rank_value_players(enriched, target_gw=28)
+risk      = flag_availability_risk(enriched, target_gw=28)   # availability needs no forecast column
 ```
 
-### Captain Candidates (`captain.py`)
+| Module | Ranks by | Why | Eligibility |
+|---|---|---|---|
+| `captain.py` | `p_haul` (haul probability), tie-broken by the `p90` ceiling | Captaincy is a *ceiling* bet; `p_haul` is an absolute probability, comparable **across** positions | `minutes_roll3 >= 45` |
+| `transfers.py` | `e_points_uncond` at `target_gw` | Best expected pick for the upcoming GW; lag-safe (see the forward-window note below) | `minutes_roll5 >= 30`; optional `position` filter |
+| `value.py` | `e_points_uncond / purchase_price` | Ex-ante expected return per £m; `e_points_uncond` already prices appearance risk | `minutes_roll5 >= 30`, `purchase_price >= 3.5`; optional `max_price` |
+| `availability.py` | (descriptive — not a forecast) | Minutes-stability warning layer; see below | all players returned |
 
-Ranks players as captain options for a target gameweek.
+`e_points_uncond` = P(play) × E[points | played] — the ex-ante unconditional expectation. `p_haul`/`p90`
+are the conditional-on-appearance distribution reads from the simulator.
 
-| Component | Signal | Weight |
-|-----------|--------|--------|
-| `form_score` | `points_roll3` within position | 35% |
-| `involvement_score` | `xgi_roll3` within position | 30% |
-| `fixture_score` | `6 - fdr_avg` within position | 20% |
-| `minutes_score` | `minutes_roll3` within position | 15% |
+**Retired:** `fixtures.py`. "Best fixture run" is a multi-week question; under lag-safety the only honest
+signal is the forecast for the *upcoming* GW, which is exactly what `transfers` ranks by and which
+already prices fixture difficulty (the `fdr` term). So a lag-safe fixtures ranking duplicated transfers —
+transfers subsumes it.
 
-**Eligibility:** `minutes_roll3 >= 45` (must be starting reliably).
+### Forward-window / leakage note (transfers, and why fixtures could not be rebuilt)
 
----
-
-### Transfer Targets (`transfers.py`)
-
-Identifies incoming transfer candidates with rising form and favorable conditions.
-
-| Component | Signal | Weight |
-|-----------|--------|--------|
-| `recent_form_score` | `points_roll3` within position | 30% |
-| `form_momentum_score` | `points_roll3 − points_roll5` | 25% |
-| `fixture_score` | `6 - fdr_avg` within position | 20% |
-| `involvement_score` | `xgi_roll3` within position | 15% |
-| `minutes_stability_score` | `minutes_roll5` within position | 10% |
-
-**Eligibility:** `minutes_roll5 >= 30`. Supports optional `position` filter.
-
-Does not model: price changes, ownership trends, or market dynamics.
-
----
-
-### Value Players (`value.py`)
-
-Surfaces players with high point returns relative to FPL cost.
-
-| Component | Signal | Weight |
-|-----------|--------|--------|
-| `efficiency_score` | `points_roll5 / purchase_price` | 50% |
-| `form_score` | `points_roll3` within position | 30% |
-| `consistency_score` | alignment between roll3 and roll5 | 20% |
-
-**Eligibility:** `minutes_roll5 >= 30`, `purchase_price >= 3.5`.
-Supports optional `max_price` ceiling.
-
----
+The forecast at GW N is lag-safe (its terms fit on GWs < N). But the precomputed forecast **column** at
+N+1, N+2 is built from rolling state through N, N+1 — i.e. post-deadline. So summing the forecast over a
+forward window is **not** decision-time-realisable and would let a backtest peek into its own outcome
+window. Transfers therefore ranks the upcoming GW only. A true fixture-aware multi-week hold needs
+per-decision multi-step forecasts frozen at the deadline — a deferred `model` piece, not faked here.
 
 ### Availability Risk (`availability.py`)
 
-Flags players with unstable or deteriorating minute patterns. This is an
-**operational warning layer** — it does not predict injuries or suspensions.
+Descriptive, not a forecast — an **operational warning layer** flagging unstable minute patterns. It does
+not predict injuries or suspensions.
 
 | Risk Level | Condition |
 |------------|-----------|
@@ -141,145 +92,113 @@ Flags players with unstable or deteriorating minute patterns. This is an
 | MEDIUM | `minutes_roll3 < 60` OR `minutes_trend == "falling"` OR divergence > 20 min |
 | LOW | none of the above |
 
-All players at the target gameweek are returned (not just risky ones), so
-consumers can filter for LOW-risk players when building squads.
+Long-horizon flag uses `minutes_roll8` for DEF/MID only (AVAIL-003 positional guard). All players at the
+target GW are returned so consumers can filter for LOW-risk when building squads.
 
 ---
 
-### Fixture Opportunities (`fixtures.py`)
+## Design principles
 
-Surfaces players with favorable near-term fixture windows.
-
-| Component | Signal | Weight |
-|-----------|--------|--------|
-| `fdr_opportunity_score` | mean inverted FDR across window | 40% |
-| `team_attack_score` | team's rolling goals scored (prior window) | 35% |
-| `dgw_bonus_score` | DGW presence in window (binary) | 25% |
-
-**Eligibility:** `minutes_roll5 >= 30`.
-Accepts `horizon` parameter (default 3 GWs ahead).
-
-Team attack strength uses a lookback window of equal length to the forward
-window to avoid look-ahead. FDR data for future GWs must be present in the
-features DataFrame for the forward window to be evaluated; when absent, a
-neutral FDR is substituted.
+1. **Forecast-ranked, not hand-weighted.** Ranking is by the model forecast columns; there are no serve
+   weight constants and no `weight_registry`. Governance of *which signal is valid where* lives in the
+   model term gates upstream.
+2. **The boundary crosses as data.** `serve` reads forecast columns off the enriched mart; it never
+   imports `model` (import-linter 6/6).
+3. **Explicit eligibility filters** — minimum-minutes thresholds and price floors are named constants
+   documented with rationale (see [threshold-registry.md](../governance/threshold-registry.md)).
+4. **Explainability columns** — every output carries the forecast reads it ranked on (`e_points_uncond`,
+   `p90`, `p_haul`, the score) so a reviewer can reconstruct any row's rank from the output alone.
+5. **Pure functions** — deterministic; identical output for identical input. (The simulator that produces
+   `p_haul`/`p90` upstream is seed-pinned.)
+6. **Input contract** — every module calls `validate_intelligence_inputs()` (`serve/input_contracts.py`),
+   which asserts the required mart columns are present and raises `IntelligenceInputError` otherwise; the
+   forecast-consuming modules additionally require their `assemble_forecast` columns.
 
 ---
 
-## Deterministic scoring philosophy
+## The report pipeline (separate surface — `serve/scoring/`, `serve/reporting/`)
 
-All outputs follow the same design principles:
+Distinct from the recommendation modules above: a rho-based **signal report** that reads the governed
+registry, not the model forecast. It was **not** part of the serve↔model integration and is unaffected by
+ADR-011.
 
-1. **Static weights** — all weights are declared as named constants in each
-   module. No weights are learned from data.
+### Registry consumption and lifecycle gate
 
-2. **Within-position normalization** — signal normalization is position-scoped
-   to prevent positional bias (e.g., GKP vs. FWD point scales differ).
+The report pipeline never reads directly from `research/findings/`. It consumes only governed registry
+artifacts from `outputs/registry/gw{N}/`. The gate is enforced at runtime by
+`domain/registry/lifecycle.py`:
 
-3. **Explicit eligibility filters** — minimum minutes thresholds and price
-   floors are named constants documented with rationale.
+```python
+assert_operational_safe(registry_path)   # raises LifecycleViolationError if under research/findings/
+```
 
-4. **Explainability columns** — every output DataFrame includes the component
-   scores used to produce the composite. Nothing is hidden in the composite.
-   A reviewer can reconstruct any player's final score from the output alone.
+The registry reaches the scorer only after (1) signals have `promotion_class` in
+`{core_signal, review_signal}` from system EDA, (2) `model/governance/promote.py` validates the contract
+and writes `outputs/registry/gw{N}/` (the finding built by `research/registry/build.py`), and (3) the
+runner receives `--registry-path outputs/registry/gw{N}/registry.csv`. See
+[docs/registry-governance.md](../registry-governance.md).
 
-5. **Pure functions** — all output functions are side-effect free and
-   produce identical output for identical input (deterministic).
+### Signal filtering in the scorer
 
-6. **Rho-weighted registry signals** — when the scorer reads from the governed
-   registry, signal weights are derived from `rho_pooled` in the registry artifact,
-   not from hardcoded constants. This makes the weighting auditable and tied
-   directly to the evidence that validated each signal.
+`serve/scoring/signal_selector.py` applies three filters when loading a registry:
 
-## Weekly artifact lineage
+| Filter | Condition | Rationale |
+|--------|-----------|-----------|
+| Promotion class | `promotion_class in {core_signal, review_signal}` | Only EDA-confirmed signals |
+| Role exclusion | `layer_role not in {points_component, contribution_index}` | Leakage / outcome-component signals excluded |
+| Non-null rho | `rho_pooled` not null (lens CI gate) | `MIN_RHO` removed; the CI gate is the sole magnitude authority |
 
-A complete weekly run produces the following artifacts:
+Retained signals contribute to the report weighted by `rho_pooled` — declared in the registry artifact,
+not hidden in code constants.
+
+### Weekly artifact lineage
 
 ```
 outputs/registry/gw{N}/
     registry.csv          — governed signal manifest (29 signals for gw36)
     build_metadata.json   — build timestamp, source path, row count, schema version
-
 outputs/scorer/
     gw{N}_player_scores.html  — scored player table with explainability spans
-
 serve/reporting/
     (weekly snapshot data written to DB or stdout via reporting runner)
 ```
 
-**Committed vs ephemeral:**
-- `outputs/registry/` is committed to git (`.gitignore` exception: `!outputs/registry/`).
-  The `gw36/` artifact is a bootstrap — it enables `assert_operational_safe()` to pass
-  in a fresh checkout without requiring a live DB run.
-- `outputs/scorer/` is gitignored — HTML is regenerated on each score run.
-- All other `outputs/*` are gitignored.
+**Committed vs ephemeral:** `outputs/registry/` is committed (`.gitignore` exception `!outputs/registry/`)
+— the `gw36/` artifact is a bootstrap so `assert_operational_safe()` passes in a fresh checkout without a
+live DB run. `outputs/scorer/` and all other `outputs/*` are gitignored. See
+[runtime-artifacts.md](runtime-artifacts.md).
 
-See [docs/architecture/runtime-artifacts.md](runtime-artifacts.md) for the full artifact lifecycle.
+---
 
-## Relationship to Research Signals
+## Relationship to research signals
 
-The intelligence layer consumes **DAL state features only** — the curated
-spine plus rolling window columns derived from it. It does not consume:
-
-- EDA registries from `research/findings/`
-- Research-stage promoted signal lists
-- Exploratory registry artifacts
-
-This separation is enforced by `validate_intelligence_inputs()` in
-`serve/input_contracts.py`, which checks that all required columns are present
-and raises `IntelligenceInputError` if not — catching accidental use of an
-under-populated DataFrame from a non-DAL source.
-
-For the relationship between research signals and the governed registry, see
+Both surfaces consume **governed** inputs only — the recommendation modules read the DAL mart plus the
+model forecast columns; the report pipeline reads the governed registry. Neither consumes EDA registries
+from `research/findings/`, research-stage promoted lists, or exploratory artifacts. For the mart contract
+this is enforced by `validate_intelligence_inputs()` in `serve/input_contracts.py`. See
 [docs/registry-governance.md](../registry-governance.md) and
 [docs/signal-promotion-states.md](../signal-promotion-states.md).
 
-## Current Limitations
+## Current limitations
 
-- **No fixture opponent data.** Opponent defensive weakness is proxied through
-  team attack strength and FPL FDR ratings. The spine does not expose a direct
-  opponent team ID at player-GW grain; a future enhancement could join the
-  intermediate fixture layer to obtain this.
-
-- **No price trajectory.** Transfer and value outputs use static current price.
-  They do not model FPL price rises or falls.
-
-- **Warmup period.** Rolling window signals require prior GW history.
-  GW 1 rows will have null roll3/roll5 values; the intelligence functions
-  handle this via `fillna(0)` fill defaults. Outputs for very early GWs
-  should be interpreted cautiously.
-
-- **Single-season scope.** The curated spine covers one FPL season. No
-  cross-season signals are used.
-
-- **BGW handling.** Blank gameweek rows have null performance columns by
-  contract. FDR may also be null for BGW rows; the functions substitute
-  a neutral FDR of 3.0 in this case.
-
-- **Module weights are editorial, not calibrated.** The component weights in the
-  tables above (e.g. captain's 35/30/20/15) are static editorial constants carried
-  in `signals/governance/weight_registry.yaml` with `PROVISIONAL-EDITORIAL`
-  provenance — set before the lens-study methodology existed and not yet validated
-  by a calibration study. The *within-signal* rho weighting is evidence-based (from
-  the registry); the *cross-component* module weights are not. Closing this is a
-  `monitor`-stage calibration study, deferred to 2026/27.
-
-- **No declared output contract.** Upstream layers publish enforced schemas
-  (`MART_SCHEMA`, `FEAT_SCHEMA`); the recommendation outputs have no equivalent —
-  they are golden-tested, not contract-validated. The output column set is a
+- **No price trajectory.** Value uses static current price; no FPL price rise/fall modelling.
+- **Warmup period.** The forecast is undefined before the model's warmup GWs; rows without a scored
+  forecast (`e_points_uncond`/`p_haul` NaN) are dropped from the ranked output. Early-GW output is thin.
+- **Single-season scope.** The mart and the fitted terms cover one FPL season; the head-to-head edges are
+  *promising, not multi-season-proven* (captain/value reached "not worse"; transfers/fixtures were
+  significantly better on one season). Cross-season confirmation is the standing caveat.
+- **No multi-week hold.** Transfers/fixtures rank the upcoming GW only — no fixture-aware forward window
+  (see the leakage note). The multi-step forecast is deferred.
+- **No declared output contract.** Upstream layers publish enforced schemas (`MART_SCHEMA`, `FEAT_SCHEMA`);
+  the recommendation outputs are golden-tested, not contract-validated. The output column set is a
   convention, not a guarantee.
-
-*Together these two seams are why the [analytical-architecture.md](analytical-architecture.md)
-maturity snapshot rates the Decision layer **Emerging**.*
 
 ## Non-Goals
 
 This layer explicitly does not:
 
-- Predict points totals
-- Model injury probability
-- Simulate transfer market dynamics
-- Optimize squad selection (that is a combinatorial problem requiring
-  explicit constraint handling)
-- Replace human judgement on news, motivation, or manager rotation
-- Consume external data sources beyond the DAL-governed database
+- **Fit or own the points model** — it *consumes* the model forecast as data; the model lives in `model/`.
+- Model injury probability, or simulate the transfer market / price dynamics.
+- Optimize squad selection (a combinatorial problem requiring explicit constraint handling).
+- Replace human judgement on news, motivation, or rotation.
+- Consume external data beyond the DAL-governed database.

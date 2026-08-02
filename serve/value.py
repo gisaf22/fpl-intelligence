@@ -7,7 +7,7 @@ Ranks players by **return per unit cost** using the forecaster's ex-ante expecte
 flattered by a high per-cost score the way a raw form/cost composite would flatter it.
 
 This replaces the former composite (xgi efficiency + form + consistency, statically weighted from
-``weight_registry.yaml``). Head-to-head over 2025-26 GW6-34: the model value ranker returned
+a serve weight registry — since retired, see ADR-011). Head-to-head over 2025-26 GW6-34: the model value ranker returned
 **+0.14 points-per-£m/GW** vs the composite (2.35 vs 2.21; paired 95% CI [-0.17, +0.44]) — better on
 the point estimate, never significantly worse. Per-position validity is enforced upstream by the term
 gates, so the old xgi scope-guards (xgi excluded at FWD/MID) are gone with the composite.

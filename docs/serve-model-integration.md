@@ -1,6 +1,6 @@
 # Serve ↔ model integration — record
 
-**Type:** `changelog` · **Status:** in progress (all composites retired + shared-root sweep done; ADR-011 + doc cleanup next) · **Started:** 2026-07-31
+**Type:** `changelog` · **Status:** COMPLETE (all composites retired; shared-root sweep + ADR-011 + doc cleanup done) · **Started:** 2026-07-31 · **Completed:** 2026-08-01
 
 Wiring the validated predictive layer (`model` — terms → `compose_points` → `simulate_points`) into the
 operational advice layer (`serve`), replacing the pre-model **signal composites** module by module. Each
@@ -207,14 +207,32 @@ evidence in `evaluation_metadata.yaml` — the anti-re-litigation trail. Import-
 
 ---
 
-## Remaining
+## ADR-011 + doc cleanup — DONE (2026-08-01)
+
+The closeout of the integration. Documentation + evidence only; no code behaviour changed.
+
+- **ADR-011** written (`docs/decisions/011-model-forecast-supersedes-composites.md`) — the model forecast
+  supersedes the serve composites; ADR-002 marked **Superseded** (kept, not deleted — the record of why
+  additive weighting was right for its moment), decisions `README.md` index updated.
+- **signal-traceability-matrix.md** — deleted the captain/value/transfers/fixtures composite-consumption
+  tables (their per-position governance moved to the model term gates); kept the signal *evidence* rows,
+  the availability + signal_selector tables, and marked the composite-consumption governance gaps
+  superseded. Retirement banner + updated fdr/fixture_context notes.
+- **threshold-registry.md** / **eng-issues-2026.md** — fixed stale `intelligence/`→`serve/` paths and line
+  numbers on the *live* thresholds (AVAIL-T-01/02/03, CAPT-T-01, VAL-T-01, TRANS-T-01), retired FIX-T-01
+  (fixtures deleted), and noted the retired composites/`weight_registry` in ENG-02/06/13. Historical
+  "as-filed" records left intact.
+- **architecture/intelligence-layer.md** — rewritten to the forecast architecture (modules rank by the
+  forecast; report pipeline kept as a separate section).
+- **serve/{captain,value,transfers}.py** docstrings — scrubbed the now-dangling `weight_registry.yaml`
+  mentions (→ "a serve weight registry — since retired, see ADR-011").
+
+## Not in scope (open, unchanged)
 - **Operational runner** — a top-level orchestrator that builds the enriched frame (`assemble_forecast` →
-  merge) and feeds the serve modules; captain is migrated but not yet wired into a production entry point.
-- **ADR-011 + doc cleanup** (next) — write ADR-011 marking ADR-002 superseded (don't delete it); remove
-  composite rows from `signal-traceability-matrix.md`; correct/keep the live thresholds and fix stale
-  `intelligence/`→`serve/` paths in `threshold-registry.md` / `eng-issues-2026.md`; rewrite
-  `architecture/intelligence-layer.md`; scrub the now-dangling `weight_registry.yaml` prose mentions in
-  the captain/value/transfers docstrings.
+  merge) and feeds the serve modules. The modules are migrated; wiring them into a production entry point
+  is separate work.
 - **availability** — descriptive; optional `p_play`/`p60` enrich, low priority.
-- **Report pipeline** (`serve/scoring` + `serve/reporting`, the rho-composite surface) — a separate
-  decision: keep as a descriptive signal report, or migrate later.
+- **Report pipeline** (`serve/scoring` + `serve/reporting`, the rho-composite surface) — left as-is per the
+  constraints; keep-as-signal-report vs migrate-later is a separate future decision.
+- **Multi-step forecast** — a per-decision, deadline-frozen forward-window forecast would let transfers/
+  fixtures rank a true multi-week hold (see the transfers/fixtures leakage notes). Deferred `model` work.

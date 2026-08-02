@@ -8,10 +8,10 @@ the retired within-position signal composite, whose normalised score made a DEF'
 meaningless to compare.
 
 This replaces the former composite (xgi form/involvement + fixture + minutes, statically weighted from
-``weight_registry.yaml``). Head-to-head over 2025-26 GW6-38: the model captain returned **+1.9 pts/GW**
-vs the composite (5.09 vs 3.22; paired 95% CI [-0.03, +3.9]) — better on the point estimate, never
-significantly worse. Per-position validity is enforced upstream by the term gates, so the old xgi
-scope-guards (excluded at FWD/MID) are gone with the composite.
+a serve weight registry — since retired, see ADR-011). Head-to-head over 2025-26 GW6-38: the model
+captain returned **+1.9 pts/GW** vs the composite (5.09 vs 3.22; paired 95% CI [-0.03, +3.9]) — better on
+the point estimate, never significantly worse. Per-position validity is enforced upstream by the term
+gates, so the old xgi scope-guards (excluded at FWD/MID) are gone with the composite.
 
 Input: the DAL mart **enriched** with the model forecast columns (``p_haul``, ``p90``,
 ``e_points_uncond``) from :func:`model.predictions.assemble_forecast`, merged on ``(player_id, gw)`` by

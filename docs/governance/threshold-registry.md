@@ -20,7 +20,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 ---
 
-## Availability Module (`intelligence/availability.py`)
+## Availability Module (`serve/availability.py`)
 
 ### AVAIL-T-01 — `_HIGH_RISK_MINUTES_ROLL3`
 | Field | Value |
@@ -28,7 +28,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | `_HIGH_RISK_MINUTES_ROLL3` |
 | **Value** | `30.0` |
 | **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `intelligence/availability.py:38` |
+| **File** | `serve/availability.py:29` |
 | **Stated rationale** | "less than half a match on average over 3 GWs" |
 | **Governance assessment** | Semantic interpretation is plausible but no predictive study establishes that players below this threshold have materially different start rates. The "half a match" framing is intuitive, not empirically calibrated. |
 | **Evidence required to promote** | LENS-AVAIL behavioral data: evaluate recall of "failed to start" at multiple thresholds (20, 25, 30, 35, 40 min). Select threshold maximising F1 against the "failed to start" label. |
@@ -40,7 +40,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | `_MEDIUM_RISK_MINUTES_ROLL3` |
 | **Value** | `60.0` |
 | **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `intelligence/availability.py:39` |
+| **File** | `serve/availability.py:30` |
 | **Stated rationale** | Corresponds to FPL appearance bonus boundary (45+ min = appearance point; 60+ min = full bonus) |
 | **Governance assessment** | Semantically grounded in FPL rules. However, the FPL appearance boundary is about points allocation, not predictive of future starts. A player averaging 60 min may still be a rotation risk. |
 | **Evidence required to promote** | Same LENS-AVAIL threshold sweep as AVAIL-T-01. If 60.0 maximises F1, reclassify to `EVALUATION-DERIVED`. |
@@ -52,7 +52,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | `_DIVERGENCE_THRESHOLD` |
 | **Value** | `20.0` |
 | **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `intelligence/availability.py:42` |
+| **File** | `serve/availability.py:33` |
 | **Stated rationale** | None documented. Editorial. |
 | **Governance assessment** | No study defines what magnitude of roll3-vs-roll5 divergence is meaningful. 20 minutes is a round number. Players with a 20-minute divergence may or may not be at elevated risk; this has not been tested. |
 | **Evidence required to promote** | LENS-AVAIL behavioral data: evaluate precision of "recent drop" flag at divergence thresholds of 10, 15, 20, 25, 30 minutes. Select threshold with best predictive precision against "started fewer games in next 3 GWs". |
@@ -60,7 +60,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 ---
 
-## Captain Module (`intelligence/captain.py`)
+## Captain Module (`serve/captain.py`)
 
 ### CAPT-T-01 — `_MIN_MINUTES_ROLL3`
 | Field | Value |
@@ -68,7 +68,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | `_MIN_MINUTES_ROLL3` |
 | **Value** | `45.0` |
 | **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `intelligence/captain.py:49` |
+| **File** | `serve/captain.py:29` |
 | **Stated rationale** | "Players below this threshold are not starting reliably enough" |
 | **Governance assessment** | No lens study evaluates captain precision as a function of this eligibility cutoff. The 45-minute value is between the two FPL appearance bonus thresholds, with no documented basis for choosing it over 30, 60, or 75 minutes. |
 | **Evidence required to promote** | Historical captain return data: evaluate captain precision (fraction of top-1 picks that returned ≥ haul threshold) at eligibility floors of 30, 45, 60, 75, 90 minutes. Select floor where precision plateaus. |
@@ -76,7 +76,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 ---
 
-## Value Module (`intelligence/value.py`)
+## Value Module (`serve/value.py`)
 
 ### VAL-T-01 — `_MIN_MINUTES_ROLL5`
 | Field | Value |
@@ -84,7 +84,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | `_MIN_MINUTES_ROLL5` |
 | **Value** | `30.0` |
 | **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `intelligence/value.py:51` |
+| **File** | `serve/value.py:33` |
 | **Stated rationale** | "bench-warmers inflate value artificially" |
 | **Governance assessment** | Correct intuition but no lens study establishes 30 minutes as the threshold below which value scores become unreliable. 30 is a round number. |
 | **Evidence required to promote** | Evaluate value score precision (forward return per £ of selected players) at minutes floors of 15, 30, 45, 60 minutes. Select floor where spurious selections (low minutes, high apparent value) are minimised. |
@@ -92,7 +92,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 ---
 
-## Transfers Module (`intelligence/transfers.py`)
+## Transfers Module (`serve/transfers.py`)
 
 ### TRANS-T-01 — `_MIN_MINUTES_ROLL5`
 | Field | Value |
@@ -100,7 +100,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | `_MIN_MINUTES_ROLL5` |
 | **Value** | `30.0` |
 | **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `intelligence/transfers.py:51` |
+| **File** | `serve/transfers.py:33` |
 | **Stated rationale** | "transfers need sustained involvement" |
 | **Governance assessment** | Same as VAL-T-01. The 30-minute floor is a round number without predictive calibration. |
 | **Evidence required to promote** | Same methodology as VAL-T-01. May share calibration evidence. |
@@ -108,23 +108,17 @@ Every operational threshold — any magic number that gates, filters, or weights
 
 ---
 
-## Fixtures Module (`intelligence/fixtures.py`)
+## Fixtures Module — RETIRED (2026-08-01)
 
-### FIX-T-01 — `_MIN_MINUTES_ROLL5`
-| Field | Value |
-|-------|-------|
-| **Constant** | `_MIN_MINUTES_ROLL5` |
-| **Value** | `30.0` |
-| **Classification** | `EVALUATION-DEFERRED` |
-| **File** | `intelligence/fixtures.py:49` |
-| **Stated rationale** | Implicit — same as VAL-T-01 and TRANS-T-01 |
-| **Governance assessment** | Same as VAL-T-01. All three 30-minute floors may be calibrated together. |
-| **Evidence required to promote** | Same methodology as VAL-T-01. |
-| **2026/27 disposition** | EVALUATION-DEFERRED — carries to 2026/27; see `outputs/operational-baseline.md` |
+### FIX-T-01 — `_MIN_MINUTES_ROLL5` — RETIRED
+`serve/fixtures.py` was deleted in the serve↔model integration (transfers subsumes it under the model
+forecast; see [ADR-011](../decisions/011-model-forecast-supersedes-composites.md) and
+`docs/serve-model-integration.md`). Its `_MIN_MINUTES_ROLL5 = 30.0` eligibility floor no longer exists.
+No action — historical record only; the surviving 30-minute floors are VAL-T-01 and TRANS-T-01.
 
 ---
 
-## Scoring Gate (`intelligence/scoring/signal_selector.py`)
+## Scoring Gate (`serve/scoring/signal_selector.py`)
 
 ### SCORE-T-01 — `MIN_RHO`
 | Field | Value |
@@ -132,7 +126,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | **Constant** | `MIN_RHO` |
 | **Value** | `0.15` (removed) |
 | **Classification** | `RESOLVED` |
-| **File** | `intelligence/scoring/signal_selector.py` — removed in Phase 8 (G-OPS-02) |
+| **File** | `serve/scoring/signal_selector.py` — removed in Phase 8 (G-OPS-02) |
 | **Resolution** | Removed in Phase 8 (G-OPS-02). All three affected signals (xgi_roll3 DEF, xgi_roll5 DEF, purchase_price DEF) received `APPROVED-*` decisions in SYNTH-01. CI gate is now the sole authority for scoring manifest confirmation. |
 
 ---
@@ -223,7 +217,7 @@ Every operational threshold — any magic number that gates, filters, or weights
 | CAPT-T-01 | `_MIN_MINUTES_ROLL3 = 45.0` | EVALUATION-DEFERRED | Calibrate in 2026/27 |
 | VAL-T-01 | `_MIN_MINUTES_ROLL5 = 30.0` (value) | EVALUATION-DEFERRED | Calibrate in 2026/27 |
 | TRANS-T-01 | `_MIN_MINUTES_ROLL5 = 30.0` (transfers) | EVALUATION-DEFERRED | Calibrate in 2026/27 |
-| FIX-T-01 | `_MIN_MINUTES_ROLL5 = 30.0` (fixtures) | EVALUATION-DEFERRED | Calibrate in 2026/27 |
+| FIX-T-01 | `_MIN_MINUTES_ROLL5 = 30.0` (fixtures) | RETIRED | fixtures.py deleted (ADR-011); no action |
 | SCORE-T-01 | `MIN_RHO = 0.15` | RESOLVED | Removed Phase 8 (G-OPS-02) |
 | REG-T-01 | `MINUTES_THRESHOLD = 60` | EVALUATION-DEFERRED | Review in 2026/27 |
 | REG-T-02 | `HAUL_THRESHOLD_PTS = 12` | EVALUATION-DEFERRED | Review in 2026/27 |

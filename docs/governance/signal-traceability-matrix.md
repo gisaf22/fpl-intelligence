@@ -130,7 +130,11 @@ Coverage includes:
 | fixture_count | MID | FIXTURE-003 | excluded | 0.083 | blocked | G2-FAIL: non-monotonic at MID; same conclusion as DEF |
 | fixture_count | FWD | FIXTURE-003 | not_applicable | — | blocked | G-EDA2-01: ontological exclusion |
 
-> **RESOLVED (2026-05-31) — fdr_avg governance inconsistency:** `fdr_avg` is excluded at all four positions and is **not scored** in any production module. All three modules (`captain.py`, `fixtures.py`, `transfers.py`) use the `fixture_context` STATE column binary DGW indicator in place of `fdr_avg`. In `fixtures.py`, `fdr_avg` is computed and retained as an informational display column only (`fdr_window_avg`) and explicitly excluded from the `fixture_opportunity_score` composite. See GAP-TRACE-02 in the governance gap summary.
+> **fdr_avg governance:** `fdr_avg` is excluded at all four positions and is **not scored** by any serve
+> module. As of the serve↔model integration (2026-08-01) no serve module scores fixture context at all —
+> captain/value/transfers/fixtures rank by the model forecast, where fixture difficulty enters through the
+> gated `fdr` term (ADR-011). This supersedes the earlier resolution (GAP-TRACE-02, where the composites
+> used a `fixture_context` binary DGW indicator in place of `fdr_avg`).
 
 ---
 
@@ -177,74 +181,33 @@ The following columns are in `_GOVERNED_ROLLING_COLS` but were not evaluated via
 | fixture_context | FWD | candidate | eligible | Contemporaneous label |
 | fixture_context | GK | candidate | eligible | Contemporaneous label |
 
-> `fixture_context` is **GOVERNED AND WIRED**: consumed by `captain.py` (fixture_score, 20%), `fixtures.py` (dgw_bonus_score), and `transfers.py` (fixture_score, 20%). GAP-TRACE-06 resolved 2026-05-31. The column is a contemporaneous label (same-GW classification), valid for conditional scoring adjustment only — not an independent predictive lag-1 feature.
+> `fixture_context` is a **governed contemporaneous label** (same-GW DGW/BGW/SGW classification), valid for
+> conditional scoring adjustment only — not an independent predictive lag-1 feature. It was wired into the
+> serve composites (GAP-TRACE-06, resolved 2026-05-31); those composites are now retired (ADR-011,
+> 2026-08-01) and no serve module consumes it — fixture context is carried by the model forecast instead.
 
 ---
 
 ## Consumer Module Map
 
-This section documents, for each intelligence module, which signals it currently consumes, at which positions, and the governance status of each consumption relationship.
+This section documents, for each serve module, which signals it consumes and the governance status of
+each consumption relationship.
 
-### `intelligence/captain.py`
+> **RETIRED (2026-08-01) — captain / value / transfers / fixtures composite consumption.** These four
+> modules no longer consume weighted signal composites: they rank by the model forecast
+> (`model.predictions.assemble_forecast`) — captain by `p_haul`/`p90`, value by
+> `e_points_uncond / purchase_price`, transfers by `e_points_uncond`; `serve/fixtures.py` is deleted
+> (transfers subsumes it). Their signal→weight consumption tables (and the associated FWD/MID xgi and
+> fdr scope-guards) are removed here — that per-position governance relocated **upstream** to the model
+> term gates. The signal *evidence* rows earlier in this doc, and the availability + signal_selector
+> tables below, are unchanged. See [ADR-011](../decisions/011-model-forecast-supersedes-composites.md)
+> and `docs/serve-model-integration.md`. The retained per-module eligibility thresholds are CAPT-T-01
+> (captain), VAL-T-01 (value), TRANS-T-01 (transfers).
 
-**Purpose:** Rank players for captaincy selection each gameweek.
+### `serve/availability.py`
 
-| Signal | Weight / Role | Positions | Governance Status | Issue |
-|--------|---------------|-----------|------------------|-------|
-| xgi_roll5 | form_score (35%) | DEF, MID, FWD, GK | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented |
-| xgi_roll3 | involvement_score (30%) | DEF, MID, FWD, GK | DEF: approved (G-SYNTH1-01); FWD: zeroed (neutral 0.5); MID: zeroed (neutral 0.5) | G-SYNTH1-07 EXCLUDED-REDUNDANT at MID — mid_mask guard implemented (GAP-TRACE-09 RESOLVED) |
-| fixture_context | fixture_score (20%) | all | candidate all positions | Binary DGW flag from STATE; fdr_avg not scored |
-| minutes_roll3 | minutes_score (15%) + eligibility filter | all | DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Eligibility use at DEF/FWD is provisional (CAPT-T-01) |
-
-**Threshold dependencies:** CAPT-T-01 (`_MIN_MINUTES_ROLL3 = 45.0` — `UNJUSTIFIED`), SCORE-T-01
-
-**Key issues:**
-- `minutes_roll3` eligibility gate at DEF and FWD: signal excluded at those positions from AVAIL study; gate is provisionally correct but unvalidated (CAPT-T-01 pending).
-
----
-
-### `intelligence/value.py`
-
-**Purpose:** Score player value relative to price (efficiency-adjusted form).
-
-| Signal | Weight / Role | Positions | Governance Status | Issue |
-|--------|---------------|-----------|------------------|-------|
-| xgi_roll5 | efficiency_score (50%): xgi_roll5 / purchase_price | DEF, MID, FWD | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented |
-| purchase_price | efficiency_score denominator | all | DEF/FWD: candidate (2/3 blocks); MID: **excluded** | Denominator role semantically distinct from scored signal; MID exclusion is for direct signal use only |
-| xgi_roll3 | form_score (30%), consistency_score base (20%) | DEF, MID, FWD | DEF: approved (G-SYNTH1-01); FWD: zeroed (neutral 0.5); MID: zeroed (neutral 0.5) | G-SYNTH1-07 MID guard implemented; consistency neutralised at MID; consistency_score unevaluated — PENDING-EVAL-01 |
-| minutes_roll5 | eligibility filter | all | DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Eligibility use at DEF/FWD is provisional (VAL-T-01) |
-
-**Threshold dependencies:** VAL-T-01 (`_MIN_MINUTES_ROLL5 = 30.0` — `UNJUSTIFIED`), SCORE-T-01
-
-**Key issues:**
-- `consistency_score` (20% weight) is a novel unevaluated metric (alignment between xgi_roll3 and xgi_roll5). Not backed by any lens evaluation. Flagged in pending-evaluation-register.md as PENDING-EVAL-01.
-- `purchase_price` as efficiency denominator is semantically distinct from its MARKET lens signal role; MID exclusion applies to direct use as a scored signal, not as a price normalizer.
-
----
-
-### `intelligence/fixtures.py`
-
-**Purpose:** Identify players with the most favourable upcoming fixtures.
-
-| Signal | Weight / Role | Positions | Governance Status | Issue |
-|--------|---------------|-----------|------------------|-------|
-| goals_scored (team avg) | team_attack_score (~58% effective) | all | Not a STATE column — team-level spine aggregation | No lens evaluation for team goal rate — PENDING-EVAL-02 |
-| fixture_context | dgw_bonus_score (~42% effective) | all | candidate all positions | Binary DGW detection from STATE; wired |
-| fdr_avg | informational only (fdr_window_avg output) | all | excluded all positions (FIXTURE-001) | NOT scored; retained as display column only |
-| minutes_roll5 | eligibility filter | all | DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Eligibility at DEF/FWD is provisional (FIX-T-01) |
-
-**Threshold dependencies:** FIX-T-01 (`_MIN_MINUTES_ROLL5 = 30.0` — `UNJUSTIFIED`)
-
-**Key issues:**
-- Team-level `goals_scored` aggregation (~58% effective weight) is an unevaluated heuristic — no lens study covers team-level goal rate. Flagged in pending-evaluation-register.md as PENDING-EVAL-02.
-- `fdr_avg` is explicitly NOT scored; retained as informational display column only (fdr_window_avg). GAP-TRACE-02 resolved.
-- `fixture_context` is correctly consumed from STATE for DGW detection. GAP-TRACE-06 resolved.
-
----
-
-### `intelligence/availability.py`
-
-**Purpose:** Classify player availability risk based on recent minutes patterns.
+**Purpose:** Classify player availability risk based on recent minutes patterns. (Descriptive warning
+layer — not a forecast consumer; unchanged by the serve↔model integration.)
 
 | Signal | Weight / Role | Positions | Governance Status | Issue |
 |--------|---------------|-----------|------------------|-------|
@@ -261,27 +224,7 @@ This section documents, for each intelligence module, which signals it currently
 
 ---
 
-### `intelligence/transfers.py`
-
-**Purpose:** Identify differential and value transfer opportunities.
-
-| Signal | Weight / Role | Positions | Governance Status | Issue |
-|--------|---------------|-----------|------------------|-------|
-| xgi_roll3 | recent_form_score (30%), involvement_score (15%) | DEF, MID, FWD | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented; form_momentum_score (25%) is unevaluated — PENDING-EVAL-03 |
-| xgi_roll5 | form_momentum_score base (25%) | DEF, MID, FWD | DEF/MID: candidate; FWD: zeroed (neutral 0.5) | FWD zeroing guard implemented |
-| fixture_context | fixture_score (20%) | all | candidate all positions | Binary DGW flag from STATE; fdr_avg not scored |
-| minutes_roll5 | minutes_stability_score (10%) + eligibility filter | all | DEF/FWD: **excluded** (AVAIL G2-FAIL); MID: candidate | Eligibility at DEF/FWD is provisional (TRANS-T-01) |
-
-**Threshold dependencies:** TRANS-T-01 (`_MIN_MINUTES_ROLL5 = 30.0` — `UNJUSTIFIED`)
-
-**Key issues:**
-- `form_momentum_score` (25% weight: xgi_roll3 − xgi_roll5) is a novel unevaluated metric. Not backed by any lens evaluation. Flagged in pending-evaluation-register.md as PENDING-EVAL-03.
-- `transfers_in` (DEF rho=0.187, MID rho=0.190) and `ownership_count` (DEF rho=0.156, MID rho=0.168) are governed candidates not consumed by transfers.py. Phase 6 alignment required post-SYNTH-01.
-- FWD zeroing guard implemented — not an open scope violation.
-
----
-
-### `intelligence/scoring/signal_selector.py`
+### `serve/scoring/signal_selector.py`
 
 **Purpose:** Load the signal manifest from the registry and enforce lifecycle governance at scoring time.
 
@@ -298,6 +241,13 @@ This section documents, for each intelligence module, which signals it currently
 ---
 
 ## Governance Gap Summary
+
+> **Composite-consumption gaps superseded (2026-08-01, ADR-011).** The gaps below about xgi/fdr/minutes
+> consumption in captain/value/transfers/fixtures — both the RESOLVED scope-guards (GAP-TRACE-01, -02, -06,
+> -09) and the OPEN Phase-6/8 deferrals (GAP-TRACE-04, -05, -08) — are moot: those composites are retired
+> and the modules rank by the model forecast, with per-position validity enforced by the model term gates.
+> Rows kept as historical record. GAP-TRACE-03 (availability `minutes_roll8` wiring) and GAP-TRACE-07
+> (the report-pipeline `MIN_RHO`) are unaffected.
 
 | ID | Gap | Affected Modules | Resolution Phase |
 |----|-----|-----------------|-----------------|

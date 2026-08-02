@@ -8,13 +8,14 @@ namespaces** — see [ADR-004](004-decision-slug-log.md) for the rationale.
 Formal, durable design choices. Full Context / Decision / Alternatives / Consequences.
 
 - [ADR-001 — Spearman as the evaluation metric](001-spearman-as-evaluation-metric.md)
-- [ADR-002 — Additive weighted scoring](002-additive-weighted-scoring.md)
+- [ADR-002 — Additive weighted scoring](002-additive-weighted-scoring.md) — *superseded by ADR-011*
 - [ADR-003 — Composite signal-finding key scheme](003-composite-signal-finding-key.md)
 - [ADR-004 — The decision-slug log as the narrative verdict namespace](004-decision-slug-log.md)
 - [ADR-005 — System-model vocabulary reconciliation](005-system-model-vocabulary-reconciliation.md)
 - [ADR-008 — Mode vocabulary](008-mode-vocabulary.md)
 - [ADR-009 — Unified evaluation provenance](009-unified-evaluation-provenance.md)
 - [ADR-010 — Layered decision authority model](010-layered-decision-model.md)
+- [ADR-011 — The model forecast supersedes the serve signal composites](011-model-forecast-supersedes-composites.md)
 
 *(ADR-006, 007 remain reserved for later phases — see `docs/implementation-plan.md`
 "Pending ADRs".)*

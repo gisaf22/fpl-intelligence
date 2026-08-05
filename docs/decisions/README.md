@@ -16,6 +16,7 @@ Formal, durable design choices. Full Context / Decision / Alternatives / Consequ
 - [ADR-009 — Unified evaluation provenance](009-unified-evaluation-provenance.md)
 - [ADR-010 — Layered decision authority model](010-layered-decision-model.md)
 - [ADR-011 — The model forecast supersedes the serve signal composites](011-model-forecast-supersedes-composites.md)
+- [ADR-012 — A decision is a first-class contract](012-decision-as-first-class-contract.md) — *proposed*
 
 *(ADR-006, 007 remain reserved for later phases — see `docs/implementation-plan.md`
 "Pending ADRs".)*

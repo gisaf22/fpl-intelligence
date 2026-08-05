@@ -45,15 +45,20 @@ def test_appearance_points_match_snapshot() -> None:
 def test_goal_points_match_snapshot() -> None:
     g = SCORING_SNAPSHOT["goals_scored"]
     assert (fs.GOAL_POINTS_GK, fs.GOAL_POINTS_DEF, fs.GOAL_POINTS_MID, fs.GOAL_POINTS_FWD) == (
-        g["GKP"], g["DEF"], g["MID"], g["FWD"],
+        g["GKP"],
+        g["DEF"],
+        g["MID"],
+        g["FWD"],
     )
 
 
 def test_clean_sheet_points_match_snapshot() -> None:
     c = SCORING_SNAPSHOT["clean_sheets"]
     assert (
-        fs.CLEAN_SHEET_POINTS_GK, fs.CLEAN_SHEET_POINTS_DEF,
-        fs.CLEAN_SHEET_POINTS_MID, fs.CLEAN_SHEET_POINTS_FWD,
+        fs.CLEAN_SHEET_POINTS_GK,
+        fs.CLEAN_SHEET_POINTS_DEF,
+        fs.CLEAN_SHEET_POINTS_MID,
+        fs.CLEAN_SHEET_POINTS_FWD,
     ) == (c["GKP"], c["DEF"], c["MID"], c["FWD"])
 
 
@@ -82,7 +87,7 @@ def test_assist_penalty_card_owngoal_points_match_snapshot() -> None:
 def test_by_rule_params_are_documented_not_asserted() -> None:
     # These are NOT exposed by bootstrap-static; kept as by-rule constants. This test pins their
     # current values so a change is deliberate, and documents that they are not API-verified.
-    assert fs.GOALS_CONCEDED_PER_PENALTY == 2      # -1 per 2 conceded (divisor by-rule)
-    assert fs.GK_SAVES_PER_POINT == 3              # 1 point per 3 saves (divisor by-rule)
-    assert fs.DC_CBIT_THRESHOLD_DEF == 10          # DEF CBIT threshold (by-rule)
-    assert fs.DC_CBIRT_THRESHOLD_MID_FWD == 12     # MID/FWD CBIRT threshold (by-rule)
+    assert fs.GOALS_CONCEDED_PER_PENALTY == 2  # -1 per 2 conceded (divisor by-rule)
+    assert fs.GK_SAVES_PER_POINT == 3  # 1 point per 3 saves (divisor by-rule)
+    assert fs.DC_CBIT_THRESHOLD_DEF == 10  # DEF CBIT threshold (by-rule)
+    assert fs.DC_CBIRT_THRESHOLD_MID_FWD == 12  # MID/FWD CBIRT threshold (by-rule)

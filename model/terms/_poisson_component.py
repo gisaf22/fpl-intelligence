@@ -70,8 +70,8 @@ class PoissonPlayerComponentModel:
     # Fit guards — carried over verbatim from the god-files so predictions reproduce to the bit. Class
     # attributes so a subclass whose population changes the row scale can adjust them (e.g. GK-only
     # ``saves`` lowers ``min_train_rows_total`` to match the god-file's effective inner GK guard).
-    min_train_rows_per_fit: ClassVar[int] = 30   # per feature-complete training slice, else emit NaN
-    min_train_rows_total: ClassVar[int] = 100    # skip an eval GW whose expanding train is still too small
+    min_train_rows_per_fit: ClassVar[int] = 30  # per feature-complete training slice, else emit NaN
+    min_train_rows_total: ClassVar[int] = 100  # skip an eval GW whose expanding train is still too small
     # Detectability floor (pre-fit): a Poisson mean is only learnable away from zero with enough positive
     # events; below this the slice is under-powered and a null is *inconclusive*, not a licence to abandon.
     min_positive_events: ClassVar[int] = 10
@@ -87,13 +87,14 @@ class PoissonPlayerComponentModel:
 
     # -- subclass declares these ------------------------------------------------------------
     name: ClassVar[str]
-    target: ClassVar[str]                    # the count column to predict
-    term: ClassVar[str]                      # the emit key (the single term this model produces)
+    target: ClassVar[str]  # the count column to predict
+    term: ClassVar[str]  # the emit key (the single term this model produces)
     pool: ClassVar[FeaturePool]
     hypotheses: ClassVar[tuple[Hypothesis, ...]] = ()
 
     def __init__(
-        self, variant: Literal["minimal", "selected"] = "minimal",
+        self,
+        variant: Literal["minimal", "selected"] = "minimal",
         feature_override: list[str] | None = None,
     ) -> None:
         if variant not in ("minimal", "selected"):
@@ -129,8 +130,11 @@ class PoissonPlayerComponentModel:
         blank-gameweek row is not an appearance decision, so a NaN-minutes row is excluded either way.
         """
         no_fixture = mart["minutes"].isna()
-        keep = ((~mart["is_dgw"].astype(bool)) & ~no_fixture) if keep_all \
+        keep = (
+            ((~mart["is_dgw"].astype(bool)) & ~no_fixture)
+            if keep_all
             else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
+        )
         df = mart[keep].copy()
         return df.sort_values(["player_id", "gw"]).reset_index(drop=True)
 
@@ -165,14 +169,14 @@ class PoissonPlayerComponentModel:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             try:
-                glm = sm.GLM(tr[self.target].to_numpy(dtype=float), _design(tr, features, levels),
-                             family=sm.families.Poisson())
+                glm = sm.GLM(
+                    tr[self.target].to_numpy(dtype=float), _design(tr, features, levels), family=sm.families.Poisson()
+                )
                 # alpha=0 regularization *is* the unregularized MLE, so use the exact IRLS solver there
                 # (bit-identical to the god-file's plain .fit()). fit_regularized only when a real penalty
                 # is chosen. So the minimal->selected delta at alpha=0 is purely the feature set.
                 regularize = self.variant == "selected" and _ELASTICNET_ALPHA > 0.0
-                res = (glm.fit_regularized(alpha=_ELASTICNET_ALPHA, L1_wt=_ELASTICNET_L1) if regularize
-                       else glm.fit())
+                res = glm.fit_regularized(alpha=_ELASTICNET_ALPHA, L1_wt=_ELASTICNET_L1) if regularize else glm.fit()
                 return res.predict(_design(test, features, levels))
             except Exception:
                 return np.full(len(test), np.nan)
@@ -205,8 +209,12 @@ class PoissonPlayerComponentModel:
             test = df[at_t & fits]
             if not test.empty:
                 pred.loc[test.index] = self._fit_predict(train, test, features)
-        return Fitted(name=self.name, predictions=pred, features=tuple(features),
-                      meta={"variant": self.variant, "population_index": df.index})
+        return Fitted(
+            name=self.name,
+            predictions=pred,
+            features=tuple(features),
+            meta={"variant": self.variant, "population_index": df.index},
+        )
 
     def emit(self, fitted: Fitted) -> dict[str, np.ndarray]:
         """The scored view this model produces — one term (``self.term``): E[target] per row."""
@@ -220,8 +228,8 @@ class PlayerComponentTerm:
     """
 
     name: ClassVar[str]
-    baseline_col: ClassVar[str]              # the naive bar: the player's lagged expanding mean target
-    view_col: ClassVar[str]                  # the model-prediction column label in the gate table
+    baseline_col: ClassVar[str]  # the naive bar: the player's lagged expanding mean target
+    view_col: ClassVar[str]  # the model-prediction column label in the gate table
     _model_cls: ClassVar[type[PoissonPlayerComponentModel]]
     # Gate the variant that SHIPS. The registry composes `selected`, so gating `minimal` would issue
     # verdicts about a model that makes none of the predictions (the binary sibling already does this).
@@ -234,8 +242,8 @@ class PlayerComponentTerm:
     def _with_baseline(self, df: pd.DataFrame) -> pd.DataFrame:
         """Attach the per-term baseline: the player's strictly-prior expanding mean target (lag-safe)."""
         df = df.copy()
-        df[self.baseline_col] = (
-            df.groupby("player_id")[self.model.target].transform(lambda s: s.expanding().mean().shift(1))
+        df[self.baseline_col] = df.groupby("player_id")[self.model.target].transform(
+            lambda s: s.expanding().mean().shift(1)
         )
         return df
 
@@ -261,8 +269,15 @@ class PlayerComponentTerm:
                 continue
             r_base = grouped_spearman(sub, self.baseline_col, target, ["gw"], MIN_ROWS_PER_POS)
             r_model = grouped_spearman(sub, self.view_col, target, ["gw"], MIN_ROWS_PER_POS)
-            rows.append({"position": pos, "baseline": round(r_base, 4), self.view_col: round(r_model, 4),
-                         "delta": round(r_model - r_base, 4), "n_gw": int(sub["gw"].nunique())})
+            rows.append(
+                {
+                    "position": pos,
+                    "baseline": round(r_base, 4),
+                    self.view_col: round(r_model, 4),
+                    "delta": round(r_model - r_base, 4),
+                    "n_gw": int(sub["gw"].nunique()),
+                }
+            )
             passed[pos] = r_model > r_base
         table = pd.DataFrame(rows)
         if not table.empty:
@@ -270,8 +285,7 @@ class PlayerComponentTerm:
             table = table.sort_values("position").reset_index(drop=True)
         # level gate: ranking is invariant to a per-position level error, so it is checked separately.
         cal, passed_cal = level_gate(ev, self.view_col, target)
-        return GateResult(term=self.name, table=table, passed=passed,
-                          calibration=cal, passed_calibration=passed_cal)
+        return GateResult(term=self.name, table=table, passed=passed, calibration=cal, passed_calibration=passed_cal)
 
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
         """Post-gate residual + ablation report (spec §4 stage 5).
@@ -285,9 +299,12 @@ class PlayerComponentTerm:
         df[self.view_col] = fitted.predictions
         ev = df[df["gw"] > WARMUP_GW].dropna(subset=[self.view_col]).copy()
         ev["abs_resid"] = (ev[target] - ev[self.view_col]).abs()
-        residuals = (ev.sort_values("abs_resid", ascending=False)
-                       .loc[:, ["player_id", "gw", "position", target, self.view_col, "abs_resid"]]
-                       .head(20).reset_index(drop=True))
+        residuals = (
+            ev.sort_values("abs_resid", ascending=False)
+            .loc[:, ["player_id", "gw", "position", target, self.view_col, "abs_resid"]]
+            .head(20)
+            .reset_index(drop=True)
+        )
 
         full_feats = self.model.features(mart)
         full = grouped_spearman(ev, self.view_col, target, ["gw", "position"], MIN_ROWS_PER_POS)

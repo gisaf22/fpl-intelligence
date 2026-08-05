@@ -1,40 +1,28 @@
-"""Stateful feature lift evaluation.
+"""Stateful feature-lift study (form family).
 
-Tests the core claim of the state layer: that rolling-window aggregations
-(xgi_roll3, points_roll3, minutes_roll5) produce more useful predictors of
-future performance than raw single-game observations.
+Tests the core claim of the state layer: that rolling-window aggregations (xgi_roll3, points_roll3,
+minutes_roll5) predict future performance better than raw single-game observations.
 
 The state layer constructs features on the hypothesis that:
 - Smoothed signals filter out single-game noise
 - Multi-GW windows capture form trajectories, not one-off events
 - Rolling aggregation provides more stable decision inputs
 
-This module evaluates that hypothesis empirically by comparing Spearman rank
-correlations: does ranking players by xgi_roll3 predict future total_points
-better than ranking by last single-game xGI?
+This module evaluates that hypothesis empirically by comparing Spearman rank correlations: does ranking
+players by xgi_roll3 predict future total_points better than ranking by last single-game xGI?
 
 Important distinction
 ---------------------
-A validated spine observation (e.g. xgi = 0.72 in GW 14) means the raw
-measurement is trustworthy. It does NOT mean that xgi_roll3 (a derived state
-construct) is a useful predictor of GW 15 performance. This module tests the
-second claim, which the spine validation does not address.
-
-Interpretation guide
---------------------
-- rho > 0.3: meaningfully useful predictor for operational decisions
-- rho 0.1-0.3: weak signal, use cautiously
-- rho < 0.1: not reliably useful — raw single-game may be equally noisy
-- rolling rho > lag1 rho: state construction adds lift over raw single-game
-- rolling rho < lag1 rho: state construction may be smoothing signal away
+A validated spine observation (e.g. xgi = 0.72 in GW 14) means the raw measurement is trustworthy. It
+does NOT mean that xgi_roll3 (a derived state construct) is a useful predictor of GW 15 performance.
+This module tests the second claim, which the spine validation does not address.
 """
 
 from __future__ import annotations
 
 import pandas as pd
 
-from tests.helpers.metrics import rank_correlation
-from tests.helpers.windows import assert_no_future_leakage
+from research.kernels.evaluation import assert_no_future_leakage, rank_correlation
 
 _COMPARISONS: dict[str, tuple[str, str]] = {
     "points": ("points_roll3", "points_lag1"),
@@ -46,11 +34,8 @@ _COMPARISONS: dict[str, tuple[str, str]] = {
 def _compute_lag1_columns(features: pd.DataFrame) -> pd.DataFrame:
     """Add lag-1 single-game columns for raw signal comparison.
 
-    At GW N: lag1 = value at GW N-1 (last observed game).
-    This is the raw alternative to the rolling average for that same window.
-
-    Returns a copy of features with three additional columns:
-    points_lag1, xgi_lag1, minutes_lag1.
+    At GW N: lag1 = value at GW N-1 (last observed game). This is the raw alternative to the rolling
+    average for that same window. Returns a copy with points_lag1, xgi_lag1, minutes_lag1.
     """
     df = features.sort_values(["player_id", "gw"]).copy()
     for raw_col, lag_col in [
@@ -65,36 +50,15 @@ def _compute_lag1_columns(features: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def evaluate_feature_lift(
-    features: pd.DataFrame,
-    gameweeks: list[int],
-) -> dict:
+def evaluate_feature_lift(features: pd.DataFrame, gameweeks: list[int]) -> dict:
     """Compare rolling window features vs single-game observations as predictors.
 
-    For each eval GW, computes Spearman rank correlation between each candidate
-    predictor column and the actual total_points at that GW. Higher correlation
-    means the predictor better identifies players who will score more.
+    For each eval GW, computes Spearman rank correlation between each candidate predictor column and the
+    actual total_points at that GW. Higher correlation means the predictor better identifies players who
+    will score more.
 
-    Three paired comparisons:
-    - points_roll3 vs points_lag1  → does 3-GW form beat last-game points?
-    - xgi_roll3    vs xgi_lag1     → does 3-GW xGI beat last-game xGI?
-    - minutes_roll5 vs minutes_lag1 → does 5-GW minutes beat last-game minutes?
-
-    Parameters
-    ----------
-    features:
-        Full DAL state output at (player_id, gw) grain. Must include total_points,
-        xgi, minutes (spine columns) and rolling state columns.
-    gameweeks:
-        Historical gameweeks to evaluate over.
-
-    Returns
-    -------
-    Dict containing:
-    - gw_count: number of evaluated gameweeks
-    - predictors: dict mapping predictor_name -> {label, mean_rho, n_gws}
-    - lift: dict mapping comparison_name -> rolling_rho - lag1_rho (positive = lift)
-    - detail: per-GW DataFrame with per-predictor rho values
+    Returns a dict with: gw_count, predictors (name -> {label, mean_rho, n_gws}), lift (comparison ->
+    rolling_rho - lag1_rho), detail (per-GW DataFrame).
     """
     features = _compute_lag1_columns(features)
 

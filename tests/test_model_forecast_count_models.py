@@ -51,10 +51,17 @@ def test_exposure_detects_proportional_when_true() -> None:
         pos = ["DEF", "MID", "FWD"][p % 3]
         for gw in range(1, 20):
             mins = int(rng.integers(10, 91))
-            rows.append({
-                "player_id": p, "gw": gw, "position": pos, "minutes": mins, "is_dgw": False,
-                "goals_scored": rng.poisson(0.3 * mins / 90), "assists": rng.poisson(0.1),
-            })
+            rows.append(
+                {
+                    "player_id": p,
+                    "gw": gw,
+                    "position": pos,
+                    "minutes": mins,
+                    "is_dgw": False,
+                    "goals_scored": rng.poisson(0.3 * mins / 90),
+                    "assists": rng.poisson(0.1),
+                }
+            )
     res = analyze_minutes_exposure(pd.DataFrame(rows))
     assert set(res.index) <= {"DEF", "MID", "FWD"}
     assert "beta_logmin" in res.columns and "proportional" in res.columns
@@ -68,10 +75,17 @@ def test_diagnose_by_position_structure() -> None:
     for p in range(120):
         pos = ["GK", "DEF", "MID", "FWD"][p % 4]
         for gw in range(1, 20):
-            rows.append({
-                "player_id": p, "gw": gw, "position": pos, "minutes": 90, "is_dgw": False,
-                "goals_scored": rng.poisson(0.1), "assists": rng.poisson(0.1),
-            })
+            rows.append(
+                {
+                    "player_id": p,
+                    "gw": gw,
+                    "position": pos,
+                    "minutes": 90,
+                    "is_dgw": False,
+                    "goals_scored": rng.poisson(0.1),
+                    "assists": rng.poisson(0.1),
+                }
+            )
     res = diagnose_by_position(pd.DataFrame(rows))
     assert res.index.names == ["position", "component"]
     # GK is skipped for attacking components.

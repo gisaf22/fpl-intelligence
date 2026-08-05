@@ -37,8 +37,7 @@ def _mart(seed: int = 0, n_teams: int = 16, n_gw: int = 16, blanks: bool = False
         players = []
         for pos, k in roster:
             for _ in range(k):
-                players.append((pid, pos, rng.uniform(0.05, 0.5), rng.uniform(0.5, 0.95),
-                                rng.uniform(6.0, 14.0)))
+                players.append((pid, pos, rng.uniform(0.05, 0.5), rng.uniform(0.5, 0.95), rng.uniform(6.0, 14.0)))
                 pid += 1
         for gw in range(1, n_gw + 1):
             team_ga = int(rng.poisson(ga_rate))
@@ -48,24 +47,40 @@ def _mart(seed: int = 0, n_teams: int = 16, n_gw: int = 16, blanks: bool = False
                 started = rng.random() < p_start
                 minutes = 90 if started else int(rng.choice([20, 45]))
                 if blanks and not started and rng.random() < 0.6:
-                    minutes = 0                                       # a real blank (potential-blank tail)
+                    minutes = 0  # a real blank (potential-blank tail)
                 goals = int(rng.poisson(skill if pos != "GK" else 0.01))
                 assists = int(rng.poisson(skill * 0.6))
                 saves = int(rng.poisson(2.5)) if pos == "GK" else 0
                 dc = int(rng.poisson(dc_lam))
                 base = goals * 2 + assists + int(team_ga == 0)
                 bonus = int(np.clip(round(base * 0.4 + rng.normal(0, 0.5)), 0, 3))
-                rows.append({
-                    "player_id": pl, "team_id": team, "gw": gw, "position": pos,
-                    "minutes": minutes, "is_dgw": False,
-                    "goals_scored": goals, "assists": assists, "saves": saves,
-                    "clean_sheets": int(team_ga == 0 and minutes >= 60), "goals_conceded": team_ga,
-                    "defensive_contribution": dc, "bonus": bonus, "starts": int(started),
-                    "xgi_roll3": skill + rng.normal(0, 0.05), "xgc_roll3": ga_rate + rng.normal(0, 0.1),
-                    "xgc": max(0.0, ga_rate + rng.normal(0, 0.1)),
-                    "minutes_roll3": 80.0, "minutes_roll5": 80.0, "minutes_roll8": 80.0,
-                    "fdr_avg": fdr, "was_home": was_home, "total_points": 2.0,
-                })
+                rows.append(
+                    {
+                        "player_id": pl,
+                        "team_id": team,
+                        "gw": gw,
+                        "position": pos,
+                        "minutes": minutes,
+                        "is_dgw": False,
+                        "goals_scored": goals,
+                        "assists": assists,
+                        "saves": saves,
+                        "clean_sheets": int(team_ga == 0 and minutes >= 60),
+                        "goals_conceded": team_ga,
+                        "defensive_contribution": dc,
+                        "bonus": bonus,
+                        "starts": int(started),
+                        "xgi_roll3": skill + rng.normal(0, 0.05),
+                        "xgc_roll3": ga_rate + rng.normal(0, 0.1),
+                        "xgc": max(0.0, ga_rate + rng.normal(0, 0.1)),
+                        "minutes_roll3": 80.0,
+                        "minutes_roll5": 80.0,
+                        "minutes_roll8": 80.0,
+                        "fdr_avg": fdr,
+                        "was_home": was_home,
+                        "total_points": 2.0,
+                    }
+                )
     return pd.DataFrame(rows)
 
 
@@ -104,7 +119,7 @@ def test_decomposition_sums_to_e_points_exactly() -> None:
 def test_contributions_are_in_valid_ranges() -> None:
     out = compose_points(_mart())
     post = out[out["gw"] > 3]
-    assert (post["appearance"].between(1.0, 2.0)).all()          # 1 (played) .. 2 (>=60')
+    assert (post["appearance"].between(1.0, 2.0)).all()  # 1 (played) .. 2 (>=60')
     assert (post["goals"] >= -1e-9).all()
     assert (post["assists"] >= -1e-9).all()
     assert (post["bonus"].between(-1e-9, 3.0 + 1e-9)).all()
@@ -135,12 +150,12 @@ def test_keep_all_widens_panel_and_adds_pplay() -> None:
     mart = _mart(blanks=True)
     base = compose_parameters(mart)
     wide = compose_parameters(mart, keep_all=True)
-    assert len(wide) > len(base)                       # blanks widen the universe
+    assert len(wide) > len(base)  # blanks widen the universe
     assert "p_play" in wide.columns
     post = wide[wide["gw"] > 3]
     scored = post["p_play"].dropna()
     assert len(scored) > 0 and scored.between(0, 1).all()  # a probability where defined (NaN on thin slices)
-    assert (post["minutes"] == 0).sum() > 0            # real blank rows are present
+    assert (post["minutes"] == 0).sum() > 0  # real blank rows are present
 
 
 def test_keep_all_scores_blanks_as_if_played() -> None:
@@ -156,11 +171,13 @@ def test_unconditional_equals_pplay_times_conditional() -> None:
     out = compose_points(_mart(blanks=True), keep_all=True)
     # e_points stays the conditional (as-if-played) sum of the decomposition ...
     np.testing.assert_array_almost_equal(
-        out["e_points"].to_numpy(), out[list(DECOMP_COLUMNS)].sum(axis=1).to_numpy(), decimal=12)
+        out["e_points"].to_numpy(), out[list(DECOMP_COLUMNS)].sum(axis=1).to_numpy(), decimal=12
+    )
     # ... and the unconditional expectation is exactly P(play) x that conditional mean.
     ev = out[out["gw"] > 3].dropna(subset=["p_play"])
     np.testing.assert_array_almost_equal(
-        ev["e_points_uncond"].to_numpy(), (ev["e_points"] * ev["p_play"]).to_numpy(), decimal=12)
+        ev["e_points_uncond"].to_numpy(), (ev["e_points"] * ev["p_play"]).to_numpy(), decimal=12
+    )
 
 
 def test_keep_all_excludes_no_fixture_rows() -> None:
@@ -172,8 +189,8 @@ def test_keep_all_excludes_no_fixture_rows() -> None:
     mart.loc[(mart["gw"] == 7) & (mart["player_id"] % 4 == 0), "minutes"] = pd.NA
     wide = compose_points(mart, keep_all=True)
     gw7 = wide[wide["gw"] == 7]
-    assert gw7["minutes"].notna().all()                            # no-fixture rows dropped from the universe
-    assert not (gw7["player_id"] % 4 == 0).any()                   # specifically the NA-minutes players
+    assert gw7["minutes"].notna().all()  # no-fixture rows dropped from the universe
+    assert not (gw7["player_id"] % 4 == 0).any()  # specifically the NA-minutes players
     assert _master_panel(mart, keep_all=True)["minutes"].notna().all()
 
 

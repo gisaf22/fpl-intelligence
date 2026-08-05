@@ -56,9 +56,22 @@ RETURN_THRESHOLD = 6
 HAUL_ECE_TOL = 0.02
 COVERAGE_BAND = (0.75, 0.85)
 MIN_RECAL_TRAIN = 200
-COVERAGE_ALPHA = 0.10          # 80% central interval: PIT in [alpha, 1-alpha]
-_EVAL_COLUMNS = ("position", "gw", "y", "e_points", "pit", "p_haul", "haul",
-                 "p_return", "return_", "cover", "cover_pit", "crps_sim", "crps_point")
+COVERAGE_ALPHA = 0.10  # 80% central interval: PIT in [alpha, 1-alpha]
+_EVAL_COLUMNS = (
+    "position",
+    "gw",
+    "y",
+    "e_points",
+    "pit",
+    "p_haul",
+    "haul",
+    "p_return",
+    "return_",
+    "cover",
+    "cover_pit",
+    "crps_sim",
+    "crps_point",
+)
 
 
 def _crps_empirical(draws: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -71,8 +84,7 @@ def _crps_empirical(draws: np.ndarray, y: np.ndarray) -> np.ndarray:
     return term1 - term2
 
 
-def simulate_eval(mart: pd.DataFrame, n_sims: int = 3000, seed: int = 0,
-                  batch_rows: int = 400) -> pd.DataFrame:
+def simulate_eval(mart: pd.DataFrame, n_sims: int = 3000, seed: int = 0, batch_rows: int = 400) -> pd.DataFrame:
     """Per player-GW predictive-vs-realized metrics over the shared draw primitive.
 
     Draws come from :func:`model.simulate.iter_sample_blocks` (the single home of the Monte-Carlo loop —
@@ -102,17 +114,26 @@ def simulate_eval(mart: pd.DataFrame, n_sims: int = 3000, seed: int = 0,
         eq = (d == y[:, None]).mean(axis=1)
         pit = below + pit_rng.random(len(block)) * eq
         p10, p90 = np.percentile(d, [10, 90], axis=1)
-        out.append(pd.DataFrame({
-            "position": block["position"].to_numpy(), "gw": block["gw"].to_numpy(),
-            "y": y, "e_points": block["e_points"].to_numpy(),
-            "pit": pit,
-            "p_haul": (d >= HAUL_THRESHOLD).mean(axis=1), "haul": (y >= HAUL_THRESHOLD).astype(int),
-            "p_return": (d >= RETURN_THRESHOLD).mean(axis=1), "return_": (y >= RETURN_THRESHOLD).astype(int),
-            "cover": ((p10 <= y) & (y <= p90)).astype(int),
-            # discreteness-correct: derived from pit, so it adds no randomness of its own.
-            "cover_pit": ((pit >= COVERAGE_ALPHA) & (pit <= 1 - COVERAGE_ALPHA)).astype(int),
-            "crps_sim": _crps_empirical(d, y), "crps_point": np.abs(block["e_points"].to_numpy() - y),
-        }))
+        out.append(
+            pd.DataFrame(
+                {
+                    "position": block["position"].to_numpy(),
+                    "gw": block["gw"].to_numpy(),
+                    "y": y,
+                    "e_points": block["e_points"].to_numpy(),
+                    "pit": pit,
+                    "p_haul": (d >= HAUL_THRESHOLD).mean(axis=1),
+                    "haul": (y >= HAUL_THRESHOLD).astype(int),
+                    "p_return": (d >= RETURN_THRESHOLD).mean(axis=1),
+                    "return_": (y >= RETURN_THRESHOLD).astype(int),
+                    "cover": ((p10 <= y) & (y <= p90)).astype(int),
+                    # discreteness-correct: derived from pit, so it adds no randomness of its own.
+                    "cover_pit": ((pit >= COVERAGE_ALPHA) & (pit <= 1 - COVERAGE_ALPHA)).astype(int),
+                    "crps_sim": _crps_empirical(d, y),
+                    "crps_point": np.abs(block["e_points"].to_numpy() - y),
+                }
+            )
+        )
     return pd.concat(out, ignore_index=True) if out else pd.DataFrame(columns=list(_EVAL_COLUMNS))
 
 
@@ -164,8 +185,9 @@ def crps_table(ev: pd.DataFrame, seed: int = 0) -> pd.DataFrame:
     """Per-position mean CRPS: simulator vs point-forecast vs Poisson(mean) vs climatology (lower better)."""
     rng = np.random.default_rng(seed)
     y = ev["y"].to_numpy(dtype=float)
-    pois_draws = _poisson.rvs(np.clip(ev["e_points"].to_numpy(), 1e-3, None)[:, None] * np.ones((1, 2000)),
-                              random_state=rng)
+    pois_draws = _poisson.rvs(
+        np.clip(ev["e_points"].to_numpy(), 1e-3, None)[:, None] * np.ones((1, 2000)), random_state=rng
+    )
     ev = ev.assign(crps_pois=_crps_empirical(pois_draws, y))
     ev = ev.assign(crps_clim=np.nan)
     for pos in POSITIONS:
@@ -208,8 +230,11 @@ def calibration_report(mart: pd.DataFrame, n_sims: int = 3000, seed: int = 0) ->
         "coverage": coverage,
         "coverage_pit": coverage_pit,
         # the gate is the discreteness-correct number; the band itself is unmoved (pre-registered).
-        "coverage_in_band": {p: bool(COVERAGE_BAND[0] <= coverage_pit[p] <= COVERAGE_BAND[1])
-                             for p in POSITIONS if not np.isnan(coverage_pit[p])},
+        "coverage_in_band": {
+            p: bool(COVERAGE_BAND[0] <= coverage_pit[p] <= COVERAGE_BAND[1])
+            for p in POSITIONS
+            if not np.isnan(coverage_pit[p])
+        },
         "crps": crps_table(ev, seed=seed),
         "events": event_counts(ev),
     }

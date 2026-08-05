@@ -32,12 +32,18 @@ def _panel(n_players: int = 80, n_gw: int = 14, seed: int = 0) -> pd.DataFrame:
         for gw in range(1, n_gw + 1):
             played = rng.random() < p_appear
             minutes = int(rng.choice([30, 90], p=[0.15, 0.85])) if played else 0
-            rows.append({
-                "player_id": p, "gw": gw, "position": pos, "minutes": minutes, "is_dgw": False,
-                "starts": int(minutes >= 60),
-                "minutes_roll3": (75.0 if nailed else 40.0) + rng.normal(0, 5),
-                "minutes_roll5": (75.0 if nailed else 40.0) + rng.normal(0, 5),
-            })
+            rows.append(
+                {
+                    "player_id": p,
+                    "gw": gw,
+                    "position": pos,
+                    "minutes": minutes,
+                    "is_dgw": False,
+                    "starts": int(minutes >= 60),
+                    "minutes_roll3": (75.0 if nailed else 40.0) + rng.normal(0, 5),
+                    "minutes_roll5": (75.0 if nailed else 40.0) + rng.normal(0, 5),
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -75,8 +81,8 @@ def test_population_excludes_no_fixture_rows_and_keeps_played_clean() -> None:
     panel["minutes"] = panel["minutes"].astype("Int64")
     panel.loc[panel["gw"].isin([8, 9]) & (panel["player_id"] % 3 == 0), "minutes"] = pd.NA  # no-fixture rows
     pop = PlayModel.population(panel)
-    assert pop["minutes"].notna().all()                     # no-fixture rows dropped
-    assert pop["played"].notna().all()                      # target is clean 0/1, never NaN
+    assert pop["minutes"].notna().all()  # no-fixture rows dropped
+    assert pop["played"].notna().all()  # target is clean 0/1, never NaN
     assert set(np.unique(pop["played"])) == {0.0, 1.0}
 
 

@@ -169,11 +169,11 @@ class ScoringTerm:
 
     stat: str
     points: int
-    kind: str = "linear"          # linear | rate | threshold | appearance
+    kind: str = "linear"  # linear | rate | threshold | appearance
     per: int = 1
     threshold: int = 0
     bucket: str = ""
-    role: str = "variable"        # variable | constant | rare
+    role: str = "variable"  # variable | constant | rare
 
     def out_key(self) -> str:
         return self.bucket or self.stat
@@ -195,8 +195,7 @@ POSITION_SCORING: dict[str, tuple[ScoringTerm, ...]] = {
         *_COMMON_TERMS,
         ScoringTerm("goals_scored", GOAL_POINTS_GK, bucket="goals"),
         ScoringTerm("clean_sheets", CLEAN_SHEET_POINTS_GK),
-        ScoringTerm("goals_conceded", GOALS_CONCEDED_PENALTY_POINTS, kind="rate",
-                    per=GOALS_CONCEDED_PER_PENALTY),
+        ScoringTerm("goals_conceded", GOALS_CONCEDED_PENALTY_POINTS, kind="rate", per=GOALS_CONCEDED_PER_PENALTY),
         ScoringTerm("saves", 1, kind="rate", per=GK_SAVES_PER_POINT),
         ScoringTerm("penalties_saved", GK_PENALTY_SAVE_POINTS, role="rare"),
     ),
@@ -204,31 +203,37 @@ POSITION_SCORING: dict[str, tuple[ScoringTerm, ...]] = {
         *_COMMON_TERMS,
         ScoringTerm("goals_scored", GOAL_POINTS_DEF, bucket="goals"),
         ScoringTerm("clean_sheets", CLEAN_SHEET_POINTS_DEF),
-        ScoringTerm("goals_conceded", GOALS_CONCEDED_PENALTY_POINTS, kind="rate",
-                    per=GOALS_CONCEDED_PER_PENALTY),
-        ScoringTerm("defensive_contribution", DC_POINTS, kind="threshold",
-                    threshold=DC_CBIT_THRESHOLD_DEF),
+        ScoringTerm("goals_conceded", GOALS_CONCEDED_PENALTY_POINTS, kind="rate", per=GOALS_CONCEDED_PER_PENALTY),
+        ScoringTerm("defensive_contribution", DC_POINTS, kind="threshold", threshold=DC_CBIT_THRESHOLD_DEF),
     ),
     "MID": (
         *_COMMON_TERMS,
         ScoringTerm("goals_scored", GOAL_POINTS_MID, bucket="goals"),
         ScoringTerm("clean_sheets", CLEAN_SHEET_POINTS_MID),
-        ScoringTerm("defensive_contribution", DC_POINTS, kind="threshold",
-                    threshold=DC_CBIRT_THRESHOLD_MID_FWD),
+        ScoringTerm("defensive_contribution", DC_POINTS, kind="threshold", threshold=DC_CBIRT_THRESHOLD_MID_FWD),
     ),
     "FWD": (
         *_COMMON_TERMS,
         ScoringTerm("goals_scored", GOAL_POINTS_FWD, bucket="goals"),
-        ScoringTerm("defensive_contribution", DC_POINTS, kind="threshold",
-                    threshold=DC_CBIRT_THRESHOLD_MID_FWD),
+        ScoringTerm("defensive_contribution", DC_POINTS, kind="threshold", threshold=DC_CBIRT_THRESHOLD_MID_FWD),
     ),
 }
 
 # Canonical output keys (every decomposition carries the full set, zero-filled where a term
 # does not apply to the position) — keeps the reconstruction shape stable across positions.
 _DECOMP_KEYS: tuple[str, ...] = (
-    "appearance", "goals", "assists", "clean_sheets", "saves", "penalties_saved", "bonus",
-    "defensive_contribution", "goals_conceded", "cards", "own_goals", "penalties_missed",
+    "appearance",
+    "goals",
+    "assists",
+    "clean_sheets",
+    "saves",
+    "penalties_saved",
+    "bonus",
+    "defensive_contribution",
+    "goals_conceded",
+    "cards",
+    "own_goals",
+    "penalties_missed",
 )
 
 
@@ -303,18 +308,21 @@ def decompose_total_points(
     FPL's per-fixture-then-summed points (see ``defensive_contribution_points`` and
     composition/scoring_engine.ipynb section (d)). No pandas — vectorise by mapping over rows.
     """
-    return score_components(position, {
-        "minutes": minutes,
-        "goals_scored": goals_scored,
-        "assists": assists,
-        "clean_sheets": clean_sheets,
-        "goals_conceded": goals_conceded,
-        "saves": saves,
-        "penalties_saved": penalties_saved,
-        "bonus": bonus,
-        "yellow_cards": yellow_cards,
-        "red_cards": red_cards,
-        "own_goals": own_goals,
-        "penalties_missed": penalties_missed,
-        "defensive_contribution": defensive_contribution,
-    })
+    return score_components(
+        position,
+        {
+            "minutes": minutes,
+            "goals_scored": goals_scored,
+            "assists": assists,
+            "clean_sheets": clean_sheets,
+            "goals_conceded": goals_conceded,
+            "saves": saves,
+            "penalties_saved": penalties_saved,
+            "bonus": bonus,
+            "yellow_cards": yellow_cards,
+            "red_cards": red_cards,
+            "own_goals": own_goals,
+            "penalties_missed": penalties_missed,
+            "defensive_contribution": defensive_contribution,
+        },
+    )

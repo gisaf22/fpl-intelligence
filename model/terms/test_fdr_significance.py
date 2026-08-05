@@ -56,15 +56,23 @@ def _panel(fdr_effect: float, seed: int = 0, n_teams: int = 24, n_gw: int = 22) 
             fdr = fdr_by_team[team]
             mult = max(0.001, 1.5 - fdr_effect * (fdr - 2))
             a_lam = skill * 0.6 * mult
-            rows.append({
-                "player_id": pl, "gw": gw, "position": pos, "minutes": 90, "is_dgw": False,
-                "xgi_roll3": skill + rng.normal(0, 0.05), "xgi_roll5": skill + rng.normal(0, 0.04),
-                "minutes_roll3": 90.0, "fdr_avg": fdr,
-                # keepers do not score (goals is structurally degenerate at GK — it emits 0 there),
-                # so leave GK goals at 0; otherwise a spurious GK goal would read as a level-gate bias.
-                "goals_scored": 0 if pos == "GK" else rng.poisson(skill * mult),
-                "assists": rng.poisson(a_lam),
-            })
+            rows.append(
+                {
+                    "player_id": pl,
+                    "gw": gw,
+                    "position": pos,
+                    "minutes": 90,
+                    "is_dgw": False,
+                    "xgi_roll3": skill + rng.normal(0, 0.05),
+                    "xgi_roll5": skill + rng.normal(0, 0.04),
+                    "minutes_roll3": 90.0,
+                    "fdr_avg": fdr,
+                    # keepers do not score (goals is structurally degenerate at GK — it emits 0 there),
+                    # so leave GK goals at 0; otherwise a spurious GK goal would read as a level-gate bias.
+                    "goals_scored": 0 if pos == "GK" else rng.poisson(skill * mult),
+                    "assists": rng.poisson(a_lam),
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -82,8 +90,10 @@ def _paired_delta_series(model_cls: type[PoissonPlayerComponentModel], panel: pd
     deltas = []
     for _, g in df.groupby(["gw", "position"]):
         if has_rank_signal(g, "wo", target, MIN_ROWS_PER_POS) and has_rank_signal(g, "wi", target, MIN_ROWS_PER_POS):
-            deltas.append(cell_spearman(g["wi"].to_numpy(), g[target].to_numpy())
-                          - cell_spearman(g["wo"].to_numpy(), g[target].to_numpy()))
+            deltas.append(
+                cell_spearman(g["wi"].to_numpy(), g[target].to_numpy())
+                - cell_spearman(g["wo"].to_numpy(), g[target].to_numpy())
+            )
     return np.asarray(deltas, dtype=float)
 
 
@@ -104,7 +114,9 @@ def test_protocol_accepts_a_genuinely_predictive_fdr(model_cls: type[PoissonPlay
     deltas = _paired_delta_series(model_cls, panel)
     assert len(deltas) >= 4, "need >=4 paired cells for a meaningful bootstrap (else inconclusive)"
     lo, hi = block_bootstrap_ci(deltas, seed=0)
-    assert deltas.mean() > 0 and lo > 0, f"expected a significant positive delta, got mean={deltas.mean():.4f} CI=[{lo:.4f},{hi:.4f}]"  # noqa: E501
+    assert deltas.mean() > 0 and lo > 0, (
+        f"expected a significant positive delta, got mean={deltas.mean():.4f} CI=[{lo:.4f},{hi:.4f}]"
+    )
     assert _level_ok(model_cls, panel)
 
 

@@ -35,8 +35,15 @@ def xg_vs_goals_forecast_skill(mart: pd.DataFrame) -> pd.DataFrame:
         sub = ev[ev["position"] == pos]
         rx = grouped_spearman(sub, "xg_prior", "goals_scored", ["gw"], MIN_ROWS_PER_POS)
         rg = grouped_spearman(sub, "goals_prior", "goals_scored", ["gw"], MIN_ROWS_PER_POS)
-        rows.append({"position": pos, "xg_prior": round(rx, 4), "goals_prior": round(rg, 4),
-                     "delta": round(rx - rg, 4), "winner": "xG" if rx > rg else "goals"})
+        rows.append(
+            {
+                "position": pos,
+                "xg_prior": round(rx, 4),
+                "goals_prior": round(rg, 4),
+                "delta": round(rx - rg, 4),
+                "winner": "xG" if rx > rg else "goals",
+            }
+        )
     out = pd.DataFrame(rows)
     out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
     return out.sort_values("position").set_index("position")
@@ -56,8 +63,14 @@ def unmodeled_points_share(mart: pd.DataFrame) -> pd.DataFrame:
         bonus_pct = 100 * float(pd.to_numeric(sub["bonus"], errors="coerce").sum()) / tp
         saves = np.floor(pd.to_numeric(sub["saves"], errors="coerce").fillna(0) / GK_SAVES_PER_POINT)
         saves_pct = 100 * float(saves.sum()) / tp if pos == "GK" else 0.0
-        rows.append({"position": pos, "total_points": round(tp),
-                     "bonus_pct": round(bonus_pct, 1), "gk_saves_pct": round(saves_pct, 1)})
+        rows.append(
+            {
+                "position": pos,
+                "total_points": round(tp),
+                "bonus_pct": round(bonus_pct, 1),
+                "gk_saves_pct": round(saves_pct, 1),
+            }
+        )
     out = pd.DataFrame(rows)
     out["position"] = pd.Categorical(out["position"], categories=POSITIONS, ordered=True)
     return out.sort_values("position").set_index("position")

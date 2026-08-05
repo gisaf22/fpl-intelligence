@@ -22,9 +22,22 @@ pytestmark = pytest.mark.unit
 
 def _stats(**kw: int) -> dict[str, int]:
     base = dict.fromkeys(
-        ["minutes", "goals_scored", "assists", "clean_sheets", "goals_conceded", "saves",
-         "penalties_saved", "bonus", "yellow_cards", "red_cards", "own_goals",
-         "penalties_missed", "defensive_contribution"], 0,
+        [
+            "minutes",
+            "goals_scored",
+            "assists",
+            "clean_sheets",
+            "goals_conceded",
+            "saves",
+            "penalties_saved",
+            "bonus",
+            "yellow_cards",
+            "red_cards",
+            "own_goals",
+            "penalties_missed",
+            "defensive_contribution",
+        ],
+        0,
     )
     base.update(kw)
     return base
@@ -33,8 +46,12 @@ def _stats(**kw: int) -> dict[str, int]:
 def test_reconstruction_def_known_example() -> None:
     # DEF, 90' (+2), 1 goal (+6), 1 assist (+3), clean sheet (+4), 10 CBIT (+2), 2 bonus (+2),
     # 1 yellow (-1) -> 18.
-    comps = score_components("DEF", _stats(minutes=90, goals_scored=1, assists=1, clean_sheets=1,
-                                           defensive_contribution=10, bonus=2, yellow_cards=1))
+    comps = score_components(
+        "DEF",
+        _stats(
+            minutes=90, goals_scored=1, assists=1, clean_sheets=1, defensive_contribution=10, bonus=2, yellow_cards=1
+        ),
+    )
     assert sum(comps.values()) == 18
     assert comps["goals"] == 6 and comps["defensive_contribution"] == 2 and comps["cards"] == -1
 
@@ -42,8 +59,9 @@ def test_reconstruction_def_known_example() -> None:
 def test_reconstruction_gk_known_example() -> None:
     # GK, 90' (+2), 7 saves (7//3=2 -> +2), clean sheet (+4), 3 conceded (3//2=1 -> -1),
     # 1 pen save (+5), 3 bonus (+3) -> 15.
-    comps = score_components("GK", _stats(minutes=90, saves=7, clean_sheets=1, goals_conceded=3,
-                                          penalties_saved=1, bonus=3))
+    comps = score_components(
+        "GK", _stats(minutes=90, saves=7, clean_sheets=1, goals_conceded=3, penalties_saved=1, bonus=3)
+    )
     assert sum(comps.values()) == 15
     assert comps["saves"] == 2 and comps["goals_conceded"] == -1 and comps["penalties_saved"] == 5
 
@@ -78,18 +96,43 @@ def test_position_components_modelled_roster() -> None:
     assert "clean_sheets" not in position_components("FWD")
     assert "defensive_contribution" not in position_components("GK")
     assert "saves" in position_components("GK")
-    assert set(position_components("DEF")) == {"assists", "bonus", "goals", "clean_sheets",
-                                               "goals_conceded", "defensive_contribution"}
+    assert set(position_components("DEF")) == {
+        "assists",
+        "bonus",
+        "goals",
+        "clean_sheets",
+        "goals_conceded",
+        "defensive_contribution",
+    }
 
 
 def test_decompose_delegates_to_spec() -> None:
-    s = _stats(minutes=72, goals_scored=1, assists=1, clean_sheets=1, goals_conceded=2,
-               defensive_contribution=10, bonus=1, red_cards=1)
+    s = _stats(
+        minutes=72,
+        goals_scored=1,
+        assists=1,
+        clean_sheets=1,
+        goals_conceded=2,
+        defensive_contribution=10,
+        bonus=1,
+        red_cards=1,
+    )
     viaspec = score_components("DEF", s)
     viadecomp = decompose_total_points(
-        "DEF", s["minutes"], s["goals_scored"], s["assists"], s["clean_sheets"],
-        s["goals_conceded"], s["saves"], s["penalties_saved"], s["bonus"], s["yellow_cards"],
-        s["red_cards"], s["own_goals"], s["penalties_missed"], s["defensive_contribution"],
+        "DEF",
+        s["minutes"],
+        s["goals_scored"],
+        s["assists"],
+        s["clean_sheets"],
+        s["goals_conceded"],
+        s["saves"],
+        s["penalties_saved"],
+        s["bonus"],
+        s["yellow_cards"],
+        s["red_cards"],
+        s["own_goals"],
+        s["penalties_missed"],
+        s["defensive_contribution"],
     )
     assert viaspec == viadecomp
 

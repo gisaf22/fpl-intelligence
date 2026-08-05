@@ -35,10 +35,10 @@ class DefensiveContributionModel(BinaryPerPositionComponent):
     """Per-position logistic GLM of ``dc_hit`` on lagged DC form + context (the fittable unit)."""
 
     name = "defensive_contribution"
-    target = "dc_hit"                        # DERIVED binary target (built in population)
+    target = "dc_hit"  # DERIVED binary target (built in population)
     term = "defensive_contribution"
     pool = DC_POOL
-    logit_positions = _DC_POSITIONS          # GK exempt
+    logit_positions = _DC_POSITIONS  # GK exempt
     hypotheses = (
         Hypothesis(
             claim="modelled P(DC hit) ranks realized DC hits better than the lagged DC-action count",

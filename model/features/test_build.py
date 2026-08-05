@@ -19,24 +19,26 @@ pytestmark = pytest.mark.unit
 
 
 def test_add_lagged_rolls_is_strictly_prior_and_grouped() -> None:
-    df = pd.DataFrame({
-        "player_id": [1, 1, 1, 2, 2],
-        "gw": [1, 2, 3, 1, 2],
-        "xg": [0.2, 0.8, 0.5, 1.0, 0.0],
-    })
+    df = pd.DataFrame(
+        {
+            "player_id": [1, 1, 1, 2, 2],
+            "gw": [1, 2, 3, 1, 2],
+            "xg": [0.2, 0.8, 0.5, 1.0, 0.0],
+        }
+    )
     out = add_lagged_rolls(df, ["xg"], (2,))
     # First appearance of each player is NaN (shift(1) -> no prior); windows never cross the player boundary.
     assert pd.isna(out.loc[0, "xg_roll2"]) and pd.isna(out.loc[3, "xg_roll2"])
-    assert out.loc[1, "xg_roll2"] == pytest.approx(0.2)          # prior of player 1 gw2 = [0.2]
+    assert out.loc[1, "xg_roll2"] == pytest.approx(0.2)  # prior of player 1 gw2 = [0.2]
     assert out.loc[2, "xg_roll2"] == pytest.approx((0.2 + 0.8) / 2)
-    assert out.loc[4, "xg_roll2"] == pytest.approx(1.0)          # player 2 gw2 sees only player 2's gw1
+    assert out.loc[4, "xg_roll2"] == pytest.approx(1.0)  # player 2 gw2 sees only player 2's gw1
 
 
 def test_add_lagged_rolls_skips_absent_sources() -> None:
     df = pd.DataFrame({"player_id": [1, 1], "gw": [1, 2], "xg": [0.3, 0.4]})
-    out = add_lagged_rolls(df, ["xg", "xa"], (2,))   # no xa column present
+    out = add_lagged_rolls(df, ["xg", "xa"], (2,))  # no xa column present
     assert "xg_roll2" in out.columns
-    assert "xa_roll2" not in out.columns             # absent source is a no-op, not an error
+    assert "xa_roll2" not in out.columns  # absent source is a no-op, not an error
 
 
 def _player_mart() -> pd.DataFrame:
@@ -52,14 +54,16 @@ def _player_mart() -> pd.DataFrame:
 
 def _team_frame() -> pd.DataFrame:
     """Team-grain frame, unique on (team_id, gw), with one team-fixture deliberately missing (30, gw2)."""
-    return pd.DataFrame([
-        {"team_id": 10, "gw": 1, "p_cs": 0.4, "e_conceded_pts": -0.5},
-        {"team_id": 10, "gw": 2, "p_cs": 0.5, "e_conceded_pts": -0.4},
-        {"team_id": 20, "gw": 1, "p_cs": 0.2, "e_conceded_pts": -0.8},
-        {"team_id": 20, "gw": 2, "p_cs": 0.3, "e_conceded_pts": -0.7},
-        {"team_id": 30, "gw": 1, "p_cs": 0.6, "e_conceded_pts": -0.3},
-        # (30, gw2) intentionally absent -> those player rows must broadcast to NaN
-    ])
+    return pd.DataFrame(
+        [
+            {"team_id": 10, "gw": 1, "p_cs": 0.4, "e_conceded_pts": -0.5},
+            {"team_id": 10, "gw": 2, "p_cs": 0.5, "e_conceded_pts": -0.4},
+            {"team_id": 20, "gw": 1, "p_cs": 0.2, "e_conceded_pts": -0.8},
+            {"team_id": 20, "gw": 2, "p_cs": 0.3, "e_conceded_pts": -0.7},
+            {"team_id": 30, "gw": 1, "p_cs": 0.6, "e_conceded_pts": -0.3},
+            # (30, gw2) intentionally absent -> those player rows must broadcast to NaN
+        ]
+    )
 
 
 def test_broadcast_fans_out_one_to_many_without_multiplying_rows() -> None:
@@ -128,8 +132,16 @@ def _opp_panel(*, drop_team20_gw3: bool = False) -> pd.DataFrame:
             if drop_team20_gw3 and team == 20 and gw == 3:
                 continue
             for p in range(2):
-                rows.append({"player_id": team * 100 + p, "team_id": team, "opponent_team_id": opp,
-                             "gw": gw, "minutes": 90, "xgc": xgc[team][gw]})
+                rows.append(
+                    {
+                        "player_id": team * 100 + p,
+                        "team_id": team,
+                        "opponent_team_id": opp,
+                        "gw": gw,
+                        "minutes": 90,
+                        "xgc": xgc[team][gw],
+                    }
+                )
     return pd.DataFrame(rows)
 
 
@@ -137,10 +149,10 @@ def test_add_opponent_xgc_forward_is_strictly_prior_and_opponent_keyed() -> None
     """opp_xgc_forward on a player row == the OPPONENT's strictly-prior (window-2) conceded-xG roll."""
     out = add_opponent_xgc_forward(_opp_panel(), window=2).set_index(["team_id", "gw", "player_id"])
     # opponent rolls: team10 -> {g2:1.0, g3:2.0}; team20 -> {g2:2.0, g3:1.0}. A team-10 player faces 20.
-    assert out.loc[(10, 2, 1000), "opp_xgc_forward"] == pytest.approx(2.0)   # opp 20 roll @ gw2
-    assert out.loc[(10, 3, 1000), "opp_xgc_forward"] == pytest.approx(1.0)   # opp 20 roll @ gw3
-    assert out.loc[(20, 2, 2000), "opp_xgc_forward"] == pytest.approx(1.0)   # opp 10 roll @ gw2
-    assert out.loc[(20, 3, 2000), "opp_xgc_forward"] == pytest.approx(2.0)   # opp 10 roll @ gw3
+    assert out.loc[(10, 2, 1000), "opp_xgc_forward"] == pytest.approx(2.0)  # opp 20 roll @ gw2
+    assert out.loc[(10, 3, 1000), "opp_xgc_forward"] == pytest.approx(1.0)  # opp 20 roll @ gw3
+    assert out.loc[(20, 2, 2000), "opp_xgc_forward"] == pytest.approx(1.0)  # opp 10 roll @ gw2
+    assert out.loc[(20, 3, 2000), "opp_xgc_forward"] == pytest.approx(2.0)  # opp 10 roll @ gw3
     # gw1 faces an opponent with no prior fixture and there is no earlier gw to prior-fill -> NaN (pre-warmup).
     assert pd.isna(out.loc[(10, 1, 1000), "opp_xgc_forward"])
 
@@ -163,21 +175,25 @@ def test_add_opponent_xgc_forward_is_noop_without_opponent_identity() -> None:
 
 
 def test_assert_lag_safe_team_passes_on_a_strictly_prior_roll() -> None:
-    team = pd.DataFrame({
-        "team_id": [10, 10, 10, 20, 20],
-        "gw": [1, 2, 3, 1, 2],
-        "roll": [np.nan, 1.0, 2.0, np.nan, 2.0],  # shift(1) -> each team's first fixture is NaN
-    })
+    team = pd.DataFrame(
+        {
+            "team_id": [10, 10, 10, 20, 20],
+            "gw": [1, 2, 3, 1, 2],
+            "roll": [np.nan, 1.0, 2.0, np.nan, 2.0],  # shift(1) -> each team's first fixture is NaN
+        }
+    )
     assert_lag_safe_team(team, "roll")  # must not raise
 
 
 def test_assert_lag_safe_team_catches_a_missing_shift_leak() -> None:
     """A forward-window / missing-shift roll is defined on a team's first fixture -> caught at team grain."""
-    leaky = pd.DataFrame({
-        "team_id": [10, 10, 20, 20],
-        "gw": [1, 2, 1, 2],
-        "roll": [1.0, 2.0, 2.0, 0.0],  # first fixture NOT NaN -> the current match leaked in
-    })
+    leaky = pd.DataFrame(
+        {
+            "team_id": [10, 10, 20, 20],
+            "gw": [1, 2, 1, 2],
+            "roll": [1.0, 2.0, 2.0, 0.0],  # first fixture NOT NaN -> the current match leaked in
+        }
+    )
     with pytest.raises(AssertionError, match="first fixture"):
         assert_lag_safe_team(leaky, "roll")
 
@@ -186,12 +202,14 @@ def test_assert_lag_safe_skips_team_grain_broadcast_feature() -> None:
     """The player-grain pool canary must NOT false-flag an opponent-broadcast (team-grain) feature: it is
     legitimately defined on a player's debut because the OPPONENT already has history (checked at team
     grain instead). A genuinely leaked player-grain feature in the same pool still raises."""
-    mart = pd.DataFrame({
-        "player_id": [1, 1, 2, 2],
-        "gw": [1, 2, 1, 2],
-        "opp_xgc_forward": [0.9, 1.1, 0.8, 1.2],   # team-grain: NOT NaN on the player's first appearance
-        "xgi_roll3": [np.nan, 0.3, np.nan, 0.4],   # player-grain: correctly NaN on first appearance
-    })
+    mart = pd.DataFrame(
+        {
+            "player_id": [1, 1, 2, 2],
+            "gw": [1, 2, 1, 2],
+            "opp_xgc_forward": [0.9, 1.1, 0.8, 1.2],  # team-grain: NOT NaN on the player's first appearance
+            "xgi_roll3": [np.nan, 0.3, np.nan, 0.4],  # player-grain: correctly NaN on first appearance
+        }
+    )
     team_feat = FeatureSpec(name="opp_xgc_forward", source="opponent_xgc", grain="team_gw", window=5)
     player_feat = FeatureSpec(name="xgi_roll3", source="xgi", grain="player_gw", window=3)
     ok_pool = FeaturePool(name="t", candidates=(team_feat, player_feat), minimal=("xgi_roll3",))

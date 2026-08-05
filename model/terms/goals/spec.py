@@ -43,17 +43,32 @@ _MINUTES_ROLL3 = FeatureSpec(
 # two windows (a sharper leading indicator than the xGI composite) + xGI at roll5. Built lag-safe by
 # features.build.add_lagged_rolls in the model's population; drawn by the `selected` model.
 _XG_ROLL3 = FeatureSpec(
-    name="xg_roll3", source="xg", grain="player_gw", transform="roll", window=3, lag_safe=True,
+    name="xg_roll3",
+    source="xg",
+    grain="player_gw",
+    transform="roll",
+    window=3,
+    lag_safe=True,
     rationale="lagged xG (goal threat) at a short window — sharper than the xGI composite",
     prior="phase3 points model GOAL_FEATURES",
 )
 _XG_ROLL5 = FeatureSpec(
-    name="xg_roll5", source="xg", grain="player_gw", transform="roll", window=5, lag_safe=True,
+    name="xg_roll5",
+    source="xg",
+    grain="player_gw",
+    transform="roll",
+    window=5,
+    lag_safe=True,
     rationale="lagged xG at a longer window — steadier scoring-rate estimate",
     prior="phase3 points model GOAL_FEATURES",
 )
 _XGI_ROLL5 = FeatureSpec(
-    name="xgi_roll5", source="xgi", grain="player_gw", transform="roll", window=5, lag_safe=True,
+    name="xgi_roll5",
+    source="xgi",
+    grain="player_gw",
+    transform="roll",
+    window=5,
+    lag_safe=True,
     rationale="lagged xGI at a longer window (a mart column) — steadier involvement estimate",
     prior="phase3 points model GOAL_FEATURES",
 )
@@ -66,8 +81,13 @@ _XGI_ROLL5 = FeatureSpec(
 # [+0.0039, +0.0186] — excludes 0. Level gate (position_bias) unchanged. `was_home` was tested the
 # same way and DROPPED (pooled delta -0.0001, CI [-0.0051, +0.0058] — indistinguishable from zero).
 _FDR = FeatureSpec(
-    name="fdr_avg", source="fdr_avg", grain="player_gw", transform="identity", window=None,
-    lag_safe=True, known_future=True,
+    name="fdr_avg",
+    source="fdr_avg",
+    grain="player_gw",
+    transform="identity",
+    window=None,
+    lag_safe=True,
+    known_future=True,
     rationale="fixture difficulty of the specific upcoming opponent — opponent context the own-form rolls miss",
     prior="families §3: opponent strength; mean-features step-1 (goals pooled Δrho +0.0106, CI [+0.0039, +0.0186])",
 )

@@ -41,19 +41,21 @@ class PlayModel(BinaryPerPositionComponent):
     """Per-position logistic P(play) = P(minutes>0) on lagged availability form (the fittable unit)."""
 
     name = "p_play"
-    target = "played"                        # DERIVED binary: 1{minutes > 0}
-    term = "p_play"                          # the emitted view: P(play)
+    target = "played"  # DERIVED binary: 1{minutes > 0}
+    term = "p_play"  # the emitted view: P(play)
     pool = PLAY_POOL
     logit_positions = ("GK", "DEF", "MID", "FWD")  # all four — a real split for GK too (no override)
-    trains_on_appearances_only = False       # P(play) must learn from the blank (played==0) rows
+    trains_on_appearances_only = False  # P(play) must learn from the blank (played==0) rows
     hypotheses = (
         Hypothesis(
             claim="a per-position logistic yields a CALIBRATED P(play) the raw lagged-minutes level cannot",
             test="within-position Spearman of P(play) vs played beside minutes_roll3, GW>3, all positions",
             success_threshold="calibrated appearance probability at ~ranking parity (a minutes level is not a prob)",
-            status=("supported-as-calibration (real mart: Spearman GK .84 / DEF .73 / MID .76 / FWD .78, "
-                    "~parity with the lagged-minutes baseline — expected, like p60; the value is the probability. "
-                    "Mild mid-range miscalibration ~0.10, extremes well-calibrated — recalibration is future work)"),
+            status=(
+                "supported-as-calibration (real mart: Spearman GK .84 / DEF .73 / MID .76 / FWD .78, "
+                "~parity with the lagged-minutes baseline — expected, like p60; the value is the probability. "
+                "Mild mid-range miscalibration ~0.10, extremes well-calibrated — recalibration is future work)"
+            ),
         ),
     )
 

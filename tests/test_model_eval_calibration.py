@@ -24,7 +24,7 @@ pytestmark = pytest.mark.unit
 def test_ece_zero_for_perfect_calibration() -> None:
     rng = np.random.default_rng(0)
     prob = rng.uniform(0, 1, 5000)
-    event = (rng.uniform(0, 1, 5000) < prob).astype(int)   # events occur at exactly the stated prob
+    event = (rng.uniform(0, 1, 5000) < prob).astype(int)  # events occur at exactly the stated prob
     assert expected_calibration_error(prob, event) < 0.03
     # a constant wrong probability is clearly miscalibrated
     assert expected_calibration_error(np.full(5000, 0.9), np.zeros(5000)) > 0.5
@@ -72,7 +72,8 @@ def test_cover_pit_is_discreteness_correct_on_an_atomic_distribution() -> None:
 
     assert abs(cover_pit - 0.80) < 0.02, f"PIT coverage should be ~0.80, got {cover_pit:.3f}"
     assert abs(cover_interval - 0.80) > 0.05, (
-        f"the [p10,p90] rule should visibly mis-measure on an atomic law, got {cover_interval:.3f}")
+        f"the [p10,p90] rule should visibly mis-measure on an atomic law, got {cover_interval:.3f}"
+    )
 
 
 def test_recalibration_table_shape() -> None:
@@ -90,8 +91,8 @@ def test_calibration_report_seed_pinned_regression() -> None:
     assert rep["n"] == 1260
     assert rep["pit_mean"] == 0.528
     np.testing.assert_array_almost_equal(
-        rep["pit_deciles"],
-        [0.063, 0.07, 0.093, 0.11, 0.122, 0.15, 0.111, 0.083, 0.088, 0.111], decimal=6)
+        rep["pit_deciles"], [0.063, 0.07, 0.093, 0.11, 0.122, 0.15, 0.111, 0.083, 0.088, 0.111], decimal=6
+    )
     # `cover` is the operational [p10,p90] hit rate; `cover_pit` is the discreteness-correct gate.
     # Both re-frozen in the mean-features step-1 slice: goals + assists `selected` now draw fdr_avg
     # (the synthetic panel carries it), so the drawn distributions moved.
@@ -107,10 +108,11 @@ def test_calibration_report_seed_pinned_regression() -> None:
     np.testing.assert_almost_equal(float(rep["haul_ece"].loc["raw", "ece"]), 0.0238, decimal=6)
     np.testing.assert_almost_equal(float(rep["return_ece"].loc["raw", "ece"]), 0.0714, decimal=6)
     # power surface: per-position event counts reproduce exactly.
-    got_events = {p: (int(rep["events"].loc[p, "n"]), int(rep["events"].loc[p, "n_haul"]),
-                      int(rep["events"].loc[p, "n_return"])) for p in POSITIONS}
-    assert got_events == {"GK": (260, 19, 95), "DEF": (520, 21, 190),
-                          "MID": (240, 11, 71), "FWD": (240, 13, 65)}
+    got_events = {
+        p: (int(rep["events"].loc[p, "n"]), int(rep["events"].loc[p, "n_haul"]), int(rep["events"].loc[p, "n_return"]))
+        for p in POSITIONS
+    }
+    assert got_events == {"GK": (260, 19, 95), "DEF": (520, 21, 190), "MID": (240, 11, 71), "FWD": (240, 13, 65)}
     # sklearn recalibration (tolerance, not frozen): a walk-forward recal must not WORSEN the raw haul ECE.
     raw = float(rep["haul_ece"].loc["raw", "ece"])
     for method in ("isotonic", "platt"):

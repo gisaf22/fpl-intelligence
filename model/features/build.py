@@ -56,9 +56,7 @@ def add_lagged_rolls(
         out[src] = pd.to_numeric(out[src], errors="coerce")
         grouped = out.groupby(group)[src]
         for w in windows:
-            out[f"{src}_roll{w}"] = grouped.transform(
-                lambda s, w=w: s.shift(1).rolling(w, min_periods=1).mean()
-            )
+            out[f"{src}_roll{w}"] = grouped.transform(lambda s, w=w: s.shift(1).rolling(w, min_periods=1).mean())
     return out
 
 
@@ -106,7 +104,8 @@ def add_opponent_xgc_forward(
     out[src] = pd.to_numeric(out[src], errors="coerce")
     played = out[pd.to_numeric(out["minutes"], errors="coerce") > 0]
     team = (
-        played.groupby(["team_id", "gw"], as_index=False)[src].mean()
+        played.groupby(["team_id", "gw"], as_index=False)[src]
+        .mean()
         .rename(columns={src: "team_xgc"})
         .sort_values(["team_id", "gw"])
     )
@@ -211,9 +210,7 @@ def assert_lag_safe(mart: pd.DataFrame, pool: FeaturePool) -> None:
             )
 
 
-def assert_lag_safe_team(
-    team_frame: pd.DataFrame, feature: str, *, group: str = "team_id", gw_col: str = "gw"
-) -> None:
+def assert_lag_safe_team(team_frame: pd.DataFrame, feature: str, *, group: str = "team_id", gw_col: str = "gw") -> None:
     """Team-grain leakage property: a strictly-prior team roll is NaN on each team's first fixture.
 
     The opponent-team analogue of :func:`assert_lag_safe`. ``opp_xgc_forward`` is a ``shift(1).rolling``
@@ -227,6 +224,4 @@ def assert_lag_safe_team(
         raise KeyError(f"team frame must carry {group} + {gw_col} to check team-grain lag-safety")
     first_rows = team_frame.sort_values([group, gw_col]).groupby(group).head(1)
     if bool(first_rows[feature].notna().any()):
-        raise AssertionError(
-            f"leakage: team-grain feature {feature!r} is defined on a team's first fixture"
-        )
+        raise AssertionError(f"leakage: team-grain feature {feature!r} is defined on a team's first fixture")

@@ -396,11 +396,7 @@ def load_fixture_map(db_path: Path = DB_PATH) -> pd.DataFrame:
     """
     fixtures = get_player_fixture_base(load_staged_entities(db_path))
     n_fix = fixtures.groupby(["player_id", "gw"])["fixture_id"].transform("nunique")
-    return (
-        fixtures.loc[n_fix == 1, ["player_id", "gw", "fixture_id"]]
-        .drop_duplicates()
-        .reset_index(drop=True)
-    )
+    return fixtures.loc[n_fix == 1, ["player_id", "gw", "fixture_id"]].drop_duplicates().reset_index(drop=True)
 
 
 def load_opponent_map(db_path: Path = DB_PATH) -> pd.DataFrame:
@@ -420,11 +416,7 @@ def load_opponent_map(db_path: Path = DB_PATH) -> pd.DataFrame:
     """
     fixtures = get_player_fixture_base(load_staged_entities(db_path))
     n_fix = fixtures.groupby(["player_id", "gw"])["fixture_id"].transform("nunique")
-    return (
-        fixtures.loc[n_fix == 1, ["player_id", "gw", "opponent_team_id"]]
-        .drop_duplicates()
-        .reset_index(drop=True)
-    )
+    return fixtures.loc[n_fix == 1, ["player_id", "gw", "opponent_team_id"]].drop_duplicates().reset_index(drop=True)
 
 
 # ---------------------------------------------------------------------------

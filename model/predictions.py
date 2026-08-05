@@ -20,9 +20,7 @@ from model.simulate import simulate_points
 _SIM_CARRY = ["player_id", "gw", "sim_mean", "sim_sd", "p10", "p50", "p90", "p_haul"]
 
 
-def assemble_forecast(
-    mart: pd.DataFrame, *, n_sims: int = 2000, seed: int = 0, keep_all: bool = True
-) -> pd.DataFrame:
+def assemble_forecast(mart: pd.DataFrame, *, n_sims: int = 2000, seed: int = 0, keep_all: bool = True) -> pd.DataFrame:
     """Per player-GW forecast: the compose mean panel left-joined to the simulate distribution.
 
     Returns ``compose_points(mart, keep_all)`` — ``player_id, team_id, gw, position, minutes``, the

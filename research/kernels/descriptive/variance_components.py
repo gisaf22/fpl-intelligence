@@ -21,7 +21,12 @@ import pandas as pd
 DEFAULT_MIN_APPEARANCES = 10
 
 
-def decompose_variance(df: pd.DataFrame, value_col: str = "total_points", group_col: str = "player_id", min_appearances: int = DEFAULT_MIN_APPEARANCES) -> dict[str, float]:
+def decompose_variance(
+    df: pd.DataFrame,
+    value_col: str = "total_points",
+    group_col: str = "player_id",
+    min_appearances: int = DEFAULT_MIN_APPEARANCES,
+) -> dict[str, float]:
     """Between/within sum-of-squares partition (descriptive) of total variance into between/within components.
 
     SS_total is split as SS_total = SS_between + SS_within, where SS_between

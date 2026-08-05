@@ -43,8 +43,9 @@ pytestmark = pytest.mark.unit
 _BASE = ["xgi_roll3", "minutes_roll3", "xgi_roll5"]
 
 
-def _panel(*, fdr_noise: float, xgc_noise: float, signal: float = 0.9,
-           seed: int = 0, n_teams: int = 20, n_gw: int = 22) -> pd.DataFrame:
+def _panel(
+    *, fdr_noise: float, xgc_noise: float, signal: float = 0.9, seed: int = 0, n_teams: int = 20, n_gw: int = 22
+) -> pd.DataFrame:
     """A player-GW panel with a coherent opponent schedule and a stable per-team defensive leakiness.
 
     Each team has a latent leakiness ``leak`` (stable across the season). A team's realized conceded-xG
@@ -71,18 +72,28 @@ def _panel(*, fdr_noise: float, xgc_noise: float, signal: float = 0.9,
             opp[a], opp[b] = b, a
         for pl, team, pos, skill in players:
             o = opp[team]
-            xgc = max(0.0, leak[team] + rng.normal(0, xgc_noise))           # team's OWN conceded-xG
+            xgc = max(0.0, leak[team] + rng.normal(0, xgc_noise))  # team's OWN conceded-xG
             fdr = float(np.clip(round(2 + 2 * (leak[o] - 0.4) / 1.4 + rng.normal(0, fdr_noise)), 2, 5))
-            mult = max(0.05, 0.4 + signal * (leak[o] - 0.4))               # leaky opponent -> higher rate
+            mult = max(0.05, 0.4 + signal * (leak[o] - 0.4))  # leaky opponent -> higher rate
             a_lam = skill * 0.6 * mult
-            rows.append({
-                "player_id": pl, "team_id": team, "opponent_team_id": o, "gw": gw,
-                "position": pos, "minutes": 90, "is_dgw": False,
-                "xgi_roll3": skill + rng.normal(0, 0.05), "xgi_roll5": skill + rng.normal(0, 0.04),
-                "minutes_roll3": 90.0, "fdr_avg": fdr, "xgc": xgc,
-                "goals_scored": 0 if pos == "GK" else rng.poisson(skill * mult),
-                "assists": rng.poisson(a_lam),
-            })
+            rows.append(
+                {
+                    "player_id": pl,
+                    "team_id": team,
+                    "opponent_team_id": o,
+                    "gw": gw,
+                    "position": pos,
+                    "minutes": 90,
+                    "is_dgw": False,
+                    "xgi_roll3": skill + rng.normal(0, 0.05),
+                    "xgi_roll5": skill + rng.normal(0, 0.04),
+                    "minutes_roll3": 90.0,
+                    "fdr_avg": fdr,
+                    "xgc": xgc,
+                    "goals_scored": 0 if pos == "GK" else rng.poisson(skill * mult),
+                    "assists": rng.poisson(a_lam),
+                }
+            )
     panel = pd.DataFrame(rows)
     # Materialize the opponent-forward roll (the build path under test); models draw it via feature_override.
     return add_opponent_xgc_forward(panel, window=5)
@@ -104,8 +115,10 @@ def _beats_fdr_deltas(model_cls: type[PoissonPlayerComponentModel], panel: pd.Da
     deltas = []
     for _, g in df.groupby(["gw", "position"]):
         if has_rank_signal(g, "opp", target, MIN_ROWS_PER_POS) and has_rank_signal(g, "fdr", target, MIN_ROWS_PER_POS):
-            deltas.append(cell_spearman(g["opp"].to_numpy(), g[target].to_numpy())
-                          - cell_spearman(g["fdr"].to_numpy(), g[target].to_numpy()))
+            deltas.append(
+                cell_spearman(g["opp"].to_numpy(), g[target].to_numpy())
+                - cell_spearman(g["fdr"].to_numpy(), g[target].to_numpy())
+            )
     return np.asarray(deltas, dtype=float)
 
 
@@ -132,7 +145,9 @@ def test_protocol_accepts_opp_xgc_when_it_is_genuinely_sharper(
     deltas = _beats_fdr_deltas(model_cls, panel)
     assert len(deltas) >= 4
     lo, hi = block_bootstrap_ci(deltas, seed=0)
-    assert deltas.mean() > 0 and lo > 0, f"expected a significant positive delta, got mean={deltas.mean():.4f} CI=[{lo:.4f},{hi:.4f}]"  # noqa: E501
+    assert deltas.mean() > 0 and lo > 0, (
+        f"expected a significant positive delta, got mean={deltas.mean():.4f} CI=[{lo:.4f},{hi:.4f}]"
+    )
 
 
 @pytest.mark.parametrize("pool", [GOALS_POOL, ASSISTS_POOL])

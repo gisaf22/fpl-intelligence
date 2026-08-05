@@ -30,10 +30,17 @@ def _panel(seed: int = 0, n_per_pos: int = 40, n_gw: int = 16) -> pd.DataFrame:
             for gw in range(1, n_gw + 1):
                 started = rng.random() < p_start
                 minutes = 90 if started else int(rng.choice([15, 30, 45]))
-                rows.append({
-                    "player_id": pid, "gw": gw, "position": pos, "minutes": minutes, "is_dgw": False,
-                    "starts": int(started), "total_points": 2.0,
-                })
+                rows.append(
+                    {
+                        "player_id": pid,
+                        "gw": gw,
+                        "position": pos,
+                        "minutes": minutes,
+                        "is_dgw": False,
+                        "starts": int(started),
+                        "total_points": 2.0,
+                    }
+                )
             pid += 1
     df = pd.DataFrame(rows).sort_values(["player_id", "gw"]).reset_index(drop=True)
     # minutes_roll{3,5,8} are mart columns the god-file reads as-is; build lag-safe versions here.
@@ -57,9 +64,13 @@ def test_satisfies_contracts_and_shape() -> None:
 def test_selected_emit_reproduces_walk_forward_minutes_hurdle_frozen() -> None:
     """Frozen: selected p60 ≡ the (deleted) walk_forward_minutes_hurdle, including the GK override."""
     got = MinutesHurdleModel(variant="selected").fit(_panel()).predictions.to_numpy()
-    assert_frozen(got, n_scored=2200, sum6=1720.667671,
-                  spot_idx=[0, 440, 937, 1479, 2021],
-                  spot_vals=[0.98, 1.0, 0.6539, 0.7013, 0.7949])
+    assert_frozen(
+        got,
+        n_scored=2200,
+        sum6=1720.667671,
+        spot_idx=[0, 440, 937, 1479, 2021],
+        spot_vals=[0.98, 1.0, 0.6539, 0.7013, 0.7949],
+    )
 
 
 def test_gk_override_is_the_robust_rate_not_a_logistic() -> None:
@@ -69,7 +80,7 @@ def test_gk_override_is_the_robust_rate_not_a_logistic() -> None:
     fitted = MinutesHurdleModel(variant="selected").fit(panel)
     pop = pop.assign(p=fitted.predictions.to_numpy())
     gk = pop[pop["position"] == "GK"]
-    assert gk["p"].notna().all()                 # every GK row filled (backfilled), no NaN gaps
+    assert gk["p"].notna().all()  # every GK row filled (backfilled), no NaN gaps
     assert (gk["p"].between(0.0, 1.0)).all()
 
 

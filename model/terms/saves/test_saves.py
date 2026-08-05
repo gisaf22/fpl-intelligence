@@ -29,12 +29,19 @@ def _panel(n_players: int = 120, n_gw: int = 14, seed: int = 0) -> pd.DataFrame:
         pos = ["GK", "DEF", "MID", "FWD"][p % 4]
         shot_rate = rng.uniform(0.5, 2.5)  # a keeper's fixture shots-faced level
         for gw in range(1, n_gw + 1):
-            rows.append({
-                "player_id": p, "gw": gw, "position": pos, "minutes": 90, "is_dgw": False,
-                "xgc_roll3": shot_rate + rng.normal(0, 0.1), "minutes_roll3": 90.0,
-                "saves": rng.poisson(shot_rate) if pos == "GK" else 0,
-                "total_points": 2.0,
-            })
+            rows.append(
+                {
+                    "player_id": p,
+                    "gw": gw,
+                    "position": pos,
+                    "minutes": 90,
+                    "is_dgw": False,
+                    "xgc_roll3": shot_rate + rng.normal(0, 0.1),
+                    "minutes_roll3": 90.0,
+                    "saves": rng.poisson(shot_rate) if pos == "GK" else 0,
+                    "total_points": 2.0,
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -52,9 +59,13 @@ def test_satisfies_contracts_and_is_gk_only() -> None:
 def test_emit_reproduces_godfile_gk_saves_frozen() -> None:
     """Frozen: minimal GK e_saves ≡ the (deleted) component_forecast GK-saves GLM (GK-only population)."""
     got = SavesModel(variant="minimal").fit(_panel()).predictions.to_numpy()
-    assert_frozen(got, n_scored=330, sum6=471.100411,
-                  spot_idx=[3, 87, 171, 255, 339],
-                  spot_vals=[1.4013, 1.1705, 2.3551, 0.9902, 1.71])
+    assert_frozen(
+        got,
+        n_scored=330,
+        sum6=471.100411,
+        spot_idx=[3, 87, 171, 255, 339],
+        spot_vals=[1.4013, 1.1705, 2.3551, 0.9902, 1.71],
+    )
 
 
 def test_emit_returns_single_saves_term() -> None:
@@ -92,9 +103,9 @@ def test_saves_points_expectation_is_exact_not_linear() -> None:
     rng = np.random.default_rng(0)
     for lam in (0.5, 2.6, 5.0, 8.0):
         exact = float(saves_points_expectation(np.array([lam]))[0])
-        mc = float((rng.poisson(lam, 1_000_000) // 3).mean())     # draw-then-floor: the ground truth
+        mc = float((rng.poisson(lam, 1_000_000) // 3).mean())  # draw-then-floor: the ground truth
         assert abs(exact - mc) < 5e-3, f"lam={lam}: exact {exact:.4f} vs MC {mc:.4f}"
-        assert exact < lam / 3.0, f"lam={lam}: exact {exact:.4f} not below naive {lam/3:.4f}"
+        assert exact < lam / 3.0, f"lam={lam}: exact {exact:.4f} not below naive {lam / 3:.4f}"
     # a typical keeper rate leaves a materially large gap — this is worth ~0.33 pt/GW
     assert (2.6 / 3.0) - float(saves_points_expectation(np.array([2.6]))[0]) > 0.3
     # NaN-safe (compose feeds nan_to_num'd values, but the primitive is honest on its own)

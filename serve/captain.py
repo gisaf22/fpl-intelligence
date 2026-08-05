@@ -13,43 +13,57 @@ captain returned **+1.9 pts/GW** vs the composite (5.09 vs 3.22; paired 95% CI [
 the point estimate, never significantly worse. Per-position validity is enforced upstream by the term
 gates, so the old xgi scope-guards (excluded at FWD/MID) are gone with the composite.
 
-Input: the DAL mart **enriched** with the model forecast columns (``p_haul``, ``p90``,
-``e_points_uncond``) from :func:`model.predictions.assemble_forecast`, merged on ``(player_id, gw)`` by
-the operational runner — ``serve`` does not import ``model`` (import-linter ``no_serve_to_research_or_model``),
-so the forecast arrives as data, not a call.
+Structure: this module declares a :class:`domain.decision.DecisionSpec` and delegates the shared
+lifecycle to :func:`serve.decision_engine.run_decision` (ADR-012). The forecast columns (``p_haul``,
+``p90``, ``e_points_uncond``) arrive as data, merged onto the mart by the operational runner —
+``serve`` does not import ``model`` (import-linter ``no_serve_to_research_or_model``).
 """
 
 from __future__ import annotations
 
 import pandas as pd
 
-from serve.input_contracts import IntelligenceInputError, validate_intelligence_inputs
+from domain.decision import DecisionSpec
+from serve.decision_engine import run_decision
 
 # threshold not evaluation-derived — see threshold-registry.md §CAPT-T-01
 _MIN_MINUTES_ROLL3 = 45.0
 
-# The model forecast columns the runner must have merged onto the mart (see model.predictions).
-_FORECAST_COLS = ("p_haul", "p90", "e_points_uncond")
 
-_OUTPUT_COLS = [
-    "player_id",
-    "player_name",
-    "position_label",
-    "team_id",
-    "minutes_roll3",
-    "e_points_uncond",
-    "p90",
-    "p_haul",
-    "captain_score",
-    "captain_rank",
-]
+def _eligible(features: pd.DataFrame, **_: object) -> pd.Series:
+    """Captaincy needs a reliable starter."""
+    return (~features["is_warmup_gw"]) & (features["minutes_roll3"] >= _MIN_MINUTES_ROLL3)
 
 
-def rank_captain_candidates(
-    features: pd.DataFrame,
-    target_gw: int,
-    n: int = 20,
-) -> pd.DataFrame:
+def _objective(features: pd.DataFrame) -> pd.Series:
+    """Ceiling bet: rank by the probability of a haul."""
+    return features["p_haul"]
+
+
+CAPTAIN = DecisionSpec(
+    name="rank_captain_candidates",
+    required_forecast_cols=("p_haul", "p90", "e_points_uncond"),
+    eligibility=_eligible,
+    objective=_objective,
+    score_col="captain_score",
+    rank_col="captain_rank",
+    output_cols=(
+        "player_id",
+        "player_name",
+        "position_label",
+        "team_id",
+        "minutes_roll3",
+        "e_points_uncond",
+        "p90",
+        "p_haul",
+        "captain_score",
+        "captain_rank",
+    ),
+    tie_break=("p90",),  # same haul probability → prefer the higher 90th-percentile ceiling
+)
+
+
+def rank_captain_candidates(features: pd.DataFrame, target_gw: int, n: int = 20) -> pd.DataFrame:
     """Rank captain candidates for a target gameweek by model haul probability.
 
     Parameters
@@ -70,30 +84,4 @@ def rank_captain_candidates(
 
     Only players with ``minutes_roll3 >= 45`` (reliable starters) are eligible.
     """
-    validate_intelligence_inputs(features, "rank_captain_candidates")
-    missing = [c for c in _FORECAST_COLS if c not in features.columns]
-    if missing:
-        raise IntelligenceInputError(
-            f"rank_captain_candidates: missing model forecast columns {missing}. Enrich the mart with "
-            "model.predictions.assemble_forecast before ranking (serve does not import model; the "
-            "operational runner merges the forecast on (player_id, gw))."
-        )
-
-    gw_df = features[features["gw"] == target_gw].copy()
-    if gw_df.empty:
-        raise IntelligenceInputError(f"rank_captain_candidates: no data for gw={target_gw}")
-
-    # Captaincy needs a reliable starter; a scored forecast row (p_haul defined) is required to rank.
-    eligible = gw_df[~gw_df["is_warmup_gw"] & (gw_df["minutes_roll3"] >= _MIN_MINUTES_ROLL3)].copy()
-    eligible = eligible.dropna(subset=["p_haul"])
-    if eligible.empty:
-        return pd.DataFrame(columns=_OUTPUT_COLS)
-
-    # Ceiling bet: rank by the probability of a haul, tie-break on the 90th-percentile ceiling.
-    eligible["captain_score"] = eligible["p_haul"].astype(float)
-    eligible = eligible.sort_values(["captain_score", "p90"], ascending=False)
-    eligible["captain_rank"] = (
-        eligible.groupby("position_label")["captain_score"].rank(ascending=False, method="min").astype(int)
-    )
-
-    return eligible[_OUTPUT_COLS].head(n).reset_index(drop=True)
+    return run_decision(CAPTAIN, features, target_gw, n=n)

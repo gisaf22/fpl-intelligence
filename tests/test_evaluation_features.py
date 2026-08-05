@@ -13,7 +13,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from tests.helpers.features import _compute_lag1_columns, evaluate_feature_lift
+from research.families.form.explore.feature_lift import _compute_lag1_columns, evaluate_feature_lift
 
 pytestmark = pytest.mark.unit
 

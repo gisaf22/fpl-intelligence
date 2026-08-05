@@ -30,7 +30,7 @@ TERM_MODELS = (
     GoalsModel(variant="selected"),
     AssistsModel(variant="selected"),
     SavesModel(variant="selected"),
-    TeamGoalsAgainstModel(variant="selected"),   # joint: emits clean_sheet + conceded
+    TeamGoalsAgainstModel(variant="selected"),  # joint: emits clean_sheet + conceded
     DefensiveContributionModel(variant="selected"),
     MinutesHurdleModel(variant="selected"),
 )
@@ -43,7 +43,6 @@ BONUS_MODEL = BonusModel()
 PLAY_MODEL = PlayModel(variant="selected")
 
 # Every scored view the registry produces (for validation that compose covers them all).
-REGISTERED_TERMS = ("goals", "assists", "saves", "clean_sheet", "conceded", "defensive_contribution",
-                    "p60", "bonus")
+REGISTERED_TERMS = ("goals", "assists", "saves", "clean_sheet", "conceded", "defensive_contribution", "p60", "bonus")
 
 __all__ = ["BONUS_MODEL", "PLAY_MODEL", "REGISTERED_TERMS", "TERM_MODELS"]

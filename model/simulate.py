@@ -73,12 +73,21 @@ def _draw_team_ga(params: pd.DataFrame, n_sims: int, rng: np.random.Generator) -
 
 # The per-component point decomposition a draw produces — same names/order as compose's DECOMP_COLUMNS,
 # so the two are directly comparable term-by-term (the scoring-conformance check).
-DECOMP_TERMS = ("appearance", "goals", "assists", "clean_sheets", "goals_conceded",
-                "saves", "defensive_contribution", "bonus")
+DECOMP_TERMS = (
+    "appearance",
+    "goals",
+    "assists",
+    "clean_sheets",
+    "goals_conceded",
+    "saves",
+    "defensive_contribution",
+    "bonus",
+)
 
 
-def _simulate_components(block: pd.DataFrame, ga: np.ndarray, n_sims: int,
-                         rng: np.random.Generator) -> dict[str, np.ndarray]:
+def _simulate_components(
+    block: pd.DataFrame, ga: np.ndarray, n_sims: int, rng: np.random.Generator
+) -> dict[str, np.ndarray]:
     """The per-component POINT matrices for a block — each ``(n_rows, n_sims)``, keyed by DECOMP_TERMS.
 
     This is the single home of the draw+score logic; :func:`_simulate_rows` sums these, and the
@@ -97,41 +106,56 @@ def _simulate_components(block: pd.DataFrame, ga: np.ndarray, n_sims: int,
         return np.nan_to_num(block[name].to_numpy(dtype=float))[:, None]
 
     play60 = rng.random((n, n_sims)) < col("p60")
-    goals = rng.poisson(col("e_goals"), size=(n, n_sims))     # GK e_goals is 0.0 => draws 0
+    goals = rng.poisson(col("e_goals"), size=(n, n_sims))  # GK e_goals is 0.0 => draws 0
     assists = rng.poisson(col("e_assists"), size=(n, n_sims))
     saves = np.where(is_gk, rng.poisson(np.clip(col("e_saves"), 0, None), size=(n, n_sims)), 0)
     dc = (rng.random((n, n_sims)) < col("p_dc")) & has_dc
 
-    goal_pts = gmult * goals                                  # no position gate: the model emits 0 for GK
+    goal_pts = gmult * goals  # no position gate: the model emits 0 for GK
     assist_pts = 3 * assists
-    cs_pts = cmult * ((ga == 0) & play60)                     # clean sheet needs GA=0 AND >=60'
+    cs_pts = cmult * ((ga == 0) & play60)  # clean sheet needs GA=0 AND >=60'
     conceded = np.where(has_conceded, -(ga // 2), 0)
     saves_pts = np.where(is_gk, saves // GK_SAVES_PER_POINT, 0)
     dc_pts = np.where(dc, 2, 0)
-    appearance = 1 + play60                                   # 1 (played) + 1 (>=60')
+    appearance = 1 + play60  # 1 (played) + 1 (>=60')
 
     returns_pts = goal_pts + assist_pts + cs_pts + saves_pts
     bonus = np.clip(col("bonus_intercept") + col("bonus_slope") * returns_pts, 0.0, BPS_BONUS_FIRST)
 
-    return {"appearance": appearance, "goals": goal_pts, "assists": assist_pts,
-            "clean_sheets": cs_pts, "goals_conceded": conceded, "saves": saves_pts,
-            "defensive_contribution": dc_pts, "bonus": bonus}
+    return {
+        "appearance": appearance,
+        "goals": goal_pts,
+        "assists": assist_pts,
+        "clean_sheets": cs_pts,
+        "goals_conceded": conceded,
+        "saves": saves_pts,
+        "defensive_contribution": dc_pts,
+        "bonus": bonus,
+    }
 
 
-def _simulate_rows(block: pd.DataFrame, ga: np.ndarray, n_sims: int,
-                   rng: np.random.Generator) -> np.ndarray:
+def _simulate_rows(block: pd.DataFrame, ga: np.ndarray, n_sims: int, rng: np.random.Generator) -> np.ndarray:
     """Sampled points ``(n_rows, n_sims)`` for a block — the sum of :func:`_simulate_components`.
 
     The addition order is fixed to the pre-decomposition expression (appearance, goals, assists, CS,
     conceded, DC, saves, bonus) so the float result is **bit-identical** to the seed-pinned golden.
     """
     c = _simulate_components(block, ga, n_sims, rng)
-    return (c["appearance"] + c["goals"] + c["assists"] + c["clean_sheets"]
-            + c["goals_conceded"] + c["defensive_contribution"] + c["saves"] + c["bonus"])
+    return (
+        c["appearance"]
+        + c["goals"]
+        + c["assists"]
+        + c["clean_sheets"]
+        + c["goals_conceded"]
+        + c["defensive_contribution"]
+        + c["saves"]
+        + c["bonus"]
+    )
 
 
-def _iter_draw_batches(params: pd.DataFrame, n_sims: int, seed: int, batch_rows: int
-                       ) -> Iterator[tuple[pd.DataFrame, np.ndarray, np.random.Generator]]:
+def _iter_draw_batches(
+    params: pd.DataFrame, n_sims: int, seed: int, batch_rows: int
+) -> Iterator[tuple[pd.DataFrame, np.ndarray, np.random.Generator]]:
     """Shared setup for the draw primitives: filter to the scored population, seed one rng, draw team-GA
     once, then yield ``(block, ga, rng)`` per memory-bounded batch. The single home of the batch loop —
     both :func:`iter_sample_blocks` and :func:`iter_component_blocks` consume it, so the rng stream and
@@ -142,13 +166,14 @@ def _iter_draw_batches(params: pd.DataFrame, n_sims: int, seed: int, batch_rows:
     rng = np.random.default_rng(seed)
     tf_index, ga_by_tf = _draw_team_ga(df, n_sims, rng)
     for start in range(0, len(df), batch_rows):
-        block = df.iloc[start:start + batch_rows]
-        ga = ga_by_tf[tf_index[start:start + batch_rows]]
+        block = df.iloc[start : start + batch_rows]
+        ga = ga_by_tf[tf_index[start : start + batch_rows]]
         yield block, ga, rng
 
 
-def iter_sample_blocks(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
-                       batch_rows: int = 400) -> Iterator[tuple[pd.DataFrame, np.ndarray]]:
+def iter_sample_blocks(
+    params: pd.DataFrame, n_sims: int = 10000, seed: int = 0, batch_rows: int = 400
+) -> Iterator[tuple[pd.DataFrame, np.ndarray]]:
     """Yield ``(block, draws)`` per memory-bounded batch — the shared raw-draw primitive (spec Phase-4 §1).
 
     ``params`` is a :func:`model.compose.compose_parameters` output (any extra columns — e.g. a realized
@@ -161,8 +186,9 @@ def iter_sample_blocks(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
         yield block, _simulate_rows(block, ga, n_sims, rng)
 
 
-def iter_component_blocks(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
-                          batch_rows: int = 400) -> Iterator[tuple[pd.DataFrame, dict[str, np.ndarray]]]:
+def iter_component_blocks(
+    params: pd.DataFrame, n_sims: int = 10000, seed: int = 0, batch_rows: int = 400
+) -> Iterator[tuple[pd.DataFrame, dict[str, np.ndarray]]]:
     """Yield ``(block, components)`` per batch — the per-term decomposition of the same draws.
 
     ``components`` maps each :data:`DECOMP_TERMS` name to its ``(n_block_rows, n_sims)`` point matrix.
@@ -172,8 +198,7 @@ def iter_component_blocks(params: pd.DataFrame, n_sims: int = 10000, seed: int =
         yield block, _simulate_components(block, ga, n_sims, rng)
 
 
-def simulate_points(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
-                    batch_rows: int = 400) -> pd.DataFrame:
+def simulate_points(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0, batch_rows: int = 400) -> pd.DataFrame:
     """Monte-Carlo the points distribution for each scored player-GW row of a parameter panel.
 
     ``params`` is a :func:`model.compose.compose_parameters` output. Draws come from the shared
@@ -183,13 +208,21 @@ def simulate_points(params: pd.DataFrame, n_sims: int = 10000, seed: int = 0,
     out = []
     for block, pts in iter_sample_blocks(params, n_sims=n_sims, seed=seed, batch_rows=batch_rows):
         q10, q50, q90 = np.percentile(pts, [10, 50, 90], axis=1)
-        out.append(pd.DataFrame({
-            "player_id": block["player_id"].to_numpy(), "gw": block["gw"].to_numpy(),
-            "position": block["position"].to_numpy(),
-            "sim_mean": pts.mean(axis=1), "sim_sd": pts.std(axis=1),
-            "p10": q10, "p50": q50, "p90": q90,
-            "p_haul": (pts >= HAUL_THRESHOLD).mean(axis=1),
-        }))
+        out.append(
+            pd.DataFrame(
+                {
+                    "player_id": block["player_id"].to_numpy(),
+                    "gw": block["gw"].to_numpy(),
+                    "position": block["position"].to_numpy(),
+                    "sim_mean": pts.mean(axis=1),
+                    "sim_sd": pts.std(axis=1),
+                    "p10": q10,
+                    "p50": q50,
+                    "p90": q90,
+                    "p_haul": (pts >= HAUL_THRESHOLD).mean(axis=1),
+                }
+            )
+        )
     return pd.concat(out, ignore_index=True) if out else pd.DataFrame(columns=_SUMMARY_COLUMNS)
 
 

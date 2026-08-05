@@ -57,25 +57,39 @@ def _panel_team_form_is_noise(seed: int = 0, n_teams: int = 20, n_gw: int = 22) 
     rows = []
     for gw in range(1, n_gw + 1):
         for pl, team, pos, skill in players:
-            rows.append({
-                "player_id": pl, "team_id": team, "gw": gw, "position": pos, "minutes": 90,
-                "is_dgw": False, "xg": max(0.0, skill + rng.normal(0, 0.1)),
-                "xgi_roll3": skill + rng.normal(0, 0.05), "xgi_roll5": skill + rng.normal(0, 0.04),
-                "minutes_roll3": 90.0,
-                "goals_scored": 0 if pos == "GK" else rng.poisson(skill),
-                "assists": rng.poisson(skill * 0.6),
-            })
+            rows.append(
+                {
+                    "player_id": pl,
+                    "team_id": team,
+                    "gw": gw,
+                    "position": pos,
+                    "minutes": 90,
+                    "is_dgw": False,
+                    "xg": max(0.0, skill + rng.normal(0, 0.1)),
+                    "xgi_roll3": skill + rng.normal(0, 0.05),
+                    "xgi_roll5": skill + rng.normal(0, 0.04),
+                    "minutes_roll3": 90.0,
+                    "goals_scored": 0 if pos == "GK" else rng.poisson(skill),
+                    "assists": rng.poisson(skill * 0.6),
+                }
+            )
     panel = pd.DataFrame(rows)
     # Materialize team_xg_roll3: sum of team xG per fixture, strictly-prior roll(3), broadcast on OWN team.
-    team = (panel.groupby(["team_id", "gw"], as_index=False)["xg"].sum()
-            .rename(columns={"xg": "txg"}).sort_values(["team_id", "gw"]))
+    team = (
+        panel.groupby(["team_id", "gw"], as_index=False)["xg"]
+        .sum()
+        .rename(columns={"xg": "txg"})
+        .sort_values(["team_id", "gw"])
+    )
     team["team_xg_roll3"] = team.groupby("team_id")["txg"].transform(
-        lambda s: s.shift(1).rolling(3, min_periods=1).mean())
+        lambda s: s.shift(1).rolling(3, min_periods=1).mean()
+    )
     bc = broadcast(panel[["team_id", "gw"]], team[["team_id", "gw", "team_xg_roll3"]], ["team_xg_roll3"])
     panel["team_xg_roll3"] = bc["team_xg_roll3"].to_numpy()
     lp = team.groupby("gw")["txg"].agg(["sum", "count"]).sort_index()
     panel["team_xg_roll3"] = panel["team_xg_roll3"].fillna(
-        panel["gw"].map(lp["sum"].cumsum().shift(1) / lp["count"].cumsum().shift(1)))
+        panel["gw"].map(lp["sum"].cumsum().shift(1) / lp["count"].cumsum().shift(1))
+    )
     return panel
 
 
@@ -92,8 +106,10 @@ def _add_deltas(model_cls: type[PoissonPlayerComponentModel], panel: pd.DataFram
     deltas = []
     for _, g in df.groupby(["gw", "position"]):
         if has_rank_signal(g, "hi", target, MIN_ROWS_PER_POS) and has_rank_signal(g, "lo", target, MIN_ROWS_PER_POS):
-            deltas.append(cell_spearman(g["hi"].to_numpy(), g[target].to_numpy())
-                          - cell_spearman(g["lo"].to_numpy(), g[target].to_numpy()))
+            deltas.append(
+                cell_spearman(g["hi"].to_numpy(), g[target].to_numpy())
+                - cell_spearman(g["lo"].to_numpy(), g[target].to_numpy())
+            )
     return np.asarray(deltas, dtype=float)
 
 

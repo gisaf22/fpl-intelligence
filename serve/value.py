@@ -14,17 +14,18 @@ gates, so the old xgi scope-guards (xgi excluded at FWD/MID) are gone with the c
 
 Deterministic and price-static — does not forecast price changes.
 
-Input: the DAL mart **enriched** with the model forecast column ``e_points_uncond`` from
-:func:`model.predictions.assemble_forecast`, merged on ``(player_id, gw)`` by the operational runner —
-``serve`` does not import ``model`` (import-linter ``no_serve_to_research_or_model``), so the forecast
-arrives as data, not a call.
+Structure: this module declares a :class:`domain.decision.DecisionSpec` and delegates the shared
+lifecycle to :func:`serve.decision_engine.run_decision` (ADR-012). The forecast column
+``e_points_uncond`` arrives as data, merged onto the mart by the operational runner — ``serve`` does
+not import ``model`` (import-linter ``no_serve_to_research_or_model``).
 """
 
 from __future__ import annotations
 
 import pandas as pd
 
-from serve.input_contracts import IntelligenceInputError, validate_intelligence_inputs
+from domain.decision import DecisionSpec
+from serve.decision_engine import run_decision
 
 # Minimum price to avoid division edge cases and very unpriced placeholders.
 _MIN_PRICE = 3.5
@@ -32,20 +33,43 @@ _MIN_PRICE = 3.5
 # threshold not evaluation-derived — see threshold-registry.md §VAL-T-01
 _MIN_MINUTES_ROLL5 = 30.0
 
-# The model forecast column the runner must have merged onto the mart (see model.predictions).
-_FORECAST_COLS = ("e_points_uncond",)
 
-_OUTPUT_COLS = [
-    "player_id",
-    "player_name",
-    "position_label",
-    "team_id",
-    "purchase_price",
-    "minutes_roll5",
-    "e_points_uncond",
-    "value_score",
-    "value_rank",
-]
+def _eligible(features: pd.DataFrame, *, max_price: float | None = None, **_: object) -> pd.Series:
+    """Priced, reliable, and (optionally) at or below a budget ceiling."""
+    mask = (
+        (features["purchase_price"] >= _MIN_PRICE)
+        & (~features["is_warmup_gw"])
+        & (features["minutes_roll5"] >= _MIN_MINUTES_ROLL5)
+    )
+    if max_price is not None:
+        mask &= features["purchase_price"] <= max_price
+    return mask
+
+
+def _objective(features: pd.DataFrame) -> pd.Series:
+    """Ex-ante expected points per £m paid. ``e_points_uncond`` already prices appearance risk."""
+    return features["e_points_uncond"] / features["purchase_price"]
+
+
+VALUE = DecisionSpec(
+    name="rank_value_players",
+    required_forecast_cols=("e_points_uncond",),
+    eligibility=_eligible,
+    objective=_objective,
+    score_col="value_score",
+    rank_col="value_rank",
+    output_cols=(
+        "player_id",
+        "player_name",
+        "position_label",
+        "team_id",
+        "purchase_price",
+        "minutes_roll5",
+        "e_points_uncond",
+        "value_score",
+        "value_rank",
+    ),
+)
 
 
 def rank_value_players(
@@ -77,38 +101,4 @@ def rank_value_players(
     Only players with ``minutes_roll5 >= 30`` and ``purchase_price >= 3.5`` (and a scored forecast row)
     are eligible.
     """
-    validate_intelligence_inputs(features, "rank_value_players")
-    missing = [c for c in _FORECAST_COLS if c not in features.columns]
-    if missing:
-        raise IntelligenceInputError(
-            f"rank_value_players: missing model forecast columns {missing}. Enrich the mart with "
-            "model.predictions.assemble_forecast before ranking (serve does not import model; the "
-            "operational runner merges the forecast on (player_id, gw))."
-        )
-
-    gw_df = features[features["gw"] == target_gw].copy()
-    if gw_df.empty:
-        raise IntelligenceInputError(f"rank_value_players: no data for gw={target_gw}")
-
-    eligible = gw_df[
-        (gw_df["purchase_price"] >= _MIN_PRICE)
-        & (~gw_df["is_warmup_gw"])
-        & (gw_df["minutes_roll5"] >= _MIN_MINUTES_ROLL5)
-    ].copy()
-
-    if max_price is not None:
-        eligible = eligible[eligible["purchase_price"] <= max_price]
-
-    # A scored forecast row (e_points_uncond defined) is required to rank.
-    eligible = eligible.dropna(subset=["e_points_uncond"])
-    if eligible.empty:
-        return pd.DataFrame(columns=_OUTPUT_COLS)
-
-    # Value = ex-ante expected points per £m paid. e_points_uncond already prices appearance risk.
-    eligible["value_score"] = eligible["e_points_uncond"].astype(float) / eligible["purchase_price"].astype(float)
-    eligible = eligible.sort_values("value_score", ascending=False)
-    eligible["value_rank"] = (
-        eligible.groupby("position_label")["value_score"].rank(ascending=False, method="min").astype(int)
-    )
-
-    return eligible[_OUTPUT_COLS].head(n).reset_index(drop=True)
+    return run_decision(VALUE, features, target_gw, n=n, max_price=max_price)

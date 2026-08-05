@@ -173,7 +173,7 @@ def _bootstrap_two_sided_p(values: list[float]) -> float:
     if arr.size == 0:
         return np.nan
     tail = min(int(np.sum(arr <= 0.0)), int(np.sum(arr >= 0.0)))
-    return round(min(1.0, 2.0 * (1 + tail) / (1 + arr.size)), 4)
+    return round(float(min(1.0, 2.0 * (1 + tail) / (1 + arr.size))), 4)
 
 
 def _excludes_zero(ci: tuple[float, float]) -> bool:
@@ -312,11 +312,10 @@ def bootstrap_panel_decomposition(
     # Generates a random number
     rng = np.random.default_rng(seed)
 
-    boot = {"pooled": [], "between": [], "within": [], "share": [], "diff": []}
+    boot: dict[str, list[float]] = {"pooled": [], "between": [], "within": [], "share": [], "diff": []}
 
     # cluster bootstrap: resample players (with replacement) and recompute all three axes per draw
     for _ in range(n_boot):
-
         # sample player positional indices with replacement/independently
         drawn = rng.integers(0, n_players, size=n_players)
 

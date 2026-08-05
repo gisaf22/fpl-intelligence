@@ -45,12 +45,18 @@ def _blank_panel(n_players: int = 120, n_gw: int = 14, seed: int = 0) -> pd.Data
         for gw in range(1, n_gw + 1):
             blank = (p % 4 == 0) and gw in (8, 9)
             minutes = 0 if blank else int(rng.choice([30, 90], p=[0.2, 0.8]))
-            rows.append({
-                "player_id": p, "gw": gw, "position": pos, "minutes": minutes, "is_dgw": False,
-                "xgi_roll3": skill + rng.normal(0, 0.05),
-                "minutes_roll3": rng.uniform(20, 90),
-                "goals_scored": 0 if blank else rng.poisson(skill),
-            })
+            rows.append(
+                {
+                    "player_id": p,
+                    "gw": gw,
+                    "position": pos,
+                    "minutes": minutes,
+                    "is_dgw": False,
+                    "xgi_roll3": skill + rng.normal(0, 0.05),
+                    "minutes_roll3": rng.uniform(20, 90),
+                    "goals_scored": 0 if blank else rng.poisson(skill),
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -69,7 +75,7 @@ def test_poisson_keep_all_scores_blanks_and_matches_played_rows() -> None:
     on = _keyed_predictions(model.population(panel, keep_all=True), model.fit(panel, keep_all=True).predictions)
 
     # (1) blank rows exist only in the widened universe and get scored there (post-warmup ones non-NaN).
-    assert (off["minutes"] == 0).sum() == 0                      # default path drops blanks entirely
+    assert (off["minutes"] == 0).sum() == 0  # default path drops blanks entirely
     scored_blanks = on[(on["minutes"] == 0) & on["pred"].notna()]
     assert len(scored_blanks) > 0
 

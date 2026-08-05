@@ -218,7 +218,35 @@ def _two_sided_p(draws: np.ndarray) -> float:
     if arr.size == 0:
         return float("nan")
     tail = min(int(np.sum(arr <= 0.0)), int(np.sum(arr >= 0.0)))
-    return round(min(1.0, 2.0 * (1 + tail) / (1 + arr.size)), 4)
+    return round(float(min(1.0, 2.0 * (1 + tail) / (1 + arr.size))), 4)
+
+
+def block_bootstrap_ci(
+    values: np.ndarray,
+    block: int = 4,
+    n: int = N_BOOTSTRAP,
+    ci_level: float = CI_LEVEL,
+    seed: int = BOOTSTRAP_SEED,
+) -> tuple[float, float]:
+    """Percentile CI of the MEAN of a per-gameweek series, resampling blocks of consecutive GWs.
+
+    Consecutive gameweeks autocorrelate (form runs), so resampling *blocks* rather than individual GWs
+    gives an honest interval on a per-GW metric — e.g. a heuristic-minus-baseline paired difference in a
+    decision backtest. A series shorter than one block returns ``(nan, nan)``; a constant series
+    collapses to a point interval.
+    """
+    arr = np.asarray(values, dtype=float)
+    arr = arr[~np.isnan(arr)]
+    if arr.size < block:
+        return (float("nan"), float("nan"))
+    rng = np.random.default_rng(seed)
+    k = int(np.ceil(arr.size / block))
+    draws = np.empty(n)
+    for i in range(n):
+        starts = rng.integers(0, arr.size - block + 1, size=k)
+        idx = np.concatenate([np.arange(s, s + block) for s in starts])[: arr.size]
+        draws[i] = arr[idx].mean()
+    return _percentile_ci(draws, ci_level)
 
 
 def cluster_bootstrap_minutes_adjusted_rho(

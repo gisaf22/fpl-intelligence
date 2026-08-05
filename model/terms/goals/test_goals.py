@@ -28,12 +28,20 @@ def _panel(n_players: int = 120, n_gw: int = 14, seed: int = 0) -> pd.DataFrame:
         pos = ["GK", "DEF", "MID", "FWD"][p % 4]
         skill = rng.uniform(0.02, 0.4)
         for gw in range(1, n_gw + 1):
-            rows.append({
-                "player_id": p, "gw": gw, "position": pos, "minutes": 90, "is_dgw": False,
-                "xgi_roll3": skill + rng.normal(0, 0.05), "minutes_roll3": 90.0,
-                "goals_scored": rng.poisson(skill), "assists": rng.poisson(0.1),
-                "total_points": 2.0,
-            })
+            rows.append(
+                {
+                    "player_id": p,
+                    "gw": gw,
+                    "position": pos,
+                    "minutes": 90,
+                    "is_dgw": False,
+                    "xgi_roll3": skill + rng.normal(0, 0.05),
+                    "minutes_roll3": 90.0,
+                    "goals_scored": rng.poisson(skill),
+                    "assists": rng.poisson(0.1),
+                    "total_points": 2.0,
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -53,9 +61,13 @@ def test_emit_reproduces_godfile_goals_frozen() -> None:
     got = GoalsModel(variant="minimal").fit(_panel()).predictions.to_numpy()
     # Re-frozen (position-intercept slice): GK is no longer fitted, so the spot indices moved onto
     # DEF/MID/FWD rows — an all-zero spot vector would not detect drift in the fitted positions.
-    assert_frozen(got, n_scored=1320, sum6=216.070899,
-                  spot_idx=[17, 428, 839, 1268, 1679],
-                  spot_vals=[0.2483, 0.3887, 0.3067, 0.1252, 0.2696])
+    assert_frozen(
+        got,
+        n_scored=1320,
+        sum6=216.070899,
+        spot_idx=[17, 428, 839, 1268, 1679],
+        spot_vals=[0.2483, 0.3887, 0.3067, 0.1252, 0.2696],
+    )
 
 
 def test_emit_returns_single_goals_term() -> None:
@@ -98,7 +110,7 @@ def test_validate_scores_model_vs_own_baseline() -> None:
 
 def test_selected_falls_back_to_minimal_without_process_rolls() -> None:
     """On a mart lacking xg/xgi_roll5, selected can only draw the two mechanistic columns."""
-    panel = _panel(seed=4)   # no xg / xgi_roll5 columns
+    panel = _panel(seed=4)  # no xg / xgi_roll5 columns
     assert GoalsModel(variant="selected").features(panel) == ["xgi_roll3", "minutes_roll3"]
 
 
@@ -110,14 +122,23 @@ def _process_panel(n_players: int = 120, n_gw: int = 16, seed: int = 7) -> pd.Da
         pos = ["GK", "DEF", "MID", "FWD"][p % 4]
         skill = rng.uniform(0.02, 0.5)
         for gw in range(1, n_gw + 1):
-            rows.append({
-                "player_id": p, "gw": gw, "position": pos, "minutes": 90, "is_dgw": False,
-                "xg": max(0.0, skill + rng.normal(0, 0.08)), "xa": max(0.0, skill * 0.5 + rng.normal(0, 0.05)),
-                "xgi_roll3": skill + rng.normal(0, 0.05), "xgi_roll5": skill + rng.normal(0, 0.04),
-                "minutes_roll3": 90.0, "goals_scored": rng.poisson(skill),
-                # fdr_avg: known-future fixture difficulty, drawn by `selected` (mean-features step-1).
-                "fdr_avg": float(rng.integers(2, 6)),
-            })
+            rows.append(
+                {
+                    "player_id": p,
+                    "gw": gw,
+                    "position": pos,
+                    "minutes": 90,
+                    "is_dgw": False,
+                    "xg": max(0.0, skill + rng.normal(0, 0.08)),
+                    "xa": max(0.0, skill * 0.5 + rng.normal(0, 0.05)),
+                    "xgi_roll3": skill + rng.normal(0, 0.05),
+                    "xgi_roll5": skill + rng.normal(0, 0.04),
+                    "minutes_roll3": 90.0,
+                    "goals_scored": rng.poisson(skill),
+                    # fdr_avg: known-future fixture difficulty, drawn by `selected` (mean-features step-1).
+                    "fdr_avg": float(rng.integers(2, 6)),
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -126,13 +147,23 @@ def test_selected_reproduces_full_pts_goals_frozen() -> None:
     panel = _process_panel()
     # selected draws the shipped GOAL_FEATURES set + fdr_avg (mean-features step-1: fixture context).
     assert set(GoalsModel(variant="selected").features(GoalsModel.population(panel))) == {
-        "xg_roll3", "xg_roll5", "xgi_roll3", "xgi_roll5", "minutes_roll3", "fdr_avg"}
+        "xg_roll3",
+        "xg_roll5",
+        "xgi_roll3",
+        "xgi_roll5",
+        "minutes_roll3",
+        "fdr_avg",
+    }
     got = GoalsModel(variant="selected").fit(panel).predictions.to_numpy()
     # Re-frozen (mean-features step-1): the panel now carries fdr_avg and `selected` draws it, so every
     # scored prediction moved (the design gained the known-future fixture-difficulty term).
-    assert_frozen(got, n_scored=1560, sum6=392.630117,
-                  spot_idx=[19, 489, 959, 1449, 1919],
-                  spot_vals=[0.4496, 0.2932, 0.4931, 0.4684, 0.3364])
+    assert_frozen(
+        got,
+        n_scored=1560,
+        sum6=392.630117,
+        spot_idx=[19, 489, 959, 1449, 1919],
+        spot_vals=[0.4496, 0.2932, 0.4931, 0.4684, 0.3364],
+    )
 
 
 def _lagsafe_mart(n_players: int = 6, n_gw: int = 6) -> pd.DataFrame:
@@ -141,11 +172,14 @@ def _lagsafe_mart(n_players: int = 6, n_gw: int = 6) -> pd.DataFrame:
     for p in range(n_players):
         for gw in range(1, n_gw + 1):
             first = gw == 1
-            rows.append({
-                "player_id": p, "gw": gw,
-                "xgi_roll3": np.nan if first else 0.2,
-                "minutes_roll3": np.nan if first else 90.0,
-            })
+            rows.append(
+                {
+                    "player_id": p,
+                    "gw": gw,
+                    "xgi_roll3": np.nan if first else 0.2,
+                    "minutes_roll3": np.nan if first else 90.0,
+                }
+            )
     return pd.DataFrame(rows)
 
 

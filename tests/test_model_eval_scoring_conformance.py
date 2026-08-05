@@ -27,10 +27,9 @@ def test_every_exact_term_conforms_and_bonus_is_the_only_exception() -> None:
     error; ``bonus`` (clip(E) vs E[clip]) is the sole reported non-conformer."""
     table = scoring_conformance(_panel(seed=0), n_sims=2000, seed=0)
     asserted = table[table["asserted"]]
-    assert asserted["conforms"].astype(bool).all(), (
-        "an exactly-computed term drifted from the simulator:\n"
-        + asserted[~asserted["conforms"].astype(bool)].to_string(index=False)
-    )
+    assert asserted["conforms"].astype(bool).all(), "an exactly-computed term drifted from the simulator:\n" + asserted[
+        ~asserted["conforms"].astype(bool)
+    ].to_string(index=False)
     # bonus is present and flagged not-asserted (its Jensen residual is real, not zero)
     assert set(table.loc[~table["asserted"], "term"]) == set(NONCONFORMING_TERMS)
     assert (table["term"].isin(DECOMP_TERMS)).all()
@@ -49,8 +48,9 @@ def test_guard_trips_when_a_nonlinear_rule_is_reduced_to_rule_of_expectation(mon
     from domain.fpl_scoring import GK_SAVES_PER_POINT
 
     # the pre-fix (wrong) conversion: the payout of the expectation, not the expectation of the payout
-    monkeypatch.setattr(compose_mod, "saves_points_expectation",
-                        lambda e_saves: np.asarray(e_saves, dtype=float) / GK_SAVES_PER_POINT)
+    monkeypatch.setattr(
+        compose_mod, "saves_points_expectation", lambda e_saves: np.asarray(e_saves, dtype=float) / GK_SAVES_PER_POINT
+    )
 
     with pytest.raises(AssertionError, match="non-conformance"):
         assert_conformance(_panel(seed=0), n_sims=2000, seed=0)

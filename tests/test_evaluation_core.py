@@ -1,10 +1,9 @@
-"""Tests for evaluation core modules: metrics, windows, baselines.
+"""Tests for the evaluation primitives.
 
-Validates:
-- Metric correctness (deterministic, mathematically sound)
-- Temporal integrity enforcement (no future leakage)
-- Baseline reproducibility and determinism
-- Evaluation window slicing
+Homes after the ADR-012 consolidation:
+- decision-outcome metrics + baselines -> ``model.eval.decision``
+- shared evaluation kernels (rank correlation, downside rate, leakage guard, GW window) ->
+  ``research.kernels.evaluation``
 
 Uses minimal synthetic DataFrames — no DB dependency.
 """
@@ -14,22 +13,18 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from tests.helpers.baselines import (
+from model.eval.decision.baselines import (
     baseline_fixture_only,
     baseline_highest_xgi,
-    baseline_random_top_n,
     baseline_recent_points,
 )
-from tests.helpers.metrics import (
+from model.eval.decision.metrics import hit_rate, regret, return_variance
+from research.kernels.evaluation import (
+    assert_no_future_leakage,
     downside_rate,
-    hit_rate,
-    mean_return,
+    evaluation_gameweeks,
     rank_correlation,
-    regret,
-    return_variance,
-    top1_return,
 )
-from tests.helpers.windows import assert_no_future_leakage, evaluation_gameweeks
 
 pytestmark = pytest.mark.unit
 
@@ -92,41 +87,8 @@ def _make_features(*rows: dict) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# evaluation.metrics
+# decision metrics
 # ---------------------------------------------------------------------------
-
-
-class TestMeanReturn:
-    def test_returns_mean_of_matching_players(self):
-        outcomes = pd.DataFrame({"player_id": [1, 2, 3], "total_points": [6.0, 8.0, 4.0]})
-        result = mean_return([1, 3], outcomes)
-        assert abs(result - 5.0) < 1e-9
-
-    def test_returns_none_when_no_match(self):
-        outcomes = pd.DataFrame({"player_id": [1], "total_points": [6.0]})
-        assert mean_return([99], outcomes) is None
-
-    def test_returns_none_for_empty_outcomes(self):
-        outcomes = pd.DataFrame({"player_id": [], "total_points": []})
-        assert mean_return([1], outcomes) is None
-
-    def test_deterministic(self):
-        outcomes = pd.DataFrame({"player_id": [1, 2], "total_points": [5.0, 7.0]})
-        assert mean_return([1, 2], outcomes) == mean_return([1, 2], outcomes)
-
-
-class TestTop1Return:
-    def test_returns_correct_points(self):
-        outcomes = pd.DataFrame({"player_id": [7], "total_points": [12.0]})
-        assert top1_return(7, outcomes) == 12.0
-
-    def test_returns_none_when_player_absent(self):
-        outcomes = pd.DataFrame({"player_id": [1], "total_points": [6.0]})
-        assert top1_return(99, outcomes) is None
-
-    def test_returns_none_for_nan_points(self):
-        outcomes = pd.DataFrame({"player_id": [5], "total_points": [float("nan")]})
-        assert top1_return(5, outcomes) is None
 
 
 class TestHitRate:
@@ -157,6 +119,27 @@ class TestRegret:
         # Regret can be negative if actual_best was outside the pool
         result = regret(4.0, 8.0)
         assert result == -4.0
+
+
+class TestReturnVariance:
+    def test_zero_variance_for_constant_returns(self):
+        returns = pd.Series([5.0, 5.0, 5.0])
+        assert return_variance(returns) == 0.0
+
+    def test_nonzero_variance_for_varied_returns(self):
+        returns = pd.Series([2.0, 8.0, 14.0])
+        assert return_variance(returns) > 0
+
+    def test_returns_none_for_single_value(self):
+        assert return_variance(pd.Series([5.0])) is None
+
+    def test_returns_none_for_empty_series(self):
+        assert return_variance(pd.Series([], dtype=float)) is None
+
+
+# ---------------------------------------------------------------------------
+# shared evaluation kernels
+# ---------------------------------------------------------------------------
 
 
 class TestRankCorrelation:
@@ -194,22 +177,6 @@ class TestRankCorrelation:
         assert rank_correlation(pred, actual) == rank_correlation(pred, actual)
 
 
-class TestReturnVariance:
-    def test_zero_variance_for_constant_returns(self):
-        returns = pd.Series([5.0, 5.0, 5.0])
-        assert return_variance(returns) == 0.0
-
-    def test_nonzero_variance_for_varied_returns(self):
-        returns = pd.Series([2.0, 8.0, 14.0])
-        assert return_variance(returns) > 0
-
-    def test_returns_none_for_single_value(self):
-        assert return_variance(pd.Series([5.0])) is None
-
-    def test_returns_none_for_empty_series(self):
-        assert return_variance(pd.Series([], dtype=float)) is None
-
-
 class TestDownsideRate:
     def test_all_below_threshold(self):
         returns = pd.Series([1.0, 2.0, 3.0])
@@ -229,11 +196,6 @@ class TestDownsideRate:
     def test_custom_threshold(self):
         returns = pd.Series([5.0, 6.0, 7.0])
         assert downside_rate(returns, threshold=6.0) == pytest.approx(1 / 3)
-
-
-# ---------------------------------------------------------------------------
-# evaluation.windows
-# ---------------------------------------------------------------------------
 
 
 class TestEvaluationGameweeks:
@@ -284,7 +246,7 @@ class TestAssertNoFutureleakage:
 
 
 # ---------------------------------------------------------------------------
-# evaluation.baselines
+# decision baselines
 # ---------------------------------------------------------------------------
 
 
@@ -295,7 +257,7 @@ class TestBaselineRecentPoints:
             _state_row(2, 5, points_roll3=5.0),
             _state_row(3, 5, points_roll3=3.0),
         )
-        result = baseline_recent_points(features, target_gw=5)
+        result = baseline_recent_points(features, gw=5)
         assert list(result["player_id"]) == [1, 2, 3]
 
     def test_filters_low_minutes_players(self):
@@ -303,7 +265,7 @@ class TestBaselineRecentPoints:
             _state_row(1, 5, minutes_roll3=90.0),
             _state_row(2, 5, minutes_roll3=10.0),  # below threshold
         )
-        result = baseline_recent_points(features, target_gw=5)
+        result = baseline_recent_points(features, gw=5)
         assert 2 not in result["player_id"].values
 
     def test_is_deterministic(self):
@@ -311,13 +273,13 @@ class TestBaselineRecentPoints:
             _state_row(1, 5, points_roll3=7.0),
             _state_row(2, 5, points_roll3=5.0),
         )
-        r1 = baseline_recent_points(features, target_gw=5)
-        r2 = baseline_recent_points(features, target_gw=5)
+        r1 = baseline_recent_points(features, gw=5)
+        r2 = baseline_recent_points(features, gw=5)
         pd.testing.assert_frame_equal(r1, r2)
 
     def test_n_limits_rows(self):
         features = _make_features(_state_row(1, 5), _state_row(2, 5), _state_row(3, 5))
-        result = baseline_recent_points(features, target_gw=5, n=2)
+        result = baseline_recent_points(features, gw=5, n=2)
         assert len(result) <= 2
 
     def test_returns_empty_when_all_below_minutes(self):
@@ -325,7 +287,7 @@ class TestBaselineRecentPoints:
             _state_row(1, 5, minutes_roll3=5.0),
             _state_row(2, 5, minutes_roll3=10.0),
         )
-        result = baseline_recent_points(features, target_gw=5, min_minutes_roll3=45.0)
+        result = baseline_recent_points(features, gw=5, min_minutes_roll3=45.0)
         assert result.empty
 
 
@@ -335,7 +297,7 @@ class TestBaselineHighestXgi:
             _state_row(1, 5, xgi_roll3=0.9),
             _state_row(2, 5, xgi_roll3=0.3),
         )
-        result = baseline_highest_xgi(features, target_gw=5)
+        result = baseline_highest_xgi(features, gw=5)
         assert result.iloc[0]["player_id"] == 1
 
     def test_is_deterministic(self):
@@ -343,8 +305,8 @@ class TestBaselineHighestXgi:
             _state_row(1, 5, xgi_roll3=0.7),
             _state_row(2, 5, xgi_roll3=0.4),
         )
-        r1 = baseline_highest_xgi(features, target_gw=5)
-        r2 = baseline_highest_xgi(features, target_gw=5)
+        r1 = baseline_highest_xgi(features, gw=5)
+        r2 = baseline_highest_xgi(features, gw=5)
         pd.testing.assert_frame_equal(r1, r2)
 
 
@@ -354,12 +316,12 @@ class TestBaselineFixtureOnly:
             _state_row(1, 5, fdr_avg=1.5),  # easy
             _state_row(2, 5, fdr_avg=4.5),  # hard
         )
-        result = baseline_fixture_only(features, target_gw=5)
+        result = baseline_fixture_only(features, gw=5)
         assert result.iloc[0]["player_id"] == 1
 
     def test_fdr_score_column_present(self):
         features = _make_features(_state_row(1, 5), _state_row(2, 5))
-        result = baseline_fixture_only(features, target_gw=5)
+        result = baseline_fixture_only(features, gw=5)
         assert "fdr_score" in result.columns
 
     def test_is_deterministic(self):
@@ -367,31 +329,6 @@ class TestBaselineFixtureOnly:
             _state_row(1, 5, fdr_avg=2.0),
             _state_row(2, 5, fdr_avg=3.5),
         )
-        r1 = baseline_fixture_only(features, target_gw=5)
-        r2 = baseline_fixture_only(features, target_gw=5)
+        r1 = baseline_fixture_only(features, gw=5)
+        r2 = baseline_fixture_only(features, gw=5)
         pd.testing.assert_frame_equal(r1, r2)
-
-
-class TestBaselineRandomTopN:
-    def test_returns_n_players(self):
-        features = _make_features(*[_state_row(i, 5) for i in range(1, 11)])
-        result = baseline_random_top_n(features, target_gw=5, n=5)
-        assert len(result) == 5
-
-    def test_reproducible_with_same_seed(self):
-        features = _make_features(*[_state_row(i, 5) for i in range(1, 11)])
-        r1 = baseline_random_top_n(features, target_gw=5, n=5, seed=42)
-        r2 = baseline_random_top_n(features, target_gw=5, n=5, seed=42)
-        pd.testing.assert_frame_equal(r1, r2)
-
-    def test_different_seeds_may_differ(self):
-        features = _make_features(*[_state_row(i, 5) for i in range(1, 11)])
-        r1 = baseline_random_top_n(features, target_gw=5, n=5, seed=42)
-        r2 = baseline_random_top_n(features, target_gw=5, n=5, seed=99)
-        # With enough players, different seeds usually produce different orderings
-        assert not r1["player_id"].equals(r2["player_id"]) or True  # allowed to match
-
-    def test_does_not_exceed_eligible_pool(self):
-        features = _make_features(_state_row(1, 5), _state_row(2, 5))
-        result = baseline_random_top_n(features, target_gw=5, n=10)
-        assert len(result) <= 2

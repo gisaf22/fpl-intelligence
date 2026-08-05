@@ -17,33 +17,58 @@ GRAIN = "player_gw"
 
 def _dc_roll(window: int) -> FeatureSpec:
     return FeatureSpec(
-        name=f"dc_roll{window}", source="defensive_contribution", grain="player_gw", transform="roll",
-        window=window, lag_safe=True,
+        name=f"dc_roll{window}",
+        source="defensive_contribution",
+        grain="player_gw",
+        transform="roll",
+        window=window,
+        lag_safe=True,
         rationale="lagged DC-action form — a player who racks up tackles/CBI/recoveries keeps doing so",
         prior="phase3 DC component (D-A: DC conditionally independent of CS given minutes)",
     )
 
 
 _MINUTES_ROLL3 = FeatureSpec(
-    name="minutes_roll3", source="minutes", grain="player_gw", transform="roll", window=3,
-    lag_safe=True, rationale="expected minutes — more time on pitch, more chances to hit the DC threshold",
+    name="minutes_roll3",
+    source="minutes",
+    grain="player_gw",
+    transform="roll",
+    window=3,
+    lag_safe=True,
+    rationale="expected minutes — more time on pitch, more chances to hit the DC threshold",
     prior="phase2 minutes-exposure study",
 )
 _FDR = FeatureSpec(
-    name="fdr_avg", source="fdr_avg", grain="player_gw", transform="identity", window=None,
-    lag_safe=True, known_future=True,
+    name="fdr_avg",
+    source="fdr_avg",
+    grain="player_gw",
+    transform="identity",
+    window=None,
+    lag_safe=True,
+    known_future=True,
     rationale="fixture difficulty — harder fixtures mean more defensive actions to make",
     prior="families: opponent strength",
 )
 _WAS_HOME = FeatureSpec(
-    name="was_home", source="was_home", grain="player_gw", transform="identity", window=None,
-    lag_safe=True, known_future=True, rationale="venue — away sides defend more; known pre-kickoff",
+    name="was_home",
+    source="was_home",
+    grain="player_gw",
+    transform="identity",
+    window=None,
+    lag_safe=True,
+    known_future=True,
+    rationale="venue — away sides defend more; known pre-kickoff",
 )
 
 # Declared-but-unmaterialized §3 forward agenda: the per-action breakdown behind the composite.
 _TACKLES_ROLL3 = FeatureSpec(
-    name="tackles_roll3", source="tackles", grain="player_gw", transform="roll", window=3,
-    lag_safe=True, rationale="tackles rate alone, sharper than the DC composite for the DEF (CBIT) threshold",
+    name="tackles_roll3",
+    source="tackles",
+    grain="player_gw",
+    transform="roll",
+    window=3,
+    lag_safe=True,
+    rationale="tackles rate alone, sharper than the DC composite for the DEF (CBIT) threshold",
     prior="§3 axis 1: per-action defensive breakdown",
 )
 

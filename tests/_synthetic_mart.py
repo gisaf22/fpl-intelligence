@@ -18,7 +18,7 @@ def points_panel(n_teams: int = 20, n_gw: int = 16, seed: int = 0) -> pd.DataFra
     for tm in range(n_teams):
         strength = rng.uniform(0.3, 2.2)  # team's mean goals-against
         dc_prop = {slot: rng.uniform(3, 13) for slot in range(5)}  # per-player DC-action mean
-        p60 = {slot: rng.uniform(0.4, 0.98) for slot in range(5)}   # per-player start propensity
+        p60 = {slot: rng.uniform(0.4, 0.98) for slot in range(5)}  # per-player start propensity
         for gw in range(1, n_gw + 1):
             ga = rng.poisson(strength)
             home = int(rng.random() < 0.5)
@@ -33,18 +33,36 @@ def points_panel(n_teams: int = 20, n_gw: int = 16, seed: int = 0) -> pd.DataFra
                 gmult = {"GK": 10, "DEF": 6, "MID": 5, "FWD": 4}[pos]
                 cmult = {"GK": 4, "DEF": 4, "MID": 1, "FWD": 0}[pos]
                 total_points = 2 + goals * gmult + assists * 3 + cs * cmult + bonus
-                rows.append({
-                    "player_id": tm * 5 + slot, "team_id": tm, "gw": gw, "position": pos,
-                    "minutes": mins, "is_dgw": False, "starts": started,
-                    "goals_scored": goals, "assists": assists, "saves": rng.poisson(1.0) if pos == "GK" else 0,
-                    "goals_conceded": ga, "xgc": strength + rng.normal(0, 0.1),
-                    "xgc_roll3": strength, "goals_conceded_roll3": strength,
-                    "clean_sheets": cs, "clean_sheets_roll3": rng.uniform(0, 1),
-                    "xg": max(0.0, 0.15 + rng.normal(0, 0.05)), "xa": max(0.0, 0.1 + rng.normal(0, 0.03)),
-                    "xgi_roll3": rng.uniform(0, 0.5), "xgi_roll5": rng.uniform(0, 0.5),
-                    "defensive_contribution": rng.poisson(dc_prop[slot]),
-                    "minutes_roll3": 70.0 + 20 * p60[slot], "minutes_roll5": 70.0 + 20 * p60[slot],
-                    "minutes_roll8": 70.0 + 20 * p60[slot], "bonus": bonus, "total_points": total_points,
-                    "was_home": home, "fdr_avg": rng.uniform(2, 4),
-                })
+                rows.append(
+                    {
+                        "player_id": tm * 5 + slot,
+                        "team_id": tm,
+                        "gw": gw,
+                        "position": pos,
+                        "minutes": mins,
+                        "is_dgw": False,
+                        "starts": started,
+                        "goals_scored": goals,
+                        "assists": assists,
+                        "saves": rng.poisson(1.0) if pos == "GK" else 0,
+                        "goals_conceded": ga,
+                        "xgc": strength + rng.normal(0, 0.1),
+                        "xgc_roll3": strength,
+                        "goals_conceded_roll3": strength,
+                        "clean_sheets": cs,
+                        "clean_sheets_roll3": rng.uniform(0, 1),
+                        "xg": max(0.0, 0.15 + rng.normal(0, 0.05)),
+                        "xa": max(0.0, 0.1 + rng.normal(0, 0.03)),
+                        "xgi_roll3": rng.uniform(0, 0.5),
+                        "xgi_roll5": rng.uniform(0, 0.5),
+                        "defensive_contribution": rng.poisson(dc_prop[slot]),
+                        "minutes_roll3": 70.0 + 20 * p60[slot],
+                        "minutes_roll5": 70.0 + 20 * p60[slot],
+                        "minutes_roll8": 70.0 + 20 * p60[slot],
+                        "bonus": bonus,
+                        "total_points": total_points,
+                        "was_home": home,
+                        "fdr_avg": rng.uniform(2, 4),
+                    }
+                )
     return pd.DataFrame(rows)

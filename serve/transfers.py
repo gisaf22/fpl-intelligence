@@ -17,35 +17,55 @@ lag-safe (the terms fit on ``gw < target_gw``). A multi-week forward hold would 
 multi-step forecasts frozen at the deadline; summing the precomputed forecast column across future GWs
 would leak post-decision state, so it is deliberately not done here.
 
-Input: the DAL mart **enriched** with the model forecast column ``e_points_uncond`` from
-:func:`model.predictions.assemble_forecast`, merged on ``(player_id, gw)`` by the operational runner —
-``serve`` does not import ``model`` (import-linter ``no_serve_to_research_or_model``), so the forecast
-arrives as data, not a call.
+Structure: this module declares a :class:`domain.decision.DecisionSpec` and delegates the shared
+lifecycle to :func:`serve.decision_engine.run_decision` (ADR-012). The forecast column
+``e_points_uncond`` arrives as data, merged onto the mart by the operational runner — ``serve`` does
+not import ``model`` (import-linter ``no_serve_to_research_or_model``).
 """
 
 from __future__ import annotations
 
 import pandas as pd
 
-from serve.input_contracts import IntelligenceInputError, validate_intelligence_inputs
+from domain.decision import DecisionSpec
+from serve.decision_engine import run_decision
 
 # threshold not evaluation-derived — see threshold-registry.md §TRANS-T-01
 _MIN_MINUTES_ROLL5 = 30.0
 
-# The model forecast column the runner must have merged onto the mart (see model.predictions).
-_FORECAST_COLS = ("e_points_uncond",)
 
-_OUTPUT_COLS = [
-    "player_id",
-    "player_name",
-    "position_label",
-    "team_id",
-    "purchase_price",
-    "minutes_roll5",
-    "e_points_uncond",
-    "transfer_score",
-    "transfer_rank",
-]
+def _eligible(features: pd.DataFrame, *, position: str | None = None, **_: object) -> pd.Series:
+    """A reliable starter; optionally restricted to one position."""
+    mask = (~features["is_warmup_gw"]) & (features["minutes_roll5"] >= _MIN_MINUTES_ROLL5)
+    if position is not None:
+        mask &= features["position_label"] == position
+    return mask
+
+
+def _objective(features: pd.DataFrame) -> pd.Series:
+    """Best incoming pick = highest ex-ante expected points for the upcoming GW."""
+    return features["e_points_uncond"]
+
+
+TRANSFERS = DecisionSpec(
+    name="rank_transfer_targets",
+    required_forecast_cols=("e_points_uncond",),
+    eligibility=_eligible,
+    objective=_objective,
+    score_col="transfer_score",
+    rank_col="transfer_rank",
+    output_cols=(
+        "player_id",
+        "player_name",
+        "position_label",
+        "team_id",
+        "purchase_price",
+        "minutes_roll5",
+        "e_points_uncond",
+        "transfer_score",
+        "transfer_rank",
+    ),
+)
 
 
 def rank_transfer_targets(
@@ -77,35 +97,4 @@ def rank_transfer_targets(
 
     Only players with ``minutes_roll5 >= 30`` (and a scored forecast row) are eligible.
     """
-    validate_intelligence_inputs(features, "rank_transfer_targets")
-    missing = [c for c in _FORECAST_COLS if c not in features.columns]
-    if missing:
-        raise IntelligenceInputError(
-            f"rank_transfer_targets: missing model forecast columns {missing}. Enrich the mart with "
-            "model.predictions.assemble_forecast before ranking (serve does not import model; the "
-            "operational runner merges the forecast on (player_id, gw))."
-        )
-
-    gw_df = features[features["gw"] == target_gw].copy()
-    if gw_df.empty:
-        raise IntelligenceInputError(f"rank_transfer_targets: no data for gw={target_gw}")
-
-    if position is not None:
-        gw_df = gw_df[gw_df["position_label"] == position]
-        if gw_df.empty:
-            return pd.DataFrame(columns=_OUTPUT_COLS)
-
-    eligible = gw_df[~gw_df["is_warmup_gw"] & (gw_df["minutes_roll5"] >= _MIN_MINUTES_ROLL5)].copy()
-    # A scored forecast row (e_points_uncond defined) is required to rank.
-    eligible = eligible.dropna(subset=["e_points_uncond"])
-    if eligible.empty:
-        return pd.DataFrame(columns=_OUTPUT_COLS)
-
-    # Best incoming pick = highest ex-ante expected points for the upcoming GW.
-    eligible["transfer_score"] = eligible["e_points_uncond"].astype(float)
-    eligible = eligible.sort_values("transfer_score", ascending=False)
-    eligible["transfer_rank"] = (
-        eligible.groupby("position_label")["transfer_score"].rank(ascending=False, method="min").astype(int)
-    )
-
-    return eligible[_OUTPUT_COLS].head(n).reset_index(drop=True)
+    return run_decision(TRANSFERS, features, target_gw, n=n, position=position)

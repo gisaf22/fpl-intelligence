@@ -50,16 +50,28 @@ _DC_POS = ("DEF", "MID", "FWD")
 # regression in the goals term is now caught by that term's own level gate rather than silently masked.
 
 # The points decomposition (parts sum to e_points); stable across positions, zero where inapplicable.
-DECOMP_COLUMNS = ("appearance", "goals", "assists", "clean_sheets", "goals_conceded",
-                  "saves", "defensive_contribution", "bonus")
+DECOMP_COLUMNS = (
+    "appearance",
+    "goals",
+    "assists",
+    "clean_sheets",
+    "goals_conceded",
+    "saves",
+    "defensive_contribution",
+    "bonus",
+)
 
 # Raw term views renamed to the sampling vocabulary the simulator draws from (spec §1 item 5). These are
 # the UN-scored, UN-gated parameters: Poisson means (e_*), P(GA=0) (p_cs), Bernoulli probs (p60, p_dc),
 # and the already point-valued conceded penalty. simulate.py draws through the FPL rules from these.
 _VIEW_TO_PARAM = {
-    "goals": "e_goals", "assists": "e_assists", "saves": "e_saves",
-    "clean_sheet": "p_cs", "conceded": "conceded_pts",
-    "defensive_contribution": "p_dc", "p60": "p60",
+    "goals": "e_goals",
+    "assists": "e_assists",
+    "saves": "e_saves",
+    "clean_sheet": "p_cs",
+    "conceded": "conceded_pts",
+    "defensive_contribution": "p_dc",
+    "p60": "p60",
 }
 # The parameter panel = identity keys + the raw params + bonus's per-row scoring-map coefficients.
 PARAM_COLUMNS = (*_VIEW_TO_PARAM.values(), "bonus_intercept", "bonus_slope")
@@ -74,8 +86,11 @@ def _master_panel(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
     is **fixtures-only**: a no-fixture / blank-gameweek row (``minutes`` null) is not a captaincy candidate,
     so it is excluded (excluded either way — the default ``minutes>0`` already drops nulls).
     """
-    keep = ((~mart["is_dgw"].astype(bool)) & mart["minutes"].notna()) if keep_all \
+    keep = (
+        ((~mart["is_dgw"].astype(bool)) & mart["minutes"].notna())
+        if keep_all
         else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
+    )
     df = mart[keep].copy()
     return df.sort_values(["player_id", "gw"]).reset_index(drop=True)
 
@@ -186,9 +201,9 @@ def compose_points(mart: pd.DataFrame, keep_all: bool = False) -> pd.DataFrame:
     # default master (all minutes>0) this equals the prior ``where(minutes>0, ..., 0)`` bit-for-bit; on the
     # keep_all panel it is the E[appearance | played] a blank row must carry before the P(play) multiply.
     d["appearance"] = SHORT_APPEARANCE_POINTS + (FULL_APPEARANCE_POINTS - SHORT_APPEARANCE_POINTS) * p60
-    d["goals"] = gmult * p("e_goals")          # GK e_goals is 0.0 at source (not fitted)
+    d["goals"] = gmult * p("e_goals")  # GK e_goals is 0.0 at source (not fitted)
     d["assists"] = ASSIST_POINTS * p("e_assists")
-    d["clean_sheets"] = cmult * p("p_cs") * p60                             # gated by minutes (>=60')
+    d["clean_sheets"] = cmult * p("p_cs") * p60  # gated by minutes (>=60')
     d["goals_conceded"] = np.where(pos.isin(_CONCEDED_POS), p("conceded_pts"), 0.0)  # already point-valued (<=0)
     # E[floor(S/3)], not E[S]/3: FPL pays a concave step function, so the naive linear conversion
     # over-counted GK saves points by ~0.33/GW (a Jensen gap). The simulator already draws-then-floors,

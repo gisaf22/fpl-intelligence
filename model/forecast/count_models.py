@@ -53,9 +53,16 @@ def diagnose_overdispersion(y: pd.Series | np.ndarray) -> dict[str, float | str]
     y = np.asarray(pd.Series(y).dropna(), dtype=float)
     n = y.size
     nan = {
-        "n": n, "mean": float("nan"), "var": float("nan"), "dispersion_index": float("nan"),
-        "nb_alpha": float("nan"), "lrt_stat": float("nan"), "lrt_p": float("nan"),
-        "obs_zero": float("nan"), "poisson_zero": float("nan"), "excess_zero": float("nan"),
+        "n": n,
+        "mean": float("nan"),
+        "var": float("nan"),
+        "dispersion_index": float("nan"),
+        "nb_alpha": float("nan"),
+        "lrt_stat": float("nan"),
+        "lrt_p": float("nan"),
+        "obs_zero": float("nan"),
+        "poisson_zero": float("nan"),
+        "excess_zero": float("nan"),
         "family": "insufficient",
     }
     if n < MIN_ROWS or y.max() == y.min():
@@ -95,11 +102,18 @@ def diagnose_overdispersion(y: pd.Series | np.ndarray) -> dict[str, float | str]
         family = "poisson"
 
     return {
-        "n": n, "mean": round(mean, 4), "var": round(var, 4),
-        "dispersion_index": round(dispersion, 3), "material_overdispersion": bool(material),
-        "nb_alpha": round(nb_alpha, 4), "lrt_stat": round(stat, 3), "lrt_p": lrt_p,
-        "obs_zero": round(obs_zero, 4), "poisson_zero": round(poisson_zero, 4),
-        "excess_zero": round(excess_zero, 4), "family": family,
+        "n": n,
+        "mean": round(mean, 4),
+        "var": round(var, 4),
+        "dispersion_index": round(dispersion, 3),
+        "material_overdispersion": bool(material),
+        "nb_alpha": round(nb_alpha, 4),
+        "lrt_stat": round(stat, 3),
+        "lrt_p": lrt_p,
+        "obs_zero": round(obs_zero, 4),
+        "poisson_zero": round(poisson_zero, 4),
+        "excess_zero": round(excess_zero, 4),
+        "family": family,
     }
 
 
@@ -107,9 +121,7 @@ def diagnose_overdispersion(y: pd.Series | np.ndarray) -> dict[str, float | str]
 MINUTES_BANDS = ((1, 30), (30, 60), (60, 90))
 
 
-def analyze_minutes_exposure(
-    mart: pd.DataFrame, component: str = "goals_scored"
-) -> pd.DataFrame:
+def analyze_minutes_exposure(mart: pd.DataFrame, component: str = "goals_scored") -> pd.DataFrame:
     """Does the component rate scale proportionally with minutes played? (Exposure test.)
 
     Contemporaneous structural read (same-week minutes and component), per position:
@@ -145,18 +157,20 @@ def analyze_minutes_exposure(
         beta = float(r.params[1])
         lo_ci, hi_ci = (float(v) for v in r.conf_int()[1])
         proportional = lo_ci <= 1.0 <= hi_ci
-        rec.update({
-            "beta_logmin": round(beta, 3), "beta_lo": round(lo_ci, 3), "beta_hi": round(hi_ci, 3),
-            "proportional": proportional,
-            "verdict": "proportional (offset ok)" if proportional else "sub-proportional (offset invalid)",
-        })
+        rec.update(
+            {
+                "beta_logmin": round(beta, 3),
+                "beta_lo": round(lo_ci, 3),
+                "beta_hi": round(hi_ci, 3),
+                "proportional": proportional,
+                "verdict": "proportional (offset ok)" if proportional else "sub-proportional (offset invalid)",
+            }
+        )
         rows.append(rec)
     return pd.DataFrame(rows).set_index("position")
 
 
-def diagnose_by_position(
-    mart: pd.DataFrame, components: tuple[str, ...] = COUNT_COMPONENTS
-) -> pd.DataFrame:
+def diagnose_by_position(mart: pd.DataFrame, components: tuple[str, ...] = COUNT_COMPONENTS) -> pd.DataFrame:
     """Over-dispersion diagnosis per (position, count component) on the Phase-0/1 population.
 
     Returns a frame indexed by (position, component) with the diagnosis columns, positions

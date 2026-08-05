@@ -30,8 +30,7 @@ NONCONFORMING_TERMS = ("bonus",)
 MC_SIGMA = 4.0
 
 
-def scoring_conformance(mart: pd.DataFrame, n_sims: int = 4000, seed: int = 0,
-                        batch_rows: int = 400) -> pd.DataFrame:
+def scoring_conformance(mart: pd.DataFrame, n_sims: int = 4000, seed: int = 0, batch_rows: int = 400) -> pd.DataFrame:
     """Per (position, term): ``compose`` point mean vs the simulator's ``E[rule]`` mean, with an MC band.
 
     Ground truth is the simulator's per-component draw mean (:func:`model.simulate.iter_component_blocks`,
@@ -53,7 +52,7 @@ def scoring_conformance(mart: pd.DataFrame, n_sims: int = 4000, seed: int = 0,
         keyed = block[["player_id", "gw", "position"]].merge(decomp, on=["player_id", "gw"], how="left")
         pos = keyed["position"].to_numpy()
         for term in DECOMP_TERMS:
-            comp = comps[term]                      # (n_block_rows, n_sims)
+            comp = comps[term]  # (n_block_rows, n_sims)
             row_mean = comp.mean(axis=1)
             row_var = comp.var(axis=1)
             cval = keyed[term].to_numpy(dtype=float)
@@ -79,13 +78,19 @@ def scoring_conformance(mart: pd.DataFrame, n_sims: int = 4000, seed: int = 0,
             mc_se = float(np.sqrt((vsum / n_sims) / (n * n)))
             asserted = term not in NONCONFORMING_TERMS
             gap = compose_mean - sim_mean
-            rows.append({
-                "position": pos, "term": term, "n": int(n),
-                "compose": round(compose_mean, 4), "sim": round(sim_mean, 4),
-                "gap": round(gap, 4), "mc_se": round(mc_se, 5),
-                "asserted": asserted,
-                "conforms": (abs(gap) <= MC_SIGMA * mc_se) if asserted else np.nan,
-            })
+            rows.append(
+                {
+                    "position": pos,
+                    "term": term,
+                    "n": int(n),
+                    "compose": round(compose_mean, 4),
+                    "sim": round(sim_mean, 4),
+                    "gap": round(gap, 4),
+                    "mc_se": round(mc_se, 5),
+                    "asserted": asserted,
+                    "conforms": (abs(gap) <= MC_SIGMA * mc_se) if asserted else np.nan,
+                }
+            )
     return pd.DataFrame(rows)
 
 

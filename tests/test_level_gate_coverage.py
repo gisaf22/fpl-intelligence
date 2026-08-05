@@ -25,8 +25,15 @@ pytestmark = pytest.mark.unit
 
 # Every Term the registry produces (compose iterates these models; here we gate their views directly).
 ALL_TERMS = [
-    GoalsTerm, AssistsTerm, SavesTerm, CleanSheetTerm, ConcededTerm,
-    DefensiveContributionTerm, MinutesTerm, BonusTerm, PlayTerm,
+    GoalsTerm,
+    AssistsTerm,
+    SavesTerm,
+    CleanSheetTerm,
+    ConcededTerm,
+    DefensiveContributionTerm,
+    MinutesTerm,
+    BonusTerm,
+    PlayTerm,
 ]
 
 

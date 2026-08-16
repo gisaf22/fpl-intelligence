@@ -6,14 +6,12 @@ authoring decisions, promoting, mutating lifecycle state — lives in
 
   Contract (meaning):
     schema.py            registry column contract + controlled vocabularies
-    governance_types.py  the GovernanceMetadata verdict shape
     validation.py        enforces the contract
 
   Runtime consumption primitives (mechanism every consumer may import):
     loader.py            pure typed CSV loader
     operational.py       loader + lifecycle gate, for operational consumers
     lifecycle.py         assert_operational_safe — the path-based runtime gate
-    governance_lookup.py read access to the decision-of-record
 
 These primitives live in ``domain`` — the shared leaf — not because ``domain``
 owns governance, but because ``serve`` must consume governed artifacts at runtime

@@ -5,9 +5,7 @@ import pandas as pd
 import pytest
 
 from domain.registry.operational import load_registry
-from model.governance.promote import promote_registry
 from research.registry.build import main, run_registry_build
-from serve.reporting.weekly_report_runner import run_week
 
 pytestmark = pytest.mark.unit
 
@@ -152,29 +150,3 @@ def test_registry_build_computed_mode_requires_prepared_data_path(tmp_path):
             build_mode="computed",
             signals=["bps"],
         )
-
-
-def test_weekly_runner_consumes_promoted_registry(tmp_path):
-    # Full flow: research builds the finding, governance promotes it, then the
-    # operational weekly runner consumes the promoted (operational) registry.
-    build_result = run_registry_build(
-        gw=36,
-        source_registry_path=SOURCE_REGISTRY_PATH,
-        finding_dir=tmp_path / "finding" / "gw36",
-    )
-
-    promotion = promote_registry(
-        finding_path=build_result.finding_path,
-        gw=36,
-        output_dir=tmp_path / "registry" / "gw36",
-    )
-
-    weekly_result = run_week(
-        gw=36,
-        registry_path=promotion.registry_path,
-        output_dir=tmp_path / "weekly" / "gw36",
-    )
-
-    assert weekly_result.n_rows == 104
-    assert weekly_result.weekly_report_path.exists()
-    assert weekly_result.registry_snapshot_path.exists()

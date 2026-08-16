@@ -205,11 +205,6 @@ CONTROLLED_VALUE_COLUMNS: dict[str, frozenset[str]] = {
 # promotion_class is null for blocked rows.
 NULLABLE_CONTROLLED_COLUMNS: frozenset[str] = frozenset({"support_type", "promotion_class"})
 
-# ---------------------------------------------------------------------------
-# Runtime governance metadata
-# ---------------------------------------------------------------------------
-# The runtime governance verdict contract (GovernanceMetadata, its error type,
-# the lifecycle/leakage vocabularies, and the pre-lens allowlist) lives in
-# domain.registry.governance_types — it is the contract for evaluation_metadata.yaml
-# lookups, not for the registry CSV. Kept separate so this module stays the
-# single concern "what is a valid registry row".
+# The runtime governance verdict contract that once sat alongside this module was
+# retired with evaluation_metadata.yaml; this module stays the single concern
+# "what is a valid registry row".

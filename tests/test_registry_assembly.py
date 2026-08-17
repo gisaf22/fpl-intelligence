@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from domain.registry.operational import load_registry
+from domain.registry.loader import load_registry
 from research.registry.assembler import assemble_registry_from_sections
 
 pytestmark = pytest.mark.unit

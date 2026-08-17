@@ -10,8 +10,6 @@ authoring decisions, promoting, mutating lifecycle state — lives in
 
   Runtime consumption primitives (mechanism every consumer may import):
     loader.py            pure typed CSV loader
-    operational.py       loader + lifecycle gate, for operational consumers
-    lifecycle.py         assert_operational_safe — the path-based runtime gate
 
 These primitives live in ``domain`` — the shared leaf — not because ``domain``
 owns governance, but because ``serve`` must consume governed artifacts at runtime

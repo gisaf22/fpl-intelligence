@@ -100,9 +100,11 @@ These tests catch architectural regressions that `lint-imports` does not — spe
 | `test_registry_build_parity.py` | Parity between EDA registry and built artifact |
 | `test_registry_build_runner.py` | End-to-end registry build runner |
 
-**Known gap:** the lifecycle gate `domain.registry.lifecycle.assert_operational_safe` — which raises
-`LifecycleViolationError` when an exploratory registry path is loaded operationally — has **no test**.
-`test_registry_lifecycle.py` was deleted and nothing replaced it.
+The lifecycle gate that `test_registry_lifecycle.py` used to cover no longer exists:
+`domain/registry/lifecycle.py` and `domain/registry/operational.py` were deleted once
+`model/governance/promote.py` removed the only writer of `outputs/registry/`, leaving the
+path-based gate with no passing input. Registry tests now import the sole loader,
+`domain.registry.loader.load_registry`.
 
 ### Serve layer — `tests/test_intelligence_outputs.py`
 

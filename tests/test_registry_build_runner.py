@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from domain.registry.operational import load_registry
+from domain.registry.loader import load_registry
 from research.registry.build import main, run_registry_build
 
 pytestmark = pytest.mark.unit

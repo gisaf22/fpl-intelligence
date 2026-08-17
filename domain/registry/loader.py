@@ -39,10 +39,12 @@ def _coerce_bool(value: object, column: str) -> bool:
 def load_registry(path: str | Path = RESEARCH_REGISTRY_PATH) -> pd.DataFrame:
     """Load a registry CSV and normalize dtypes for downstream use.
 
-    This is the pure typed loader — it performs no lifecycle/operational gating.
-    The operational gate (``operational=True``) lives with governance in
-    ``domain.registry.operational.load_registry``, which delegates here
-    after asserting the path is a promoted artifact.
+    This is the only registry loader. The path-based lifecycle gate that once
+    wrapped it (``domain.registry.operational`` / ``lifecycle.py``) was deleted
+    once ``model/governance/promote.py`` — the sole writer of its "safe"
+    destination, ``outputs/registry/`` — was removed: every registry artifact the
+    system produces is now an exploratory research finding, so the gate had no
+    passing input.
     """
     registry_path = Path(path)
     registry = pd.read_csv(registry_path, keep_default_na=True)

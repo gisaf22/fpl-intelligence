@@ -60,11 +60,9 @@ Comprehensive per-concern tests run against the constructed test database. These
 
 | File(s) | Concern |
 |---------|---------|
-| `test_dal_grain.py` | Grain uniqueness at staging, curated, and state layers |
 | `test_dal_completeness.py` | Row count = n_players × n_gws; BGW rows present; time continuity |
-| `test_dal_bgw.py` | BGW null semantics; fixture_count=0; team_id temporal rule |
+| `test_dal_bgw_dgw.py` | BGW/DGW null semantics; fixture_count; team_id temporal rule; NULL vs zero across SPINE_COLS |
 | `test_dal_dgw.py` | DGW aggregation; fixture_count=2; normalization convention |
-| `test_dal_nulls.py` | NULL vs zero semantics across all SPINE_COLS |
 | `test_dal_joins.py` | Join safety; no silent row loss at any merge site |
 | `test_dal_invariants.py` | Cross-cutting invariants: future data prohibition, roll window lag-1 |
 | `test_dal_prepared_dataset.py` | Prepared dataset cutoff semantics; GOVERNED_SIGNAL_COLUMNS |
@@ -72,7 +70,10 @@ Comprehensive per-concern tests run against the constructed test database. These
 | `test_validation_modules.py` | Validator unit tests (unit — no DB required) |
 | `test_curated_spine.py`, `test_curated_state_boundary.py` | Spine and state layer boundaries |
 | `test_staging.py`, `test_state.py` | Layer-level construction and output |
-| `test_state_rolling_windows.py`, `test_state_stabilization.py` | State rolling window semantics |
+| `test_state_rolling_windows.py` | State rolling window semantics |
+
+Grain uniqueness has no single dedicated file — it is asserted at each layer by
+`test_curated_spine.py`, `test_state.py`, `test_dal_prepared_dataset.py`, and `test_mart_schema.py`.
 
 ### Governance enforcement — `tests/test_layer_isolation.py`, `tests/test_dal_architecture.py`
 
@@ -93,13 +94,15 @@ These tests catch architectural regressions that `lint-imports` does not — spe
 
 | File | Covers |
 |------|--------|
-| `test_registry_lifecycle.py` | `assert_operational_safe()` path gate; `LifecycleViolationError` raises |
-| `test_registry_semantics.py` | Registry CSV schema validation |
-| `test_registry_contract.py` | Contract enforcement: required columns, dtypes |
+| `test_registry_contract.py` | Registry CSV schema validation and contract enforcement — required columns, dtypes, eligibility rules (`domain.registry.validation.validate_registry_contract`) |
 | `test_registry_assembly.py` | Registry build assembly logic |
 | `test_registry_build_inputs.py` | Input validation for registry build pipeline |
 | `test_registry_build_parity.py` | Parity between EDA registry and built artifact |
 | `test_registry_build_runner.py` | End-to-end registry build runner |
+
+**Known gap:** the lifecycle gate `domain.registry.lifecycle.assert_operational_safe` — which raises
+`LifecycleViolationError` when an exploratory registry path is loaded operationally — has **no test**.
+`test_registry_lifecycle.py` was deleted and nothing replaced it.
 
 ### Serve layer — `tests/test_intelligence_outputs.py`
 
@@ -163,7 +166,8 @@ Tests marked `@pytest.mark.integration` require a live database (`FPL_DB_PATH` o
 - Tests that use fixture DataFrames constructed in the test itself
 - Tests that scan source code (governance checks)
 - Tests that call pure computation functions with in-memory inputs
-- Tests that load the registry CSV from `outputs/registry/gw36/` (the committed bootstrap)
+- Tests that load the registry CSV from `research/findings/records/eda_03_joint_registry.csv`
+  (`domain.registry.schema.RESEARCH_REGISTRY_PATH` — a committed research artifact, not a build output)
 
 **CI implication:** the DB-free lane (`pytest -m "not integration"`) runs in CI on every push. The full suite (`pytest`) requires a database artifact and runs on demand or in a dedicated integration stage.
 

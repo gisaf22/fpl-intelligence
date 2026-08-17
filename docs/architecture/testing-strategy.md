@@ -119,7 +119,7 @@ off the model forecast through `serve.decision_engine` (ADR-011/ADR-012). Any `s
 
 `tests/helpers/` is **empty** — an `__init__.py` and nothing else. ADR-012 (`c475873`) moved every
 evaluator, baseline, metric, and leakage guard it used to hold into `model/eval/decision/` and
-`research/kernels/evaluation`, and built the real runner in `operational/`. Per CONTEXT.md §9,
+`research/kernels/evaluation`, and built the real runner in `operational/`. Per CLAUDE.md §9,
 `tests/` holds no production or workflow logic — do not reintroduce evaluators here.
 
 | File | Covers |

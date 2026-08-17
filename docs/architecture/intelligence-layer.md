@@ -116,68 +116,28 @@ target GW are returned so consumers can filter for LOW-risk when building squads
 
 ---
 
-## The report pipeline (separate surface — `serve/scoring/`, `serve/reporting/`)
+## The report pipeline (`serve/scoring/`, `serve/reporting/`) — **REMOVED at `ae90398`**
 
-Distinct from the recommendation modules above: a rho-based **signal report** that reads the governed
-registry, not the model forecast. It was **not** part of the serve↔model integration and is unaffected by
-ADR-011.
+There used to be a second surface here: a rho-based **signal report** that read the governed registry
+(`outputs/registry/gw{N}/`) rather than the model forecast, gated at runtime by
+`domain/registry/lifecycle.py::assert_operational_safe`. It was not part of the serve↔model
+integration and was unaffected by ADR-011. (That gate has since been deleted too — with
+`model/governance/promote.py` gone, nothing writes `outputs/registry/`, so the gate had no
+passing input.)
 
-### Registry consumption and lifecycle gate
-
-The report pipeline never reads directly from `research/findings/`. It consumes only governed registry
-artifacts from `outputs/registry/gw{N}/`. The gate is enforced at runtime by
-`domain/registry/lifecycle.py`:
-
-```python
-assert_operational_safe(registry_path)   # raises LifecycleViolationError if under research/findings/
-```
-
-The registry reaches the scorer only after (1) signals have `promotion_class` in
-`{core_signal, review_signal}` from system EDA, (2) `model/governance/promote.py` validates the contract
-and writes `outputs/registry/gw{N}/` (the finding built by `research/registry/build.py`), and (3) the
-runner receives `--registry-path outputs/registry/gw{N}/registry.csv`. See
-[docs/registry-governance.md](../registry-governance.md).
-
-### Signal filtering in the scorer
-
-`serve/scoring/signal_selector.py` applies three filters when loading a registry:
-
-| Filter | Condition | Rationale |
-|--------|-----------|-----------|
-| Promotion class | `promotion_class in {core_signal, review_signal}` | Only EDA-confirmed signals |
-| Role exclusion | `layer_role not in {points_component, contribution_index}` | Leakage / outcome-component signals excluded |
-| Non-null rho | `rho_pooled` not null (lens CI gate) | `MIN_RHO` removed; the CI gate is the sole magnitude authority |
-
-Retained signals contribute to the report weighted by `rho_pooled` — declared in the registry artifact,
-not hidden in code constants.
-
-### Weekly artifact lineage
-
-```
-outputs/registry/gw{N}/
-    registry.csv          — governed signal manifest (29 signals for gw36)
-    build_metadata.json   — build timestamp, source path, row count, schema version
-outputs/scorer/
-    gw{N}_player_scores.html  — scored player table with explainability spans
-serve/reporting/
-    (weekly snapshot data written to DB or stdout via reporting runner)
-```
-
-**Committed vs ephemeral:** `outputs/registry/` is committed (`.gitignore` exception `!outputs/registry/`)
-— the `gw36/` artifact is a bootstrap so `assert_operational_safe()` passes in a fresh checkout without a
-live DB run. `outputs/scorer/` and all other `outputs/*` are gitignored. See
-[runtime-artifacts.md](runtime-artifacts.md).
+Commit `ae90398` deleted the whole surface — `serve/scoring/`, `serve/reporting/`,
+`domain/registry/{verdict,governance_lookup,governance_types}.py`, the `outputs/registry/gw36/`
+bootstrap artifact and their tests — on the grounds that it had no consumer on the live decision
+path. `serve/` now contains only the decision specs and the decision engine described above.
 
 ---
 
 ## Relationship to research signals
 
-Both surfaces consume **governed** inputs only — the recommendation modules read the DAL mart plus the
-model forecast columns; the report pipeline reads the governed registry. Neither consumes EDA registries
-from `research/findings/`, research-stage promoted lists, or exploratory artifacts. For the mart contract
-this is enforced by `validate_intelligence_inputs()` in `serve/input_contracts.py`. See
-[docs/registry-governance.md](../registry-governance.md) and
-[docs/signal-promotion-states.md](../signal-promotion-states.md).
+The recommendation modules consume **governed** inputs only — the DAL mart plus the model forecast
+columns. They do not consume EDA registries from `research/findings/`, research-stage promoted lists,
+or exploratory artifacts. For the mart contract this is enforced by `validate_intelligence_inputs()`
+in `serve/input_contracts.py`.
 
 ## Current limitations
 

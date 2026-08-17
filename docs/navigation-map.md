@@ -13,8 +13,8 @@ fpl-intelligence is a governed analytical system for Fantasy Premier League. Its
 dal/          → validated, deterministic (player_id, gw) spine
 research/     → analytical methodology: foundation EDA, family lenses, statistical kernels
 model/        → governance decisions: decision-of-record, promotion, traceability (governance) + composition weights (assemble)
-domain/registry/ → shared leaf: registry contract, loaders, lifecycle gate, governance lookup
-serve/ → player scoring and weekly reporting
+domain/       → shared leaf: FPL scoring rules, decision contract, registry schema/loaders
+serve/        → decision specs (captain/value/transfers) + the decision engine
 ```
 
 ## Spine traversal
@@ -22,11 +22,14 @@ serve/ → player scoring and weekly reporting
 To trace a feature to a decision:
 
 1. Start with `dal/feat/feat_schema.py::FEATURE_REGISTRY` for feature status and approved positions.
-2. Resolve the feature and position in `model/governance/signal_traceability.yaml`.
-3. Use `analysis_paths` for the study/lens implementation.
-4. Derive the finding key as `signal@lens:target[#POS]` and resolve the verdict in `model/governance/evaluation_metadata.yaml`.
-5. Search that key in `model/assemble/synth01_decisions.yaml` for composition decisions.
-6. Search that key or listed `derived_from` values in `serve/weight_registry.yaml` for intelligence usage.
+2. Resolve the feature and position in the owning family study,
+   `research/families/{form,market,availability,fixture}/validate/`.
+3. Read the machine verdict in that family's `evidence.yaml` and the hand-authored judgment in its
+   `annotations.yaml`.
+4. Search the signal in `model/assemble/synth01_decisions.yaml` for composition decisions
+   (superseded as a *ranking* input by ADR-011; retained as measurement).
+5. For the live ranking path, read `serve/{captain,value,transfers}.py` — they rank on
+   `model/predictions.py::assemble_forecast` columns directly, not on any weight registry.
 
 If a feature has no evaluated traceability route, treat it as conditional/pre-lens and do not assume it is operationally governed.
 
@@ -35,10 +38,8 @@ If a feature has no evaluated traceability route, treat it as conditional/pre-le
 | Document | Answers |
 |----------|---------|
 | [docs/system-purpose.md](system-purpose.md) | What is this system for? What does it not do? |
-| [docs/architecture/system-model.md](architecture/system-model.md) | What is each part of the system responsible for? (3-plane model) |
 | [docs/architecture/adlc.md](architecture/adlc.md) | How is the model researched and chosen? (analysis lifecycle) |
-| [docs/architecture/analytical-architecture.md](architecture/analytical-architecture.md) | What are the analytical objects and where is each governed? (object spine) |
-| [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) | How does a decision get made at runtime, end to end? |
+| [docs/PROJECT.md](PROJECT.md) | What was built, what was found, and how a decision gets made at runtime |
 | [dal/README.md](../dal/README.md) | What are the DAL layers and entry points? |
 
 ---
@@ -48,12 +49,10 @@ If a feature has no evaluated traceability route, treat it as conditional/pre-le
 ### New contributor (start here)
 
 1. [docs/system-purpose.md](system-purpose.md) — mission, architectural intent, non-goals
-2. [docs/architecture/system-model.md](architecture/system-model.md) — 3-plane model: what each component is for
-3. [docs/architecture/adlc.md](architecture/adlc.md) — the analysis lifecycle: explore → validate → model → serve → monitor
-4. [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) — runtime flow with failure modes + the run sequence
-5. [docs/signal-promotion-states.md](signal-promotion-states.md) — signal governance states: how a signal travels from EDA to scorer
-6. [docs/registry-governance.md](registry-governance.md) — exploratory vs operational registries, lifecycle gate enforcement
-7. [CONTEXT.md](../CONTEXT.md) — current project state, rules, and session orientation
+2. [docs/architecture/adlc.md](architecture/adlc.md) — the analysis lifecycle: explore → validate → model → serve → monitor
+3. [docs/PROJECT.md](PROJECT.md) — the research record: what each layer is, what it found, where it stands
+4. [CONTEXT.md](../CONTEXT.md) — current project state, structure, and document hierarchy
+5. [CLAUDE.md](../CLAUDE.md) — the standing rules and the session start-up read order (auto-loaded each session)
 
 ### DAL contributor
 
@@ -66,23 +65,20 @@ If a feature has no evaluated traceability route, treat it as conditional/pre-le
 ### Research contributor (lens studies, EDA, experiments)
 
 1. [docs/system-purpose.md](system-purpose.md) — system question and research boundaries
-2. [docs/signal-promotion-states.md](signal-promotion-states.md) — signal governance states and promotion criteria
-3. [model/governance/SIGNAL_REGISTRY.md](../model/governance/SIGNAL_REGISTRY.md) — governance registry: signal schema, lifecycle rules, update protocol
-4. [model/governance/EVAL_DESIGN.md](../model/governance/EVAL_DESIGN.md) — **locked** success criteria and failure conditions (cannot be revised retrospectively)
-5. [docs/decisions/](decisions/) — architectural decisions: why Spearman, why additive weighting
-6. [docs/studies/](studies/) — study designs and published results
+2. [model/governance/EVAL_DESIGN.md](../model/governance/EVAL_DESIGN.md) — **locked** success criteria and failure conditions (cannot be revised retrospectively)
+3. [docs/decisions/](decisions/) — architectural decisions: why Spearman, why additive weighting
+4. [docs/studies/](studies/) — study designs and published results
 
 ### Intelligence / scoring contributor
 
 1. [docs/architecture/intelligence-layer.md](architecture/intelligence-layer.md) — scorer pipeline, component weights, eligibility thresholds, non-goals
-2. [docs/registry-governance.md](registry-governance.md) — what the scorer is allowed to consume and why
-3. [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) — lifecycle gate enforcement at runtime
-4. [docs/architecture/downstream-dependency-governance.md](architecture/downstream-dependency-governance.md) — allowed imports from `signals.governance.*`
+2. [docs/architecture/downstream-dependency-governance.md](architecture/downstream-dependency-governance.md) — allowed imports from downstream modules
 
 ### Operational runner (running the system weekly)
 
-1. [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) — the run sequence (`python -m …`), entry points, failure modes
-2. [docs/registry-governance.md](registry-governance.md) — when a registry path is safe for operational use
+1. `python -m dal.pipeline run` — build the mart (requires the live DB)
+2. `python -m operational.recommend --target-gw {N}` — the composition root for a weekly run; see
+   [docs/PROJECT.md](PROJECT.md) §3 for its call chain
 
 ---
 
@@ -94,9 +90,7 @@ If a feature has no evaluated traceability route, treat it as conditional/pre-le
 |----------|-------------------|
 | `dal/fct/fct_contracts.py`, `dal/validation/` | All DAL behavior: grain, column contracts, null semantics, dtype contracts, BGW/DGW invariants (code-enforced) |
 | [model/governance/EVAL_DESIGN.md](../model/governance/EVAL_DESIGN.md) | Success criteria and failure conditions for 2025-26 methodology |
-| [model/governance/SIGNAL_REGISTRY.md](../model/governance/SIGNAL_REGISTRY.md) | Lifecycle status for every named signal |
-| [docs/signal-promotion-states.md](signal-promotion-states.md) | Signal governance state definitions and promotion rules |
-| [docs/registry-governance.md](registry-governance.md) | Exploratory vs operational registry semantics; lifecycle gate enforcement |
+| `research/families/*/validate/evidence.yaml` | Machine verdict (`decision_class`) for every tested signal-position cell |
 | [docs/architecture/downstream-dependency-governance.md](architecture/downstream-dependency-governance.md) | Allowed and forbidden import patterns for downstream modules |
 | [docs/governance/threshold-registry.md](governance/threshold-registry.md) | All operational thresholds: values, classifications, 2026/27 disposition |
 | [docs/governance/evaluation-gate-criteria.md](governance/evaluation-gate-criteria.md) | Lens study gate definitions: what constitutes pass/fail at each gate |
@@ -116,22 +110,19 @@ Bounded, immutable records of why key decisions were made. Read before changing 
 | Document | Use for |
 |----------|---------|
 | [docs/system-purpose.md](system-purpose.md) | Orienting new contributors; scoping new research |
-| [docs/architecture/system-model.md](architecture/system-model.md) | 3-plane conceptual model: Control · Execution · Measurement |
 | [docs/architecture/adlc.md](architecture/adlc.md) | The analysis lifecycle: explore → validate → model → serve → monitor; mode tags; test contracts |
-| [docs/architecture/analytical-architecture.md](architecture/analytical-architecture.md) | The analytical object spine: Entity → Signal → Feature → Analysis → Finding → Decision, and where each is governed |
-| [docs/architecture/runtime-execution.md](architecture/runtime-execution.md) | Runtime flow + the run sequence: DAL → registry → intelligence → output |
 | [docs/architecture/intelligence-layer.md](architecture/intelligence-layer.md) | Scorer pipeline, registry consumption, rho weighting, explainability |
 | [docs/architecture/explainability-model.md](architecture/explainability-model.md) | Scoring formula, signal selection rationale, independent verification steps |
 | [docs/architecture/testing-strategy.md](architecture/testing-strategy.md) | Test categories, integration marker, unit vs full suite |
 | [docs/architecture/test-coverage.md](architecture/test-coverage.md) | Invariant → validator → test status map (Verified / Partial / Unverified / Missing) |
 | [docs/architecture/platform-capabilities.md](architecture/platform-capabilities.md) | The eight platform capabilities every design must address; the design-doc capabilities table |
 | [docs/architecture/layer-boundaries.md](architecture/layer-boundaries.md) | Component ownership boundaries, dependency direction, non-overlap rules |
-| [docs/architecture/runtime-artifacts.md](architecture/runtime-artifacts.md) | What artifacts are produced, where they live, gitignore policy |
 | [docs/architecture/db-schema.md](architecture/db-schema.md) | Source database table and column reference |
 | [docs/foundations/representation-governance.md](foundations/representation-governance.md) | Transform admissibility rules: what operations are valid per signal temporal type |
 | [docs/foundations/signal-ontology.md](foundations/signal-ontology.md) | 8 information classes; forward constraints for future research |
 | [dal/README.md](../dal/README.md) | DAL entry points and layer overview |
-| [CONTEXT.md](../CONTEXT.md) | Project state and session orientation |
+| [CONTEXT.md](../CONTEXT.md) | Project state, structure, and document hierarchy |
+| [CLAUDE.md](../CLAUDE.md) | Standing rules ("never break these") + session start-up read order; auto-loaded |
 
 ### Study record (permanent research artifacts)
 
@@ -157,10 +148,9 @@ These files are active governance artifacts owned by their respective layers. Th
 
 | File | Owned by | Purpose |
 |------|----------|---------|
-| [model/governance/SIGNAL_REGISTRY.md](../model/governance/SIGNAL_REGISTRY.md) | `model/governance/` | Single source of truth for signal lifecycle status (generated/read-only projection). Updated only at methodology milestones. |
 | [model/governance/EVAL_DESIGN.md](../model/governance/EVAL_DESIGN.md) | `model/governance/` | Locked success criteria for 2025-26 methodology. Cannot be revised retrospectively. |
-| [serve/weight_registry.yaml](../serve/weight_registry.yaml) | `serve/` | Operational scoring weights per (signal, position). Updated after SYNTH-01 re-run. |
-| [model/governance/evaluation_metadata.yaml](../model/governance/evaluation_metadata.yaml) | `model/governance/` | Per-signal lens findings, lifecycle states, downstream status. |
+| `research/families/*/validate/{evidence,annotations}.yaml` | `research/families/` | Per-signal lens findings: machine verdict + hand-authored judgment. |
+| [model/assemble/synth01_decisions.yaml](../model/assemble/synth01_decisions.yaml) | `model/assemble/` | SYNTH-01 composition decisions. Superseded as a ranking input by ADR-011; retained as measurement. |
 
 ---
 

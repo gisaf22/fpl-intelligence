@@ -50,18 +50,22 @@ def grouped_spearman(df: pd.DataFrame, pred_col: str, target_col: str, by: list[
     return float(np.mean(rhos)) if len(rhos) else np.nan
 
 
-def block_bootstrap_ci(
-    values: np.ndarray, block: int = BLOCK_GWS, n: int = N_BOOTSTRAP, ci_level: float = CI_LEVEL, seed: int = 0
-) -> tuple[float, float]:
-    """Percentile CI of the mean of a per-gameweek series, resampling blocks of consecutive GWs.
+def block_bootstrap_draws(
+    values: np.ndarray, block: int = BLOCK_GWS, n: int = N_BOOTSTRAP, seed: int = 0
+) -> np.ndarray:
+    """Bootstrap means of a per-gameweek series, resampling blocks of consecutive GWs.
 
     Consecutive gameweeks autocorrelate (form runs), so resampling *blocks* (not individual GWs) gives
-    an honest interval on a per-GW metric. Degenerate (constant) series return a point interval.
+    an honest sampling distribution for a per-GW metric. Empty when the series is shorter than a block.
+
+    Exposed separately from :func:`block_bootstrap_ci` so a caller needing more than an interval — a
+    bootstrap p-value, say, which a multiplicity correction requires — reads it off the *same* draws
+    rather than re-resampling and getting a subtly different answer.
     """
     values = np.asarray(values, dtype=float)
     values = values[~np.isnan(values)]
     if len(values) < block:
-        return (float("nan"), float("nan"))
+        return np.empty(0)
     rng = np.random.default_rng(seed)
     k = int(np.ceil(len(values) / block))
     draws = np.empty(n)
@@ -69,6 +73,19 @@ def block_bootstrap_ci(
         starts = rng.integers(0, len(values) - block + 1, size=k)
         idx = np.concatenate([np.arange(s, s + block) for s in starts])[: len(values)]
         draws[i] = values[idx].mean()
+    return draws
+
+
+def block_bootstrap_ci(
+    values: np.ndarray, block: int = BLOCK_GWS, n: int = N_BOOTSTRAP, ci_level: float = CI_LEVEL, seed: int = 0
+) -> tuple[float, float]:
+    """Percentile CI of the mean of a per-gameweek series (see :func:`block_bootstrap_draws`).
+
+    Degenerate (constant) series return a point interval.
+    """
+    draws = block_bootstrap_draws(values, block=block, n=n, seed=seed)
+    if not len(draws):
+        return (float("nan"), float("nan"))
     a = (1.0 - ci_level) / 2.0
     return (float(np.percentile(draws, 100 * a)), float(np.percentile(draws, 100 * (1 - a))))
 

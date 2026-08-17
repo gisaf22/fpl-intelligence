@@ -100,35 +100,100 @@ def oracle_rank_hits(
     return pd.DataFrame(rows).set_index("strategy")
 
 
-def divergence_winrate(pool: pd.DataFrame) -> dict:
-    """When the model's captain != base_season's, does the model win? (conditional win-rate + block CI)."""
+def divergence_winrate(pool: pd.DataFrame, baseline_col: str = "base_season", challenger_col: str = "e_points") -> dict:
+    """When ``challenger_col``'s captain != ``baseline_col``'s, does the challenger WIN?
+
+    Q3, the diagnostic's crux, generalized to any pair of score columns. The default pair
+    (``base_season`` vs ``e_points``) reproduces the frozen Phase-5 numbers; the ceiling columns
+    (``p90``/``p_haul``) are the strategies that actually beat template in the Phase-5 backtest, so
+    testing the crux against them is what licenses (or refutes) an 'irreducible' verdict for them.
+
+    Both a **win-rate CI** (fraction of divergent GWs the challenger wins) and a **paired mean-delta
+    CI** (the points swing itself) come from the shared block bootstrap, matching the Phase-5 backtest.
+    Caveat: divergent GWs are non-contiguous, so a 'block' of 4 is 4 adjacent *divergent* GWs, not 4
+    adjacent calendar GWs — the autocorrelation guard is approximate on a sparse subset.
+    """
     diff = []
     for _, g in pool.groupby("gw"):
-        bp = g.loc[g["base_season"].idxmax(), "player_id"]
-        mp = g.loc[g["e_points"].idxmax(), "player_id"]
-        if bp != mp:
-            diff.append(
-                g.loc[g["e_points"].idxmax(), "total_points"] - g.loc[g["base_season"].idxmax(), "total_points"]
-            )
+        gg = g.dropna(subset=[baseline_col, challenger_col, "total_points"])
+        if gg.empty:
+            continue
+        base_row = gg.loc[gg[baseline_col].idxmax()]
+        chal_row = gg.loc[gg[challenger_col].idxmax()]
+        if base_row["player_id"] != chal_row["player_id"]:
+            diff.append(float(chal_row["total_points"] - base_row["total_points"]))
     diff = np.asarray(diff, dtype=float)
     n_gw = pool["gw"].nunique()
     lo, hi = _ci3((diff > 0).astype(float)) if len(diff) >= 4 else (float("nan"), float("nan"))
+    d_lo, d_hi = _ci3(diff) if len(diff) >= 4 else (float("nan"), float("nan"))
     return {
+        "baseline": baseline_col,
+        "challenger": challenger_col,
         "n_divergent": len(diff),
         "n_gw": int(n_gw),
         "winrate": round(float((diff > 0).mean()), 3) if len(diff) else float("nan"),
         "winrate_ci": (lo, hi),
         "mean_pts_diff": round(float(diff.mean()), 3) if len(diff) else float("nan"),
+        "mean_pts_diff_ci": (d_lo, d_hi),
     }
+
+
+def _oos_scores(sub: pd.DataFrame, feats: list[str], mode: str) -> np.ndarray:
+    """Out-of-sample P(is_oracle) per row under one CV scheme (NaN where a GW went unscored).
+
+    ``logo`` trains on every *other* gameweek — past **and future**. That maximizes power at this n,
+    but it is not a deployable forecast: late-season form/fixture structure informs an early-GW score.
+    ``walk_forward`` trains strictly on ``gw < t``, the discipline every term-level fit in
+    ``model.terms`` already follows (``_poisson_component.fit``). Its early GWs are unscored (no prior
+    data) and its early folds are thin — that thinness is part of the honest answer, not a bug to patch.
+    """
+    oos = np.full(len(sub), np.nan)
+    for gw in sorted(sub["gw"].unique()):
+        tr = sub[sub["gw"] != gw] if mode == "logo" else sub[sub["gw"] < gw]
+        te = (sub["gw"] == gw).to_numpy()
+        if tr["is_oracle"].nunique() < 2:  # walk-forward: no prior data / no prior oracle yet
+            continue
+        mu, sd = tr[feats].mean(), tr[feats].std() + 1e-9
+        m = LogisticRegression(max_iter=200).fit((tr[feats] - mu) / sd, tr["is_oracle"])
+        oos[te] = m.predict_proba((sub.loc[te, feats] - mu) / sd)[:, 1]
+    return oos
+
+
+def _auc_and_floor(sub: pd.DataFrame, oos: np.ndarray, n_null: int, seed: int) -> tuple[float, float, int]:
+    """(out-of-sample AUC, min-detectable AUC, n_oracle) on whatever rows a scheme actually scored.
+
+    The permutation floor is recomputed **on the scheme's own mask**: a scheme that scores fewer GWs
+    has fewer oracle observations and therefore a genuinely higher detectability floor. Reusing the
+    LOGO floor for a thinner walk-forward mask would understate what that scheme has to clear.
+    """
+    mask = ~np.isnan(oos)
+    y = sub["is_oracle"].to_numpy()[mask]
+    if mask.sum() == 0 or len(np.unique(y)) < 2:
+        return (float("nan"), float("nan"), int(y.sum()) if len(y) else 0)
+    auc = round(float(roc_auc_score(y, oos[mask])), 3)
+    rng = np.random.default_rng(seed)
+    null = []
+    for _ in range(n_null):
+        perm = sub.groupby("gw")["is_oracle"].transform(
+            lambda s: s.sample(frac=1, random_state=int(rng.integers(1e9))).to_numpy()
+        )
+        yp = perm.to_numpy()[mask]
+        if len(np.unique(yp)) == 2:
+            null.append(roc_auc_score(yp, oos[mask]))
+    floor = round(float(np.percentile(null, 95)), 3) if null else float("nan")
+    return (auc, floor, int(y.sum()))
 
 
 def oracle_discrimination(
     pool: pd.DataFrame, features: tuple[str, ...] = tuple(DISCRIMINATION_FEATURES), n_null: int = 500, seed: int = 0
 ) -> dict:
-    """Does any ex-ante signal separate the oracle from the field? (single AUCs + LOGO-CV AUC + power).
+    """Does any ex-ante signal separate the oracle from the field? (single AUCs + two CV schemes + power).
 
-    Single-feature AUC for `P(is_oracle)`, plus a leave-one-GW-out logistic (out-of-sample) AUC, and a
-    within-GW label-permutation null whose 95th percentile is the **minimum detectable AUC** at this n.
+    Single-feature AUC for `P(is_oracle)`, plus an out-of-sample logistic AUC under **both** CV schemes
+    — leave-one-GW-out and strictly walk-forward — each against its own within-GW label-permutation
+    null (95th percentile = the **minimum detectable AUC** at that scheme's n). Both are reported: LOGO
+    answers "is there signal here at all, at maximum power", walk-forward answers "could you have
+    *used* it ex-ante". They are different questions and the gap between them is the point.
     """
     feats = [f for f in features if f in pool.columns]
     sub = pool.dropna(subset=[*feats, "is_oracle"]).copy()
@@ -136,35 +201,36 @@ def oracle_discrimination(
         f: round(float(roc_auc_score(sub["is_oracle"], sub[f])), 3) for f in feats if sub["is_oracle"].nunique() == 2
     }
 
-    gws = sorted(sub["gw"].unique())
-    oos = np.full(len(sub), np.nan)
-    for gw in gws:
-        tr = sub[sub["gw"] != gw]
-        te = (sub["gw"] == gw).to_numpy()
-        if tr["is_oracle"].nunique() < 2:
-            continue
-        mu, sd = tr[feats].mean(), tr[feats].std() + 1e-9
-        m = LogisticRegression(max_iter=200).fit((tr[feats] - mu) / sd, tr["is_oracle"])
-        oos[te] = m.predict_proba((sub.loc[te, feats] - mu) / sd)[:, 1]
-    mask = ~np.isnan(oos)
-    y = sub["is_oracle"].to_numpy()[mask]
-    combined = round(float(roc_auc_score(y, oos[mask])), 3)
-
-    rng = np.random.default_rng(seed)
-    null = []
-    for _ in range(n_null):
-        perm = sub.groupby("gw")["is_oracle"].transform(
-            lambda s: s.sample(frac=1, random_state=int(rng.integers(1e9))).to_numpy()
-        )
-        null.append(roc_auc_score(perm.to_numpy()[mask], oos[mask]))
-    min_detectable = round(float(np.percentile(null, 95)), 3)
+    logo = _oos_scores(sub, feats, "logo")
+    wf = _oos_scores(sub, feats, "walk_forward")
+    logo_auc, logo_floor, n_oracle = _auc_and_floor(sub, logo, n_null, seed)
+    wf_auc, wf_floor, n_oracle_wf = _auc_and_floor(sub, wf, n_null, seed)
     return {
         "single_auc": single,
-        "combined_logo_auc": combined,
-        "min_detectable_auc": min_detectable,
-        "signal_detected": combined > min_detectable,
-        "n_oracle": int(sub["is_oracle"].sum()),
+        "combined_logo_auc": logo_auc,
+        "min_detectable_auc": logo_floor,
+        "signal_detected": bool(logo_auc > logo_floor),
+        "n_oracle": n_oracle,
+        "n_scored_logo": int((~np.isnan(logo)).sum()),
+        "combined_wf_auc": wf_auc,
+        "min_detectable_auc_wf": wf_floor,
+        "signal_detected_wf": bool(wf_auc > wf_floor),
+        "n_oracle_wf": n_oracle_wf,
+        "n_scored_wf": int((~np.isnan(wf)).sum()),
+        "n_gw_scored_wf": int(sub.loc[~np.isnan(wf), "gw"].nunique()),
     }
+
+
+# Q3 is asked of every strategy that made a Phase-5 claim, not just the mean: the ceiling columns are
+# the ones that beat template there, so 'the model's divergent picks lose' has to be shown for THEM
+# before it can license an 'irreducible' verdict. (baseline, challenger) pairs.
+DIVERGENCE_PAIRS = (
+    ("base_season", "e_points"),  # the frozen Phase-5 crux
+    ("base_season", "p90"),
+    ("base_season", "p_haul"),
+    ("ownership_count", "p90"),  # template as the baseline
+    ("ownership_count", "p_haul"),
+)
 
 
 def captaincy_diagnostic_report(mart: pd.DataFrame, n_sims: int = 2000, seed: int = 0) -> dict:
@@ -178,5 +244,8 @@ def captaincy_diagnostic_report(mart: pd.DataFrame, n_sims: int = 2000, seed: in
         "gini": reg.attrs["gini"],
         "oracle_hits": oracle_rank_hits(pool),
         "divergence": divergence_winrate(pool),
+        "divergence_by_pair": pd.DataFrame(
+            [divergence_winrate(pool, b, c) for b, c in DIVERGENCE_PAIRS if {b, c} <= set(pool.columns)]
+        ),
         "discrimination": oracle_discrimination(pool, seed=seed),
     }

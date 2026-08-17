@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import pandas as pd
 
+from research.kernels.descriptive.binning import select_bucketing_scheme
+
 MIN_N = 25
 
 
@@ -62,11 +64,21 @@ def quintile_stratification(
         return None
     try:
         ranked = valid.copy()
-        ranked["quintile"] = pd.qcut(
-            ranked[signal].rank(method="first"),
-            5,
-            labels=["Q1", "Q2", "Q3", "Q4", "Q5"],
-        )
+        sig = ranked[signal].astype(float)
+        scheme_type, param = select_bucketing_scheme(sig, min_n=MIN_N, signal_name=signal)
+
+        if scheme_type == "ordinal":
+            bins, labels = param
+            ranked["quintile"] = pd.cut(sig, bins=bins, labels=[f"Q{lbl}" for lbl in labels], include_lowest=True)
+        elif scheme_type == "quantile" and param == 5:
+            ranked["quintile"] = pd.qcut(sig, q=param, labels=["Q1", "Q2", "Q3", "Q4", "Q5"], duplicates="drop")
+        else:
+            # discrete / two_stage / insufficient schemes don't yield five ordered
+            # groups — the ordinal and quantile schemes are the only ones this
+            # kernel knows how to express as a quintile split (research/registry/
+            # CHARACTERIZE_DESIGN.md §2).
+            return None
+
         means_s = ranked.groupby("quintile", observed=True)[target].mean()
         if not all(f"Q{i}" in means_s.index for i in range(1, 6)):
             return None

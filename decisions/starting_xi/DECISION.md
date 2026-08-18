@@ -14,11 +14,25 @@ This document states *what is being decided*. It is not the metric and not the d
 **PRIMARY: which 11 of the 15 start.**
 
 This is the decision that matters. It is live every gameweek, and the cost of getting it
-wrong is asymmetric. Benching a player who returns a big score costs the full score.
-Starting a player who blanks costs only the small difference against whichever benched
-player would otherwise have played. Losses are larger than gains, so the decision is
-chiefly about **not leaving returns on the bench**, not about squeezing marginal points
-out of the eleventh slot.
+wrong is not the score of the player you benched — it is the gap between what your XI
+scored and what the best available XI would have scored. Two cases with the same benched
+haul are entirely different mistakes:
+
+- You bench a player who scores 15. Every alternative you could have started also scored
+  12 or more. You lost 3. The decision was close and it went slightly against you.
+- You bench a player who scores 15 to start a player who blanks at 1. You lost 14. The
+  decision was consequential and you got it wrong.
+
+Losses are also unequal in ways beyond size. A large loss on a call where the evidence was
+genuinely balanced beforehand is variance — the same call would be right often enough to be
+worth making again. A large loss on a call where the evidence pointed clearly the other way
+is a method failure. And a small loss repeated in one direction across many gameweeks is a
+systematic bias, which is more fixable and more damaging than any single bad week.
+
+This has a direct consequence for measurement: gameweeks where every reasonable method
+picks the same XI carry no information about whether a method is any good. The informative
+sample is the gameweeks where methods disagree, and it is smaller than 38. `METRIC.md` must
+say how it separates these cases rather than reporting one averaged number over all of them.
 
 **SECONDARY: the priority order of the remaining 4.**
 
@@ -99,7 +113,7 @@ Named here so their absence is deliberate rather than an oversight.
 **Specified. Not built.** No code exists for this decision.
 
 The metric is **not yet defined**. `METRIC.md` is the next document, and it is pending a
-data check on two things:
+data check on three things:
 
 1. **Auto-substitution mechanics** — the exact rules that govern when a bench player is
    substituted in, since the secondary decision's payout is defined entirely by them.
@@ -107,6 +121,9 @@ data check on two things:
    starter did not play. If that count is small, the secondary decision may not be
    measurable on one season of data, and the metric has to say so rather than report a
    number over a sample too thin to carry it.
+3. **How to define "the call was close" from the data** — how to identify the gameweeks
+   where reasonable methods would disagree, since those are the informative sample and the
+   metric's conditioning depends on being able to name them.
 
 Neither the metric, the baselines, the harness design, nor the scoring rules are decided.
 Nothing in this document should be read as fixing them.

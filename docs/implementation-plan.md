@@ -63,19 +63,19 @@ coherent, then do the **risky code migration** with a safety net under it, and c
 
 **ADLC source:** §8 (the unmarked reconciliation rows + the DECIDED vocabulary rule).
 
-**Goal:** Retire the *competing vocabulary*. ADLC §8 establishes that `adlc.md` is the sole owner of the word "lifecycle," and that the ✅ rows (merging `decision-lifecycle.md` + `operational-flow.md` → `runtime-execution.md`) are already executed. This phase finishes the three unmarked rows.
+**Goal:** Retire the *competing vocabulary*. ADLC §8 establishes that `adlc.md` is the sole owner of the word "lifecycle," and that the ✅ rows (merging `decision-lifecycle.md` + `operational-flow.md` → `runtime-execution.md`) are already executed. *(`runtime-execution.md` was itself deleted 2026-08-16 as superseded by `docs/PROJECT.md`.)* This phase finishes the three unmarked rows.
 
 **Why third:** Adding the ADLC vocabulary without retiring the overlapping ones *is* the axis-conflation ADLC set out to fix. This is pure coherence work and largely docs — low risk, no code-load dependency — so it lands before the risky migration.
 
 **Tasks:**
 
-1. **`system-model.md`** — the 3-plane model (Control/Execution/Measurement) is a competing vocabulary. Resolve per ADR-005 (see Pending ADRs): either reframe it as a runtime/execution model subordinate to ADLC, or retain both with explicit, non-overlapping scope statements at the top of each doc.
+1. ~~**`system-model.md`** — the 3-plane model (Control/Execution/Measurement) is a competing vocabulary. Resolve per ADR-005 (see Pending ADRs).~~ **Closed 2026-08-16:** ADR-005 chose "retain both with explicit scope statements"; `system-model.md` was subsequently deleted as superseded by `docs/PROJECT.md`, so no competing vocabulary remains. ADR-005 stands as the record.
 2. **`layer-boundaries.md`** — keep its unique **ownership non-overlap matrix**; fold the import-direction narrative into a pointer to ADLC §2 so the flow story has one home.
 3. **`test-coverage.md`** — keep as-is. ADLC §5 explicitly says this 54-invariant status map *is* the §5 contract made concrete; just cross-link it from §5.
 4. **Correct ADLC §4 audit row B.** Row B labels `lenses/form/study.py` as "minutes as a returns signal — REJECTED (uninformative)," but the FORM lens as implemented evaluates *rolling xGI* form signals and **approved** xgi_roll3 (DEF) and xgi_roll5 (DEF, MID) per CONTEXT §5. The minutes-as-returns rejection belongs to the AVAIL reframing (row C), not the FORM lens. Fix: re-label row B to the FORM lens's real verdict (PARTIAL — xgi approved), and keep the "minutes alone is noise" narrative attached to the arc text, not to the form file. *(Flagged during Phase 1 mode-tagging; the form study's header already carries the corrected status with an inline note.)*
 5. **Reconcile the mode vocabulary (§3 ↔ §2/§4).** Phase 2 surfaced an internal inconsistency: §3 defines the mode set as {descriptive, diagnostic, predictive, causal, prescriptive, operational}, but §2's stage table and §4's audit rows E/F use `assemble` and `govern` for the `model` stage — modes §3 never defines. The slug log faithfully copied them, so two slugs (`set-synth-weights`, `govern-signal-ledger`) now carry undefined mode tags. Fix per **ADR-008** (see Pending ADRs): restructure §3's mode table into two named families — **analysis modes** (Gartner intent axis: descriptive/diagnostic/predictive/prescriptive, with `causal`/counterfactual = Pearl rung 2+ retained as a *gated, not deleted* tripwire) and **process modes** (lifecycle activity, not a question type: `assemble`, `govern`, `operational`) — and state the project's *current* methodological stance with its reopening trigger: *today it ascends the Gartner ladder to `prescriptive` (serve) while operating on Pearl rung 1 (association); higher rungs are **gated, not foreclosed** — the layer may adopt them on a named trigger.* Frame the gate like ADLC §7's "build it only when…" pattern, not as a permanent exclusion: distinguish **decision-counterfactuals** (alternatives observable → arithmetic regret, admissible now) from **causal/physical counterfactuals** (require a structural model → gated pending a redesign that justifies it). This keeps the design open: a future version of this layer can promote to higher rungs without contradicting the doc. Mode tags in the study headers and slugs do not need rewording (the values are already correct); only §3's definition expands to recognize them.
 
-**Done criteria:** No active doc except `adlc.md` carries "lifecycle" in its framing. `system-model.md`'s relationship to ADLC is resolved by ADR-005. `layer-boundaries.md` keeps only what's unique. ADLC §3 defines every mode used in §2/§4 and in the slug log (no undefined `assemble`/`govern`), resolved by ADR-008. Inbound links (`navigation-map.md`) still resolve.
+**Done criteria:** No active doc except `adlc.md` carries "lifecycle" in its framing. `system-model.md`'s relationship to ADLC was resolved by ADR-005 (the doc itself was later deleted, 2026-08-16). `layer-boundaries.md` keeps only what's unique. ADLC §3 defines every mode used in §2/§4 and in the slug log (no undefined `assemble`/`govern`), resolved by ADR-008. Inbound links (`navigation-map.md`) still resolve.
 
 **Scope fence:** Does not delete `test-coverage.md` or `layer-boundaries.md` (both carry unique content). Does not touch `EVAL_DESIGN.md` (it stays — it's the detailed design for the not-yet-built `monitor` stage). No code.
 
@@ -177,6 +177,21 @@ These are **not** ADLC phases — they live in `eng-issues-2026.md` — but spec
 | Phase 7 (model-stage governance) | **PENDING-EVAL-01/02/03** lens studies; **ENG-06** (LENS-GK); **ENG-04** (threshold validation) | Calibrating the editorial weights needs the lens evidence those items produce |
 
 In short: the engineering backlog supplies the *foundation and evidence*; this plan supplies the *coherence*. They meet at Phases 6 and 7.
+
+---
+
+## Decision-slice blocking items (`decisions/starting_xi/`)
+
+The `starting_xi` decision slice runs its **own** phase sequence, unrelated to the ADLC phases above. "starting_xi Phase 3 / Phase 4" below mean that slice's build and baseline phases — **not** Phase 3 (vocabulary reconciliation) or Phase 4 (capture durable findings) of this plan. The numbering collision is why each row names the slice explicitly.
+
+Both are **unresolved questions that block work from starting** — not planned work with a known shape, which makes them a different kind of entry from the phases above. The slice has no design document and its Phase 2 has not begun; nothing below should be read as a deliverable. They are listed here because routed-within-the-slice is not routed if the plan that schedules work cannot see them. The reasoning stays in the slice documents; this table carries the question, its blocking status, and a pointer.
+
+| Item | Blocks | Status | Detail |
+|---|---|---|---|
+| **`points_roll3` governance verdict** — is the governed mart's exclusion of `total_points` from feat's `_ROLL_COLS` a governance decision that binds a *baseline ranker*, or an omission specific to the signal registry's purposes? The slice's recent-form baseline is one of three floor rankers and cannot be built until this is answered. Settled by reading the lens record behind the `evaluation_circularity / G2-FAIL` annotation in `dal/feat/feat_player_gameweek.py`. | **starting_xi Phase 4** (baselines) | Open — a gate, not a note | [`decisions/starting_xi/METRIC.md`](../decisions/starting_xi/METRIC.md) §5 |
+| **Import-graph home for `decisions/starting_xi/`** — where can the harness legally live? It needs `p_play` (`model`) *and* the resampling kernels (`research`), but `serve` may import neither and `research` may not import `model`, so no existing layer can host it as things stand. No design exists and the answer is that slice's Phase 2 to make; `INVENTORY.md` §4 (M4) records one candidate, not a decision. | **starting_xi Phase 3** (build) — cannot start until answered | Open — unresolved; no design yet | [`decisions/starting_xi/DECISION.md`](../decisions/starting_xi/DECISION.md) §6; [`INVENTORY.md`](../decisions/starting_xi/INVENTORY.md) §4 (M4) |
+
+A measured finding sits behind the first item and is worth knowing before anyone reuses that code path: `operational.backtest.backtest_decision` is **unrunnable against the governed mart** — it raises on `assert_no_future_leakage`, which requires the same absent `points_roll3`, so the existing decision backtest has only ever run on fixtures that fabricate the column. Run output recorded in [`INVENTORY.md`](../decisions/starting_xi/INVENTORY.md) §5.7.
 
 ---
 

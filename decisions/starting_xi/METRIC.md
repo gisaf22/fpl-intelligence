@@ -492,10 +492,19 @@ the decision that no candidate ranker's score would reveal.
 |---|---|---|---|
 | **U1** | Resample **squads**, gameweek set fixed | Measures sensitivity to which squads were drawn | Feasible now |
 | **U2** | Resample **gameweeks**, squads fixed | Measures sensitivity to which weeks the season contained. A moving-block bootstrap over a per-gameweek series exists (`INVENTORY.md` §2.9) | Feasible now |
-| **U3** | Resample **squad-week rows** as independent draws | The same squad recurs across every gameweek and the same gameweek across every squad; treating the product as independent inflates the effective sample by roughly two orders of magnitude and manufactures precision the data does not contain. Holds at any window length | Feasible now |
-| **U4** | **Cluster** bootstrap — resample clusters, take all of a drawn cluster's rows | The structurally correct treatment of the panel. `INVENTORY.md` §2.9 records a cluster resampler hard-wired to a rho statistic and **no generic cluster-bootstrap-of-a-mean** | Feasible now |
+| **U3** | Resample **squad-week rows** as independent draws | Two sources of dependence make the product non-independent: the same squad recurs across every gameweek, and the same gameweek recurs across every squad. Treating the product as independent inflates the effective sample by roughly two orders of magnitude and manufactures precision the data does not contain. Holds at any window length. **The first source is present only under a held squad (§7.1)**; the second is present under either construction | Feasible now |
+| **U4** | **Cluster** bootstrap — resample clusters, take all of a drawn cluster's rows | The structurally correct treatment of a panel in which one unit contributes many dependent rows. `INVENTORY.md` §2.9 records a cluster resampler hard-wired to a rho statistic and **no generic cluster-bootstrap-of-a-mean**. **Applicable only where the panel has clusters**: under resample-per-gameweek (§7.1) a squad contributes exactly one row, so drawing a cluster and drawing a row are the same operation and U4 carries no structure U1 does not already have | Feasible now |
 
 U1 and U2 answer different questions and can be reported as two intervals rather than one.
+
+**These schemes are characterised against a population, and §7.1's held-versus-resampled choice
+changes what they mean.** U3's and U4's properties above were previously stated unconditionally,
+which was only correct under a held squad. The dependence structure of the panel is a consequence of
+the construction, so a design selecting a scheme here has to select a population first; §8's table
+lists them as #14 and #16 without ordering them, and the ordering is noted here rather than imposed.
+Where the held-squad recurrence is absent, holding the gameweek margin fixed while resampling within
+it is the treatment that addresses the second source of dependence without resampling a dimension U1
+holds fixed by definition — a variant of U1 rather than a fifth scheme, and not separately tiered.
 
 **The resample count is a live choice, not an inherited one.** `INVENTORY.md` §2.9 records two
 `block_bootstrap_ci` implementations — same name, same algorithm, `n = 1000` and `n = 3000` — so a
@@ -572,10 +581,37 @@ resampled, and the universe the squad is drawn from.
   price across the season, so the two differ. Assessing once matches how the game works — a manager
   buys at the prices of the day, and the ≤3-per-club limit binds when a squad *changes* — provided
   the squad genuinely never changes.
-- **Build-once versus resample-per-gameweek.** Holding one 15 all season matches the paired design
-  of §6.1 and the recurrence of the XI decision within a fixed squad; it also fixes the universe at
-  the build week and excludes everyone who enters later. Resampling per gameweek admits later
-  entrants and breaks the pairing.
+- **Build-once versus resample-per-gameweek.** Two constructions, characterised in full because the
+  difference between them is not where an earlier version of this section placed it.
+
+  **Both satisfy §6.1's paired design, and neither has an advantage there.** Pairing requires every
+  ranker to face the same squads in the same gameweeks. Under either construction there is one squad
+  set at each gameweek and every ranker is run on all of it, so the per-squad-week difference between
+  two rankers is defined on identical conditions in both cases. The claim previously made here — that
+  resampling per gameweek *breaks* the pairing — was wrong, and is withdrawn to Provenance rather than
+  quietly amended.
+
+  **What actually separates them is the dependence structure of the resulting panel**, which bears on
+  §6.2's schemes rather than on §6.1's design. Build-once gives each squad one row per gameweek, so a
+  squad is a unit contributing many dependent rows and the panel has clusters. Resample-per-gameweek
+  gives each squad exactly one row, so the panel has no clusters and the recurrence half of U3's
+  objection does not arise; what survives is that squad-weeks sharing a gameweek share that week's
+  realised fixtures and results. §6.2 records how the schemes read under each.
+
+  **Build-once: what it buys and what it costs.** It matches the recurrence of the XI decision within
+  a fixed squad — the same 15 faced week after week, which is the decision as a manager meets it. It
+  fixes the universe at the build week, so every player entering later is excluded from every
+  gameweek, not merely from the weeks before he arrived. Appendix A.2 sizes that exclusion at the GW2
+  build week and records what the excluded set has in common.
+
+  **Resample-per-gameweek: what it buys and what it costs.** It admits later entrants — the universe
+  at gameweek *g* is everyone registered by *g*, so no arrival is structurally absent from any week
+  after it. It satisfies the proviso in the bullet above exactly, a squad being priced and
+  club-checked at the one gameweek it exists in and never changing thereafter. It does not represent
+  the recurrence of the decision within a fixed squad, since no squad recurs; whether that matters
+  depends on whether the metric is read as a per-squad-week cost or as a per-squad season outcome,
+  which §1's candidates differ on. It multiplies the sampling work by the number of build gameweeks,
+  and it makes §7.2's predicate a condition on a **set** of build weeks rather than on one.
 - **The squad count.** The precision of a paired comparison is bound by whichever dimension is
   scarcer. The gameweek dimension is **window-dependent** — narrowed by §2.6's intersection and
   again by §3.1's exclusions — and is the scarce one at any count in the low hundreds, so added
@@ -590,15 +626,65 @@ resampled, and the universe the squad is drawn from.
 ### 7.2 A predicate whose validity is season-specific
 
 If registration is enforced by a prefix test, the composed predicate is: a player is in the universe
-**iff he has a non-null `minutes` row at or before the build gameweek**.
+at build gameweek *g* **iff he has a non-null `minutes` row at or before *g***.
 
-That composition is unambiguous **only because the early gameweeks of this season contain no genuine
-no-fixture blanks**, so every NULL there is a prefix. Were a blank gameweek to fall in the build
-window, a *registered* player could be NULL throughout it, the prefix test could not separate him
-from an unregistered one, and the predicate would need a different form.
+**The condition is stated per build gameweek, because §7.1's two constructions differ in how many
+there are.** Build-once evaluates the predicate at one gameweek; resample-per-gameweek evaluates it
+at every gameweek in scope, each with its own universe. The condition below is written so that it
+applies to a **set** of build gameweeks and reduces to the single-week case when the set has one
+member. An earlier version of this section was written for one build week and does not generalise;
+the withdrawal is recorded in Provenance.
+
+**The general form of the condition.** The predicate misclassifies a player at build gameweek *g*
+exactly when he is **registered at or before *g* and NULL at every gameweek up to and including *g***.
+Such a player is indistinguishable in the data from one who has not yet registered, and the prefix
+test excludes him. So the condition the predicate needs, at each build gameweek *g* in the set, is:
+**no registered player is NULL throughout GW1..*g***.
+
+**How the condition behaves as *g* grows, which is the property that matters here.** It is
+**monotonically easier to satisfy**, because the prefix lengthens: a player NULL throughout GW1..*g*
+is a strictly stronger requirement than one NULL throughout GW1..*g*−1. The binding cases are
+therefore the **earliest** build gameweeks, where the prefix is shortest, and adding later build
+gameweeks cannot make a condition satisfied at an earlier one fail. The single-week form this
+section previously carried — "no blank falls in the build window" — was the special case of this at a
+short prefix, where a blank is the only realistic way to produce an all-NULL prefix for a registered
+player.
+
+**A related property of the same predicate: the universe is monotone nondecreasing in *g*.** Once a
+player has a non-null row he satisfies the predicate at every later gameweek, so U_*g* ⊆ U_*g*+1 and
+per-gameweek evaluation never removes a player it has already admitted. Nothing in the condition
+above turns on this, but it is the reason a misclassification at *g* is a deferral rather than a
+permanent exclusion when the predicate is evaluated at more than one gameweek.
+
+**How it resolves at GW31 and GW34, this season's two blank gameweeks.** Appendix A.1 places genuine
+no-fixture blanks at GW31 (161 rows) and GW34 (248 rows) and nowhere else. Taking those as build
+gameweeks, the condition asks whether any registered player is NULL throughout GW1..31, or throughout
+GW1..34. A player registered before GW31 whose team blanks at GW31 has thirty non-blank prior
+gameweeks in which to have accrued a non-null row, so the blank alone cannot produce an all-NULL
+prefix for him. The blank is not, by itself, a source of misclassification at a prefix that long —
+which is the general property above in its concrete form.
+
+**The residual case, and the measurement that would close it.** One case is not settled by A.1 and
+should not be presented as if it were: a player whose **first** gameweek is itself a blank one — he
+registers at GW31, his team does not play, and he is NULL throughout GW1..31. He is excluded from the
+GW31 universe and admitted at GW32 when a non-null row appears. **Appendix A.1 cannot observe this
+case**, because its counting rule is "`minutes` is NULL and an earlier non-null row exists for that
+player", and this player has no earlier non-null row by construction. The measurement that would
+close it is a count of players whose first non-null `minutes` row falls immediately after GW31 or
+GW34 and whose club blanked in that gameweek. That measurement does not exist; taking it is
+`INVENTORY.md`'s, and this document records the requirement rather than asserting an answer.
+
+**What the residual case costs depends on §7.1's construction, and differs sharply between them.**
+Under build-once at a blank build gameweek the misclassification is **permanent** — the player is
+absent from every gameweek of the study. Under resample-per-gameweek it is a **one-week deferral** —
+he is absent from that gameweek's universe and present in every later one, by the monotonicity
+property above. The same defect in the predicate therefore has a different magnitude under each, and
+neither reading is selected here.
 
 **This is a property of the 2025-26 fixture calendar, not a general fact**, and must be re-checked
-against any other season. The supporting measurement is in **Appendix A**.
+against any other season — as the general condition above, evaluated at whichever gameweeks the
+construction makes build gameweeks, not as the blank-in-the-window shorthand. The supporting
+measurement is in **Appendix A**.
 
 ---
 
@@ -647,9 +733,21 @@ and it is a property of the 2025-26 calendar.
 
 **A.2 — The squad universe at GW2 is 705 of 841 players.** 82 GK, 233 DEF, 315 MID, 75 FWD, across
 all 20 clubs. The 136 excluded players (16.2%) all appear later in the season, which confirms they
-are genuine late entrants rather than a data artefact. Under a build-once population (§7.1) they
-are never selected, never benched, and enter no figure — so nothing measures how a method would
-have handled them.
+are genuine late entrants rather than a data artefact.
+
+*What follows from the count depends on §7.1's construction.* Under **build-once at GW2** these 136
+are never selected, never benched, and enter no figure at any gameweek — so nothing measures how a
+method would have handled them, and the retained pool is a population defined by having arrived by
+GW2. Under **resample-per-gameweek** the figure characterises the smallest of the per-gameweek
+universes rather than the only one: each of the 136 enters the universe at the gameweek he registers
+and is available from then on. The count is the same measurement under both; only its consequence
+differs, and neither construction is selected here.
+
+*Two things this measurement does not establish.* It does not characterise the universe at any
+gameweek after GW2 — no per-gameweek universe count has been taken, so the composition of the later
+universes is unmeasured. And it does not characterise **what the 136 have in common beyond arriving
+late**; whether the excluded set differs systematically from the retained one on any quantity a
+ranker is sensitive to would need a separate measurement, and none has been taken.
 
 **A.3 — Season-long and 3-gameweek PPG are identical at GW2, GW3 and GW4.** On the population §3.2
 describes (in-game window, blanks and no-fixture weeks at 0): identical for 100% of players at all
@@ -683,6 +781,32 @@ selections attached to them were.**
   demonstrates little. `DECISION.md`'s territory; **recorded there in `DECISION.md` §1** (§5.1).
 - **Repository facts** — those already in `INVENTORY.md` are now cited to it; those recorded only
   here are in Appendix A.
+
+**Two characterisations withdrawn, on a pass prompted by `DESIGN.md`.** Both were filed as conflicts
+in `DESIGN.md`'s Provenance — that document may cite this one but not write to it — and both are
+recorded here with the reason so they are not re-proposed. Neither withdrawal selects anything; each
+replaces a wrong property statement with a correct one.
+
+- **Withdrawn: "resampling per gameweek … breaks the pairing" (§7.1).** The claim was false. §6.1's
+  paired design requires every ranker to face the same squads in the same gameweeks, and under
+  resample-per-gameweek there is one squad set at each gameweek on which every ranker is run, so the
+  requirement is met exactly. The property that does distinguish the two constructions is the
+  dependence structure of the resulting panel, which bears on §6.2 rather than §6.1; §7.1 now states
+  it there. The consequence of the error is worth recording, because it was not confined to this
+  document: a pairing objection is decisive against any construction that carries it, so while the
+  sentence stood, resample-per-gameweek was not a live candidate for a design to select, and
+  `DESIGN.md` selected build-once partly on its authority. `DESIGN.md` §10.4 works the refutation
+  through; the correction here is stated on this document's own terms and does not depend on it.
+- **Withdrawn: §7.2's condition in its single-build-week form.** "The composed predicate is
+  unambiguous only because the early gameweeks contain no genuine no-fixture blanks" is a correct
+  statement about one build week at a short prefix, and does not generalise to a construction in
+  which every gameweek is a build gameweek. §7.2 now states the condition per build gameweek — no
+  registered player NULL throughout the prefix — of which the withdrawn form is the special case, and
+  records that the condition is monotonically easier to satisfy as the prefix lengthens. **A
+  measurement requirement was surfaced in the process and is not closed**: Appendix A.1's counting
+  rule cannot observe a player whose first gameweek is itself a blank, which is the one residual
+  misclassification case. A.1 is not corrected here — it accurately reports what it counted — and the
+  new measurement is `INVENTORY.md`'s to take.
 
 **What was not reconciled.** §0.4 records that `DECISION.md` §1 already commits to a cost model this
 document is no longer permitted to select. That is a live inconsistency between two documents in

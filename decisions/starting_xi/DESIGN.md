@@ -376,13 +376,21 @@ over different gameweek sets, so the floor option and the bar are coupled choice
 selected here both are computed on the same intersection by construction, which is what makes
 §0.15's relative threshold meaningful.
 
-### 0.14 Design, resampling schemes and the resample count — paired, U1 and U2 as two intervals, U4's structure, n = 10,000 (#14)
+### 0.14 Design, resampling schemes and the resample count — paired at the squad-week, U1 and U2 as two intervals, U1 gameweek-stratified, n = 10,000 (#14)
 
 **Paired.** `METRIC.md` §6.1 states the reason: squad-level variation — some squads are simply
 deeper and have less to gain from any method — is common to all rankers and cancels in the
 difference, so what is measured is the method difference rather than the absolute regret level.
 The unpaired alternative admits that variation as noise for nothing in return. The requirement
 `METRIC.md` §6.1 attaches — that §2.6's common-window handling be exact — is discharged by §6.3.
+
+**Pairing is a property of the squad-week, not of the season-long squad.** This is worth stating
+explicitly, because the selection §0.16 previously made rested on the contrary reading. `METRIC.md`
+§6.1 requires every ranker to face the same squads in the same gameweeks. Under §0.16's weekly
+resampling every ranker faces the identical 300 squads within each gameweek, so the pairing holds
+exactly, at the grain the difference is taken at. §10.4 makes it structural rather than
+disciplinary: the estimator consumes an already-differenced panel and never sees two rankers, so an
+unpaired draw is unrepresentable regardless of how the squads were built.
 
 **Two intervals, U1 and U2, reported as two.** `METRIC.md` §6.2 records that they answer different
 questions: U1 (resample squads, gameweek set fixed) measures sensitivity to which squads were
@@ -392,18 +400,28 @@ the squads are drawn by this design and the season is one realisation — so col
 number would suppress whichever question the chosen scheme did not answer. §7.2's T3 stores two
 column pairs.
 
-**U3 is rejected outright.** `METRIC.md` §6.2 states why: the same squad recurs across every
-gameweek and the same gameweek across every squad, so treating squad-week rows as independent draws
-inflates the effective sample by roughly two orders of magnitude and manufactures precision the data
-does not contain — at any window length. §10.4 makes the error structurally unrepresentable in the
-squad estimator rather than merely forbidden.
+**U3 is rejected, and the reason is now one of its two halves rather than both.** `METRIC.md` §6.2
+states the objection in two parts: the same squad recurs across every gameweek, **and** the same
+gameweek recurs across every squad, so treating squad-week rows as independent draws inflates the
+effective sample by roughly two orders of magnitude and manufactures precision the data does not
+contain. Under §0.16's weekly resampling the **first half no longer holds** — a squad exists in
+exactly one gameweek and recurs nowhere. The **second half stands unchanged**: squad-weeks sharing a
+gameweek share that week's realised fixtures and player performances, so a flat row bootstrap over
+the whole panel would still treat the gameweek dimension as though it supplied 300 independent draws
+per week, which is the same manufactured precision under a different name. U1 is therefore computed
+as a **bootstrap stratified by gameweek** — the gameweek margin held fixed, squads resampled only
+within a week. §10.3 derives this and §10.5 states the estimator.
 
-**U4 is not a third interval; it is the structure U1 is computed with.** `METRIC.md` §6.2 describes
-the cluster bootstrap as the structurally correct treatment of the panel — resample clusters, take
-all of a drawn cluster's rows. That is precisely how U1 must be implemented, since a squad is the
-cluster and squad-weeks within it are dependent. `METRIC.md` §6.2 also records, citing
-`INVENTORY.md` §2.9, that the repository's one cluster resampler is hard-wired to a rho statistic
-and that there is **no generic cluster-bootstrap-of-a-mean** — so U1 is a build. §10 designs it.
+**U4's cluster structure no longer applies, because the panel no longer has clusters.**
+`METRIC.md` §6.2 describes the cluster bootstrap as the structurally correct treatment of a panel
+where one unit contributes many dependent rows — resample clusters, take all of a drawn cluster's
+rows. That was the right structure under a held squad, which contributed one row per gameweek. Under
+weekly resampling **each squad contributes exactly one row**, so "take all of a drawn cluster's rows"
+and "draw one row" are the same operation, and U4 collapses into the within-stratum draw above. This
+is not a relaxation of U4's requirement; it is that requirement evaluated on a panel whose dependence
+structure the construction has removed. `INVENTORY.md` §2.9's finding that there is **no generic
+cluster-bootstrap-of-a-mean** is unchanged in its consequence — U1 is still a build, since no
+gameweek-stratified bootstrap of a mean exists in the repository either. §10 designs it.
 
 **U2 is a reuse.** `INVENTORY.md` §2.9 records a moving-block bootstrap of the mean of a
 per-gameweek series, motivated by consecutive-gameweek autocorrelation, tested and deterministic —
@@ -430,9 +448,10 @@ squad interval takes no block: blocking exists to preserve autocorrelation betwe
 gameweeks, and squads have no order (§10.1).
 
 **The estimand, which `METRIC.md` does not disambiguate.** "Mean regret" admits two readings that
-differ here — the grand mean over surviving squad-weeks, and the unweighted mean of per-squad
-means. They coincide only under balance, and the zero-gap exclusions of §0.8 remove squad-weeks
-unevenly. **The grand mean over surviving squad-weeks is selected**, because §0.15's materiality
+differ here — the grand mean over surviving squad-weeks, and the unweighted mean of per-**gameweek**
+means. (Under §0.16 a per-*squad* mean is not the live alternative: a squad has exactly one week, so
+that reading collapses into the grand mean. §10.2 works this through.) They coincide only under
+balance, and the zero-gap exclusions of §0.8 remove squad-weeks unevenly across weeks. **The grand mean over surviving squad-weeks is selected**, because §0.15's materiality
 threshold is a fraction of the floor's own mean regret reported alongside an absolute magnitude in
 points — a per-squad-week cost, which is what the grand mean estimates — and because `DECISION.md`
 §1 frames regret the same way, as the cost of a weekly decision. §10.2 works the difference through.
@@ -484,7 +503,7 @@ identifies is the only mechanism in the repository making such a fixing enforcea
 aspirational. §7.4 adopts it: the thresholds, counts, windows, seed and ordering selected in this
 section are written to `PRE_REGISTRATION.yaml` and pinned by a test before the first run.
 
-### 0.16 The population — N1, uniform synthetic squads, built once at GW2, 300 of them (#16)
+### 0.16 The population — N1, uniform synthetic squads, resampled weekly, 300 per gameweek (#16)
 
 **Selected: N1**, synthetic squads drawn uniformly over the feasible set.
 
@@ -512,24 +531,33 @@ the data (`DECISION.md` §3) and that nothing samples a constrained squad either
   — `squad_select` 2/5/5/3 — and that no code validates any of them; §2.2 also records 20 teams and
   a non-null `purchase_price` on every mart row, with the cheapest legal 2/5/5/3 at GW1 costing 64.0
   against the 100.0 cap.
-- **Feasibility assessed once, at the build gameweek.** `METRIC.md` §7.1 records that once-versus-
-  per-gameweek genuinely differ, citing `INVENTORY.md` §2.2 for 27 of 841 players changing club and
-  §2.7 for 600 of 841 changing price across the season. **Assessed once** is selected on
-  `METRIC.md` §7.1's own condition — it matches how the game works, a manager buying at the prices of
-  the day with the ≤3-per-club limit binding when a squad *changes*, **provided the squad genuinely
-  never changes** — which the build-once choice below guarantees. The consequence is stated plainly:
-  a squad legal at GW2 may hold four players from one club by GW38, and that is not a defect under
-  this reading, because no transfer was made.
-- **Build once and hold, rather than resample per gameweek.** `METRIC.md` §7.1 records that holding
-  one 15 all season matches the paired design of §6.1 and the recurrence of the XI decision within a
-  fixed squad, and that resampling per gameweek breaks the pairing. The pairing is what §0.14
-  depends on. The cost `METRIC.md` §7.1 names is real and is carried: the universe is fixed at the
-  build week and everyone entering later is excluded. `METRIC.md` Appendix A.2 sizes it — 136 of 841
-  players (16.2%), all of whom appear later in the season — and states the consequence: nothing
-  measures how a method would have handled them.
-- **The build gameweek: GW2.** It is the earliest gameweek in scope (§0.7) and the earliest at which
-  the registration predicate is evaluable at all. `METRIC.md` Appendix A.2 records the universe there
-  as 705 of 841 players — 82 GK, 233 DEF, 315 MID, 75 FWD, across all 20 clubs.
+- **Feasibility assessed once per squad, at that squad's own gameweek.** `METRIC.md` §7.1 records
+  that once-versus-per-gameweek genuinely differ, citing `INVENTORY.md` §2.2 for 27 of 841 players
+  changing club and §2.7 for 600 of 841 changing price across the season. `METRIC.md` §7.1's own
+  condition for assessing once is that it matches how the game works — a manager buying at the prices
+  of the day, with the ≤3-per-club limit binding when a squad *changes* — **provided the squad
+  genuinely never changes**. Weekly resampling satisfies that proviso more exactly than build-once
+  did, not less: a squad exists for exactly one gameweek, is priced and club-checked at that
+  gameweek, and never changes at all. The defect build-once had to accept and defend — a squad legal
+  at GW2 holding four players from one club by GW38 — cannot arise, because no squad outlives the
+  week in which it was assessed.
+- **Resample per gameweek, rather than build once and hold.** Each gameweek in scope draws its own
+  300 squads, from the universe registered as of that gameweek, at that gameweek's prices and clubs.
+  `METRIC.md` §7.1's objection — that resampling per gameweek breaks the pairing — is **refuted**;
+  the superseded record below states why and §10.4 carries the argument. What weekly resampling buys
+  is what `METRIC.md` §7.1 itself names as its benefit: it admits later entrants. Every player
+  registered by gameweek *g* can appear in a gameweek-*g* squad, so the entrants build-once excluded
+  are in scope from the week they arrive. The cost is real and is carried: the sampler runs once per
+  gameweek rather than once, and §2.6's acceptance measurement becomes a per-week measurement with a
+  per-week trigger.
+- **The build gameweeks: every gameweek in scope, GW2–GW38.** There is no longer a single build week.
+  GW2 remains the earliest, for the reason it was chosen before — it is the earliest gameweek in
+  scope (§0.7) and the earliest at which the registration predicate is evaluable at all — and
+  `METRIC.md` Appendix A.2's measurement of the universe there, 705 of 841 players (82 GK, 233 DEF,
+  315 MID, 75 FWD, across all 20 clubs), now characterises the **smallest** of the 37 universes
+  rather than the only one. Each later gameweek's universe is a superset of it, and all 38 are now
+  measured at `INVENTORY.md` §2.5 — monotone nondecreasing to 841 by GW38, all 20 clubs represented
+  throughout. §2.1 states the series where the target is defined.
 - **Registration as a feasibility condition, implemented as a restriction of the universe.**
   `METRIC.md` §7.1 records that registration is the only one of the four that removes a player from
   the study **outright** rather than constraining which combinations may be drawn, and gives the
@@ -538,20 +566,100 @@ the data (`DECISION.md` §3) and that nothing samples a constrained squad either
   **forward-filled price** — the player's eventual debut price — so admitting one prices a phantom
   against the cap using a value from later in the season. §2.1 builds the universe first for exactly
   this reason and §2.8 asserts it.
-- **The squad count: 300.** `METRIC.md` §7.1 records that precision is bound by whichever dimension
-  is scarcer, that the gameweek dimension is window-dependent and is the scarce one at any count in
-  the low hundreds, and that added squads therefore buy little while replay cost grows linearly.
-  300 sits at the top of that range: it is where added squads stop buying precision, and the replay
-  cost at that scale is trivial (§7.2 sizes the artefact). Frozen in the pre-registration.
+- **The squad count: 300 per gameweek.** `METRIC.md` §7.1 records that precision is bound by
+  whichever dimension is scarcer, that the gameweek dimension is window-dependent and is the scarce
+  one at any count in the low hundreds, and that added squads therefore buy little while replay cost
+  grows linearly. 300 sits at the top of that range. **Under weekly resampling 300 is read per
+  gameweek**, which is what holds the per-week comparison at the precision the count was chosen for.
+  The alternative reading — 300 squads spread across 37 weeks, roughly eight a week — would thin the
+  within-week dimension to the point where §10.3's stratified interval has almost nothing to
+  resample, for no saving that matters. The consequence is that a run draws 11,100 squads rather than
+  300. The **replay cost is unchanged**, because the replay is per squad-week and the squad-week
+  count is identical (§7.2); what grows 37-fold is the sampler's proposal cost (§2.6) and the squad
+  artefact itself (§7.2). Frozen in the pre-registration.
 
-**A season-specific validity condition, inherited and recorded.** `METRIC.md` §7.2 states that the
-composed registration predicate — in the universe iff a non-null `minutes` row exists at or before
-the build gameweek — is unambiguous **only because** the early gameweeks of this season contain no
-genuine no-fixture blanks, with the measurement at `METRIC.md` Appendix A.1 placing them at GW31 and
-GW34 only. Were a blank gameweek to fall in the build window, a registered player could be NULL
-throughout it and the predicate would need a different form. **This is a property of the 2025-26
-calendar and must be re-checked against any other season.** It is a standing condition on the
-harness, not a one-off check.
+**Superseded: build once and hold, and the two reasons that matter.** Build-once was selected in an
+earlier pass and is recorded here as superseded rather than deleted, so it is not re-proposed.
+
+*The reason it was selected does not hold.* `METRIC.md` §7.1 states that resampling per gameweek
+breaks the pairing of §6.1, and that objection is what build-once rested on — §0.14 depends on the
+pairing, so an option said to break it was not really in contention. The objection is **refuted** by
+§10.4. Pairing requires every ranker to face the same squads in the same gameweeks, and under weekly
+resampling every ranker faces the identical 300 squads within each gameweek, which is the grain the
+difference `d(s, gw)` is taken at. The estimator consumes an already-differenced panel and never sees
+two rankers, so there is no second draw that could break the pairing. Weekly resampling satisfies
+`METRIC.md` §6.1's pairing requirement **exactly**, not approximately.
+
+*The genuine objection was never written down.* There **was** a real cost to weekly resampling, and
+it is the one this pass had to work through: build-once gave the panel a cluster structure — one
+squad contributing 37 dependent rows — which §0.14's U4 and §10.3's estimator were built around, and
+weekly resampling destroys it. That is a change to the estimator, not a defect, and §10.3 derives
+what replaces it. But it was never the stated reason. Build-once was therefore selected on a reason
+that does not hold, while the reason that did hold went unrecorded; both facts are noted here because
+the second is the one a later reader would otherwise rediscover as an objection to this pass.
+
+*What build-once cost, sized — and corrected against the measurement.* It freezes the universe at
+GW2, so a player first appearing at GW10 can never enter any squad in any week — not a reduced
+chance, none. `METRIC.md` Appendix A.2 sizes the exclusion at **136 of 841 players (16.2%)**, all of
+whom appear later in the season. That much is measured and stands.
+
+**An earlier version of this paragraph went further and was wrong.** It asserted that the excluded
+set skews toward **currently-active** players — reasoning that a player enters the data because he
+has arrived and is being picked — and concluded that the frozen pool is tilted along
+minutes-certainty, §2.2's forbidden axis, so that build-once would have had the harness measuring its
+own frozen universe and reporting it as a method result. That claim was never measured. It has since
+been measured, and **the direction is the reverse of what was asserted.** `INVENTORY.md` §2.5 records
+the comparison: the 136 late entrants have a **median of 0 season minutes** against 565 for the GW2
+universe, **52.2%** of them never played a minute against 33.0%, and **31.6%** ever recorded 60
+minutes against 59.1% — with the rates computed over each player's own available weeks, so a shorter
+career does not produce the gap. The late entrants are the **less**-played group, decisively and on
+every measure taken. The sentence is withdrawn.
+
+**What survives, stated at the strength the measurement supports and no higher.** A tilt along the
+axis is still present, because the two groups differ on exactly the quantity §2.2 names; it simply
+runs the other way. Removing a disproportionately non-playing group leaves the GW2 pool
+**over-representing players who play**, relative to the full-season universe. So build-once still
+draws its squads from a pool that is unrepresentative along minutes-certainty, and §2.2's argument
+that this axis is the one to worry about is unaffected.
+
+**But the cost is materially smaller than the withdrawn version claimed, and that is the honest
+reading.** §2.2 separates two categories: a bias independent of the rankers, which limits
+generalisation, and a bias correlated with the axis the rankers differ on, which corrupts the
+comparison. The withdrawn claim placed build-once's exclusion firmly in the second. The measurement
+moves it much closer to the first: over half the excluded players never played at all, and a player
+who never plays is rarely decisive in an XI decision — he would be benched, or unrankable, in almost
+any squad containing him. Excluding a group that mostly could not have changed a selection is closer
+to a coverage limitation than to a corrupted comparison. **Whether the residual tilt is material to a
+ranker comparison is unmeasured** — nothing measures how the pool's composition shifts the value of
+minutes-certainty within a drawn squad, and this document does not assert that it does.
+
+**What this does and does not do to the selection.** The minutes-certainty argument was **one of
+several** reasons recorded for weekly resampling, and it is the weakest of them now rather than the
+strongest. It does not by itself revisit the decision, and this pass does not reopen it. The
+load-bearing justification is unchanged and untouched: `METRIC.md` §7.1's pairing objection — the
+reason build-once was selected in the first place — is refuted at §10.4, and `METRIC.md` §7.1 now
+records that both constructions satisfy §6.1's paired design. Weekly resampling also still admits
+later entrants at all, still assesses feasibility at the gameweek a squad exists in, and still
+carries the cluster-structure consequence §10.3 derives. What changes here is one supporting
+argument's strength, not the selection it supported.
+
+Weekly resampling removes the exclusion regardless of its direction: the universe at gameweek *g* is
+every player registered by *g*, so no entrant is structurally absent from any week after his arrival.
+`INVENTORY.md` §2.5 measures those universes at all 38 gameweeks. §2.2 records the consequence.
+
+**A season-specific validity condition, inherited — and now in conflict.** `METRIC.md` §7.2 states
+that the composed registration predicate — in the universe iff a non-null `minutes` row exists at or
+before the build gameweek — is unambiguous **only because** the early gameweeks of this season
+contain no genuine no-fixture blanks, with the measurement at `METRIC.md` Appendix A.1 placing them
+at GW31 and GW34 only. That condition was stated for a **single** build week inside the early
+gameweeks. Under weekly resampling **every gameweek is a build week, including GW31 and GW34**, so
+the condition as written is violated by construction. Whether the predicate is actually ambiguous at
+those weeks is a different question — the prefix test at GW31 spans thirty prior gameweeks, so a
+player registered earlier has a non-null row long before the blank — but resolving it means restating
+`METRIC.md` §7.2's condition for a set of build weeks, and this document may not write to
+`METRIC.md`. **This is recorded as a conflict requiring a `METRIC.md` pass** (Provenance) and is not
+resolved here. The standing requirement is unchanged in kind: it is a property of the 2025-26
+calendar and must be re-checked against any other season.
 
 ### 0.17 What §0 does not select
 
@@ -637,6 +745,11 @@ The slice's phase sequence is defined in `docs/implementation-plan.md` — "the 
 **baseline** phases", Phase 3 and Phase 4 respectively — not in any of the four documents in this
 folder.
 
+**One thing changed since the previous pass and is recorded here rather than only where it landed.**
+§0.16 now selects **weekly resampling** in place of build-once-and-hold. It changes §0.14's selection
+#14, §2 throughout, §7.2–§7.4, and §10.3/§10.5, and it opens two conflicts against `METRIC.md`
+(Provenance). It does not change what Phase 3 needs.
+
 **Nothing blocks Phase 3.** The one item that did — where the harness can legally live — is decided
 in §3, and the metric selections the replay needed are made in §0. What Phase 3 needs beyond this
 document is two file edits, `pyproject.toml` and `.importlinter` (§3.9), and the new
@@ -649,6 +762,7 @@ document is two file edits, `pyproject.toml` and `.importlinter` (§3.9), and th
 | `METRIC.md` §1's P4, "mean signed directional error", is named but undefined | §7.9 | **The results document.** Its inputs are stored, so no re-run is needed once it is defined |
 | Uncertainty on the bench-ordering sample | §4.11 | **The bench-order claim**, not the harness |
 | Facts §11 needs that `INVENTORY.md` does not carry | §11 | **Nothing structural**; each is a claim this document declines to make first-hand |
+| Whether the residual minutes-certainty tilt in a frozen GW2 pool is material to a ranker comparison | §0.16, §2.2 | **Nothing** — build-once is superseded, so the question is now about a construction this design does not use. Recorded because §2.2's argument would need it if build-once were ever revisited. *(The unsourced claim previously listed here is withdrawn; the two `METRIC.md` conflicts are closed. See Provenance.)* |
 
 **Measurements owed on the first run, which are outputs rather than blockers:** the sampler's
 acceptance rate against §2.6's trigger; the vacancy-order invariance test (§4.3.1); the per-ranker
@@ -661,34 +775,52 @@ exclusion, which `INVENTORY.md` §3.4 records as unmeasurable without a squad se
 
 ### 2.1 The target, stated before any method is argued
 
-§0.16 fixes the target: **uniform over the feasible set**, with feasibility assessed in full at
-**GW2** against four simultaneous conditions — the budget cap, 2 GK / 5 DEF / 5 MID / 3 FWD, at most
-3 players per club, and registration.
+§0.16 fixes the target: **uniform over the feasible set of the gameweek**, with feasibility assessed
+in full at **each gameweek in scope** against four simultaneous conditions — the budget cap,
+2 GK / 5 DEF / 5 MID / 3 FWD, at most 3 players per club, and registration.
 
-**What "uniform" is over, written out.** Let **U** be the squad universe at GW2: `METRIC.md`
-Appendix A.2 records it as 705 of 841 players, comprising 82 GK, 233 DEF, 315 MID and 75 FWD across
-all 20 clubs. Let **Q** be the set of 15-player subsets of U satisfying the position quota exactly.
-Let **F ⊆ Q** be those members of Q that additionally satisfy the budget cap and the ≤3-per-club
-limit at GW2 prices and clubs.
+**What "uniform" is over, written out.** The target is defined **per gameweek**, and the whole
+construction is indexed by *g*. Let **U_g** be the squad universe at gameweek *g* — every player with
+a non-null `minutes` row at or before *g*. Let **Q_g** be the set of 15-player subsets of U_g
+satisfying the position quota exactly. Let **F_g ⊆ Q_g** be those members of Q_g additionally
+satisfying the budget cap and the ≤3-per-club limit **at gameweek *g*'s prices and clubs**.
 
-**The target distribution is the uniform distribution on F: every feasible 15 has probability
-1/|F|.** It is not uniform on U, not uniform per position, and not uniform on Q. Those are three
-different distributions and only the last is a legitimate stepping stone to the target (§2.4).
+**The target distribution is the uniform distribution on F_g: at gameweek *g*, every feasible 15 has
+probability 1/|F_g|.** It is not uniform on U_g, not uniform per position, and not uniform on Q_g.
+Those are three different distributions and only the last is a legitimate stepping stone to the
+target (§2.4). There is no single target distribution across the season and none is wanted: each
+gameweek's 300 squads are the population for that gameweek's comparison, and §10.3 resamples them
+within the week for exactly that reason.
+
+**Every U_g is measured.** `INVENTORY.md` §2.5 records |U_g| and its position and club composition at
+all 38 gameweeks. U_2 is 705 of 841 — 82 GK, 233 DEF, 315 MID and 75 FWD across all 20 clubs,
+reproducing `METRIC.md` Appendix A.2 — and it is the smallest universe in scope. The series is
+monotone nondecreasing, reaching 841 by GW38, with all 20 clubs represented at every gameweek and the
+largest later intakes at GW4 (28), GW17 (10) and GW20 (10). Nothing in §2 depends on the particular
+numbers — the method is defined on U_g whatever it contains, and §2.3's expectations are a priori
+arguments rather than measurements — but §2.6's acceptance ladder is now read against a measured
+universe at every week rather than against one measured week and 36 unmeasured ones, which is what
+makes a low rate at some later gameweek auditable.
 
 **Registration is a restriction of the universe, not a rejection criterion.** It is applied by
-constructing U first, so every member of Q is registration-legal by construction and no draw can
-ever contain a pre-registration player. This matters more than it looks: `INVENTORY.md` §2.7
+constructing U_g first, so every member of Q_g is registration-legal by construction and no draw can
+ever contain a player not yet registered **at that gameweek**. Under weekly resampling this is
+enforced 37 times rather than once, at 37 different cut-offs, which is what makes later entrants
+available without ever making a phantom available. This matters more than it looks: `INVENTORY.md` §2.7
 records that prefix rows carry a **non-null, forward-filled price** — a not-yet-registered player's
 GW1 price is his eventual debut price — so a prefix leak would not crash on a missing value, it
 would silently price a phantom player against the cap using future information. Building U up front
 is how §2 forecloses it, and §2.8 makes it a test rather than a convention.
 
-**Scale.** |Q| is on the order of **10^28** — C(82,2)·C(233,5)·C(315,5)·C(75,3), an arithmetic
-estimate from the position counts above, not a verified count. |F| is smaller and unknown. Two
-consequences follow and both are used later: enumerating F is impossible, so no method may depend on
-having it; and the 300 squads §0.16 requires are a vanishing fraction of it, so whether squads are
-drawn with or without replacement across the set is immaterial — the probability of drawing the same
-15 twice is nil.
+**Scale.** |Q_2| is on the order of **10^28** — C(82,2)·C(233,5)·C(315,5)·C(75,3), an arithmetic
+estimate from the GW2 position counts above, not a verified count. |F_2| is smaller and unknown, and
+every later |Q_g| is larger, U_g being a superset. Two consequences follow and both are used later:
+enumerating F_g is impossible at any gameweek, so no method may depend on having it; and the 300
+squads §0.16 requires **per gameweek** — 11,100 across the season — remain a vanishing fraction of
+even the smallest F_g, so whether squads are drawn with or without replacement is immaterial both
+within a week and across weeks. The probability of drawing the same 15 twice is nil, and the
+independence of one gameweek's draw from another's is a property of the construction rather than
+something the scale has to rescue.
 
 ### 2.2 What a departure from uniformity would, and would not, invalidate
 
@@ -713,6 +845,26 @@ selects on. A squad skewed toward cheap rotation players makes minutes-certainty
 valuable than it is in a representative squad, which **differentially advantages F1 over F2 and
 F3**. That is not a scope limitation; it is the harness measuring its own construction and reporting
 it as a method result.
+
+**The universe is the other place this axis can be tilted, and §0.16 closes it — though by less than
+an earlier version of this paragraph claimed.** The argument above is about the *sampler*; the same
+failure is available one level up, in the set the sampler draws from. Freezing the universe at GW2 —
+the build-once construction §0.16 supersedes — excluded 136 of 841 players (16.2%, `METRIC.md`
+Appendix A.2). The retained pool is therefore unrepresentative along **minutes-certainty**, this
+section's forbidden axis, reached without any sampler bias at all.
+
+**The direction is the opposite of what was previously written here, and the correction matters
+because it changes which of this section's two categories the bias falls into.** `INVENTORY.md` §2.5
+measures the excluded 136 as the **less**-played group — median 0 season minutes against 565, 52.2%
+never playing against 33.0% — so freezing at GW2 removes disproportionately non-playing players and
+leaves the pool over-representing those who play, rather than under-representing them. Since more
+than half the excluded players never played at all, most of them could not have changed an XI
+selection in any squad that held them, which places the exclusion nearer this section's
+**generalisation-limiting** category than its comparison-corrupting one. The residual tilt is real
+and runs along the named axis; its materiality to a ranker comparison is **unmeasured**, and §0.16
+records that rather than assuming either way. Weekly resampling removes the exclusion at the source
+regardless: U_g is every player registered by *g*, so no entrant is structurally absent from any week
+after his arrival.
 
 **So uniformity is load-bearing for a specific reason, and it is worth being precise about which.**
 `METRIC.md` §7 names independence-from-the-ranker as N1's load-bearing property, and that is right —
@@ -829,10 +981,20 @@ is a theorem rather than a diagnostic. Given §2.2 — that the realistic biases
 same axis that separates the rankers — the correctness property is worth more here than the runtime
 property, and Method A's only weakness is runtime.
 
-Two supporting facts make its weakness cheap. The squads are **built once and held for the whole
-season** (§0.16), so the entire sampling cost is a one-off, incurred before any replay runs; and only
-**300 squads** are needed. A method that wastes 99.9% of its proposals still finishes, because the
-target count is in the hundreds rather than the millions.
+Two supporting facts make its weakness cheap, and §0.16's weekly resampling weakens the first of them
+without overturning the conclusion. The sampling cost is still a **one-off**, incurred before any
+replay runs rather than repeatedly during it — but it is now 37 one-offs rather than one, since each
+gameweek builds its own 300 (§0.16). And the target count is **300 per gameweek**, 11,100 in total,
+which is still in the thousands rather than the millions. A method that wastes 99.9% of its proposals
+still finishes: at §2.6's worst tolerated rate the whole season's build is on the order of 10⁸
+proposals, which is arithmetic on integers and not a model fit.
+
+**The honest form of the change: the runtime weakness got 37 times worse and is still not the binding
+consideration.** Weekly resampling makes Method A's one real cost larger by exactly the factor the
+build weeks multiplied by. It does not touch the correctness property the recommendation rests on —
+uniformity on F_g is the same theorem at every gameweek — and §2.2's argument for preferring
+correctness to runtime is unchanged. What does change is that §2.6's ladder now has 37 opportunities
+to fire rather than one, which is why that section's trigger and abort semantics are per-week.
 
 **Method B is rejected outright** on §2.2's grounds. **Method C is held as the named fallback**
 (§2.7), not as a co-recommendation — its correctness argument is strictly weaker and it should be
@@ -840,20 +1002,38 @@ reached for only if Method A is measured to be unusable.
 
 ### 2.6 The acceptance rate is measured, and the trigger has numbers
 
-The acceptance rate p = |F|/|Q| is **unknown**. §2.3's expectation that it is high is an argument,
-not a measurement, and the recommendation does not rest on it.
+The acceptance rate p_g = |F_g|/|Q_g| is **unknown at every gameweek**. §2.3's expectation that it is
+high is an argument, not a measurement, and the recommendation does not rest on it.
 
-**A pilot runs first, before the frozen build.** 10^5 independent proposals at a fixed, recorded
-seed. Let k be the accepted count and p̂ = k/10^5. The pilot is a recorded artefact, not a
-throwaway — its seed, k, and p̂ are reported with the squad set.
+**The rate is now per gameweek, and so is everything below.** p is a property of F_g against Q_g,
+and §0.16 changes both every week: the universe grows as entrants arrive and `INVENTORY.md` §2.7
+records 600 of 841 players changing price across the season, which moves the budget constraint
+directly. There is no single acceptance rate for the run and none is reported. p̂_g is measured,
+laddered and recorded **once per build gameweek**, 37 times.
 
-**The ladder, with the expected proposal count for 300 squads at each level:**
+**A pilot runs first at each gameweek, before that gameweek's frozen build.** 10^5 independent
+proposals at that gameweek's seed stream (§2.9). Let k_g be the accepted count and p̂_g = k_g/10^5.
+Each pilot is a recorded artefact, not a throwaway — its seed, k_g and p̂_g are reported with that
+gameweek's squads. The cost of running 37 pilots rather than one is 3.7 × 10^6 proposals, which is
+smaller than the single-week red-line requirement below and is not a consideration.
 
-| Measured p̂ | Expected proposals for 300 squads | Action |
+**The ladder, applied per gameweek, with the expected proposal count for that gameweek's 300 squads:**
+
+| Measured p̂_g | Expected proposals for that week's 300 squads | Action |
 |---|---|---|
-| **p̂ ≥ 10⁻²** | ≤ 3 × 10⁴ | Proceed. The pilot has very likely already produced the 300. |
-| **10⁻⁴ ≤ p̂ < 10⁻²** | ≤ 3 × 10⁶ | Proceed, and record the realised proposal count alongside the squads. |
-| **p̂ < 10⁻⁴** | > 3 × 10⁶ | **Stop. Audit the feasibility predicate before anything else.** |
+| **p̂_g ≥ 10⁻²** | ≤ 3 × 10⁴ | Proceed. That week's pilot has very likely already produced its 300. |
+| **10⁻⁴ ≤ p̂_g < 10⁻²** | ≤ 3 × 10⁶ | Proceed, and record the realised proposal count alongside that week's squads. |
+| **p̂_g < 10⁻⁴** | > 3 × 10⁶ | **Stop the whole build. Audit the feasibility predicate before anything else.** |
+
+**A red line in any one week stops the entire build, not just that week.** This follows from what the
+red line is for. It is a falsification threshold for §2.3, and §2.3's arguments — slack club limit,
+slack budget — are seasonal properties that do not become false in a single gameweek. A rate two
+orders of magnitude below expectation at GW17 and healthy either side of it is a stronger indication
+of a bug — a price column read at the wrong gameweek is exactly the kind of defect that fires in some
+weeks and not others — than a uniformly low rate would be. Skipping the offending week and continuing
+would also silently change the population: the comparison window would lose a gameweek for a reason
+unrelated to §6.3's scoreability, which is the one thing §0.7's window handling must not have
+happening behind it.
 
 **Why the red line is at 10⁻⁴, and what it actually means.** Not cost: even at p̂ = 10⁻⁴ the expected
 3 × 10⁶ proposals are a one-off run of trivial size, and uniformity holds mathematically no matter
@@ -865,18 +1045,34 @@ feasible set — a price column read at the wrong gameweek, prefix rows leaking 
 p̂ < 10⁻⁴ triggers an audit of the predicate first. **The fallback fires only if the predicate is
 confirmed correct and the rate still stands.**
 
-**A hard cap, so the failure is loud.** The build aborts at **10⁸ cumulative proposals** rather than
-looping. At the red-line rate that cap is 25 times the expected requirement, so hitting it means
-something is wrong rather than slow.
+**A hard cap, so the failure is loud — and it is per gameweek, not per run.** Each gameweek's build
+aborts at **10⁸ cumulative proposals for that gameweek** rather than looping, and an abort in any
+week aborts the run. At the red-line rate that cap is 25 times a single week's expected requirement,
+so hitting it means something is wrong rather than slow. Making the cap per-week rather than a
+10⁸ budget shared across 37 weeks is deliberate: a shared budget would let 36 healthy weeks absorb
+one pathological one until the run died at some arbitrary later gameweek, which converts a loud
+failure into a confusing one. The per-week cap names the week that failed.
 
-**Determinism of the trigger.** The pilot is a fixed seed and a fixed proposal count, so p̂ is a
-reproducible number, not a running impression. "The rate seemed low" is not a trigger; k < 10 in a
-seeded 10^5-proposal pilot is.
+**Determinism of the trigger.** Each pilot is a fixed seed stream and a fixed proposal count, so
+every p̂_g is a reproducible number, not a running impression. "The rate seemed low" is not a trigger;
+k_g < 10 in a seeded 10^5-proposal pilot at gameweek *g* is. That 37 triggers are now evaluated
+rather than one raises the chance that at least one fires by chance; it is not treated as a
+multiple-comparison problem, because the red line is set two orders of magnitude below the a priori
+expectation of §2.3 and a 10^5-proposal pilot has negligible sampling error at that distance.
 
 ### 2.7 If the trigger fires — the fallback, and the burden it carries
 
 The fallback is **Method C**, with a condition attached: it may not inherit Method A's uniformity
 claim, and it may not assert its own.
+
+**If it fires, it fires for every gameweek.** The trigger is per-week (§2.6) but the fallback is not,
+and the reason is homogeneity of the population rather than convenience. If some weeks were built by
+rejection and others by a chain, the squads at different gameweeks would be drawn from constructions
+carrying materially different uniformity claims, and every cross-week quantity — the grand mean over
+the window, §10.5's stratified interval, §6.3's window intersection — would be a mixture of two
+populations with no way to attribute a difference between weeks to the method under test rather than
+to the builder. So a confirmed trigger at any gameweek switches the whole run to Method C, and the
+weaker claim below attaches to all 37 weeks.
 
 **What would have to be established, not assumed:**
 
@@ -899,12 +1095,30 @@ a materially weaker claim than Method A's and every result carrying it should sa
 
 ### 2.8 Testability, and the costs as well as the benefits
 
-**The constraint tests are the floor, not the ceiling.** Across **all** generated squads, assert:
-exactly 2/5/5/3 by position; ≤3 per club at GW2; total GW2 price ≤ 100.0; and every player in U. The
-fourth is the one §2.1's registration argument turns on, and it is cheapest to assert as set
-membership — every drawn `player_id` ∈ U — rather than by re-deriving the prefix rule at test time.
+**The constraint tests are the floor, not the ceiling.** Across **all** generated squads, assert, for
+each squad **against its own gameweek *g***: exactly 2/5/5/3 by position; ≤3 per club at *g*; total
+price at *g* ≤ 100.0; and every player in U_g. The fourth is the one §2.1's registration argument
+turns on, and it is cheapest to assert as set membership — every drawn `player_id` ∈ U_g — rather
+than by re-deriving the prefix rule at test time.
 
-**The determinism test.** Same seed, same universe, byte-identical squad table. `INVENTORY.md` §2.8
+**Three of the four now have a wrong version that would still pass.** Asserting the price, club and
+membership conditions against GW2 rather than against the squad's own gameweek would pass on the GW2
+squads and would be vacuously satisfiable elsewhere — GW2 membership is a *subset* of U_g, so a
+GW2-keyed membership test would reject legitimate later entrants rather than catch phantoms, and a
+GW2-keyed price test would pass squads over budget at their own week. The tests must be keyed on the
+squad's gameweek, and the joins that key them are the part worth reviewing.
+
+**One new test the old construction had no need for: a squad belongs to exactly one gameweek.**
+Assert that each `squad_id` appears at exactly one `gw` in the squad table. This is not a tidiness
+check. §10.3's estimator is valid precisely because a squad contributes one row, and a build bug that
+reused ids across weeks would produce a panel that looks correct, resamples correctly by its own
+lights, and silently reintroduces the dependence §0.14's U3 rejection is about.
+
+**The determinism test.** Same seed, same universes, byte-identical squad table across all 37
+gameweeks — and, because §2.9 derives per-week streams from one master seed, the additional property
+that **building a subset of the gameweeks reproduces those gameweeks' squads exactly**. That second
+property is what makes a partial re-run auditable and it is a consequence of the seed derivation
+being independent of build order, so it is worth asserting rather than assuming. `INVENTORY.md` §2.8
 records that determinism is already tested as a property elsewhere in the repository
 (`tests/test_kernels_inferential_resampling.py`, `model/terms/p_play/test_p_play.py`, and the whole
 of `tests/stabilization/test_wave3_determinism.py`) rather than assumed, and this follows that
@@ -912,9 +1126,12 @@ convention.
 
 **The uniformity test, and an honest statement of what it does not cover.** Uniformity is tested on
 a **reduced universe** small enough to enumerate F exactly — draw many squads, compare realised
-frequencies against uniform. **This verifies the algorithm, not the artefact.** Uniformity of the
-real 300-squad set is inherited from §2.4's proof plus this test of the implementation; it is not
-independently measurable, because |F| on the real universe is unknown. Recording that gap is part of
+frequencies against uniform. **This verifies the algorithm, not the artefact.** Uniformity of each
+gameweek's 300-squad set is inherited from §2.4's proof plus this test of the implementation; it is
+not independently measurable, because |F_g| on any real universe is unknown. Weekly resampling does
+not multiply this test by 37 — the algorithm is one algorithm and the reduced-universe test covers
+it — but it does widen what is inherited from one artefact to 37, which is worth recording as the
+scope of the inheritance rather than left implicit. Recording that gap is part of
 the design, not an admission against it.
 
 **State, and its cost — reported rather than only its benefit.** Method A holds **no** state between
@@ -929,9 +1146,17 @@ Two costs are incurred anyway and are stated:
   same seed against a *different* mart yields a different squad set. The frozen artefact is therefore
   reproducible only against a **pinned mart**, and the pin has to be recorded with the squads. A
   non-rejection method would not have this property. This is a real cost of the recommendation and it
-  is not offset by anything.
-- **The pilot is a second seeded artefact** that must be kept with the first, or §2.6's trigger
-  becomes unauditable after the fact.
+  is not offset by anything. Under weekly resampling the pin covers **every gameweek's** slice of the
+  mart rather than GW2's alone, so a mart rebuild that touches any gameweek in scope invalidates the
+  whole frozen set — a wider exposure than build-once had, and the honest statement of it.
+- **The per-week seed derivation is what stops this compounding.** Were the 37 builds run off one
+  sequential stream, a data change at GW7 would shift the RNG for every later gameweek, so a
+  localised mart correction would perturb 31 weeks of squads for no reason. §2.9's per-week streams
+  confine the perturbation to the weeks whose data actually changed. The reproducibility exposure
+  above is real; this keeps it proportionate.
+- **The pilots are 37 further seeded artefacts** that must be kept with the squads, or §2.6's
+  per-week trigger becomes unauditable after the fact. This is a genuine growth in what the run
+  record has to carry, and §2.9 states the shape it takes.
 
 ### 2.9 Interface
 
@@ -940,24 +1165,79 @@ Exact names and signatures are §5's to fix.
 
 **Takes:**
 
-- the GW2 slice of the mart, supplying `player_id`, `position`, `purchase_price`, `team_id`, and what
-  is needed to build U — read via `dal/`;
+- the mart across **every gameweek in scope**, supplying `player_id`, `position`, `purchase_price`,
+  `team_id` and `minutes` per gameweek, and what is needed to build each U_g — read via `dal/`. This
+  is the one interface change weekly resampling forces on the input side: the sampler reads a panel
+  rather than a single-gameweek slice, and it is the sampler that slices it per week, because U_g's
+  prefix definition needs the history and not just the row;
+- **the gameweek list**, explicitly, rather than inferred from the mart's span — the scope is §0.7's
+  and the sampler must not silently widen or narrow it by taking whatever the mart happens to hold;
 - the squad quota (2/5/5/3) and the budget cap — from `domain/`, per §3.5's new `domain/fpl_squad.py`,
   so the quota traces to FPL's own `element_types` declaration (`INVENTORY.md` §2.2) rather than to a
   hardcode in the slice;
-- the number of squads (300 per §0.16);
-- **a seed, as a required argument with no default.**
+- the number of squads **per gameweek** (300 per §0.16);
+- **a master seed, as a required argument with no default.**
 
-**Returns:** the frozen squad set — 15 rows per squad keyed by `squad_id` and `player_id` — plus a
-**run record**: the seed, the proposals drawn, the accepted count, the realised acceptance rate, and
-the mart pin. The run record is returned, not logged and not stored (§2.8).
+**Returns:** the frozen squad set — 15 rows per squad, keyed by `gw`, `squad_id` and `player_id`,
+with `squad_id` unique across the whole set and belonging to exactly one `gw` (§2.8) — plus a **run
+record that is now per gameweek**: one row per build week carrying that week's derived seed, |U_g|,
+the pilot's k_g and p̂_g, the proposals drawn, the accepted count, the realised acceptance rate, and
+the three **diversity diagnostics** of that week's 300 squads — the count of distinct `player_id`s
+appearing anywhere in them, stated against |U_g|; the selection frequency of the most-selected
+player, as a count out of 300; and the spread of total squad cost at that gameweek, as min, median
+and max. The mart pin is run-level, not per week, and is carried once. The run record is returned,
+not logged and not stored (§2.8).
+
+**Why the record is per week rather than aggregated.** An aggregate acceptance rate across 37 weeks
+would average away exactly what §2.6's ladder is read on, and the diversity diagnostics are worse
+under aggregation than useless: distinct players across all 11,100 squads would approach |U_38| for
+arithmetic reasons alone and would read as healthy no matter how narrow each individual week was. The
+three diagnostics answer a within-week question — does this week's 300 touch its own universe — and
+they have to be reported at that grain to answer it. A reader wanting one number per season can take
+one; the record does not compute it, because §2.9 has no criterion for what it would mean.
+
+**One cross-week diagnostic is added, and it is the only genuinely new one.** Report, per gameweek,
+the count of players in U_g **not** in U_2 — the entrants build-once excluded — and their selection
+frequency across that week's 300 squads. This is the diagnostic that shows the change in §0.16 doing
+what it was made for. Like the other three it **gates nothing**: no threshold is attached, §0 selects
+no criterion over it, and a number invented here would be a criterion smuggled in as reporting. It is
+read by a person alongside the squads, and if it looks wrong that is a finding to route through
+`DECISION.md` and `METRIC.md`.
+
+**Why the diversity diagnostics are in the record, given §2.1.** The first four fields describe the
+*sampler*; they say nothing about the *set*. §2.1 disposes of exact duplicates — at |Q| ≈ 10^28 the
+probability of drawing the same 15 twice is nil — but that is not the concern these three answer. The
+live risk is near-copies: 300 squads that differ in two or three slots while sharing the same cheap
+enablers would satisfy every constraint test in §2.8, report a healthy acceptance rate under §2.6,
+and still carry roughly one squad's worth of information about how rankers behave across squad
+composition. Nothing currently reported would show that. Distinct-players-against-|U| shows how much
+of the universe the set actually touches; the most-selected player's frequency shows whether one
+player is in nearly every squad; the cost spread shows whether the set sits in a narrow band of the
+budget rather than across it. Each is a single pass over the returned squad table and needs nothing
+the sampler does not already hold.
+
+**They gate nothing, and that is deliberate.** No threshold is attached to any of the three. §0
+selects no diversity criterion, there is no evidence base fixing what value would be too low, and a
+number invented here would be a criterion smuggled in as reporting. Unlike §2.6's acceptance ladder —
+which has a stated falsification argument behind its 10⁻⁴ red line — these are read by a person
+alongside the squads. If a run makes one of them look wrong, that is a finding to take back through
+`DECISION.md` and `METRIC.md`, not a condition this section may impose. Adding them changes no
+method, no acceptance criterion, and no selection in §0. Whether they are persisted with the frozen
+set or only returned is §7's, per §2.10.
 
 **Holds:** no state. Pure function of its arguments.
 
-**The seed.** `np.random.default_rng(seed)`, matching the convention `INVENTORY.md` §2.8 records as
-uniform across the repository — no `np.random.seed`, no global state. Requiring the seed as an
-explicit argument with **no default** deliberately avoids inheriting either of the two competing seed
-constants `INVENTORY.md` §2.8 records (`BOOTSTRAP_SEED = 0` at
+**The seed, and the per-week streams it derives.** `np.random.default_rng(seed)`, matching the
+convention `INVENTORY.md` §2.8 records as uniform across the repository — no `np.random.seed`, no
+global state. Weekly resampling needs 37 streams from one master seed, and **how they are derived is
+part of the contract, not an implementation detail**: each gameweek's stream is derived from the
+master seed **and the gameweek number**, so that a week's squads are a function of that week alone.
+Running one gameweek in isolation must reproduce the same squads as running all 37, and rebuilding
+GW7 must not perturb GW8. A single sequential stream consumed across the weeks in order has neither
+property, because rejection consumes a data-dependent number of draws (§2.8), so any change at an
+early week shifts every later one. Requiring the master seed as an explicit argument with **no
+default** deliberately avoids inheriting either of the two competing seed constants `INVENTORY.md`
+§2.8 records (`BOOTSTRAP_SEED = 0` at
 `research/kernels/inferential/resampling.py:20–22`, and a local `42` in the four family studies).
 Which constant the *harness* passes is a global convention question, fixed at §8.4; the sampler's own
 contract is simply that it never picks one for itself.
@@ -983,6 +1263,8 @@ by §0.16's independence requirement.
 
 ### 2.10 What §2 does not decide
 
+- **The exact derivation function for the per-week streams** — §5; §2.9 fixes only that it must be a
+  function of the master seed and the gameweek, and order-independent.
 - **How squads are stored and where the frozen set lives** — §7.
 - **The sampler's exact function and column names** — §5.
 - **Which seed constant the harness passes** — §8.4; §2 only refuses to default it.
@@ -1536,11 +1818,11 @@ rather than assumed.
 | Module | Tier | Takes | Returns | Forbidden from importing |
 |---|---|---|---|---|
 | `formations.py` | A | a 15's realised points with each player's position; or a candidate XI | the best legal XI total and the runner-up (§0.8's C1), and a legality predicate over a candidate XI | everything project-internal except `domain/` — no `dal/`, no `model/`, no `research/`, no `serve/`, no sibling slice module |
-| `sampler.py` | A | GW2 mart slice (`dal/`); quota + cap (`domain/`); `n_squads`; **`seed` — required, no default** | frozen squad table (`squad_id`, `player_id`) **plus a run record**: seed, proposals drawn, accepted count, realised acceptance rate, and the **mart pin** (§5.3) | `model/`, `research/`, `serve/`, `operational/`, `rankers.py` |
+| `sampler.py` | A | mart across the gameweeks in scope (`dal/`); the **gameweek list**, explicitly; quota + cap (`domain/`); `n_squads` **per gameweek**; **master `seed` — required, no default** (§2.9) | frozen squad table (`gw`, `squad_id`, `player_id`), one `gw` per `squad_id` **plus a per-gameweek run record**: derived seed, \|U_g\|, pilot k_g and p̂_g, proposals drawn, accepted count, realised acceptance rate, four diversity diagnostics — and the run-level **mart pin** (§5.3) | `model/`, `research/`, `serve/`, `operational/`, `rankers.py` |
 | `harness.py` | A | squad table; **`rank_fn`**; **`bench_order` — required, no default**: a non-empty ordered sequence of named ordering **policies** (callables), element 0 primary (§5.4); mart (`dal/`); comparison window | per-squad-week records — chosen XI, realised total, best-legal-XI total, runner-up total, regret, substitution and uncovered-blank flags — **plus one replay record per candidate ordering** (§7.2's T5). Ordering-relevance is derived at assembly, not emitted (§7.2.1) | `model/`, `research/`, `serve/`, `rankers.py` — it receives a ranker, never imports one |
 | `rankers.py` | B | the mart | a `RankerOutput` per ranker — name, declared window, score panel (§6.1) | `harness.py`, `sampler.py`, `formations.py` — no Tier A module. `model/`, `dal/`, `domain/` are permitted |
 | `results.py` | A | the harness's per-squad-week and per-ordering records, the comparison results, and the manifest fields (§7.3) | nothing — writes T1–T5 to `results/` and returns the `run_id` | `model/`, `research/`, `serve/`, `rankers.py` |
-| `uncertainty.py` | **B** | **(a)** an ordered per-gameweek series of paired differences, plus `n`, `block`, `ci_level`, `seed`; **(b)** a `(squad_id, value)` panel of paired differences, plus `n`, `ci_level`, `seed`. Two functions, not one (§10.6) | a `(lo, hi)` percentile interval per call, unrounded | `research/`, `serve/`, `operational/`, and every Tier A module — `harness.py`, `sampler.py`, `formations.py`, `results.py`. `model/`, `dal/`, `domain/` are permitted |
+| `uncertainty.py` | **B** | **(a)** an ordered per-gameweek series of paired differences, plus `n`, `block`, `ci_level`, `seed`; **(b)** a `(gw, squad_id, value)` panel of paired differences, plus `n`, `ci_level`, `seed`; stratified by `gw` (§10.3). Two functions, not one (§10.6) | a `(lo, hi)` percentile interval per call, unrounded | `research/`, `serve/`, `operational/`, and every Tier A module — `harness.py`, `sampler.py`, `formations.py`, `results.py`. `model/`, `dal/`, `domain/` are permitted |
 
 **`rankers.py` may not import `formations.py`, and does not need to.** §3.5 lists its permitted
 imports as `model/`, `dal/`, `domain/`, and a ranker scores *players*, never squads or XIs — the
@@ -1922,9 +2204,20 @@ and audits. The auto-substitution trace (`entered_as_sub`, `bench_slot`, `minute
 §4.3's replay re-checkable without re-running it.
 
 **Size, since per-player grain invites the objection.** 300 squads × 15 players × 35 gameweeks × 4
-rankers ≈ **630,000 rows** — single-digit megabytes in parquet. It is affordable because §0.16 builds
-squads **once and holds them**: this is a small number of one-off runs, not an artefact that accumulates
-weekly.
+rankers ≈ **630,000 rows** — single-digit megabytes in parquet.
+
+**§0.16's move to weekly resampling does not change this count, and the old affordability argument was
+the wrong one anyway.** The count is unchanged because T1's grain is the *squad-week*, and weekly
+resampling redistributes squads across weeks without changing how many squad-weeks there are: 300
+squads held for 35 weeks and 300 fresh squads in each of 35 weeks both yield 10,500 squad-weeks. What
+grows is the number of **distinct squads**, 300 → 11,100 over GW2–38, and therefore the squad table
+itself, from 4,500 rows to 166,500 — still trivially small, and not a table T1's size argument was
+ever about. The rationale previously given here — that it is affordable *because* squads are built
+once and held — is withdrawn: it did not support the number it was attached to, since the row count
+never depended on squad reuse. The correct statement is simply that 630,000 rows at single-digit
+megabytes is affordable on its face, for a small number of one-off runs rather than an artefact that
+accumulates weekly. Under the previous construction the withdrawn rationale happened to reach the
+right conclusion, which is why it survived unexamined.
 
 **T2 — `squad_weeks`. One row per (run, squad, gameweek, ranker).**
 
@@ -1980,8 +2273,9 @@ ordering is degenerate, so **no two policies can differ on it**. Splitting the c
 degeneracy auditable rather than assumed, and it means a squad-week where only a GK substitution fired
 is visibly a member of B1 that can never be ordering-relevant.
 
-**Size:** 300 squads × 35 gameweeks × 4 rankers × the policy count — roughly **126,000 rows** at three
-policies. T5 varies only in the substitution outcome, which is why it is a handful of fields rather
+**Size:** 300 squads per gameweek × 35 gameweeks × 4 rankers × the policy count — roughly **126,000
+rows** at three policies, unchanged by §0.16 for the reason T1's count is (T5's grain is the
+squad-week). T5 varies only in the substitution outcome, which is why it is a handful of fields rather
 than a re-issue of T1's fifteen player rows per ordering.
 
 **T4 — `manifest`. One row per run**, written as JSON rather than parquet because it is the thing a
@@ -2017,7 +2311,8 @@ identical inputs yields the same `run_id`.
 | **Bench ordering — the whole ordered policy set, with element 0 named as primary** | §4.9: the chosen XI is scored **after** substitutions fire, so primary regret is a function of element 0 and a regret figure without it is not reproducible. The **rest of the set is identity too**: §4.6 defines B2 over the orderings actually compared, so two runs sharing a primary but comparing different candidates produce different counts in T3 |
 | **Window** — per comparison, in T3 | §0.13: the floor is determined on the intersection of **every** ranker in the comparison, candidate included, so the window is a property of the comparison and not of the run |
 | **Floor ranker** — per comparison, in T3 | Same selection: the floor is **window-relative and re-determined per comparison**, so recording "the floor" once at run level would be wrong |
-| **Seed + squad-set id** | The squad set is built once and held (§0.16); its id plus the seed is what lets a later run assert it is replaying the same 15s rather than new draws |
+| **Master seed + squad-set id** | The squad set is drawn per gameweek (§0.16), so the id covers all 37 weeks' squads and the seed is the master seed §2.9's per-week streams derive from. Together they are what lets a later run assert it is replaying the same squads rather than new draws — and, because §2.9's derivation is order-independent, what lets a partial rebuild be checked week by week |
+| **The build gameweek set** | Weekly resampling makes the set of build weeks a property of the run rather than a constant. Two runs over the same window but different build weeks — a re-run after §0.7's scope moved — produce different squads at the same `gw`, and nothing else in this table would distinguish them |
 
 The manifest also carries, for completeness rather than identity: each ranker's **declared** window
 (§6.3), the sampler's acceptance diagnostics (§2.6), and the bootstrap parameters actually passed —
@@ -2042,8 +2337,16 @@ enforceable rather than aspirational.
 **What is frozen is the pre-registration, not the results.** Results legitimately change when the mart
 is rebuilt; the *parameters fixed before the first run* must not. So the frozen file carries: the three
 naive rankers and their declared windows, `n = 10000`, `block = 4`, the 10% materiality threshold, the
-requirement that both intervals exclude zero, the three success criteria, the squad count of 300, the
-seed, and the bench ordering. A test pins those values. Freezing the *results* instead would fail on
+requirement that both intervals exclude zero, the three success criteria, the squad count of **300 per
+gameweek**, the build gameweek set (GW2–38), the **resampling scheme** — weekly resampling, and U1
+stratified by gameweek (§10.3) — the master seed, and the bench ordering. A test pins those values.
+
+**The scheme is in the frozen file, and that is a consequence of this pass rather than a tidy-up.**
+Under build-once the construction was a constant and needed no pinning. It is now a **choice** that
+a later run could silently reverse — build-once and weekly resampling produce artefacts of identical
+shape and identical row counts (§7.2), differing only in whether `squad_id` recurs across `gw`. That
+is precisely the kind of difference a freeze test exists to catch, and it would otherwise be
+detectable only by inspecting the squad table. Freezing the *results* instead would fail on
 every legitimate re-run and teach the team to regenerate the fixture, which is how freeze tests die.
 
 ### 7.5 What a run emits when the comparison cannot be run
@@ -2226,7 +2529,8 @@ shows both implementations already use; it fixes nothing new.
 
 **One thing this does not settle.** `INVENTORY.md` §2.9 records that resampling **squads** needs a
 *cluster* bootstrap of a mean, that the repository's one cluster resampler is hard-wired to the
-rho / partial-rho statistic, and that there is **no generic cluster-bootstrap-of-a-mean**. This section
+rho / partial-rho statistic, and that there is **no generic cluster-bootstrap-of-a-mean** — nor, as
+§10.3 now needs instead, any gameweek-stratified bootstrap of one. This section
 fixes the **gameweek** interval's call site only. The squad interval is a build, designed at §10.
 
 ### 8.3 One population, two statistics — and the assertion that protects it
@@ -2274,7 +2578,7 @@ elsewhere in the repository, so the direction chosen here is the established one
 
 - **The `points_roll3` governance verdict** — §9.1. If it binds, F3 does not exist in its present form
   and the `add_lagged_rolls` reuse is moot rather than wrong.
-- **The squad-cluster bootstrap** — a build, not a reuse; designed at §10.
+- **The squad-level interval** — a build, not a reuse; designed at §10. It is a bootstrap stratified by gameweek (§10.3), not the cluster bootstrap an earlier pass planned, because §0.16's weekly resampling leaves the panel with no clusters to draw.
 
 ---
 
@@ -2305,9 +2609,10 @@ how uncertainty is quantified on the ordering sample — belongs with it.
 
 ## 10. The squad-level interval
 
-§0.14 selects U1 alongside U2 and requires U1 be computed with U4's cluster structure, and `INVENTORY.md`
-§2.9 records that no generic cluster-bootstrap-of-a-mean exists in the repository. This section builds
-it.
+§0.14 selects U1 alongside U2, and requires U1 be computed as a bootstrap **stratified by gameweek**
+over §0.16's weekly-resampled panel. `INVENTORY.md` §2.9 records that the repository has no generic
+cluster-bootstrap-of-a-mean; it has no gameweek-stratified bootstrap of a mean either. This section
+builds it.
 
 ### 10.1 The resample count and the absent block parameter
 
@@ -2317,43 +2622,96 @@ constraint on the existing implementations does not bind a new measurement, so a
 inherits nothing.
 
 **The squad interval takes no `block` parameter**, and that is the one genuine difference: blocking
-exists to respect autocorrelation between *consecutive gameweeks*. Squads have no order — they are
-independent uniform draws (§2) — so there is nothing for a block to preserve.
+exists to respect autocorrelation between *consecutive gameweeks*. Within a stratum the squads have
+no order — they are independent uniform draws from F_g (§2) — so there is nothing for a block to
+preserve. Across strata the gameweeks are ordered and autocorrelated, but U1 does not resample across
+strata: the gameweek margin is held fixed (§10.3), which is a stronger treatment of that
+autocorrelation than blocking, because it does not resample the dimension at all. U2 is where the
+gameweek dimension is resampled, and that is where `block = 4` lives.
 
 ### 10.2 The estimand
 
 The quantity is the **paired difference in mean regret** between two rankers over one comparison
 window, after §0.8's zero-gap exclusions.
 
-§0.14 selects the **grand mean over surviving squad-weeks** rather than the unweighted mean of per-squad
-means. The two coincide only when every squad has the same number of surviving weeks, and §0.8's
-zero-gap exclusions remove squad-weeks unevenly, so the clusters are **unbalanced** and the readings
-differ. The grand mean is the per-squad-week cost that §0.15's materiality threshold and its absolute
-companion figure are expressed in, and it is how `DECISION.md` §1 frames regret — the cost of a weekly
-decision.
+§0.14 selects the **grand mean over surviving squad-weeks** rather than the unweighted mean of per-week
+means. Under §0.16's weekly resampling the alternative reading is a per-*gameweek* one, not a per-squad
+one — each squad has exactly one week, so a per-squad mean is the row itself and the two readings would
+be trivially identical. The live distinction is between the grand mean and the unweighted mean of
+per-gameweek means, and they coincide only when every gameweek has the same number of surviving rows.
+§0.8's zero-gap exclusions remove squad-weeks unevenly across weeks, so the strata are **unbalanced**
+and the readings differ. The grand mean weights a gameweek by how many of its squads survived, which is
+the reading §0.14's argument selects: it is a per-squad-week cost, and a week that contributed fewer
+decisions should carry proportionately less of the average. That is the per-squad-week cost §0.15's
+materiality threshold and its absolute companion figure are expressed in, and it is how `DECISION.md`
+§1 frames regret — the cost of a weekly decision.
 
 ### 10.3 The resampling unit
 
-**A cluster is a squad.** One replicate draws `n_squads` squad ids uniformly **with replacement** from
-the comparison's squad set, and for each drawn squad takes **all** of its surviving squad-weeks in the
-window. A squad drawn twice contributes all of its rows twice.
+**"A cluster is a squad" no longer applies, and the reason is structural rather than a change of
+mind.** That rule earned its place because a held squad contributed one row per gameweek, 35 or so
+dependent rows tied together by the composition of one 15. Under §0.16 a squad exists in exactly one
+gameweek and contributes **exactly one row**. A rule that groups rows by squad now produces 10,500
+groups of size one, and grouping by a key that is unique per row is not a cluster bootstrap — it is a
+row bootstrap wearing the vocabulary of one. The rule has to be rederived, not reworded.
 
-**Why the squad is the right unit.** `METRIC.md` §6.2 says what U1 is for — sensitivity to which squads
-were drawn. The squads are synthetic and drawn uniformly (§2), so "which squads were drawn" is exactly
-the sampling variability the construction introduces, and the squad is the unit that was actually
-drawn. Resampling anything finer would resample something that was never sampled.
+**Derive it from what was actually sampled.** `METRIC.md` §6.2 fixes U1's question: sensitivity to
+which squads were drawn, with the gameweek set held fixed. So the derivation asks two things — what
+was drawn, and what was not.
 
-**And why not squad-weeks.** §0.14 rejects U3 on `METRIC.md` §6.2's grounds: the same squad recurs
-across every gameweek and the same gameweek across every squad, so treating the product as independent
-inflates the effective sample by roughly two orders of magnitude and manufactures precision the data
-does not contain. The cluster is what restores independence between draws.
+*What was drawn.* At each gameweek *g*, §2 draws 300 squads independently and uniformly from F_g.
+That draw is the sampling variability the construction introduces, and it is the object U1 must
+resample. Each drawn squad becomes one surviving squad-week row (or none, if §0.8 excludes it), so
+**the unit resampled is the squad-week, and this time that is not a proxy for anything** — a
+squad-week *is* one realised draw.
 
-**Patterned on, not imported.** `INVENTORY.md` §2.9 identifies
-`research/kernels/inferential/resampling.py:252 cluster_bootstrap_minutes_adjusted_rho` as the existing
-example of the correct structure — it resamples *players* and states in its docstring that "a row
-bootstrap understates the uncertainty" — but records that it is hard-wired to the rho / partial-rho
-statistic and that there is no generic cluster-bootstrap-of-a-mean. It is also **unreachable**: §3.3
-admits `research/` to neither tier (§8.2). So the pattern is copied and the code is not.
+*What was not drawn.* The gameweek set is not a draw at all under U1's question; §6.2 says U1 holds
+it fixed and U2 is where it varies. And within a gameweek, the 300 squad-weeks share that week's
+realised fixtures, opponents and player performances, so they are **not** independent of one another
+in the unconditional sense.
+
+**Both facts point at the same estimator: resample squad-weeks with replacement, independently within
+each gameweek, holding each gameweek's row count fixed.** One replicate draws, for every gameweek *g*
+in the window, `n_g` squad-week rows uniformly with replacement from that gameweek's surviving rows,
+where `n_g` is the number of surviving rows that gameweek actually has. The replicate is the union
+across gameweeks; the statistic is the grand mean over it (§10.2). A row drawn twice counts twice.
+
+**Why this is valid, stated as the two conditions it turns on.** A bootstrap is valid when it
+resamples exchangeable units from the distribution that generated them. Within a stratum both hold:
+the 300 squads at gameweek *g* are i.i.d. draws from a single distribution (uniform on F_g, §2.1), so
+they are exchangeable **conditional on the gameweek**, and the empirical distribution of that week's
+rows is the right thing to resample from. The week's shared realisation — its fixtures and results —
+is a property of the stratum, not of the rows within it, and stratification conditions on it rather
+than pretending it away.
+
+**And why this is not the U3 error, which is the question this section exists to answer.** U3's
+objection has two halves (§0.14). The first — the same squad recurring across every gameweek — is
+**gone by construction**: §2.8 asserts that a `squad_id` appears at exactly one `gw`, so no unit is
+double-counted across the panel. The second — the same gameweek recurring across every squad — is
+**neutralised by the stratification rather than ignored**. A flat, unstratified row bootstrap over
+all 10,500 rows would resample the gameweek composition as a side effect, treating each week as
+though it contributed 300 independent draws to a season-level quantity; that is exactly U3, and it is
+the error this design must not commit. Holding `n_g` fixed per stratum means **no replicate ever
+changes which gameweeks are represented or in what proportion**, so the gameweek dimension
+contributes no sampling variability to U1 at all. It is answered by U2 instead, which is the division
+of labour §0.14 already selected.
+
+**The distinction worth keeping in view.** Under build-once, 10,500 rows carried only 300 independent
+squad draws, and the cluster bootstrap existed to stop the estimator from believing otherwise. Under
+weekly resampling those 10,500 rows carry **10,500 independent squad draws** — 300 in each of 35
+weeks, each an actual independent draw from its week's feasible set. The interval this estimator
+produces will be narrower than the cluster bootstrap's, and that narrowing is **earned by extra
+sampling rather than manufactured by a modelling assumption**. It is worth naming the resemblance to
+U3's failure mode explicitly, because "the interval got narrower when we changed the resampling unit"
+is the signature of exactly the error §0.14 rejects, and here the construction changed underneath it.
+
+**Nothing is patterned on the existing cluster resampler any more.**
+`INVENTORY.md` §2.9 identifies `research/kernels/inferential/resampling.py:252
+cluster_bootstrap_minutes_adjusted_rho` as the repository's example of the cluster structure. Under
+build-once that was the pattern to copy. It is no longer relevant: this estimator has no clusters to
+resample. It remains **unreachable** in any case — §3.3 admits `research/` to neither tier (§8.2) —
+so nothing is lost. The estimator below is written from the derivation above rather than from an
+existing shape.
 
 ### 10.4 How the pairing survives — made structural, not disciplinary
 
@@ -2365,7 +2723,15 @@ d(s, gw) = regret_A(s, gw) − regret_B(s, gw)
 ```
 
 computed once by the caller from T2, before any resampling. The estimator sees a single
-`(squad_id, value)` panel and never sees two rankers.
+`(gw, squad_id, value)` panel and never sees two rankers.
+
+**This is what refutes `METRIC.md` §7.1's objection to weekly resampling**, and it is worth stating
+here because this is where the argument lives rather than in §0.16 where the selection is recorded.
+Pairing is the requirement that both rankers face the same squads in the same gameweeks. Weekly
+resampling changes *which* squads are faced at each gameweek; it does not create a second draw. At
+gameweek *g* the 300 squads are drawn once and every ranker is run on all of them, so `d(s, gw)` is
+defined for every surviving squad-week under exactly the same conditions build-once provided. The
+pairing is satisfied exactly.
 
 **This is deliberately structural.** Resampling squads independently per ranker is not forbidden by
 convention here; it is **unrepresentable**. There is only one series, so there is nothing that *could*
@@ -2383,40 +2749,69 @@ on §0.15's S2 — it loses real effects rather than manufacturing false ones �
 squad-week error `METRIC.md` §6.2 names under U3 manufactures precision. Two ways to get this wrong, in
 opposite directions, and neither is detectable by inspecting the output interval alone.
 
+**And this is why the loss of the cluster structure costs the pairing nothing.** The two are
+independent properties: pairing is about the *columns* of the panel — one differenced series rather
+than two — and the cluster structure was about its *rows*. §10.3 changes the rows. The differencing
+above is unaffected, which is why §0.16's change lands in §10.3 and §10.5 and nowhere else in §10.
+
 **Zero-gap exclusion does not disturb the pairing.** `METRIC.md` §3.1 records that closeness under C1 is
 a property of the **squad-week**, not of the ranker, so zero-gap weeks are identical across rankers. The
 same rows drop for both, `d(s, gw)` is defined on exactly the surviving set, and the panel stays
-balanced *between rankers* even while unbalanced *across squads* (§10.2).
+balanced *between rankers* even while unbalanced *across gameweeks* — §0.8's exclusions remove
+different numbers of rows from different weeks, so `n_g` varies, which is why §10.3 takes each
+stratum's row count from the data rather than assuming 300.
 
 ### 10.5 The estimator
 
 ```
-squad_cluster_ci(panel, n=10000, ci_level=0.95, seed=0) -> (lo, hi)
+squad_stratified_ci(panel, n=10000, ci_level=0.95, seed=0) -> (lo, hi)
 
-  panel : rows of (squad_id, value)   # value = d(s, gw), already differenced
-  rng   = np.random.default_rng(seed)
+  panel : rows of (gw, squad_id, value)  # value = d(s, gw), already differenced
+                                         # exactly one row per (gw, squad_id)
+  strata = group panel rows by gw
+  rng    = np.random.default_rng(seed)
   for b in 1..n:
-      ids   = rng.choice(unique(squad_id), size=n_squads, replace=True)
-      rows  = concatenation of panel rows for each drawn id   # duplicates repeat
-      Δ*_b  = mean(rows.value)                                 # grand mean, per §10.2
+      rows  = for each gw: rng.choice(strata[gw].value, size=len(strata[gw]),
+                                      replace=True)          # n_g fixed per stratum
+      Δ*_b  = mean(concatenate(rows))                        # grand mean, per §10.2
   return percentile(Δ*, 100·α/2), percentile(Δ*, 100·(1−α/2))
 ```
+
+**`size=len(strata[gw])` is the whole of the stratification**, and it is the line that would be wrong
+if written as `size=n_squads` or if the loop were dropped in favour of one draw over the flat panel.
+The first would rebalance the panel §10.4 establishes is unbalanced across weeks; the second is U3.
+
+**`squad_id` is carried but not drawn on.** The estimator resamples values within a stratum and never
+needs the id, because §2.8 guarantees one row per squad. It is in the signature so the function can
+**assert** that guarantee — one row per `(gw, squad_id)` — rather than trusting the caller. A panel
+that violates it is a build bug (§2.8) whose only symptom downstream would be a wrongly narrow
+interval, so the assertion is where it is cheapest to catch.
 
 **No rounding.** The interval is returned as raw floats. §8.2 rejected the `research/kernels`
 implementation partly because `INVENTORY.md` §2.9 records `_percentile_ci` rounding endpoints to 4 dp
 and §0.15's S2 is a boundary test on whether the interval excludes zero; a new estimator must not
 reintroduce the defect the other one was rejected for.
 
-**No minimum-cluster threshold, and the reason is upstream.** §6.3 gives the gameweek interval a hard
+**No minimum-stratum threshold, and the reason is upstream.** §6.3 gives the gameweek interval a hard
 floor at four scoreable gameweeks — below one block. The squad interval needs no analogue: §0.16 fixes
-300 squads, so the cluster count is never thin. `METRIC.md` §7.1 says the same from the other side —
-precision is bound by the gameweek dimension, not by the squad count.
+300 squads **per gameweek**, so no stratum is thin unless §0.8's exclusions empty one, and an empty
+stratum is simply a gameweek absent from the panel rather than a degenerate draw. A stratum reduced to
+a handful of rows is possible in principle and needs no special handling — it contributes proportionate
+weight to the grand mean and proportionate noise to the replicate, which is the correct behaviour.
 
-**A test oracle falls out of §10.2.** When every squad has the same number of surviving weeks, the grand
-mean equals the unweighted mean of squad means, so the cluster bootstrap reduces exactly to an ordinary
-bootstrap over the vector of per-squad means. A balanced synthetic panel therefore gives a closed
-comparison for the implementation to be tested against, without needing a second estimator to agree
-with.
+**A test oracle falls out of the stratification.** When every stratum has the same row count, the
+stratified draw and a flat draw over the pooled rows have the same expectation for the grand mean but
+different variances — the stratified one is smaller by exactly the between-gameweek component, since
+that component is held fixed. A balanced synthetic panel with a large, deliberately induced
+between-gameweek offset therefore gives a closed comparison: the stratified interval must be **strictly
+narrower** than a flat bootstrap on the same rows, and the gap must grow with the offset. This is a
+sharper oracle than the one the cluster estimator had, because it tests the property the estimator
+exists for rather than a case in which the estimator degenerates.
+
+**A second oracle, for the single-stratum case.** With one gameweek in the window the stratified draw
+*is* an ordinary bootstrap of a mean over that week's rows, which any reference implementation can be
+checked against directly. §6.3's four-gameweek floor means no real comparison runs there, but the
+degenerate case is the cheapest place to verify the percentile machinery.
 
 ### 10.6 Home, and why the two intervals cannot share a signature
 
@@ -2432,31 +2827,43 @@ of one requirement across two modules so that one of them could be Tier A, buys 
 uses at the cost of a reader having to know which interval lives where.
 
 **They genuinely cannot share one signature.** The two resample different objects: an **ordered** series
-of gameweeks in blocks of 4, where adjacency is the whole point, versus an **unordered** collection of
-clusters keyed by `squad_id`. A merged signature would carry a `block` meaningless to one caller and a
-`cluster_id` meaningless to the other — and, worse, would admit the call §0.14 rejects as U3: a
+of gameweeks in blocks of 4, where adjacency is the whole point, versus a panel of **independent draws
+within a fixed gameweek margin**, where adjacency is irrelevant and the margin is what must not move. A merged signature would carry a `block` meaningless to one caller and a
+stratum key meaningless to the other — and, worse, would admit the call §0.14 rejects as U3: a
 flattened squad-week series passed with neither parameter set, which would type-check and return a
 confidently wrong interval.
 
-**So the input shapes are deliberately non-interchangeable** — a 1-D ordered array versus a two-column
-`(squad_id, value)` panel — and the gameweek function additionally **asserts its input length equals the
-comparison's scoreable-gameweek count**, which the caller already knows from T3. A flattened panel has
-`n_squads × n_gw` entries and fails that assertion rather than silently producing a number.
+**So the input shapes are deliberately non-interchangeable** — a 1-D ordered array versus a
+three-column `(gw, squad_id, value)` panel — and the gameweek function additionally **asserts its input
+length equals the comparison's scoreable-gameweek count**, which the caller already knows from T3. A
+flattened panel has `n_squads × n_gw` entries and fails that assertion rather than silently producing a
+number.
+
+**Weekly resampling makes the squad estimator's own guard load-bearing in a way it was not before.**
+Under build-once, dropping the `squad_id` column would have collapsed the panel into an unusable shape.
+Under §10.3 the estimator's draw is *within* stratum, so a caller who passed the panel without `gw` —
+or with a constant `gw` — would get a flat bootstrap that runs cleanly and returns a wrongly narrow
+interval. The `gw` column is therefore required, not optional, and the estimator asserts that the panel
+contains more than one distinct `gw` whenever the comparison window does (§10.7 supplies both).
 
 ### 10.7 What it consumes from the artefact — present at the grain needed
 
-The estimator needs, per comparison: a paired difference per surviving squad-week, keyed by squad.
+The estimator needs, per comparison: a paired difference per surviving squad-week, keyed by gameweek
+and by squad.
 
 | Needed | Source | Present |
 |---|---|---|
 | `regret` per (squad, gw, ranker) | §7.2, T2 `squad_weeks` | ✓ — that is T2's exact grain |
-| The cluster key | T2 `squad_id` | ✓ |
+| The stratum key | T2 `gw` | ✓ — T2 is keyed on it |
+| The one-row-per-squad guarantee | T2 `squad_id`, §2.8 | ✓ — asserted by the estimator (§10.5), not assumed |
 | Zero-gap exclusion | T2 `is_zero_gap` | ✓ — and ranker-independent, per §10.4 |
 | The comparison window | §7.2, T3 `window_first_gw` / `window_last_gw` | ✓ |
 | Somewhere to persist the result | T3 `ci_squads_lo` / `ci_squads_hi` | ✓ |
 
 **The differencing is the caller's step**, not the artefact's: pivot T2 on `ranker`, subtract, drop
-zero-gap rows, restrict to the window. Nothing needs storing at a finer grain than T2 already is, and T1
+zero-gap rows, restrict to the window. The pivot is unchanged by §0.16 — at each gameweek every ranker
+faces the same 300 squads, so `(squad_id, gw)` still identifies a cell present for every ranker, which
+is the same property build-once supplied and the concrete form of §10.4's pairing. Nothing needs storing at a finer grain than T2 already is, and T1
 is not needed for this at all.
 
 ### 10.8 Pre-registration entry
@@ -2468,9 +2875,13 @@ Added to `PRE_REGISTRATION.yaml` (§7.4), pinned by the freeze test:
 | `n` | 10000 | 10000 |
 | `ci_level` | 0.95 | 0.95 |
 | `seed` | 0 | 0 |
-| `block` | 4 | **n/a** — squads are unordered (§10.1) |
-| Resampling unit | blocks of consecutive gameweeks | squads, all rows of a drawn squad |
+| `block` | 4 | **n/a** — within a stratum the squads are unordered (§10.1) |
+| Resampling unit | blocks of consecutive gameweeks | squad-weeks, drawn within gameweek |
+| Stratification | **n/a** | by `gw`, each stratum's row count held fixed (§10.3) |
 | Implementation | `model/eval/metrics.py:79` | built in `uncertainty.py` (§10.5) |
+
+The stratification row is pinned for the reason §7.4 gives: it is the parameter that distinguishes
+this estimator from the U3 error, and it is not recoverable from the output.
 
 Both are required to exclude zero for §0.15's S2 to be satisfied.
 
@@ -2486,7 +2897,7 @@ Both are required to exclude zero for §0.15's S2 to be satisfied.
 
 Under the charter this document reads `INVENTORY.md` and never writes to it, so a fact it needs and
 `INVENTORY.md` lacks is a gap requiring a separate `INVENTORY.md` pass — not something to assert
-locally. Three such gaps were found while writing, and none of them changes a decision above.
+locally. Three such gaps now stand, all predating the weekly-resampling change. None changes a decision above.
 
 1. **What the two `block_bootstrap_ci` implementations return for a series shorter than one block.**
    §6.3 sets the underpowered threshold at four scoreable gameweeks, which follows from `block = 4`
@@ -2508,6 +2919,19 @@ agreement measurements — which `METRIC.md` itself flags as belonging in `INVEN
 file-purpose charter. This document cites them to `METRIC.md` Appendix A because that is where they
 currently live; if a later pass relocates them, §2.1, §0.16 and §7.1 are the citations to repoint.
 
+**Two gaps opened by §0.16's weekly resampling are now closed**, by an `INVENTORY.md` pass, and are
+recorded here as closed rather than removed so the routing stays legible.
+
+- **The composition of the squad universe at each gameweek after GW2 — closed.** §0.16 builds squads
+  at every gameweek and §2.1 defines the target on U_g, so each U_g's composition bears on §2.3's a
+  priori acceptance-rate arguments, read against §2.6's per-week ladder 37 times rather than once.
+  `INVENTORY.md` §2.5 now measures |U_g| and its position and club composition at all 38 gameweeks.
+  §0.16 and §2.1 cite it.
+- **What the 136 excluded players have in common beyond arriving late — closed, and it contradicted
+  what this document had asserted.** `INVENTORY.md` §2.5 measures them as the less-played group on
+  every measure taken. The claim §0.16 carried has been withdrawn there and at §2.2 in this pass;
+  Provenance records the withdrawal.
+
 ---
 
 ## Provenance
@@ -2522,7 +2946,52 @@ The same direction holds toward `METRIC.md` and `DECISION.md`: this document **s
 gap is recorded and routed rather than closed locally — §0.10 and §9.2 for the bench-order scoring
 rule, §0.1 and §7.9 for P4's undefined form.
 
-**One departure from `CLAUDE.md`, recorded rather than made silently.** `CLAUDE.md` requires every
+**Two conflicts with `METRIC.md` were opened by §0.16's weekly resampling. Both are now closed.**
+Under the charter this document selects from `METRIC.md` and never writes to it, so where this pass
+found `METRIC.md` wrong the finding was recorded and routed rather than fixed. A `METRIC.md` pass has
+since run and resolved both on that document's own terms. The entries are kept as a record of what
+was routed and what came back, not as live items.
+
+1. **`METRIC.md` §7.1's pairing sentence — resolved; withdrawn there.** It stated that "resampling per
+   gameweek … breaks the pairing", which §10.4 refutes. `METRIC.md` §7.1 now records that **both**
+   constructions satisfy §6.1's paired design, and that what distinguishes them is the dependence
+   structure of the resulting panel — a §6.2 matter, not a §6.1 one. The withdrawal is recorded in
+   `METRIC.md`'s Provenance with its reason. **The charter departure this entry previously recorded
+   has ended**: there is no longer an upstream sentence this document declines to treat as governing,
+   and §0.16's selection now rests on an upstream characterisation that agrees with it.
+
+2. **`METRIC.md` §7.2's validity condition — resolved; restated there for a set of build weeks.** It
+   was written for one build week and did not generalise to §0.16's construction. `METRIC.md` §7.2
+   now states the condition per build gameweek — no registered player NULL throughout the prefix — of
+   which the old form is the special case, and records that it is monotonically easier to satisfy as
+   the prefix lengthens, so the earliest build weeks bind rather than GW31 and GW34. The
+   `INVENTORY.md` gap this entry named is unchanged in substance and has been given a sharper form by
+   that pass; it is carried at §11 rather than here.
+
+**One claim of this document's own, withdrawn on measurement.** §0.16's superseded record and §2.2
+both asserted that the 136 players excluded by a frozen GW2 universe skew toward **currently-active**
+players, and so tilt the frozen pool along minutes-certainty in the direction that would corrupt a
+ranker comparison. The assertion was made first-hand and was never measured — which is itself the
+charter breach, since it is a repository fact and `INVENTORY.md` is its owner. `METRIC.md` Appendix
+A.2 flagged the gap; an `INVENTORY.md` pass then measured it.
+
+**The measurement contradicts the claim.** `INVENTORY.md` §2.5 records the 136 as the **less**-played
+group: median 0 season minutes against 565 for the GW2 universe, 52.2% never playing against 33.0%,
+31.6% ever recording 60 minutes against 59.1%, on rates computed over each player's own available
+weeks. The sentence is withdrawn at both sites and replaced by what the measurement supports — that
+the tilt exists but runs the other way, and that because over half the excluded players never played,
+the exclusion sits nearer §2.2's generalisation-limiting category than its comparison-corrupting one.
+Its materiality to a ranker comparison remains unmeasured and is not asserted.
+
+**What this changes in the record, stated so it is not overread.** It weakens one of several
+supporting arguments for §0.16's weekly resampling; it does not revisit the selection, and this pass
+did not reopen it. The load-bearing justification is untouched: `METRIC.md` §7.1's pairing objection,
+which is what build-once was selected on, is refuted at §10.4 and withdrawn in `METRIC.md`'s own
+Provenance. The withdrawn claim is retained above rather than deleted so it is not re-proposed, per
+the charter.
+
+**One departure from `CLAUDE.md`, recorded rather than made silently.** *(This is the only standing
+departure. The charter departure recorded under conflict 1 above ended when that conflict closed.)* `CLAUDE.md` requires every
 design document to carry a capabilities table. This document does not carry one, because the
 file-purpose charter governing this folder specifies that `DESIGN.md` is pure prose reasoning with no
 label or verdict tables of its own. The two rules conflict; the charter is followed here and the

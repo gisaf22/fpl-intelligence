@@ -9,7 +9,9 @@ facts. It carries no verdicts, no reuse labels, no proposals, and no judgement a
 **Method.** Searched by capability, not by filename, across `dal/ domain/ model/ serve/
 operational/ research/ tests/ archive/ examples/` plus notebooks, staging contracts, and docs.
 Data-side claims were verified against the live mart (`~/.fpl/fpl.mart.parquet`, 31,958 rows,
-841 players × GW1–38) rather than inferred. Targeted tests were executed (89 passed) rather
+841 players × GW1–38) rather than inferred. **A later pass (2026-08-20) added the per-gameweek
+registration universe, a playing-time comparison of the late entrants, and the blank-debut case —
+all in §2.5, all verified against the same mart.** Targeted tests were executed (89 passed) rather
 than assumed from the presence of a test file. Where a claim could not be verified it is
 listed in §3, not softened into a finding.
 
@@ -23,7 +25,7 @@ listed in §3, not softened into a finding.
 | 2 | Position / club / budget constraint checking | No code; the constants exist upstream | `dal/staging/contracts/element_types.yaml` |
 | 3 | Auto-substitution | No | — |
 | 4 | Best-legal-XI / constrained selection | No | — |
-| 5 | Minutes, NULL-vs-0, pre-registration prefix | Data yes; one uncalled, untested helper | `dal/fct/validation/completeness.py:32` |
+| 5 | Minutes, NULL-vs-0, pre-registration prefix | Data yes; one uncalled, untested helper. Universe measured at all 38 gameweeks (§2.5) | `dal/fct/validation/completeness.py:32` |
 | 6 | `p_play` | Yes, with three population cuts | `model/terms/p_play/`, `model/predictions.py:23` |
 | 7 | Per-gameweek price | Yes | `purchase_price` on the mart |
 | 8 | Seeded sampling | Convention yes; no squad sampler | `research/kernels/inferential/resampling.py:20` |
@@ -208,6 +210,123 @@ and blank; `minutes == 0` is a separate, well-populated state.
 
 `METRIC.md` §6's own rule — a NULL row is prefix iff no non-null row exists earlier in the season
 for that player — reproduces the 84.4% figure in the table above when evaluated directly.
+
+**The registration universe at every gameweek, measured.** A later pass needed the universe at each
+build gameweek rather than at one. Evaluating `METRIC.md` §6's own rule — in the universe at *g* iff a
+non-null `minutes` row exists at or before *g* — at every gameweek gives the following. Verified
+against the live mart on 2026-08-20.
+
+| GW | \|U_g\| | GK | DEF | MID | FWD | Clubs | New that GW |
+|---|---|---|---|---|---|---|---|
+| 1 | **690** | 81 | 228 | 308 | 73 | 20 | 690 |
+| 2 | **705** | 82 | 233 | 315 | 75 | 20 | 15 |
+| 3 | **712** | 82 | 236 | 319 | 75 | 20 | 7 |
+| 4 | **740** | 86 | 245 | 328 | 81 | 20 | 28 |
+| 5 | **741** | 86 | 245 | 328 | 82 | 20 | 1 |
+| 6 | **742** | 86 | 245 | 329 | 82 | 20 | 1 |
+| 7 | **743** | 86 | 245 | 330 | 82 | 20 | 1 |
+| 8 | **745** | 86 | 246 | 331 | 82 | 20 | 2 |
+| 9 | **746** | 86 | 246 | 332 | 82 | 20 | 1 |
+| 10 | **747** | 86 | 247 | 332 | 82 | 20 | 1 |
+| 11 | **752** | 86 | 249 | 334 | 83 | 20 | 5 |
+| 12 | **755** | 87 | 249 | 336 | 83 | 20 | 3 |
+| 13 | **755** | 87 | 249 | 336 | 83 | 20 | 0 |
+| 14 | **758** | 88 | 249 | 338 | 83 | 20 | 3 |
+| 15 | **759** | 88 | 250 | 338 | 83 | 20 | 1 |
+| 16 | **760** | 88 | 251 | 338 | 83 | 20 | 1 |
+| 17 | **770** | 88 | 255 | 344 | 83 | 20 | 10 |
+| 18 | **775** | 88 | 257 | 347 | 83 | 20 | 5 |
+| 19 | **780** | 88 | 257 | 350 | 85 | 20 | 5 |
+| 20 | **790** | 91 | 259 | 354 | 86 | 20 | 10 |
+| 21 | **795** | 91 | 261 | 356 | 87 | 20 | 5 |
+| 22 | **799** | 91 | 262 | 358 | 88 | 20 | 4 |
+| 23 | **803** | 92 | 262 | 361 | 88 | 20 | 4 |
+| 24 | **811** | 93 | 263 | 365 | 90 | 20 | 8 |
+| 25 | **817** | 94 | 265 | 367 | 91 | 20 | 6 |
+| 26 | **817** | 94 | 265 | 367 | 91 | 20 | 0 |
+| 27 | **818** | 94 | 265 | 367 | 92 | 20 | 1 |
+| 28 | **819** | 94 | 266 | 367 | 92 | 20 | 1 |
+| 29 | **820** | 94 | 266 | 368 | 92 | 20 | 1 |
+| 30 | **822** | 94 | 266 | 370 | 92 | 20 | 2 |
+| 31 | **825** | 95 | 268 | 370 | 92 | 20 | 3 |
+| 32 | **826** | 95 | 268 | 371 | 92 | 20 | 1 |
+| 33 | **829** | 96 | 268 | 373 | 92 | 20 | 3 |
+| 34 | **830** | 96 | 268 | 373 | 93 | 20 | 1 |
+| 35 | **832** | 97 | 269 | 373 | 93 | 20 | 2 |
+| 36 | **838** | 97 | 270 | 378 | 93 | 20 | 6 |
+| 37 | **840** | 97 | 270 | 379 | 94 | 20 | 2 |
+| 38 | **841** | 97 | 270 | 379 | 95 | 20 | 1 |
+
+Four properties of the table, stated as measured:
+
+- **U_2 = 705 of 841**, composed 82 GK / 233 DEF / 315 MID / 75 FWD across all 20 clubs. This
+  reproduces `METRIC.md` Appendix A.2 exactly.
+- **The universe is monotone nondecreasing.** No player leaves it once admitted, which follows from
+  the predicate being a prefix test and is confirmed by every row: |U_g| never falls.
+- **All 20 clubs are represented from GW1 onward**, at every gameweek.
+- **Arrivals are front-loaded but never stop.** 690 players at GW1, 705 by GW2, 740 by GW4 — the
+  largest single later intake is 28 at GW4 and 10 at each of GW17 and GW20 — and 841 by GW38. Two
+  gameweeks (GW13, GW26) admit nobody.
+
+**The 136 late entrants play *less* than the GW2 universe, not more.** A later pass required a direct
+test of whether the players excluded by a universe frozen at GW2 differ from the retained pool on
+playing time. They do, and the direction is the opposite of the one that had been supposed. Each
+player's rates are computed over **only the gameweeks in which he was available** — from his own
+first non-null row onward — so a shorter career does not depress a rate by itself.
+
+| Measure | U_2 (705 players) | Late entrants (136) |
+|---|---|---|
+| Median season minutes | 565 | **0** |
+| Mean season minutes | 984 | 401 |
+| Mean minutes per available week | 26.3 | 14.6 |
+| Median share of available weeks with ≥ 60 minutes | 0.132 | **0.000** |
+| Mean share of available weeks with ≥ 60 minutes | 0.272 | 0.147 |
+| Mean share of available weeks with 0 minutes | 0.604 | 0.754 |
+| Never played a minute all season | 33.0% | **52.2%** |
+| Ever recorded ≥ 60 minutes | 59.1% | 31.6% |
+| Recorded ≥ 60 minutes in ≥ 10 gameweeks | 40.9% | 18.4% |
+
+On every measure the late entrants are the **less**-played group, and the gap is large rather than
+marginal: the median late entrant played no minutes at all in the season, and more than half of them
+never played. Median GW38 price is 4.5 for the late entrants against 4.7 for U_2, which is consistent
+with the same picture.
+
+**What this does and does not establish.** It establishes that the two groups differ on realised
+playing time in the direction stated, on this season's data. It does not establish why — the
+measurement does not separate late-window signings from youth call-ups from squad filler, and no
+such classification exists in the mart. `DESIGN.md` §0.16's superseded record states that the
+excluded 136 "skew toward currently-active players"; **the measurement does not support that
+statement, and points the other way.** Recording that is this document's job; what follows from it
+for `DESIGN.md`'s reasoning is `DESIGN.md`'s, and §3.8 notes the routing.
+
+**The blank-debut case does not occur in this season's data.** `METRIC.md` §7.2 routed here a case
+its Appendix A.1 cannot observe: a player whose *first* gameweek is itself a no-fixture blank is
+NULL throughout his prefix with no earlier non-null row, and is therefore indistinguishable from a
+player who has not registered. Measured directly:
+
+| Step | GW31 | GW34 |
+|---|---|---|
+| Clubs with no fixture (every player's `minutes` NULL) | 4 — team ids 1, 8, 13, 20 | 6 — team ids 3, 4, 6, 7, 11, 13 |
+| Total NULL-`minutes` rows in the gameweek | 177 | 259 |
+| — of which have an earlier non-null row (Appendix A.1's rule) | 161 | 248 |
+| Players at a blanking club whose first non-null row falls **after** the blank | 2 | 6 |
+| — of those, resolved as **not yet registered** | 2 | 6 |
+| — of those, genuinely **ambiguous** | **0** | **0** |
+
+The resolution step is a club-played test. A player at a blanking club whose first non-null row falls
+after the blank is genuinely unregistered at the blank — rather than hidden by it — if his club
+**played** in some gameweek strictly between the blank and his first non-null row while he remained
+NULL. All eight satisfy this: at GW31, player 828 (club 20) was NULL at GW32 and player 831 (club 20)
+at GW32–34, their club playing in each; at GW34, players 833, 834, 837 and 838 were NULL at GW35 and
+players 839 and 840 at GW35–36, their clubs playing in each.
+
+Separately, the three players in the whole season whose first non-null row falls immediately after a
+blank gameweek — player 826 at GW32, players 831 and 832 at GW35 — all belong to clubs that **played**
+in the preceding blank gameweek (43 of 44, 44 of 45 and 38 of 39 teammates recorded non-null minutes
+respectively). Their NULL at that gameweek is a prefix, not a blank.
+
+**So the count of ambiguous cases in the 2025-26 data is zero.** Whether the case can arise in another
+season is not a fact about this repository and is not asserted here.
 
 **`is_warmup_gw` is not a registration flag.**
 `dal/feat/feat_player_gameweek.py:121` computes it as `gw == min(gw)` per player. On a cartesian
@@ -471,8 +590,11 @@ as intended behaviour.
 ## 3. Could not determine
 
 Questions this pass could not answer from the repository, and what has since answered them.
-§3.2 and §3.5 were answered by `METRIC.md` §2, which assesses all four feasibility conditions once
-at the build gameweek (GW2) and never re-checks them. §3.1 was answered by `METRIC.md` §3. §3.7
+§3.2 and §3.5 were answered by `METRIC.md` §2, which at the time assessed all four feasibility
+conditions once at the build gameweek (GW2) and never re-checked them. **That premise has since
+changed** — `DESIGN.md` §0.16 now draws squads at every gameweek — so §3.2's answer below describes a
+construction the design no longer uses; it is left as written because it records what answered the
+question when it was answered, and the current construction is `DESIGN.md`'s to state. §3.1 was answered by `METRIC.md` §3. §3.7
 was answered by running it; see below. §3.3, §3.4 and §3.6 remain unanswered.
 
 **3.1 — The "as-of PPG" denominator. Answered.** `expanding_prior_mean` computes a per-gameweek
@@ -538,6 +660,16 @@ for any of them. Its test coverage runs on fixtures that supply the missing colu
 to source features from `dal.pipeline.load().mart`, which is what the failing call did.
 `assert_no_future_leakage` requires a column the governed mart excludes (§2.1); the guard's
 required-column set and the mart contract differ.
+
+---
+
+**3.8 — Two questions a later pass was asked, both answered in §2.5.** The universe at each build
+gameweek, and whether the 136 players excluded by a GW2-frozen universe differ from the retained pool
+on playing time. Both are measured in §2.5 and neither is left open. The second returned a result
+that **contradicts** a characterisation in `DESIGN.md` §0.16's superseded record: the late entrants
+are the less-played group on every measure taken, not the more-played one. This document records the
+measurement and stops there. Whether `DESIGN.md` §0.16 withdraws or restates the sentence is a
+`DESIGN.md` pass, and nothing here proposes what it should say.
 
 ---
 

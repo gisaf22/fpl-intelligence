@@ -1,11 +1,12 @@
 # Starting XI and Bench Order — the decision
 
-**Status:** Specified. Not built.
+**Status:** Specified and designed. Not built.
 **Scope:** the weekly XI-selection decision from the FPL Decision Framework's Starting XI /
 Bench Order entry.
 
-This document states *what is being decided*. It is not the metric and not the design.
-`METRIC.md` — how success is measured — exists, and governs the harness.
+This document answers one question — **what decision are we trying to make?** It is not the
+metric, not the evidence and not the design. `METRIC.md` characterises candidate metrics.
+`INVENTORY.md` records what exists in the repository. `DESIGN.md` decides what is built.
 
 ---
 
@@ -16,39 +17,14 @@ This document states *what is being decided*. It is not the metric and not the d
 This is the decision that matters. It is live every gameweek, and the cost of getting it
 wrong is not the score of the player you benched — it is the gap between what your XI
 scored and what the best available XI would have scored. Two cases with the same benched
-haul are entirely different mistakes:
-
-- You bench a player who scores 15. Every alternative you could have started also scored
-  12 or more. You lost 3. The decision was close and it went slightly against you.
-- You bench a player who scores 15 to start a player who blanks at 1. You lost 14. The
-  decision was consequential and you got it wrong.
-
-Losses are also unequal in ways beyond size. A large loss on a call where the evidence was
-genuinely balanced beforehand is variance — the same call would be right often enough to be
-worth making again. A large loss on a call where the evidence pointed clearly the other way
-is a method failure. And a small loss repeated in one direction across many gameweeks is a
-systematic bias, which is more fixable and more damaging than any single bad week.
-
-This has a direct consequence for measurement: gameweeks where every reasonable method
-picks the same XI carry no information about whether a method is any good. The informative
-sample is the gameweeks where methods disagree, and it is smaller than 38. `METRIC.md` must
-say how it separates these cases rather than reporting one averaged number over all of them.
-It does, in `METRIC.md` §1's three-quantity table and §3's closeness conditioning.
+haul are entirely different mistakes: one where every alternative you could have started
+scored about as much, and one where the player you started instead blanked.
 
 **SECONDARY: the priority order of the remaining 4.**
 
-Bench order pays out more rarely than it first appears, and the gap matters enough that
-`METRIC.md` §4 names two separate counts. A starter failing to play and a substitution firing is
-the **substitution count** — and that is a *primary*-path number, because the substitution changes
-what the chosen XI actually scored. The **ordering** decision is live only in the subset of those
-weeks where the orderings under comparison would have brought on **different** players; where every
-candidate ordering answers the same way, the ordering could not have mattered. That narrower
-**ordering-relevant count** is the sample this secondary decision is measured on.
-
-That makes it a small-sample, small-stakes decision — smaller than the count of weeks in which a
-starter missed, which is the number it is easy to mistake it for. It is reported **separately** and
-not folded into the primary number, because averaging a rarely-live decision into a weekly one
-hides both.
+This is a small-sample, small-stakes decision, and it is not live every week. Bench order is
+reported **separately** and not folded into the primary number, because averaging a
+rarely-live decision into a weekly one hides both. What sizes it, and how, is `METRIC.md` §4.2's.
 
 **A note on framing.** The consequence being avoided is benching a haul. But hauls are not
 directly predictable, and this decision does not claim to predict them. What is being
@@ -57,14 +33,12 @@ what does he score when he does. The haul consideration belongs in **how success
 measured**, not in the selection rule itself — collapsing the two would make the rule chase a
 quantity it cannot estimate.
 
-**Correction.** An earlier version of this section said the metric would handle hauls by
-*weighting the tail* — how often a large score sat on the bench — and that `METRIC.md` would
-make that weighting precise. That promise predates the correction of the cost model to
-counterfactual regret, and it is withdrawn. Regret already prices the tail by magnitude:
-benching a 15 when every alternative returned 2 is a large regret, and benching the same 15
-when the alternatives returned 12 is a small one. An explicit haul coefficient on top of that
-would double-count the same effect, and no evidence available here would justify a value for
-it. `METRIC.md` §1 reports the regret distribution instead.
+**A note on what a naive comparison proves.** No manager selects an XI on season-long
+points-per-game. The real default is closer to recent form, fixture, and whether the player is
+expected to start — so a method that beats a season-long PPG ordering has beaten something nobody
+plays, and has not yet shown it improves the decision as anyone actually makes it. Clearing that
+floor is a sanity check on the harness, not evidence about the decision; evidence about the
+decision requires a floor a manager would recognise as their own habit.
 
 ## 2. Whose goal it serves
 
@@ -88,20 +62,20 @@ dependency; it does not restate the framework.
 The **15-man squad is fixed**. This decision takes the squad as an input and selects within
 it.
 
-**But no real squad exists in the data.** The repository holds no squad, picks, or bench-order
-history for any manager. The `starts` column is not that record — it means the player started
-for *their club*, not that a manager started them in an FPL XI. There is therefore nothing to
-look up: every replay of this decision runs on **synthetic squads**. That makes the input a
+**But no real squad exists in the data.** `INVENTORY.md` §2.8 records that the repository holds
+no squad, picks, or bench-order history for any manager, and that the `starts` column is not that
+record — it means the player started for *their club*, not that a manager started them in an FPL
+XI. There is therefore nothing to look up: every replay of this decision runs on **synthetic squads**. That makes the input a
 modelling choice rather than an observation, and it makes every result conditional on how
-those squads were constructed. `METRIC.md` §2 fixes the construction and states the same
-conditionality from the metric's side.
+those squads were constructed. `METRIC.md` §7.1 states the same conditionality from the
+metric's side.
 
 Out of the decision entirely: budget arithmetic, transfers, and chip-status resolution.
 Per the framework's dependency order, the XI decision is made **only after** the Transfer
 and Chip decisions resolve for the week — those determine which 15 players are available to
 select from, so they must settle first.
 
-## 4. Context and evidence that bear on it
+## 4. Context that bears on it
 
 **Player-level.** Nailed versus rotation-risk status; fixture.
 
@@ -109,13 +83,6 @@ select from, so they must settle first.
 overall or top-10k. These pools can disagree about the same configuration, the same caveat
 that the Captaincy work established when the choice of pool changed which strategy looked
 best.
-
-**Evidence carries confidence, and the levels are not interchangeable.** An official "75%
-chance of starting" statement from a manager is a positive signal of a known strength. A
-bare absence of injury news is not the same thing — it is the absence of a signal, which is
-weaker and can mean nothing was said rather than nothing is wrong. Neither is certainty,
-but they should be weighed differently, and a rule that treats "no news" as equivalent to
-"declared fit" is discarding the distinction.
 
 ## 5. Explicitly out of scope for this slice
 
@@ -135,36 +102,41 @@ Named here so their absence is deliberate rather than an oversight.
 
 ## 6. Status
 
-**Specified. Not built.** No code exists for this decision.
+**Specified and designed. No code exists.** `METRIC.md` and `DESIGN.md` carry the metric and
+the build. What has not started is the build.
 
-**The metric is defined.** `METRIC.md` carries it, and names the naive baselines that
-establish the floor. The harness design and the bench-order scoring rule remain open; nothing
-in this document should be read as fixing them.
+**This document fixes neither the metric nor the design, and nothing in it should be read as
+doing so.** Both were open when it was written; both are now addressed elsewhere.
 
-**Named input to the Phase 2 harness design: where the harness code lives.** `decisions/starting_xi/`
-has no legal home in the import graph. `serve/` may not import `model` or `research`, and
-`research/` may not import `model`, while the harness needs both `p_play` (model) and the resampling
-kernels (research) — so none of the existing layers can host it as they stand. `INVENTORY.md` §4
-(M4) proposes making this folder an importable package with its own import contract, at a cost of
-two edited files and no moved call sites. It is recorded here as a **named input to the Phase 2
-design document**, not settled here: it is a design question rather than a documentation one, and
-it blocks Phase 3 the moment code is written.
+**Where the harness code lives** was recorded here as a named input to the Phase 2 design
+document rather than settled. `DESIGN.md` §3 settles it.
 
-**Correction.** This section previously said the metric was not yet defined and was pending a
-data check on three things. Two of those checks are answered and the third was miscategorised:
+---
 
-1. **Auto-substitution mechanics** — answered. `METRIC.md` §6 fixes the trigger.
+## Provenance
+
+**Retired reasoning, kept so it is not re-proposed.** Each entry below records a framing this
+document once carried, with the reason it was withdrawn. None of them states this document's
+current position; §1–§6 do that.
+
+**§6 — the sentence disclaiming authority over the harness.** §6 previously read: "The harness
+design and the bench-order scoring rule remain open; nothing in this document should be read as
+fixing them." The harness is now closed by `DESIGN.md`; the bench-order scoring rule is not —
+`DESIGN.md` §0.10 records that no candidate set exists to select from — so the sentence is
+retired as a status claim rather than because both halves resolved. The point it carried survives
+and is restated in §6 as a standing disclaimer of authority rather than a status report: this
+document never fixed the harness design, and never contained the injected-`rank_fn` constraint
+that `DESIGN.md` §1.3 and §3.2 record as their own.
+
+**§6 — the three pending data checks.** §6 previously said the metric was not yet defined and was
+pending a data check on three things. Two of those checks are answered and the third was
+miscategorised:
+
+1. **Auto-substitution mechanics** — answered; `DESIGN.md` §0.3 fixes the trigger.
 2. **How many gameweeks the bench-order decision was actually live** — **not a documentation
-   dependency, and it never was.** It is a harness output, and `METRIC.md` §4 now separates two
-   counts that this item originally ran together. Squad-weeks in which a starter recorded no
-   minutes and a substitution fired are the **substitution count**, and that number sizes the
-   *primary* figure rather than this one. What sizes the secondary decision is the narrower
-   **ordering-relevant count** — the subset of those weeks in which candidate orderings would have
-   brought on different players; a substitution every ordering answers the same way says nothing
-   about ordering. Neither count can exist until the harness runs, so no document can discharge
-   them. `METRIC.md` §4 requires both to be reported alongside every bench-order figure, which is
-   the correct home for them. The concern behind this item stands — if the **ordering-relevant**
-   count is small, the secondary decision may not be measurable on one season — but it is a result
-   to be read, not a check to be cleared beforehand.
-3. **How to define "the call was close" from the data** — answered. `METRIC.md` §3 fixes the
+   dependency, and it never was.** It is a harness output, and no document can discharge it. The
+   concern behind the item stands and is current: if the ordering-relevant count is small, the
+   secondary decision may not be measurable on one season. That is a result to be read, not a
+   check to be cleared beforehand.
+3. **How to define "the call was close" from the data** — answered; `DESIGN.md` §0.8 fixes the
    definition and the exclusion rule.

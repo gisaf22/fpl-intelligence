@@ -1134,6 +1134,39 @@ it — but it does widen what is inherited from one artefact to 37, which is wor
 scope of the inheritance rather than left implicit. Recording that gap is part of
 the design, not an admission against it.
 
+**The test's parameters are fixed here, and the reason is that an underpowered uniformity test passes
+regardless of bias.** Every other test in §2.8 fails loudly when its property is violated; this one
+degrades quietly, because a chi-square over too few draws returns a comfortable p-value against any
+sampler whatever. Leaving the draw count unstated would therefore leave the strength of the only
+measurable check on §2.4's uniformity claim to whoever wrote the test, which is not a parameter this
+document may decline to fix.
+
+- **The reduced universe: 19 players** — 3 GK, 6 DEF, 6 MID, 4 FWD, against the 2/5/5/3 quota — so
+  |Q| = 3 × 6 × 6 × 4 = **432**, and F is enumerable by brute force, which is the whole point of
+  reducing it.
+- **|F| = 161** at the fixture's prices and clubs. **Both** rejectable constraints bite, deliberately:
+  the budget cap admits 259 of the 432 and the club limit 282, and F is the 161 satisfying both. A
+  fixture where only one bound would leave the other's predicate untested at the one place uniformity
+  is measurable at all.
+- **200 draws per member of F, so 32,200 squads**, compared against uniform by chi-square at
+  **p > 0.001**.
+- **F is enumerated at test time, not hardcoded**, with **100 < |F| < 432** asserted as a degeneracy
+  guard — so a later change to the fixture that emptied F, or filled it, fails rather than silently
+  weakening the test into one that cannot fail.
+
+**The power is measured, not assumed, and that is why the count is 200 rather than a smaller round
+number.** At 32,200 draws the test rejects a sampler tilted toward cheap squads — §2.2's failure mode,
+and precisely what Method B's repair scheme produces — at **p = 4 × 10⁻³³** for a 1/cost⁴ tilt and
+**p = 0.006** for a 1/cost². Those two figures were measured against the implemented test during the
+Phase 3 build rather than derived analytically, and are stated here on the same footing as §2.1's
+arithmetic estimate: a number this document computed, labelled as such.
+
+**The count is load-bearing, and the counterfactual was measured too.** At **3,220 draws** — an order
+of magnitude fewer — the same 1/cost⁴-biased sampler **passes** at p = 0.0104 while the uniform one
+passes at p = 0.864, so the smaller test cannot tell the two apart at any threshold that would not
+also fail the uniform sampler. That is precisely the failure this parameter exists to prevent: a
+uniformity test that reports "uniform" whatever the sampler does, and reports it just as confidently.
+
 **State, and its cost — reported rather than only its benefit.** Method A holds **no** state between
 calls. There is no cached feasibility index (U has 705 members; an index would be premature and would
 be state), no module-level RNG, and no accumulated counters. The acceptance diagnostics are
@@ -1199,10 +1232,36 @@ one; the record does not compute it, because §2.9 has no criterion for what it 
 **One cross-week diagnostic is added, and it is the only genuinely new one.** Report, per gameweek,
 the count of players in U_g **not** in U_2 — the entrants build-once excluded — and their selection
 frequency across that week's 300 squads. This is the diagnostic that shows the change in §0.16 doing
-what it was made for. Like the other three it **gates nothing**: no threshold is attached, §0 selects
-no criterion over it, and a number invented here would be a criterion smuggled in as reporting. It is
-read by a person alongside the squads, and if it looks wrong that is a finding to route through
-`DECISION.md` and `METRIC.md`.
+what it was made for.
+
+**What "frequency" is a fraction of is fixed here: entrant-occupied slots as a share of the week's
+4,500 player-slots** — 300 squads × 15 — and that share is the specified metric. *The earlier wording
+named the frequency without its denominator and is superseded; it is recorded rather than deleted
+because the ambiguity was real and produced three defensible readings, not one.* The share is chosen
+over the other two because it is the reading that stays comparable **across** gameweeks, which is the
+only thing a cross-week diagnostic is for: the raw slot count grows with the entrant pool, so a count
+rising week on week says nothing on its own, whereas a share can be read directly against the
+entrants' own share of U_g — a quantity the record already carries, since it reports both the entrant
+count and |U_g|. Under uniform draws the two should track each other, up to the entrant pool's
+position composition, because a uniform draw takes players in proportion to their presence in each
+position's pool. So what the diagnostic exposes is any **divergence** between the two shares, not the
+level of either, and the level rising through the season is the expected behaviour rather than a
+signal.
+
+**The other two readings are retained as supporting diagnostics rather than deleted**, because each
+answers something the share cannot. The **raw count of entrant-occupied slots** is what the share is
+computed from, and reporting it makes the share auditable against the squad table without recomputing
+it. The **count of distinct entrants selected** separates the two situations a single share cannot
+distinguish — one entrant appearing in many squads, and many entrants appearing in few — which is the
+same distinction the most-selected-player diagnostic draws for the universe as a whole. Neither is
+promoted to the specified metric; both sit beside it.
+
+Like the other three it **gates nothing**: no threshold is attached, §0 selects no criterion over it,
+and a number invented here would be a criterion smuggled in as reporting. **Fixing the denominator
+does not change that** — settling what a number *means* is not the same as settling a value it must
+exceed, and no threshold is introduced here or anywhere else for any of the four. It is read by a
+person alongside the squads, and if it looks wrong that is a finding to route through `DECISION.md`
+and `METRIC.md`.
 
 **Why the diversity diagnostics are in the record, given §2.1.** The first four fields describe the
 *sampler*; they say nothing about the *set*. §2.1 disposes of exact duplicates — at |Q| ≈ 10^28 the
@@ -2275,6 +2334,19 @@ and audits. The auto-substitution trace (`entered_as_sub`, `bench_slot`, `minute
 **Size, since per-player grain invites the objection.** 300 squads × 15 players × 35 gameweeks × 4
 rankers ≈ **630,000 rows** — single-digit megabytes in parquet.
 
+**35 and 37 are both correct, and they count different things.** The two appear within a few lines of
+each other here, so the distinction is stated rather than left to be reconstructed. **37 is the build
+set** — GW2–38, every gameweek §0.16 draws squads at, which is where 11,100 distinct squads and the
+166,500-row squad table below come from. **35 is the comparison window** — GW4–38, the intersection
+§6.3 computes for the three floor rankers, with F1 binding the start at GW4 because `INVENTORY.md`
+§2.6 records predictions beginning there. T1 and T5 hold *replayed* squad-weeks, so they are sized on
+the window; the squad table holds *drawn* squads, so it is sized on the build set. Neither number is a
+typo for the other, and the same convention holds wherever either appears — §10.3's panel is the
+window's. One consequence is worth keeping in view: **35 is not a constant of the design.** It is the
+window of the three-ranker comparison, and a comparison over a different set of rankers has a
+different intersection and therefore a different count; §6.3 computes it per comparison and §7.2's T3
+stores it per row.
+
 **§0.16's move to weekly resampling does not change this count, and the old affordability argument was
 the wrong one anyway.** The count is unchanged because T1's grain is the *squad-week*, and weekly
 resampling redistributes squads across weeks without changing how many squad-weeks there are: 300
@@ -2767,8 +2839,9 @@ of labour §0.14 already selected.
 
 **The distinction worth keeping in view.** Under build-once, 10,500 rows carried only 300 independent
 squad draws, and the cluster bootstrap existed to stop the estimator from believing otherwise. Under
-weekly resampling those 10,500 rows carry **10,500 independent squad draws** — 300 in each of 35
-weeks, each an actual independent draw from its week's feasible set. The interval this estimator
+weekly resampling those 10,500 rows carry **10,500 independent squad draws** — 300 in each of the 35
+weeks of the three-ranker comparison window rather than of the 37 build weeks (§7.2), each an actual
+independent draw from its week's feasible set. The interval this estimator
 produces will be narrower than the cluster bootstrap's, and that narrowing is **earned by extra
 sampling rather than manufactured by a modelling assumption**. It is worth naming the resemblance to
 U3's failure mode explicitly, because "the interval got narrower when we changed the resampling unit"
@@ -3075,6 +3148,36 @@ silently replaced, per the charter.
    rather than a wrong statement, which is why neither section read as defective on its own. Closed at
    §5.3.1, which ratifies the derivation as specification and states why it is a contract rather than
    an implementation detail. §2.10's reference now names the subsection.
+
+**Two underspecifications closed after the Phase 3 build made them visible.** Neither reverses a
+selection and neither changes a number already stated. Both fix a parameter this document had left
+implicit, and they are recorded because an unstated parameter is not an open question — it is a
+decision taken by whoever implements it, on this document's behalf and without its reasoning.
+
+1. **§2.8's uniformity test had no parameters.** It fixed the test's *form* — a reduced universe, F
+   enumerated exactly, realised frequencies against uniform — and named neither the universe nor the
+   draw count. That left the power of the only measurable check on §2.4's uniformity claim living in
+   the implementation alone, and this test is the one whose failure mode is silence: too few draws
+   passes against any sampler. §2.8 now fixes the fixture, |Q|, |F|, the per-squad expected count, the
+   resulting draw total, the chi-square threshold and the degeneracy guard, with the measured power
+   beside them. The power figures were measured against the implemented test rather than derived, and
+   are labelled as such at the site.
+
+2. **§2.9's entrant selection frequency had no denominator.** It required "their selection frequency
+   across that week's 300 squads" without stating what the fraction was over, and three readings were
+   defensible — a share of the week's player-slots, the raw slot count, and the number of distinct
+   entrants drawn. The implementation emitted all three for exactly that reason. §2.9 now fixes the
+   **share of the week's 4,500 player-slots** as the specified metric, on the ground that it is the
+   only one of the three comparable across gameweeks, and records the other two as retained
+   supporting diagnostics rather than deleting them. The denominator-free wording is superseded in
+   place. **No threshold is introduced**: §2.9's statement that these diagnostics gate nothing is
+   unchanged and now attaches to a metric whose meaning is settled.
+
+**A third clarification in the same pass is deliberately not recorded here.** §7.2 now states that 37
+is the build set and 35 the comparison window, and §10.3 carries the same qualification. Both numbers
+were already correct and both are unchanged; what was missing was the sentence distinguishing them at
+the site where they appear together. Nothing was withdrawn, so there is nothing to keep from being
+re-proposed.
 
 **One departure from `CLAUDE.md`, recorded rather than made silently.** *(This is the only standing
 departure. The charter departure recorded under conflict 1 above ended when that conflict closed.)* `CLAUDE.md` requires every

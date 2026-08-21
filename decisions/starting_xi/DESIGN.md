@@ -1,7 +1,7 @@
 # Starting XI and Bench Order — the design
 
-**Status:** Phase 2 design. `§0` makes the metric selections `METRIC.md` §8 leaves open; §1–§10
-state how the harness is built.
+**Status:** Design settled; the build is under way. `§0` makes the metric selections `METRIC.md` §8
+leaves open; §1–§10 state how the harness is built.
 **Scope:** this document answers one question — **given the evidence, what system should we
 build?** `DECISION.md` states what is being decided, `METRIC.md` characterises candidate metrics
 without selecting among them, and `INVENTORY.md` states what exists in the repository today.
@@ -340,7 +340,7 @@ circularity or G2-FAIL — and that what is unsettled is not the absence but its
 that exclusion binds a *baseline ranker* as well as a governed signal. `METRIC.md` §5.2 states what
 settles it (the lens record behind the annotation) and where the answer belongs
 (`research/families/form/validate/evidence.yaml`). This document cannot answer it and does not.
-§9.1 carries it as the one item blocking Phase 4. If the verdict binds, F3 does not exist in its
+§9.1 carries it as the one item blocking F3. If the verdict binds, F3 does not exist in its
 present form and §6.4's construction is moot rather than wrong.
 
 **A degeneracy that must be reported, not designed away.** `METRIC.md` §5.3 records that F2 and F3
@@ -706,13 +706,13 @@ Not restated here — each is used in place, in the section that depends on it.
 ### 1.3 One constraint that is this document's own, and is easy to mis-trace
 
 **`harness.py` takes a ranking function as an argument and imports only from `dal/`.** This was
-carried into Phase 2 as "already fixed by `DECISION.md`". **It is not in `DECISION.md`**, which at
+carried into this document as "already fixed by `DECISION.md`". **It is not in `DECISION.md`**, which at
 §6 says the opposite about its own authority — "This document fixes neither the metric nor the
 design, and nothing in it should be read as doing so" — and the phrase "ranking function" appears
 nowhere in it.
 
 The constraint was adopted because it is correct: it is what makes §3.6's transitive closure hold.
-But it is recorded as **§3.2, a Phase 2 decision made there for the first time**. A reader tracing
+But it is recorded as **§3.2, a decision made there for the first time**. A reader tracing
 it to `DECISION.md` will not find it, and §1 says so here because that is the trace a reader is most
 likely to attempt.
 
@@ -731,7 +731,7 @@ entry point.
 | §2 Squad sampler | Uniform over the feasible set by whole-draw rejection; a measured acceptance-rate trigger with a numbered ladder; MCMC held as the fallback |
 | §3 Import-graph home | `decisions/starting_xi/` becomes a package under a **two-tier** contract — a model-free core and a single ranker edge |
 | §4 Bench-order scoring rule | Ordering regret; the replay algorithm and its multi-substitution semantics; the counts and which denominates what |
-| §5 Module shapes and interfaces | The module table with per-module forbidden imports; the `__init__.py` rule and the subprocess isolation test that enforces it |
+| §5 Module shapes and interfaces | The module table with per-module forbidden imports; the build order that table implies; the `__init__.py` rule and the subprocess isolation test that enforces it |
 | §6 Ranker interface | One **panel-producing** signature that accommodates a fitted GLM; declared windows and their intersection; the `min_periods` decision |
 | §7 Results shape and location | Five tables across four grains, so analysis never re-runs the harness; the pre-registration freeze, separate from the results |
 | §8 Reuse and call-site specifics | What is reused and on what terms; the gameweek interval's call site, and why `research/kernels` is unreachable |
@@ -739,25 +739,21 @@ entry point.
 | §10 The squad-level interval | The build §0.14's U1 requires, which `INVENTORY.md` §2.9 records has no generic implementation |
 | §11 Facts this document needs and `INVENTORY.md` does not carry | The gaps an `INVENTORY.md` pass owes, listed rather than asserted here |
 
-### 1.5 What is open at the close of Phase 2
-
-The slice's phase sequence is defined in `docs/implementation-plan.md` — "the slice's **build** and
-**baseline** phases", Phase 3 and Phase 4 respectively — not in any of the four documents in this
-folder.
+### 1.5 What is open
 
 **One thing changed since the previous pass and is recorded here rather than only where it landed.**
 §0.16 now selects **weekly resampling** in place of build-once-and-hold. It changes §0.14's selection
 #14, §2 throughout, §7.2–§7.4, and §10.3/§10.5, and it opens two conflicts against `METRIC.md`
-(Provenance). It does not change what Phase 3 needs.
+(Provenance). It does not change what the build needs.
 
-**Nothing blocks Phase 3.** The one item that did — where the harness can legally live — is decided
-in §3, and the metric selections the replay needed are made in §0. What Phase 3 needs beyond this
+**Nothing blocks the build.** The one item that did — where the harness can legally live — is decided
+in §3, and the metric selections the replay needed are made in §0. What the build needs beyond this
 document is two file edits, `pyproject.toml` and `.importlinter` (§3.9), and the new
-`domain/fpl_squad.py` (§3.5).
+`domain/fpl_squad.py` (§3.5). §5.1.1 states the order the module table implies.
 
 | Open item | Where | What it blocks |
 |---|---|---|
-| The `points_roll3` governance verdict | §9.1 | **Phase 4.** F3 is one of three floor rankers and cannot be built until it is answered |
+| The `points_roll3` governance verdict | §9.1 | **F3, the recent-form floor ranker.** One of three, and cannot be built until it is answered |
 | No candidate bench-order scoring rule has been characterised | §0.10, §9.2 | **Nothing structural** — §4.4 supplies a working rule — but the rule is unsurveyed, so it cannot be reported as selected |
 | `METRIC.md` §1's P4, "mean signed directional error", is named but undefined | §7.9 | **The results document.** Its inputs are stored, so no re-run is needed once it is defined |
 | Uncertainty on the bench-ordering sample | §4.11 | **The bench-order claim**, not the harness |
@@ -1435,7 +1431,7 @@ ranker edge module that must.
 
 `INVENTORY.md` §2.11 records the starting point: the directory holds only markdown, no Python and no
 `__init__.py`, and nothing in the tree imports from it. `DECISION.md` §6 named the package question a
-**named input to the Phase 2 design document**, explicitly not settled there. It is settled here.
+**named input to this design document**, explicitly not settled there. It is settled here.
 
 ### 3.2 The constraint this section is built around
 
@@ -1448,8 +1444,8 @@ set is independent of which rankers exist, now or later.
 
 **Attribution, recorded rather than smoothed over.** This constraint was supplied to this pass as
 "already fixed by `DECISION.md` and not up for revision". **`DECISION.md` does not contain it**
-(§1.3). The constraint is adopted, it is correct, and it is the right call; but it is a **Phase 2
-design decision recorded here for the first time**, not an inheritance.
+(§1.3). The constraint is adopted, it is correct, and it is the right call; but it is a **design
+decision recorded here for the first time**, not an inheritance.
 
 It is also consistent with prior art: `INVENTORY.md` §2.11 records that `decisions/README.md:22`
 traces ADR-012 §4's restriction of the `DecisionSpec` family to per-player ranking, with
@@ -1982,6 +1978,53 @@ would have needed it, an XI-aware ranker, is out of scope: §0.16 requires squad
 independent of the ranker, and a ranker that reasoned about legal XIs would be reaching into the
 harness's half of the problem.
 
+### 5.1.1 The build order the table implies
+
+**Derived from §5.1's forbidden-imports column, not imposed on it.** Read alongside §9's gates, this
+answers "what can be built now". It fixes no priority and no schedule: which of two unordered modules
+is written first is not a design question and is not decided here.
+
+**Exactly one sibling import edge exists.**
+
+- **`formations.py`** — §5.1 forbids it everything project-internal except `domain/`, **including every
+  sibling slice module**. A leaf by contract.
+- **`sampler.py`** — imports `dal/` and `domain/`. §2.1's feasible set is a property of the **15**
+  (quota, budget cap, club limit) and never of an XI, so §2.5's rejection step needs no formation
+  routine. A leaf by shape: §5.1 does not forbid it `formations.py`; it does not need it.
+- **`rankers.py`** and **`uncertainty.py`** — Tier B, which §3.3 forbids from being imported by any
+  Tier A module and which reach the harness only by being passed in. Neither imports a sibling. Leaves
+  by contract.
+- **`results.py`** — §7.8 records that it serialises frames it is handed and reads no data of its own.
+  A leaf by shape, on the same terms as `sampler.py`: Tier A siblings are permitted to it and none is
+  needed.
+- **`harness.py`** — §5.1 has it return the best-legal-XI and runner-up totals, and §4.3's replay
+  evaluates §0.6's legality against a full XI at every vacancy. Both are `formations.py`'s outputs.
+  **`harness.py` → `formations.py` is the only edge in the graph.**
+
+So `formations.py` is built before `harness.py`, and nothing else is ordered by an import.
+
+**Four modules are mutually unordered, and this document does not order them.** `formations.py`,
+`rankers.py`, `results.py` and `uncertainty.py` depend on one another in no direction and on
+`harness.py` in none. No principle stated anywhere in this document decides which is written first,
+and supplying one would be scheduling rather than design. `sampler.py` is built.
+
+**What looks like an ordering constraint and is not.** Three modules consume another's output as
+**data at the composition root**, not as an import: `results.py` takes the harness's per-squad-week and
+per-ordering records (§5.1) and the sampler's mart pin (§5.3); `uncertainty.py` reads T2 and T3
+(§10.7). §7.2 fixes those shapes to the column, so each module is built and tested against the
+specified shape rather than against the other module's code. This is what §7.2's specificity buys, and
+it is why the data flow constrains nothing.
+
+**One genuine "before", and it is about the first run rather than the build.** §7.4 requires
+`PRE_REGISTRATION.yaml` and its freeze test to exist before the first harness run, because what it
+pins is the set of parameters fixed *before* that run. It constrains when the run may happen, not
+which module is written when.
+
+**Why the order is this free.** §3.3's asymmetry is doing the work. Tier B may not be imported by Tier
+A, and the Tier A modules reach each other only where a shape genuinely requires it — once, for the
+legality predicate. A contract that produced a long build chain would be one whose modules knew more
+about each other than their interfaces require.
+
 ### 5.2 No module's shape needs an import §3 forbids
 
 Checked rather than assumed, since this is the section where a shape could quietly force one.
@@ -2380,7 +2423,7 @@ rule changed the selected XI — is stored at §7.6.
 
 ### 7.1 The purpose, and the granularity it forces
 
-**Analysis never re-runs the harness.** The Phase 5 results document must be producible from the
+**Analysis never re-runs the harness.** The results document must be producible from the
 artefact alone. That is a constraint on *granularity*, not only on content, and it is the constraint
 that decides the schema below.
 
@@ -2677,7 +2720,7 @@ reads no data of its own, so it needs neither `dal/` nor `model/`.
 
 ## 8. Reuse and call-site specifics
 
-Consolidating what the slice reuses and on what terms, so Phase 3 does not rediscover it. Every fact
+Consolidating what the slice reuses and on what terms, so the build does not rediscover it. Every fact
 below is `INVENTORY.md`'s; this section states what the design does with it.
 
 ### 8.1 What is reused, and what is deliberately not
@@ -2817,7 +2860,7 @@ elsewhere in the repository, so the direction chosen here is the established one
 
 ## 9. Open items
 
-### 9.1 The `points_roll3` governance verdict — blocking slice Phase 4
+### 9.1 The `points_roll3` governance verdict — blocking F3
 
 `INVENTORY.md` §2.1 records that `total_points` is excluded from the feat layer's `_ROLL_COLS` by lens
 decision (`dal/feat/feat_player_gameweek.py:16–22`, "removed by lens evaluation (evaluation_circularity
@@ -2828,7 +2871,8 @@ the answer belongs (`research/families/form/validate/evidence.yaml`).
 
 Whichever way it lands, it governs whether F3 exists (§0.12). `INVENTORY.md` §3.7 records the same
 divergence from the other side: `assert_no_future_leakage` requires the column the mart excludes, so the
-guard and the mart contract cannot both stay as they are. Carried forward unresolved; blocks Phase 4.
+guard and the mart contract cannot both stay as they are. Carried forward unresolved; blocks F3, and
+through it the floor set §0.13 determines (§5.1.1).
 
 ### 9.2 No candidate bench-order scoring rule has been characterised
 
@@ -3241,7 +3285,7 @@ silently replaced, per the charter.
    §5.3.1, which ratifies the derivation as specification and states why it is a contract rather than
    an implementation detail. §2.10's reference now names the subsection.
 
-**Two underspecifications closed after the Phase 3 build made them visible.** Neither reverses a
+**Two underspecifications closed after the build made them visible.** Neither reverses a
 selection and neither changes a number already stated. Both fix a parameter this document had left
 implicit, and they are recorded because an unstated parameter is not an open question — it is a
 decision taken by whoever implements it, on this document's behalf and without its reasoning.
@@ -3305,6 +3349,45 @@ inverted version. What §2.8 gains instead is the general point the second fixtu
 binding profile is a property of a fixture's prices and clubs rather than of its pool size, since the
 21-player split runs the other way again. The club-does-everything finding belongs to the **real**
 841-player universe (§2.3) and to nothing else.
+
+**The slice's phase vocabulary is retired.** Five numbered phases had accumulated across these
+documents — 1 for `INVENTORY.md`, 2 for this document, 3 for the build, 4 for the baselines, 5 for the
+results document — with further sites in `decisions/README.md` and `docs/implementation-plan.md`. Every
+one now names the thing its number stood for. The reasoning is recorded at length because the numbers
+read as useful, and someone will propose them again.
+
+1. **Nothing gated on them.** No `.py`, `.yaml`, `.toml`, `.cfg` or `.ini` file in the repository read
+   a slice phase number. Everything that actually gates this slice is keyed to a thing rather than to a
+   phase: the import contracts (§3), §7.4's freeze test, §5.6's `__init__.py` test, and §9.1's
+   governance verdict. A vocabulary that gates nothing is a habit.
+2. **The sequence never covered its own documents.** `METRIC.md` was written before `INVENTORY.md`, yet
+   the numbering began at `INVENTORY.md`; there was no phase 0 and no phase for the metric survey, so
+   two of the four documents sat outside the sequence entirely. Those same two carried **state**
+   instead — "Survey. No metric selected." and "Specified and designed. Not built." — and those lines
+   were more informative than the numbered ones. That is the precedent the replacements follow.
+3. **Phase 3 and phase 4 overlapped on one module.** Phase 3 was "the build", which included
+   `rankers.py`; phase 4 was "the baselines", which *are* `rankers.py`'s contents (§0.12, §6). The
+   vocabulary cut across the module structure rather than along it. The practical consequence was that
+   "which phase is `formations.py`" could not be answered from these documents at all: §5.1 fixes
+   **tiers**, which are an import-contract concept and not a build-order one, and nothing anywhere
+   mapped modules to phases. §5.1.1 now states the order directly, and derives it from the interfaces
+   rather than asserting it.
+4. **The token collides with five other numbering schemes in this repository** —
+   `docs/implementation-plan.md`'s own phases, `docs/predictive-layer-plan.md`'s, the Operational
+   Convergence Plan's, the topology-consolidation phases in `CONTEXT.md`, and the step comments inside
+   `research/families/*/validate/study.py`. `docs/implementation-plan.md` carried a paragraph whose only
+   job was to disambiguate its phases from this slice's; that paragraph is removed along with the
+   vocabulary it existed to protect.
+
+**What was replaced rather than dropped.** §5.1.1 carries the build order the numbers implied but never
+stated. §1.5 and §9.1 name the artefact each open item blocks. §7.1 keeps the results document and
+loses only its number.
+
+**One claim deleted rather than corrected.** §1.5 stated that the slice's phase sequence was defined in
+`docs/implementation-plan.md` and in none of these four documents. That document's slice section
+explicitly disclaimed the job — its rows are gating questions, with the reasoning left here — so the
+sequence was defined nowhere, and three of the five phases were named nowhere at all. The sentence is
+gone rather than repointed, because there was no correct target to point it at.
 
 **One departure from `CLAUDE.md`, recorded rather than made silently.** *(This is the only standing
 departure. The charter departure recorded under conflict 1 above ended when that conflict closed.)* `CLAUDE.md` requires every

@@ -1,24 +1,20 @@
 # decisions/
 
-One folder per FPL manager-facing decision. Each folder is self-contained: the decision
-statement, its success metric, its harness, its baselines, and its frozen results live
-together.
+One folder per FPL manager-facing decision. Each folder holds that decision's **artefacts**:
+the decision statement, its success metric, its capability inventory, its design, its harness
+code, and its frozen results.
 
 The colocation is deliberate. The metric governs the harness — what counts as success
-determines what the harness must measure and which baselines are worth beating. Splitting
-the documents from the code that implements them is how a metric and its evaluation drift
-apart, so they sit in one folder and move together.
+determines what the harness must measure and which baselines are worth beating.
 
-## Why this is not `docs/decisions/`
-
-`docs/decisions/` holds two things, and neither is this. Per its own README's "Which do I
-write?" test: a **verdict** on whether a signal or study worked is a decision slug, and a
-**design choice** about how the system is built is an ADR. That folder's audience is
-someone changing the system.
-
-This folder holds the decisions an FPL manager makes — the FPL Decision Framework's
-entries. Different subject, different audience. A document here answers "what is being
-decided, and how would we know we got it right", not "how is the repository built".
+**Self-contained means the artefacts, not every symbol they use.** A decision folder is a
+consumer of the layers below it and reuses them in place rather than copying them in. In
+`starting_xi/` the ranker implementations live in the folder but the statistics they call do
+not — `expanding_prior_mean` stays in `model/eval/`, `p_play` stays in `model/terms/`, and the
+squad quota and legal formations live in `domain/` so a second squad-family decision inherits
+them without a new dependency edge. The rule that governs which of those a given module may
+reach is the folder's own import contract
+([`starting_xi/DESIGN.md`](starting_xi/DESIGN.md) §3), not this principle.
 
 ## Relationship to ADR-012
 
@@ -37,6 +33,8 @@ repository already carries one document pointing at work that was never done (AD
 
 ## Current contents
 
-- `starting_xi/` — specified, not built. Contains `DECISION.md` only.
+- `starting_xi/` — designed, not built. Contains `DECISION.md` (what is decided),
+  `METRIC.md` (how success is measured), `INVENTORY.md` (what exists in the repository) and
+  `DESIGN.md` (how the harness is built). No code yet.
 
-Nothing else exists here yet.
+No other decision folder exists yet.

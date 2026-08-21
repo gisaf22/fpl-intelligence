@@ -108,8 +108,8 @@ the build. What has not started is the build.
 **This document fixes neither the metric nor the design, and nothing in it should be read as
 doing so.** Both were open when it was written; both are now addressed elsewhere.
 
-**Where the harness code lives** was recorded here as a named input to the Phase 2 design
-document rather than settled. `DESIGN.md` §3 settles it.
+**Where the harness code lives** was recorded here as a named input to `DESIGN.md` rather than
+settled. `DESIGN.md` §3 settles it.
 
 ---
 

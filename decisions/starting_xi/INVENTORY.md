@@ -1,6 +1,6 @@
 # Starting XI and Bench Order — capability inventory
 
-**Status:** Phase 1 findings. Read-only pass — no code was written, moved, or refactored.
+**Status:** Audit complete. Read-only pass — no code was written, moved, or refactored.
 **Governs nothing, and recommends nothing.** `DECISION.md` states what is decided; `METRIC.md`
 governs the harness; `DESIGN.md` states how it is built and what is reused. This document answers
 one question only — **what data and capabilities exist in the repository today** — and states

@@ -1263,8 +1263,8 @@ by §0.16's independence requirement.
 
 ### 2.10 What §2 does not decide
 
-- **The exact derivation function for the per-week streams** — §5; §2.9 fixes only that it must be a
-  function of the master seed and the gameweek, and order-independent.
+- **The exact derivation function for the per-week streams** — §5.3.1, which now fixes it; §2.9 fixes
+  only that it must be a function of the master seed and the gameweek, and order-independent.
 - **How squads are stored and where the frozen set lives** — §7.
 - **The sampler's exact function and column names** — §5.
 - **Which seed constant the harness passes** — §8.4; §2 only refuses to default it.
@@ -1852,13 +1852,82 @@ same seed against a different mart yields a different squad set. The frozen squa
 reproducible only against the mart it was drawn from, and a seed alone does not identify it.
 
 **The sampler returns the pin in its run record**, alongside the seed and the acceptance diagnostics.
-It is emitted as data — a content hash of the GW2 slice actually read, plus the mart's row count and
+It is emitted as data — a content hash of the slice actually read, plus the mart's row count and
 gameweek span — so that a later run can *verify* rather than assume it is reproducing against the same
 input. A pin recorded only in prose beside the artefact would not survive the artefact being moved,
 and could not be asserted on.
 
+**The hashed slice is every in-scope gameweek's, over the columns the sampler reads.** §2.8 states the
+exposure weekly resampling creates: the pin covers **every gameweek's** slice of the mart rather than
+one week's alone, so a mart rebuild touching any gameweek in scope invalidates the whole frozen set.
+That is a wider exposure than build-once had, and the pin has to be as wide as the exposure or it
+certifies less than the artefact depends on. Restricting the hash to the columns actually read — the
+identifiers, `position`, `purchase_price`, `team_id` and `minutes` of §2.9 — is deliberate in the other
+direction: a hash over every mart column would invalidate a frozen set whenever a column the sampler
+never consults changed, which is a false alarm rather than a stricter guarantee. The row count and
+gameweek span are of the **whole** mart, not the slice, because they are what identify the artefact the
+slice was taken from.
+
+*An earlier version of this paragraph specified the hash as covering "the GW2 slice actually read".
+That was written for the build-once construction §0.16 supersedes, where GW2 was the only slice read.
+It is withdrawn: under weekly resampling it would have pinned one week of a 37-week dependency.*
+
 **What §5 does not fix:** where that record is written. §7 owns storage. §5 fixes that the pin is
 returned, which is what makes storing it possible.
+
+### 5.3.1 The per-week seed derivation, fixed as a contract
+
+§2.10 routes "the exact derivation function for the per-week streams" to §5, and §5 did not carry it —
+a gap closed here. §2.9 fixes what the derivation must satisfy without fixing what it is: a function of
+the master seed **and** the gameweek, order-independent, with `np.random.default_rng` as the generator
+and the master seed a required argument with no default.
+
+**This subsection sits under §5.3 because it is the second half of the same argument.** §2.8 states the
+reproducibility exposure in two parts — the RNG stream is consumed a data-dependent number of times,
+which is what the mart pin exists for, and the per-week derivation is what stops that exposure
+compounding across weeks. A single sequential stream would make a localised mart correction at GW7
+perturb every later week's squads for no reason. The two are one contract, and they are numbered as
+one.
+
+**The derivation, exactly:**
+
+```
+week_seed(seed, gw) = int(SeedSequence([seed, gw]).generate_state(1, dtype=uint64)[0]) >> 1
+rng_g               = np.random.default_rng(week_seed(seed, gw))
+```
+
+Four properties follow, and each is one §2.9 requires:
+
+1. **A pure function of the master seed and the gameweek, and of nothing else.** Not of how many
+   gameweeks are being built, not of which, not of the order they are built in, and not of how many
+   draws an earlier week consumed. The entropy is the two-element sequence and there is no other
+   input.
+2. **Order-independent, which is what makes a partial rebuild auditable.** Building any subset of the
+   gameweeks reproduces exactly the squads that building all of them produces — building GW7 alone
+   gives GW7's squads, and rebuilding GW7 does not perturb GW8. This is §2.8's second determinism
+   property, and it is a consequence of (1) rather than an additional guarantee.
+3. **The per-week streams are independent.** Distinct `(seed, gw)` pairs are distinct entropy inputs,
+   and `SeedSequence`'s mixing is what `default_rng` already relies on to give unrelated states from
+   unrelated seeds — the same mechanism, applied per week instead of per run. Nothing is shared
+   between two weeks' generators; each is constructed fresh from its own derived seed.
+4. **It yields an integer, which is what the run record can carry.** §2.9's per-gameweek run record
+   opens with that week's **derived seed**, and a record field wants a value, not a generator. The
+   `>> 1` drops the state to 63 bits so the field is a plain signed integer rather than a value that
+   overflows a signed 64-bit column and degrades the record to an untyped one. The cost is one bit of
+   entropy; the collision probability across a season's gameweeks is on the order of 10⁻¹⁶.
+
+**This is part of the reproducibility contract, not an implementation detail, and the distinction is
+the point of ratifying it here.** Changing the derivation changes the stream every gameweek draws
+from, therefore every squad in every week, therefore every squad-week the harness replays and every
+number computed from them. There is no version of this change that is small. It is fixed once, and a
+later pass wanting a different derivation is proposing a new frozen set rather than an internal
+refactor — which is exactly the class of change §7.4's freeze test exists to make loud.
+
+**What §5 does not fix, and deliberately.** Not the *name* of the routine that computes it — §5.7
+holds that naming is not what these contracts depend on, and the derivation is the contract, not the
+identifier. Not the master seed's **value**: §2.9 refuses to default it and §8.4 fixes it at `0` for
+every call site in the slice, so the two questions stay separate. And not where the derived seeds are
+written — §7 owns storage, on the same terms as the pin above.
 
 ### 5.4 The harness takes the bench ordering explicitly
 
@@ -2989,6 +3058,23 @@ did not reopen it. The load-bearing justification is untouched: `METRIC.md` §7.
 which is what build-once was selected on, is refuted at §10.4 and withdrawn in `METRIC.md`'s own
 Provenance. The withdrawn claim is retained above rather than deleted so it is not re-proposed, per
 the charter.
+
+**Two fossils of the build-once construction, found in §5 and corrected in this pass.** §0.16's
+weekly-resampling rewrite revised §0.14, §2, §7.2–§7.4 and §10.3/§10.5; §5 was revised only in part,
+and two pieces of it still described the superseded construction. Both are recorded here rather than
+silently replaced, per the charter.
+
+1. **§5.3's mart pin was specified over "the GW2 slice actually read".** True under build-once, where
+   GW2 was the only slice read; false under §0.16, and in direct conflict with §2.8's own statement
+   that the pin covers every gameweek's slice. The narrower text is withdrawn at §5.3 with its reason.
+   Nothing downstream carried the error — §7.3 cites the pin as "content hash + row count + gameweek
+   span" without a week attached.
+
+2. **§2.10 routed the per-week seed derivation to §5, and §5 did not carry it.** §5.7 did not list it
+   as undecided either, so the item was routed out of §2 and arrived nowhere — a dangling reference
+   rather than a wrong statement, which is why neither section read as defective on its own. Closed at
+   §5.3.1, which ratifies the derivation as specification and states why it is a contract rather than
+   an implementation detail. §2.10's reference now names the subsection.
 
 **One departure from `CLAUDE.md`, recorded rather than made silently.** *(This is the only standing
 departure. The charter departure recorded under conflict 1 above ended when that conflict closed.)* `CLAUDE.md` requires every

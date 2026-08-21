@@ -31,7 +31,9 @@ dev-mode-dirs = ["."]
 # term golden, the strangler-invariant vectors, compose and simulate. With `tests` alone, CI ran none
 # of them: `pytest -m unit` collects only testpaths, so 80 tests including every model golden were
 # silently skipped. A golden that nothing runs is not a golden.
-testpaths = ["tests", "model"]
+# `decisions` is here for the same reason: the starting_xi slice's tests are colocated with the
+# harness code they guard (decisions/README.md — a decision folder holds its own artefacts).
+testpaths = ["tests", "model", "decisions"]
 markers = [
     "integration: marks tests that require a live database (deselect with '-m not integration')",
     "unit: marks tests that run without any external dependencies",

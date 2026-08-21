@@ -1125,10 +1125,10 @@ of `tests/stabilization/test_wave3_determinism.py`) rather than assumed, and thi
 convention.
 
 **The uniformity test, and an honest statement of what it does not cover.** Uniformity is tested on
-a **reduced universe** small enough to enumerate F exactly — draw many squads, compare realised
-frequencies against uniform. **This verifies the algorithm, not the artefact.** Uniformity of each
-gameweek's 300-squad set is inherited from §2.4's proof plus this test of the implementation; it is
-not independently measurable, because |F_g| on any real universe is unknown. Weekly resampling does
+**two reduced universes**, each small enough to enumerate F exactly — draw many squads, compare
+realised frequencies against uniform. **This verifies the algorithm, not the artefact.** Uniformity of
+each gameweek's 300-squad set is inherited from §2.4's proof plus this test of the implementation; it
+is not independently measurable, because |F_g| on any real universe is unknown. Weekly resampling does
 not multiply this test by 37 — the algorithm is one algorithm and the reduced-universe test covers
 it — but it does widen what is inherited from one artefact to 37, which is worth recording as the
 scope of the inheritance rather than left implicit. Recording that gap is part of
@@ -1141,31 +1141,123 @@ sampler whatever. Leaving the draw count unstated would therefore leave the stre
 measurable check on §2.4's uniformity claim to whoever wrote the test, which is not a parameter this
 document may decline to fix.
 
-- **The reduced universe: 19 players** — 3 GK, 6 DEF, 6 MID, 4 FWD, against the 2/5/5/3 quota — so
-  |Q| = 3 × 6 × 6 × 4 = **432**, and F is enumerable by brute force, which is the whole point of
-  reducing it.
-- **|F| = 161** at the fixture's prices and clubs. **Both** rejectable constraints bite, deliberately:
-  the budget cap admits 259 of the 432 and the club limit 282, and F is the 161 satisfying both. A
-  fixture where only one bound would leave the other's predicate untested at the one place uniformity
-  is measurable at all.
-- **200 draws per member of F, so 32,200 squads**, compared against uniform by chi-square at
-  **p > 0.001**.
-- **F is enumerated at test time, not hardcoded**, with **100 < |F| < 432** asserted as a degeneracy
-  guard — so a later change to the fixture that emptied F, or filled it, fails rather than silently
-  weakening the test into one that cannot fail.
+**Two pool sizes, both retained, both run every time.**
+
+| | 19 players (3,6,6,4) | 21 players (4,7,6,4) |
+|---|---|---|
+| \|Q\| = C(g,2)·C(d,5)·C(m,5)·C(f,3) | **432** | **3,024** |
+| \|F\|, enumerated exactly | **161** | **1,076** |
+| Acceptance \|F\|/\|Q\| | 0.373 | 0.356 |
+| Budget cap admits | 259 (60.0%) | 1,471 (48.6%) |
+| Club limit admits | 282 (65.3%) | 2,349 (77.7%) |
+| Draws, at 200 per member of F | **32,200** | **215,200** |
+| Uniform sampler, chi-square p | 0.078 | 0.021 |
+| 1/cost⁴-biased sampler, chi-square p | 4 × 10⁻³³ | 1.5 × 10⁻²⁰⁴ |
+| Degeneracy guard on \|F\| | 100 < \|F\| < 432 | 700 < \|F\| < 3,024 |
+
+**Nothing differs between the two beyond sampling noise**, which is the result the second point was
+added to obtain. Both fixtures are chosen so **both** rejectable constraints bite — a fixture where
+only one bound would leave the other's predicate untested at the one place uniformity is measurable at
+all — and F is enumerated at test time rather than hardcoded, with the guard above, so a later edit to
+the prices or clubs that emptied F or filled it fails rather than silently weakening the test into one
+that cannot fail. The **200-per-cell rule holds at both**, so the draw count scales with |F| and the
+two points stay comparable.
+
+**Why a second point was needed.** With one fixture, the step from a 19-player universe to the real
+841-player one rested entirely on an argument about code paths — the sampler has no branch that reads
+pool size, so what holds at 19 must hold at 841. That argument is sound and is not withdrawn, but it
+is an argument about the implementation rather than evidence about its behaviour, and a single
+measured point cannot distinguish "the sampler is uniform" from "the sampler is uniform at the one
+size anyone checked". The second point multiplies |Q| by seven and grows two of the four pools. It
+does not reach 841 — nothing can, per the ceiling below — but it converts a one-point assertion into a
+two-point pattern.
+
+**The binding profile is a property of the fixture, not of the pool size.** At 19 the budget rejects
+more than the club limit (40.0% against 34.7%); at 21 it runs the other way (51.4% against 22.3%).
+Neither is a fact about |U|; both are consequences of the prices and clubs chosen for that fixture.
+This is worth stating because it is easy to carry §2.3's finding about the **real** universe — where
+the club limit does essentially all of the rejecting and the budget almost none — onto these
+fixtures, where it is not true and was never intended to be. The fixtures are deliberately tight so
+that both constraints bite, which is why their acceptance is ~0.36 against the real universe's ~0.90.
+
+**The cost ceiling, and why this is a closed question rather than outstanding work.** The test's cost
+reduces to a single term. Draws are 200·|F| by the rule above, and proposals are draws divided by the
+acceptance rate, so
+
+```
+proposals  =  200 · |F| / (|F|/|Q|)  =  200 · |Q|
+```
+
+**independent of what the fixture's constraints do.** Tightening a fixture shrinks |F|, and with it
+the memory the drawn squads occupy, but leaves the proposal cost untouched. The identity was checked
+at both points rather than taken on the algebra: 86,400 predicted against 86,172 measured at 19
+players, and 604,800 against 606,824 at 21.
+
+That pins the ceiling to |Q| alone, and |Q| is a product of four binomials in the pool depths — it
+grows as roughly the fifteenth power of depth. The ladder, at the shape both fixtures use (every pool
+at quota + k):
+
+| quota + k | pools | players | \|Q\| | draws | proposals |
+|---|---|---|---|---|---|
+| +1 | (3,6,6,4) | **19** | 432 | 32,200 | 86 thousand |
+| +2 | (4,7,7,5) | 23 | 26,460 | 3,379,400 | 5.3 million |
+| +3 | (5,8,8,6) | 27 | 627,200 | ~45 million | 125 million |
+| +4 | (6,9,9,7) | 31 | 8,334,900 | ~600 million | 1.7 billion |
+
+A proportionate 30-player universe is |Q| ≈ 5.6 × 10⁶ and about 400 million draws — some six billion
+rows of squad table. The real universe, at 841 players, is §2.1's |Q_2| ≈ 10²⁸.
+
+**So the conclusion is not "a bigger test is future work".** No enumerable uniformity test can
+approach the real universe, and none ever will, because the obstacle is the combinatorial identity
+rather than any implementation. **21 players is at the practical ceiling**, and this document records
+that as settled so it is not repeatedly re-opened as an outstanding measurement.
+
+**What the generalisation therefore rests on, stated exactly.** Uniformity at the scale the harness
+actually runs at rests on three things and no fourth: §2.4's proof, which is scale-free; **two**
+measured points at 19 and 21 players, agreeing within sampling noise; and the code-path argument that
+no branch in the sampler reads pool size. It does **not** rest on a measurement at scale, and there
+will not be one. That is a weaker foundation than a measurement at 841 would be, and it is the
+strongest available.
+
+**One shape would have reached 30 players, and it was considered and rejected.** |Q| can be held down
+at a larger player count by piling every additional player into a single position: (14, 6, 6, 4) is 30
+players with |Q| = 13,104 and about 940,000 draws, which runs. It was not used. Fourteen goalkeepers
+against a two-goalkeeper quota, with defenders, midfielders and forwards left at the 19-player
+fixture's depth, grows the position with the **smallest quota and the least interaction with the
+budget and club constraints** while leaving the other three untouched, and its club profile would be
+dominated by wherever those fourteen keepers sit. It would put a larger number in the player-count
+column without being a second measurement of the quantity in question. Recorded here so the next pass
+that notices the same arithmetic finds it already answered rather than re-deriving it.
 
 **The power is measured, not assumed, and that is why the count is 200 rather than a smaller round
-number.** At 32,200 draws the test rejects a sampler tilted toward cheap squads — §2.2's failure mode,
-and precisely what Method B's repair scheme produces — at **p = 4 × 10⁻³³** for a 1/cost⁴ tilt and
-**p = 0.006** for a 1/cost². Those two figures were measured against the implemented test during the
-Phase 3 build rather than derived analytically, and are stated here on the same footing as §2.1's
-arithmetic estimate: a number this document computed, labelled as such.
+number.** The test rejects a sampler tilted toward cheap squads — §2.2's failure mode, and precisely
+what Method B's repair scheme produces — at the p-values in the table above. The counterfactual is
+**executed by the test rather than recorded beside it**: the same chi-square, at the same draw count,
+must reject the biased sampler, so the uniformity assertion cannot pass merely because the test is
+blind. Those figures were measured against the implemented test rather than derived analytically, and
+are stated on the same footing as §2.1's arithmetic estimate: a number this document computed,
+labelled as such.
 
 **The count is load-bearing, and the counterfactual was measured too.** At **3,220 draws** — an order
 of magnitude fewer — the same 1/cost⁴-biased sampler **passes** at p = 0.0104 while the uniform one
 passes at p = 0.864, so the smaller test cannot tell the two apart at any threshold that would not
 also fail the uniform sampler. That is precisely the failure this parameter exists to prevent: a
 uniformity test that reports "uniform" whatever the sampler does, and reports it just as confidently.
+
+**A check no single seed can make, and why it is opt-in.** Under a fair sampler the chi-square
+p-value is **Uniform(0,1) by construction**, so the distribution of p across seeds is itself a
+testable property — and it catches a bias too small to push any one seed below the threshold, which is
+exactly the bias a single-seed test is blind to. It exists because the seed-0 p-values at both pool
+sizes, 0.078 and 0.021, sit low enough to be worth a second look; the answer is that they are ordinary
+draws. Twenty seeds at 19 players give a Kolmogorov–Smirnov p against Uniform(0,1) of **0.734**, and
+twelve seeds at 21 give **0.262**.
+
+It is **opt-in rather than always-on**, and the trade is recorded rather than left to be rediscovered.
+At the 200-per-cell count above it costs about 35 seconds, half again the whole slice suite. Running
+it at a lower per-cell count would make it affordable but would no longer be measuring the
+configuration this section pins, so it is gated behind an environment variable rather than thinned.
+The cost of that choice is real and is stated: nothing runs it automatically, so it can only catch a
+regression when a person chooses to run it.
 
 **State, and its cost — reported rather than only its benefit.** Method A holds **no** state between
 calls. There is no cached feasibility index (U has 705 members; an index would be premature and would
@@ -3178,6 +3270,41 @@ is the build set and 35 the comparison window, and §10.3 carries the same quali
 were already correct and both are unchanged; what was missing was the sentence distinguishing them at
 the site where they appear together. Nothing was withdrawn, so there is nothing to keep from being
 re-proposed.
+
+**§2.8's uniformity test gained a second pool size, and one position hardened into a closed
+question.** The test previously ran on a single reduced universe, which this document treated as
+sufficient without saying what the step from it to the real universe rested on. A probe measured a
+second point, and the entry records what changed rather than only the new numbers.
+
+1. **"A reduced universe" is superseded by two.** The 19-player fixture and its pinned parameters are
+   unchanged and retained; a 21-player fixture joins it, and both run every time. The two agree
+   within sampling noise. The code-path argument that carried the generalisation on its own — no
+   branch in the sampler reads pool size — is **not withdrawn**; it is now one of three supports
+   rather than the only one, and §2.8 states all three explicitly.
+
+2. **The ceiling is a position this document did not previously hold.** proposals ≈ 200 × |Q|
+   independent of the fixture's constraints, and |Q| grows as roughly the fifteenth power of pool
+   depth, so no enumerable uniformity test can approach the real universe — at any effort, by anyone,
+   ever. §2.8 now records 21 players as the practical ceiling and the matter as **closed** rather
+   than as an outstanding measurement. This is a change in kind: an absent measurement that will
+   never be taken is a different thing from one not yet taken, and only the second belongs on a list
+   of open items. It is on none.
+
+3. **A rejected fixture shape is recorded so it is not re-proposed.** Thirty players is reachable by
+   piling every extra player into goalkeeper, (14,6,6,4), which runs in a few seconds. It was
+   considered and not used, for the reason §2.8 gives — it grows the position with the smallest quota
+   and the least constraint interaction, inflating the player count without measuring the quantity in
+   question. The charter's rule that retired reasoning stays put applies to reasoning that was never
+   adopted for the same reason it applies to reasoning that was: the next reader who notices that
+   arithmetic should find it answered.
+
+**One correction the record did not need.** A review of this pass asserted that the club limit does
+essentially all of the rejecting in the 19-player fixture. It does not — the budget rejects more
+there, 40.0% against 34.7% — but §2.8 already stated the split correctly and no text carried the
+inverted version. What §2.8 gains instead is the general point the second fixture exposed: the
+binding profile is a property of a fixture's prices and clubs rather than of its pool size, since the
+21-player split runs the other way again. The club-does-everything finding belongs to the **real**
+841-player universe (§2.3) and to nothing else.
 
 **One departure from `CLAUDE.md`, recorded rather than made silently.** *(This is the only standing
 departure. The charter departure recorded under conflict 1 above ended when that conflict closed.)* `CLAUDE.md` requires every

@@ -3663,6 +3663,17 @@ stratum is simply a gameweek absent from the panel rather than a degenerate draw
 a handful of rows is possible in principle and needs no special handling — it contributes proportionate
 weight to the grand mean and proportionate noise to the replicate, which is the correct behaviour.
 
+**That reasoning is scoped to the primary panel, and one sentence of it is wrong at the limit.** The
+premise is §0.16's 300 squads **per gameweek**, which does not survive an exclusion predicate strong
+enough to matter: `METRIC.md` §6.4.3's A1 records singleton strata as the **expected** case on a
+B2-filtered ordering sample (`METRIC.md` §4.2), not a curiosity. And at `n_g = 1` the claim above is
+false rather than merely improbable — a stratum of one row redraws identically in every replicate, so
+it carries its full weight into the grand mean and **zero** noise into the interval, not proportionate
+noise. On the primary panel that case is unreachable, since emptying 299 of a gameweek's 300 rows is
+not something §0.8's exclusions do, so nothing computed here is affected and no selection moves. The
+paragraph is retained with its scope attached rather than rewritten, because it is correct on the panel
+it was written for; §10.10 decides what happens on a panel it was not.
+
 **A test oracle falls out of the stratification.** When every stratum has the same row count, the
 stratified draw and a flat draw over the pooled rows have the same expectation for the grand mean but
 different variances — the stratified one is smaller by exactly the between-gameweek component, since
@@ -3703,12 +3714,28 @@ length equals the comparison's scoreable-gameweek count**, which the caller alre
 flattened panel has `n_squads × n_gw` entries and fails that assertion rather than silently producing a
 number.
 
+*This assertion is primary-panel-scoped, and it is retained exactly as stated. A B2-filtered series is
+**punctured** rather than merely shorter — `METRIC.md` §6.4.3's A2 records that a gameweek with no
+surviving row has no per-gameweek mean at all — so it fails this assertion on every realistic ordering
+sample, including ones where the treatment is perfectly well defined. §10.10 decides that the assertion
+stays and the ordering sample gets its own entry point rather than the assertion becoming a
+caller-supplied parameter. The reasoning turns on a property stated in the paragraph above: a flattened
+squad-week series **is** a 1-D ordered array, so the non-interchangeable input shapes do not catch it
+and this assertion is the only thing that does.*
+
 **Weekly resampling makes the squad estimator's own guard load-bearing in a way it was not before.**
 Under build-once, dropping the `squad_id` column would have collapsed the panel into an unusable shape.
 Under §10.3 the estimator's draw is *within* stratum, so a caller who passed the panel without `gw` —
 or with a constant `gw` — would get a flat bootstrap that runs cleanly and returns a wrongly narrow
 interval. The `gw` column is therefore required, not optional, and the estimator asserts that the panel
 contains more than one distinct `gw` whenever the comparison window does (§10.7 supplies both).
+
+*Also primary-panel-scoped, and also retained. The reference quantity is the **comparison window**, so
+a legitimately single-occupied-gameweek ordering sample on a 35-gameweek window trips it —
+`METRIC.md` §6.4.3's A1 and A3 make that an expected occupancy, not a pathology. §10.10 splits this
+paragraph's two requirements, which are not the same guard: the `gw` column being **present** holds on
+every caller and moves down into the shared resampling core, where it protects the ordering sample too;
+the comparison against the window stays here.*
 
 ### 10.7 What it consumes from the artefact — present at the grain needed
 
@@ -3749,11 +3776,192 @@ this estimator from the U3 error, and it is not recoverable from the output.
 
 Both are required to exclude zero for §0.15's S2 to be satisfied.
 
+**No bench-order column is added, and the omission is deliberate.** A third column would have to pin a
+treatment `METRIC.md` §8's row #17 leaves unselected. §10.10 decides the **interface** a bench-order
+figure would be computed through; the parameters that interface freezes are owed when the treatment is
+chosen, and `METRIC.md` §6.4.6 permits that choice to be pre-registered as a rule over the occupancy
+profile rather than as a fixed value.
+
+### 10.10 The guard boundary for a filtered subpanel — a separate bench-order entry point over one shared resampling core
+
+*Placed after §10.8 with §10.9 held physically last, on §6's precedent — §6.6 sits after §6.7 and §6.8
+for the same reason, so downstream citations of §10.9 still land.*
+
+**What this closes, and what it does not.** `METRIC.md` §6.4 resolves that U1 and U2 transfer to the
+ordering sample **unchanged in form**: B2 (`METRIC.md` §4.2) is an exclusion predicate over the same
+squad × gameweek panel, of the same kind as §3.1's zero-gap exclusion there, so it removes rows without
+changing what a row is or which margins the panel has, and no fifth scheme is required. `METRIC.md`
+§6.4.7's third bullet then names the one thing that survey could not see — **whether a downstream
+estimator's contract admits a filtered subpanel at all** is a property of this module's interface — and
+`METRIC.md`'s Provenance flags the consequence in the same terms: an estimator written against the
+primary comparison's dimensions will reject a bench-order call even where the treatment is well
+defined. That question is §10's, and this section decides it. It does **not** select the treatment;
+`METRIC.md` §8's row #17 stays open and §10.9 records it.
+
+#### 10.10.1 The four guards, and which of them actually fails
+
+§10 specifies four preconditions across the two functions. Three are scoped to the primary panel and
+one transfers, and separating them is what makes this decision tractable rather than a choice between
+two whole-module postures.
+
+| | The guard | Where | What it protects against | On a B2-filtered call |
+|---|---|---|---|---|
+| **G1** | One row per `(gw, squad_id)` | §10.5 | A §2.8 build bug duplicating squad rows, whose only downstream symptom is a wrongly narrow interval | **Holds unchanged.** B2 removes squad-weeks and never duplicates one; §2.8's one-`gw`-per-`squad_id` guarantee is untouched by a filter |
+| **G2** | The `gw` column is required, not optional | §10.6 | A caller passing the panel without `gw` and getting a flat bootstrap that runs cleanly and returns a wrongly narrow interval — U3 under another name | **Holds unchanged** as a column-presence requirement |
+| **G3** | More than one distinct `gw` **whenever the comparison window has more than one** | §10.6 | The same U3 failure in the form G2 cannot see: the column is present and carries one value | **Fails.** Its reference quantity is the *window*, and a legitimately single-occupied-gameweek ordering sample on a 35-gameweek window trips it. `METRIC.md` §6.4.3's A1 and A3 make that expected |
+| **G4** | Input length equals the comparison's scoreable-gameweek count | §10.6, gameweek function | A flattened `n_squads × n_gw` squad-week series passed to the block bootstrap — the call §0.14 rejects as U3, which type-checks as a 1-D array and returns a confidently wrong interval | **Fails.** A B2-filtered series is punctured, not merely shorter: `METRIC.md` §6.4.3's A2 records that a gameweek with no surviving row has no per-gameweek mean at all |
+
+**And one item that is not a guard at all.** §10.5's "no minimum-stratum threshold, and the reason is
+upstream" is an argued **absence**, resting on §0.16 fixing 300 squads per gameweek. That premise is a
+property of the primary panel and is false after any exclusion predicate strong enough to matter. It is
+listed apart from G1–G4 because what a filtered panel needs there is not a guard but a **treatment**,
+and the treatment is #17's to select — W1 reports the occupancy profile beside the interval, W2 pools
+strata to a minimum occupancy, W3 abandons the stratification and is U3 under another name
+(`METRIC.md` §6.4.4). §10.5 now carries the scope, and the defect found in its wording, in place.
+
+#### 10.10.2 The two options
+
+- **A** — `uncertainty.py`'s public functions stay primary-panel-only, and a bench-order figure is
+  computed through a separate entry point carrying its own preconditions.
+- **B** — G3 and G4 become parameters supplied by the caller, so one code path serves both samples.
+
+B's case is that it avoids duplicating the bootstrap-resampling logic, which is the only substantial
+code §10 specifies and the only thing whose divergence would be expensive. That case is measured at
+§10.10.4 rather than dismissed.
+
+#### 10.10.3 Why B is not taken — three reasons, and only the third is contingent
+
+**First: the parameter's value would be supplied by the party the guard exists to guard against.** G3
+and G4 are not thresholds tuned to a sample. They are cross-checks of the array against a quantity the
+caller derived **somewhere else** — `n_scoreable_gw` from §7.2's T3, produced by §6.3's window
+intersection, against a differenced array built from T2 — and their whole value is that the two
+derivations are independent, so a caller who got one wrong is caught by the other. Turning the
+reference quantity into an argument collapses that. A bench-order caller has no T3-equivalent to draw
+it from: `METRIC.md` §6.4.6 records that the occupancy profile does not exist and falls out of the same
+run that produces the figure, so the value it passes is computed either from the panel it is passing —
+a tautology — or from the same ordering-relevance derivation over the same rows (§7.2.1), which is
+cross-source in form and same-source in substance. §10.4 states the principle this is an instance of: a
+guardrail that depends on the implementer supplying the right thing will eventually fail, and one that
+depends on there being only one thing to supply will not.
+
+**Second: G4 is the only thing standing between a flattened panel and a U3 interval, and B is what
+reopens that door.** §10.6 fixes the non-interchangeable input shapes as the first line of defence, and
+they do not catch this case — a flattened squad-week series **is** a 1-D ordered array and enters the
+gameweek function without complaint, which is precisely why §10.6 adds the length assertion and says so
+in the same sentence. Under B the same call succeeds by passing an expected length of
+`n_squads × n_gw`. That is the merged-signature failure §10.6 rejects, reached through a parameter
+instead of a shared signature: a call that "would type-check and return a confidently wrong interval".
+**The primary path pays that cost immediately and on every call**, in exchange for a bench-order
+convenience that is contingent on a selection nobody has made. That is the direct answer to the
+question this pass was set: yes, B lets a genuinely broken primary call through, by exactly the route
+§10.6 built G4 to close.
+
+**Third: B requires the parameter set to be designed against an unmade selection.** What has to be
+parameterised is not one shape but three different ones depending on how #17 lands. W1 needs **no**
+parameter — it needs a second return value, the occupancy profile. W2 needs a pooling width, which
+`METRIC.md` §6.4.4 records as a new parameter carrying a pre-registration obligation. V2 changes the
+gameweek function's **input contract** — a season-indexed series carrying empties as missing — rather
+than any threshold on it. So B cannot be specified now, only guessed, and §4.11 states this document's
+own standard for that case: a rule written before the thing it quantifies has been characterised is a
+guess in the shape of a decision. This reason is the contingent one and would fall away once #17 is
+selected. The first two would not.
+
+#### 10.10.4 What A actually duplicates — measured, not assumed
+
+**Read naively, A duplicates §10.5's estimator, and that would be a real cost rather than an assumed
+one.** The resampling body is a dozen lines of `numpy`, and two of them are lines §10.5 identifies as
+silently wrong if written differently: `size=len(strata[gw])`, which is the whole of the
+stratification, and the absence of rounding, which §8.2 rejected the `research/kernels` implementation
+for. Two copies of those lines is two chances for one to be fixed and the other not, on a defect whose
+only symptom is a plausible-looking interval.
+
+**A does not require that copy, and this section fixes that it must not make one.** The guards are
+separable from the resampling: G1–G4 are asserted on entry and the loop that follows reads none of
+them. So A is built as **one module-private resampling core with two public entry points over it**:
+
+```
+_stratified_resample(panel, n, ci_level, seed) -> (lo, hi)   # module-private, one copy
+      # G1 and G2 assert here — both hold on every caller
+
+squad_stratified_ci(panel, n=10000, ci_level=0.95, seed=0)   # primary; asserts G3
+<bench-order entry point>                                    # asserts whatever #17 requires
+```
+
+**What is duplicated under this shape is a signature, a docstring and an assertion block** — and the
+assertion blocks are not duplicates of one another, since differing is the entire point of the split.
+The resampling logic exists once. **B's premise therefore does not survive contact with A's actual
+shape:** the reuse B was proposed to protect is available under A at the cost of one private symbol,
+and no part of the bootstrap machinery is dragged along with the guards.
+
+**The allocation rule this yields is worth stating on its own**, because it is what makes the split
+cheap rather than a doubling: **a precondition that holds on every caller lives in the core; a
+precondition that validates the panel against the primary comparison's dimensions lives in the primary
+entry point.** G1 and G2 are the first kind and move down, where they will protect the bench-order path
+too — strictly more coverage than either option gives today, not less. G3 and G4 are the second kind
+and stay exactly where §10.6 puts them.
+
+**Because the reuse argument rests on that allocation, it is a design constraint rather than an
+implementation preference.** A second copy of the resampling body would make A cost precisely what B
+says it costs. §10.4's posture applies unchanged: the property is made structural — one core, called
+twice — rather than left to the implementer's discipline.
+
+#### 10.10.5 Selected — A, with the tradeoff stated
+
+**Selected: A.** `uncertainty.py`'s two public functions keep G3 and G4 exactly as §10.6 specifies
+them, G1 and G2 move into a shared private core, and a bench-order figure is computed through its own
+entry point over that core once #17 selects what it should assert.
+
+**What A costs, stated rather than skipped.** One additional public symbol in `uncertainty.py` —
+§10.6 already accepted the analogous cost when it declined a merged U1/U2 signature, and the same
+objection applies here: a reader has to know which entry point serves which sample, and the module's
+surface grows before the second entry point has anything to do. `PRE_REGISTRATION.yaml` gains a third
+column when the treatment lands rather than a second value for an existing parameter (§10.8), which is
+a smaller freeze-test problem than B's but not no problem. And the split is only as cheap as
+§10.10.4's core requirement makes it; built carelessly it is the duplication B correctly fears.
+
+**What B would have been right about, and the condition under which it wins.** If #17 selects **W1
+with V3** — stratify unchanged, report the occupancy profile beside the interval, and decline the
+gameweek interval for this figure — then the bench-order call is the primary estimator with G3 relaxed
+and one extra return value, and A's second entry point wraps a core it changes nothing about. In that
+world B is the smaller module. The outcome is live rather than hypothetical: `METRIC.md` §6.4.5 records
+V3 as what remains when A3 binds, and whether A3 binds is an occupancy question §6.4.6 there says the
+first run answers. **The asymmetry is what decides it.** B's saving is contingent on one of six
+candidate treatments landing a particular way; B's cost — a weakened G4 on the primary path, where U3
+is the error §0.14 exists to prevent and §10.3 is written around — is incurred today and on every
+primary call. A trade that pays a small amount conditionally and gives up a real guard unconditionally
+is not one this design takes.
+
+**A third option was considered and is recorded so it is not re-proposed.** Making G3 and G4 warnings
+rather than assertions serves both callers on one path with no parameter at all. It fails on the same
+ground as B and more sharply: §10.5 and §10.6 both establish that the failures these guards catch are
+**silent** — a wrongly narrow interval that looks entirely plausible — so a warning is read by nobody
+at the moment it matters, and the artefact §7 specifies carries no trace of it.
+
+#### 10.10.6 Consequences, named rather than left to the build
+
+- **`uncertainty.py` can now be built to spec.** This was the one open item touching the module's
+  contract. G1–G4 are specified, their homes are fixed, the shared core is required rather than
+  optional, and the primary path's behaviour is unchanged from §10.5 and §10.6 in every respect.
+  Nothing in the primary build waits on #17, and §5.1.1's build order is undisturbed.
+- **§5.1's module-table row is now stale in one clause.** It records `uncertainty.py` as "Two
+  functions, not one (§10.6)", which under this section becomes two public functions over one private
+  core, with a third public entry point owed once #17 lands. §5.1 restates §10's decision rather than
+  making one of its own, so §10 governs and the row is stale rather than in conflict; correcting it is
+  a §5 pass and is flagged here rather than made from a §10 pass.
+- **§10.8's pre-registration table is unchanged, and stays that way until #17 is selected.** §10.8
+  records why.
+- **What remains open is the treatment, not the interface.** §10.9's third bullet is narrowed
+  accordingly, and §4.11 and §9.2 are unchanged — both are about the treatment.
+
 ### 10.9 What §10 does not decide
 
 - **The `points_roll3` governance verdict** — §9.1.
 - **P4's "mean signed directional error"** — §7.9.
-- **Uncertainty on the bench-ordering sample** — §4.11, §9.2.
+- **The uncertainty *treatment* on the bench-ordering sample** — §4.11, §9.2. *Narrowed by §10.10.
+  `METRIC.md` §6.4.7's third bullet routed one half of this here — whether this module's contract
+  admits a filtered subpanel at all — and §10.10 decides it. What stays open is the treatment itself:
+  `METRIC.md` §8's row #17, W1–W3 on the squad margin and V1–V3 on the gameweek margin, selected
+  against an occupancy profile §6.4.6 there records as unmeasured. No primary-path build waits on it.*
 
 ---
 
@@ -4207,6 +4415,37 @@ computation. Under the selected shape it cannot: `best_permutation_total` is a s
 `(squad, gw, ranker)`, so both regrets in the difference read the same cell and the cancellation is
 structural. §7.2.1 states this, and `test_harness.py` asserts it on the emitted frames rather than
 leaving it as a claim in prose.
+
+**The estimator's contract on a filtered subpanel — decided at §10.10, with both failing guards kept.**
+`METRIC.md` §6.4 resolved that U1 and U2 transfer to the ordering sample unchanged in form, and flagged
+at §6.4.7 and in its own Provenance that an estimator written against the primary comparison's
+dimensions would reject a bench-order call even where the treatment is well defined — a property of
+this module's interface, which that document could not see and did not own. §10.10 takes it. Two
+options were on the table: parameterising the guards so one path serves both samples, or keeping the
+public functions primary-panel-only and giving the ordering sample its own entry point. **The second is
+selected, and the argument that decided it is not the one the question was framed around.** The reuse
+the first option was proposed to protect — §10.5's resampling body, the only substantial code in §10 —
+turns out to be available under the second at the cost of one module-private symbol, because the guards
+are separable from the loop and none of the bootstrap machinery travels with them. What parameterising
+would have cost is not symmetric with that: §10.6's length assertion is the **only** check standing
+between a flattened squad-week series and a U3 interval from the gameweek function, since such a series
+is a 1-D array the non-interchangeable input shapes do not catch, and a caller-supplied expected length
+is set by the party the guard exists to guard against. A conditional saving against an unconditional
+loss of the guard §0.14's rejection of U3 rests on.
+
+**One defect found in passing, corrected in scope rather than deleted.** §10.5's thin-stratum paragraph
+claimed that a small stratum "contributes proportionate weight to the grand mean and proportionate noise
+to the replicate". At `n_g = 1` the second half is false — the stratum redraws identically in every
+replicate and contributes no noise at all, which is `METRIC.md` §6.4.3's A1. The case is unreachable on
+the primary panel, so nothing computed is affected and no selection moves; the sentence was written
+unconditionally and read as though it were general. It is now scoped, and the correction is recorded
+here because that sentence is the one a later bench-order pass would otherwise have cited as settled.
+
+**One consequence of §10.10 not fixed in this pass.** §5.1's module table records `uncertainty.py` as
+"Two functions, not one (§10.6)". §10.10 makes that two public functions over one shared private core,
+with a third public entry point owed once `METRIC.md` §8's row #17 is selected. §5.1 restates §10
+rather than deciding anything of its own, so the row is stale rather than in conflict; correcting it is
+a §5 pass, flagged at §10.10.6 and here rather than made from a pass that owns §10.
 
 **One departure from `CLAUDE.md`, recorded rather than made silently.** *(This is the only standing
 departure. The charter departure recorded under conflict 1 above ended when that conflict closed.)* `CLAUDE.md` requires every

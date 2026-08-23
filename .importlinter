@@ -5,6 +5,7 @@ root_packages =
     research
     model
     serve
+    decisions
 
 [importlinter:contract:no_domain_to_anything]
 name = Domain is the shared leaf — must import nothing project-internal
@@ -64,3 +65,64 @@ forbidden_modules =
     research
     model
     serve
+
+# The starting_xi slice's two-tier contract (decisions/starting_xi/DESIGN.md 3.9). It must be
+# written per-module: the package as a whole has to be allowed to import `model` for the Tier B
+# ranker edge, while every Tier A module must not. Only `formations`, `sampler` and `harness` exist
+# today, so only those are named -- import-linter fails on a source or forbidden module that is not
+# in the graph, so the remaining Tier A modules join this list as they are built, and the Tier
+# A-to-Tier B rule cannot be written until `rankers` and `uncertainty` exist.
+#
+# `results` joins the shared contract and nothing more. DESIGN.md 5.1 forbids it `model`, `research`,
+# `serve` and `rankers.py`; the first three are here and the fourth cannot be a `forbidden` contract
+# while `rankers` is not in the graph. DESIGN.md 7.8 adds that it needs neither `dal` nor `model` --
+# but that is a claim about the module's shape rather than an entry in 5.1's forbidden column, so it
+# is not written as a contract here; the subprocess import-closure test in
+# decisions/starting_xi/test_results.py enforces both halves, and carries a falsification case
+# proving the same probe fails against a module that does reach `dal`.
+#
+# `harness` joins the shared contract and nothing more. DESIGN.md 5.1 also forbids it `rankers.py`
+# -- it receives a ranking function and never imports one, which is the single absent edge 3.6's
+# transitivity guarantee rests on -- but that cannot be written as a `forbidden` contract while
+# `rankers` is not in the graph, so it is enforced by the subprocess import-closure test in
+# decisions/starting_xi/test_harness.py. It cannot join the `dal` contract below either: 5.1
+# permits `harness` the mart, and 5.3.1's `build` is the call site that reads it.
+#
+# `formations` is tighter still than this contract: DESIGN.md 5.1 forbids it `dal` and every sibling
+# slice module too. The `dal` half is a second contract below -- it cannot join the shared one,
+# which `sampler` legitimately violates. The sibling half is what no `forbidden` contract can
+# express without also naming modules that do not yet exist, and it stays enforced by the
+# subprocess import-closure test in decisions/starting_xi/test_formations.py.
+
+[importlinter:contract:no_starting_xi_tier_a_to_downstream]
+name = starting_xi Tier A must not import model, research or serve
+type = forbidden
+source_modules =
+    decisions.starting_xi.formations
+    decisions.starting_xi.sampler
+    decisions.starting_xi.harness
+    decisions.starting_xi.results
+forbidden_modules =
+    model
+    research
+    serve
+
+[importlinter:contract:no_starting_xi_formations_to_dal]
+name = starting_xi formations must not import dal
+type = forbidden
+source_modules =
+    decisions.starting_xi.formations
+forbidden_modules =
+    dal
+
+[importlinter:contract:no_layers_to_decisions]
+name = A decision slice is a consumer -- no layer may import one
+type = forbidden
+source_modules =
+    dal
+    domain
+    research
+    model
+    serve
+forbidden_modules =
+    decisions

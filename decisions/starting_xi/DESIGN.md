@@ -24,10 +24,10 @@ make before the harness can be built. This section makes them. Each selection na
 `METRIC.md` candidate adopted, the candidates not adopted, and the reason — which is the only place
 in this folder where those reasons are recorded.
 
-Two of the sixteen cannot be settled here, and are stated as gaps rather than filled: **#10**, the
-bench-order scoring rule, because `METRIC.md` §4.1 characterises no candidate to select from
-(§0.10); and **#12**'s recent-form component, which is gated on a governance question outside this
-folder (§0.12, §9.1).
+One of the sixteen cannot be settled here, and is stated as a gap rather than filled: **#12**'s
+recent-form component, gated on a governance question outside this folder (§0.12, §9.1). **#10**,
+the bench-order scoring rule, was a gap for the same reason until `METRIC.md` §4.3 characterised a
+candidate set; §0.10 now selects from it.
 
 ### 0.1 The primary scoring metric — P1, counterfactual regret (#1)
 
@@ -193,8 +193,10 @@ run header; §6.3 fixes how the intersection is computed and §7.2's T3 stores i
 
 ### 0.8 Conditioning — C1 closeness, with zero-gap weeks excluded and counted (#8)
 
-**Selected: C1**, the gap between the best and second-best legal XI totals, with weeks where every
-legal XI ties **excluded** and the excluded count reported.
+**Selected: C1**, the gap between the best and second-best legal XI totals, with tied weeks
+**excluded** and the excluded count reported. Two things left implicit when that sentence was first
+written are settled below, because the build made both visible and each admits more than one
+reading: **which** gap C1 is, and **which** statistic it is scored on.
 
 **Why C1 over C2.** `METRIC.md` §3.1 records that C2 — the gap between the 11th and 12th player by
 the as-of statistic — is confounded: when the three best remaining players are all defenders it
@@ -209,23 +211,136 @@ it mixes weeks where no method could have distinguished itself into the headline
 variance on close calls with method failure on clear calls — is the same objection from the metric
 side.
 
-**Why zero-gap weeks are excluded rather than retained.** They carry no information by construction:
-`METRIC.md` §3.1 defines them as weeks where every legal XI ties, so no method can distinguish
-itself and every ranker scores 0 regret. Retaining them pulls every candidate's mean toward 0 in
-proportion to how many there are, which makes all methods look equally good and the decision look
-better-measured than it is. The excluded count is reported for the reason `METRIC.md` §3.1 gives —
-a large one means a thinner conditioned sample than the headline span suggests.
+**Why zero-gap weeks are excluded rather than retained.** They carry no information by
+construction: the two leading configurations are tied on the statistic the selection is made from,
+so nothing available at selection time separates them and no method can distinguish itself.
+Retaining them pulls every candidate's mean toward the same value in proportion to how many there
+are, which makes all methods look equally good and the decision look better-measured than it is.
+The excluded count is reported for the reason `METRIC.md` §3.1 gives — a large one means a thinner
+conditioned sample than the headline span suggests.
+
+*This paragraph previously carried a gloss of its own — "and every ranker scores 0 regret" — which
+is withdrawn. It was true only under the reading the second resolution below rules out — the gap
+scored on realised points, where a tie at the top was taken to mean every legal XI scored alike and
+so no ranker could be charged anything.
+Under the as-of reading a tie bounds nothing about realised regret: a ranker can still select a
+third, worse XI and be charged for it. The exclusion does not depend on the withdrawn clause and is
+unchanged; `METRIC.md` §3.1's own sentence, which says only that no method can distinguish itself,
+never carried it. Recorded in Provenance.*
 
 **The property that makes the exclusion safe for the paired design.** `METRIC.md` §3.1 records that
 closeness under C1 is a property of the **squad-week**, not of the ranker, so zero-gap weeks are
 identical across rankers. The same rows therefore drop for both sides of every comparison and the
 pairing is undisturbed (§10.4).
 
-**C1's cost, and where it lands.** `METRIC.md` §3.1 records that C1 requires the same enumeration
-P1 needs, run twice — the maximum and the runner-up. `INVENTORY.md` §2.4 measures that the
-enumeration is 8 prefix-sum combinations over position-sorted realised points, and states that the
-runner-up over the same enumeration is the second-best XI. The cost is one extra pass over eight
-combinations, which is nothing.
+#### Which gap C1 is — the XI gap, not the formation gap
+
+**The two are different quantities, and this document had conflated them.** `INVENTORY.md` §2.4
+now records that the runner-up over the 8-formation enumeration is the best total achievable by a
+*different* formation, and is **not** the second-best legal XI; it pins a squad where the best XI
+totals 745, the enumeration runner-up 729, and the second-best legal XI 744. The earlier version of
+this paragraph asserted the two were the same, on the strength of `INVENTORY.md` §2.4's own
+superseded sentence. `formations.py` was built to the computation this paragraph specified and
+therefore computes the **formation** gap today, while §7.2's T2 names the column
+`second_best_xi_points` — so the artefact currently promises a quantity the code does not compute.
+That is the defect this resolution closes.
+
+**Two candidates, with their costs.**
+
+- **The formation gap** — the second-largest of the 8 prefix-sum totals. Cost: nothing beyond the
+  enumeration P1 already needs, and it is what `formations.py` computes now.
+- **The XI gap** — the true second-best legal XI total. Cost: the same 8 prefix-sum totals, plus
+  the largest of the other seven, plus **at most four subtractions**. The second-best legal XI is
+  either the best XI of some other formation, or the winning formation's own side with exactly one
+  starter demoted to the next player at his position — because within a fixed formation the best XI
+  takes the top *n* at each position, so any other selection under that formation loses at least the
+  smallest single-demotion gap, and the single demotion achieves it. There are at most four such
+  gaps, one per position, and only where the 15 leaves a spare at that position; a 2/5/5/3 squad
+  always leaves at least two. It stays inside a `formations.py`-shaped pure function: no solver, no
+  new dependency, no change to the module's inputs, and no widening of its `domain/`-only closure.
+
+**Selected: the XI gap.** Three reasons, in order of weight.
+
+1. **The cost argument that would have favoured the formation gap does not survive the arithmetic.**
+   It was the whole of the case for it — this paragraph previously read "one extra pass over eight
+   combinations, which is nothing", which is true and is equally true of the alternative. Four
+   subtractions is not a search; it is not a reason to prefer a quantity on its cheapness.
+2. **The formation gap carries the defect C2 was rejected for.** It never *understates* the margin —
+   the second-best legal XI is at least the best total achievable by a different formation
+   (`INVENTORY.md` §2.4) — so it errs in one direction only, calling a week clear whenever the two
+   leading XIs happen to share a formation. Whether they do is a property of the squad's positional
+   depth, not of how close the decision was. That is the same species of confound as C2's `≥3 DEF`
+   minimum binding against the ordering: a conditioning variable selecting on squad structure while
+   appearing to select on closeness. Rejecting C2 for it and then adopting it in C1's own runner-up
+   would be incoherent.
+3. **It is the quantity the decision is actually about.** A ranker chooses eleven players, not a
+   formation. In the pinned case a ranker one player off the best XI loses 1 point; the formation
+   gap prices that week at 16 and calls it clear.
+
+**Why the prose is not narrowed instead.** The alternative resolution was to keep the formation gap
+and rewrite "the gap between the best and second-best legal XI totals" into an accurate description
+of it, renaming T2's column to match. That is only the right move if the formation gap is the better
+quantity, and reason 2 says it is not. Narrowing the prose would have made the document honest about
+computing the weaker of two quantities at no saving — the cheaper-looking repair, and the wrong one.
+
+#### Which statistic C1 is scored on — the as-of statistic, not realised points
+
+**Selected: the as-of statistic**, on §8.3's population with §0.9's denominator. This document and
+`METRIC.md` read differently on this point and `METRIC.md` is right, so the correction lands here.
+
+**Why.** `METRIC.md` §3.1 defines C1 as the gap "scored on an **as-of statistic before outcomes are
+known**", and §0's selections adopt each candidate as `METRIC.md` characterises it — a selection
+cannot keep the name and discard the clause. Two further readings confirm it rather than merely
+permit it. §0.9 calls §0.8's quantity "the conditioning statistic" and matches its **denominator** to
+the PPG rankers', honouring `METRIC.md` §3.2's coupling warning; realised points have no
+denominator, so under the realised reading §0.9's central argument would be about nothing. And
+conditioning on realised closeness would be conditioning on the outcome — selecting squad-weeks by
+how the results came out, which is what "before outcomes are known" exists to forbid.
+
+**What this document had that pointed the other way, and why it was not evidence.** The previous
+version of this paragraph cited `INVENTORY.md` §2.4's "position-sorted **realised** points". That
+phrase described the enumeration `INVENTORY.md` was documenting for P1's counterfactual, which is
+scored on realised points (§0.1); it was never a statement about C1's inputs. `METRIC.md` §3.1's
+"the same enumeration P1 needs" means the same 8-combination machinery, not the same numbers through
+it. `INVENTORY.md` §2.4 no longer says "realised" at that site, because the enumeration is
+indifferent to which scalar is sorted.
+
+**Which as-of statistic, precisely.** §0.9 selects `METRIC.md` §3.2's first option, whose definition
+is complete rather than parameterised: total points before *t* over gameweeks before *t* in which the
+player was in the game, blanked and no-fixture weeks at 0, pre-registration weeks excluded. There is
+no window left to choose — it is the season-to-date rate — and §8.3 fixes the population it is
+evaluated on. **This is F2's own statistic** (§0.12), and the coincidence is required rather than
+tolerated: §0.9 adopts it precisely so the conditioning statistic and the floor rankers share a
+denominator. One consequence is worth stating plainly, since it reads as a bias and is not one: the
+conditioned sample is the set of weeks on which **F2 has least to go on**, which is if anything the
+harder sample for F2 rather than the easier.
+
+**What follows for the harness, and it is not free.** The two quantities no longer come from one
+call. §0.1's regret needs the best legal XI on **realised** points; C1 needs the best and
+second-best on the **as-of** statistic. The routine is called twice per squad-week, on the same 15
+with different values, and only the as-of call's second total is used. §7.2's T2 is corrected to
+carry both pairs.
+
+**What this required that was not built when this paragraph was written — both now built.** The two
+changes below were flagged rather than made in the pass that wrote them. Both have since landed:
+`formations.py` computes the XI gap by the four-subtraction rule, and `harness.py` calls the routine
+twice per squad-week. The items are kept in their original form, with their closures marked, so the
+reasoning is not re-derived:
+
+1. **`formations.py`'s second total must become the XI gap's.** The signature does not change —
+   the routine keeps its two arguments and returns the same two fields — and neither does its import
+   closure. Only what the routine's second return field — `BestXI.second_best_xi_points` — is
+   computed as changes, per the four-subtraction rule above. (The field keeps its name in code; it is
+   T2's *column* that is renamed, to `second_best_xi_asof`, because the column is the one that has to
+   say which statistic it holds.) `test_formations.py` already carries the brute-force reference the corrected value must
+   match (`_brute_force`, which enumerates all 1,365 eleven-subsets), and the test that currently
+   pins 729 inverts to pin 744.
+2. **The harness calls it twice**, per the paragraph above, and T2 carries both pairs (§7.2).
+
+**Both have landed, and C1 is computable as selected.** §1.5 carries the item as closed. The gap that
+remained after them was a different one and is also closed: nothing in §4 or §6 fixed how a ranker's
+score panel becomes the chosen XI that `chosen_xi_points` is summed over. §6.7 settles it and §6.8 the
+tie-break it depends on.
 
 ### 0.9 The as-of denominator — gameweeks elapsed, blanks and no-fixture weeks at 0, pre-registration weeks excluded (#9)
 
@@ -263,28 +378,148 @@ This design carries it with the ranker (F1, §0.12), and keeps the denominator o
 points-actually-banked footing above. Doing both would fold P(play) into the statistic *and* score
 it separately, and the two floor rankers would no longer be measuring different things.
 
-### 0.10 The bench-order scoring rule — no selection is possible (#10)
+### 0.10 The bench-order scoring rule — O1, ordering regret, on an absolute counterfactual (#10)
 
-**This selection cannot be made, and inventing one would misrepresent the evidence.** `METRIC.md`
-§4.1 states plainly that **no candidate scoring rule for bench order exists in this folder**, and
-flags it as the largest genuine gap in the survey — `METRIC.md` §4 characterises candidate
-*denominators* only.
+**Selected: `METRIC.md` §4.3's O1, ordering regret, scored on realised points — with one change to
+the form §4.4 previously built. The counterfactual σ\* is the best of all 6 permutations of the
+outfield bench, not the best of the policies being compared.**
 
-There is therefore nothing to select from, and this document does not manufacture a candidate set
-in order to appear to have selected from one.
+```
+ordering_regret(gw, squad, ranker, σ) = realised_total(σ*) − realised_total(σ)
+       σ* = argmax over all 3! = 6 orderings of the outfield bench
+```
 
-**What §4 does instead, and what it is not.** §4.4 constructs a rule — *ordering regret*, the gap
-between the realised total under the best available ordering and under the ordering being scored,
-holding the XI fixed — by mirroring the shape of P1 rather than inventing a second vocabulary. That
-is a design construction and it is `DESIGN.md`'s to make; what is missing is the survey it should
-have been selected against. **No alternative bench-order scoring rule has been characterised, so
-this rule has not been shown to be better than anything.** It is used because the harness cannot be
-built without one, not because it won a comparison.
+**This section previously stated that no selection was possible**, because `METRIC.md` §4.1
+characterised no candidate to select from and this document declined to manufacture one in order to
+appear to have selected. That pass has since run: `METRIC.md` §4.3 characterises five candidates,
+O1 through O5, with tiers, and §4.4 there records a framing question it deliberately left open. The
+statement is superseded and the selection is made here.
 
-**Flagged for a separate `METRIC.md` pass**, which is where candidate characterisation belongs
-under the file-purpose charter: the alternatives to ordering regret — for instance scoring an
-ordering by the points of the player it brought on, or by rank-correlation against the realised
-ordering — need characterising before §4.4's rule can be called a selection.
+**The mechanic the survey needed fixed is fixed, and was already.** `METRIC.md` §4.1 notes that
+every candidate has to be characterised against §2.5's GK mechanic, and that the bench ordering is
+over **3** outfield players if the GK slot is a separate process and over four if it is not. §0.6
+selects the separate process, and §4.2 works the consequence: the bench holds exactly one
+goalkeeper, an ordering over one element carries no information, and the decision is an ordering
+over 3 outfield players, 6 in all. **That is settled, it is settled here, and every figure below is
+stated for it.** The Provenance section records why this resolves the inversion `METRIC.md` flagged
+rather than merely restating one side of it.
+
+#### Realised, not as-of — and the C1 precedent does not transfer
+
+`METRIC.md` §4.4 sets out the tension and refuses to resolve it, correctly: it is a selection. The
+selection is **realised**, and it is made on the metric's own terms rather than by analogy.
+
+- **The C1 correction was about a conditioning statistic, and its argument does not reach a scoring
+  rule.** §0.8 and §0.9 moved C1 to an as-of statistic because conditioning on realised points
+  selects the *sample* on the very quantity being measured — a bias with a name. A scoring rule does
+  no selecting. `METRIC.md` §4.4 makes exactly this distinction, and it is right.
+- **The decision being scored is already as-of, so realised scoring leaks nothing into it.** An
+  ordering policy consumes a ranker's scores, and a ranker scores on prior data only. The policy
+  therefore cannot see the outcome no matter how the metric is written. Scoring it on realised
+  points asks "what did this as-of-constrained rule cost", which is precisely the question §0.1's
+  P1 asks of the primary decision, and `METRIC.md` §1 records the posture as a property rather than
+  a defect: the benchmark is what was achievable, not what was predictable.
+- **The unit has to survive.** `DECISION.md` §1 states the cost model in points, and the secondary
+  figure is reported beside the primary one (§4.9). An as-of rule stops being expressible in points
+  — `METRIC.md` §4.4 says so — and two figures in different units, presented together as the primary
+  and secondary readings of one decision, would not be comparable to each other or to the cost model
+  they are both supposed to price.
+
+**What this rejects, and it is not free.** A realised rule charges a policy for outcomes nothing
+could have foreseen — a bench player correctly ranked last who then hauls. That is a real cost of
+this selection, it is the same cost P1 carries, and it is accepted for the same reason: the
+alternative prices a forecast rather than a decision.
+
+#### Why O1, and why not each of the others
+
+- **O5 — as-of expected-value ordering regret. Not selected**, and the paragraphs above are the
+  first reason. The second is independent of them: `METRIC.md` tiers it **speculative** on
+  definitional grounds — there is no defined as-of counterfactual for an *ordering* — and §0.2's
+  reading makes an undefined form disqualifying whatever data exists. Its cheap form, correlating
+  the policy's order against an as-of statistic, is close to vacuous, since a policy ordering on a
+  ranker's scores would be scored against the thing it ordered on.
+- **O2 — entrant points. Not selected.** It prices the outcome rather than the decision, which is
+  the same relationship P2 bears to P1 and the same ground §0.1 declined P2 on; a folder that
+  rejected P2 for pricing the outcome and then adopted O2 would be applying two standards to one
+  question. It also has no cross-week normalisation — a two-substitution week scores roughly twice a
+  one-substitution week for reasons that are a property of how many starters blanked — and
+  `METRIC.md` records that none of the available normalisations is obviously right.
+- **O3 — realised-order rank correlation. Not selected, and it is the closest call.** Two properties
+  genuinely recommend it: it is independent of §4.3.1's vacancy-order rule, and it is measurable
+  over every squad-week rather than only over B2, which is the one candidate response to §4.10's
+  power problem. Three properties decide against it. It is **magnitude-free**, so like an as-of rule
+  it cannot be expressed in points and cannot sit beside the primary figure in one unit. It
+  **credits a policy for ordering correctly players who could not lawfully have entered** — the gap
+  `METRIC.md` §4.1 opens between "worth having" and "able to enter" — so part of what it measures is
+  not the decision. And its per-week resolution over three elements is roughly two bits, which makes
+  it a quantity to aggregate and never to read at the grain the artefact stores.
+- **O4 — reachable-set rank correlation. Not selected.** It closes O3's legality gap, which is the
+  right instinct, but it pays for that by returning to roughly B2's population — a correlation needs
+  two reachable players and often only one is eligible — so it forfeits the sample-size advantage
+  that was O3's reason for being. What remains is a metric that carries O1's dependence on §4.3.1,
+  through its definition of "reachable", **and** O3's magnitude-freedom and tie exposure, while
+  having neither's compensating property.
+
+**None of these rejections rests on an unmeasured fact.** `METRIC.md` §4.3.2 flags three
+`INVENTORY.md` gaps — bench-internal tie frequency, rank-correlation tooling and its tie convention,
+and whether an as-of expected-points forecast exists. **This selection waits on none of them.** O3
+and O4 are declined on unit and construct grounds that hold whatever the tie frequency turns out to
+be; O5 is declined on a definitional gap that its input question does not affect. The gaps do bind
+one thing, and it is named rather than decided around: see the closing paragraph below.
+
+#### The relative-counterfactual defect, removed rather than tolerated
+
+`METRIC.md` records O1's own flagged defect: σ\* is the best ordering *among those compared*, so it
+is a fact about the study rather than about the squad-week, adding a policy to a comparison changes
+every other policy's already-computed score, and two studies comparing different policy sets produce
+values that are not on one scale. **The defect is real, and it is not accepted. σ\* is taken over all
+6 permutations instead, which is the absolute form `METRIC.md` records as the alternative reading.**
+
+- **The mirror to P1 requires it.** §4.4's whole justification for O1's shape is that it mirrors P1.
+  P1's counterfactual is the **best legal XI over the squad** — absolute, and emphatically not "the
+  best among the rankers compared". §7.2's T2 stores it as a squad-week property. Under the relative
+  reading, primary regret would be stable when a ranker joins the comparison while ordering regret
+  moved, and the two would be reported side by side in one vocabulary with different stability. The
+  relative form was a mismatch with the very thing it claimed to mirror.
+- **The relative form degenerates on a legal input.** §5.4 requires `bench_order` to be non-empty,
+  not to hold two or more policies. Under a one-policy run σ\* = σ and ordering regret is identically
+  **0 at every squad-week** — the artefact would report that the single policy examined was perfect.
+  A metric that returns "no regret" for a run that measured nothing is not reporting a small number;
+  it is reporting a wrong one.
+- **It costs nothing inferential, because σ\* cancels from every comparison.** §4.5 compares two
+  orderings by Δ = mean regret(σ1) − mean regret(σ2) = mean[realised_total(σ2) − realised_total(σ1)]:
+  the σ\* term is common to both and drops out exactly, per squad-week. **The paired comparison is
+  identical under both forms.** What changes is only the reported *level*, which is the term that
+  was defective, and nothing already settled about §4.5, §0.14 or §10 is disturbed.
+- **It costs little to compute.** Six replays per squad-week per ranker, against the policy count
+  under the relative form. §4.3.1's measurement enumerated every ordering across all 11,100
+  squad-weeks in seconds, so the scale is known rather than estimated.
+- **What it does not change: the denominator.** §0.11 selects B2, defined over the orderings actually
+  compared, and that stands. A counterfactual answers "what was achievable"; a denominator answers
+  "which weeks carry information about *these* policies". They are different questions and they
+  legitimately take different scopes. The consequence is worth stating plainly: the reported figure
+  is **mean headroom against the best possible ordering, over the weeks that discriminate between
+  the policies compared**, and §4.10's separate headroom diagnostic is subsumed into the metric
+  rather than reported beside it.
+
+**The dependence on §4.3.1 is accepted, with its consequence named.** O1 reads the replay, so its
+values are defined relative to the vacancy-order rule §4.3.1 fixes, and `METRIC.md` §4.3.1 is right
+that they are not comparable across a change to it. This is accepted because the alternative — O3 —
+buys independence by not measuring the consequence, and because the primary metric already carries
+the same class of dependence: §4.9 establishes that primary regret is not independent of bench order
+either. The posture is the one §5.3.1 already sets for the seed derivation: a change to the rule
+changes every figure computed under it, there is no version of that change that is small, and §7.4's
+freeze test is what makes it loud. §7.3 already makes the ordering set part of run identity; the
+vacancy-order rule is a fixed, documented and measured property of the harness rather than a runtime
+argument, so it is identified by the code version rather than by the manifest.
+
+**The storage question this selection opened is now closed.** The absolute counterfactual needs the
+6-permutation maximum, which the harness did not originally emit — §7.2.1 derived ordering regret as
+a group-max over the *candidate* replays stored in T5, which is the relative form. A §7 pass has
+since selected the shape: **a `best_permutation_total` column on T2**, at squad-week × ranker grain,
+with T5's rows, meaning and count untouched. §7.2.1 carries the selection and why the alternative —
+six permutation rows on T5 — was declined; §5.1's `run` emits the column. The paragraph previously
+here recorded the item as unresolved and is withdrawn.
 
 ### 0.11 The bench-order denominator — B2, the ordering-relevant count (#11)
 
@@ -663,7 +898,6 @@ calendar and must be re-checked against any other season.
 
 ### 0.17 What §0 does not select
 
-- **The bench-order scoring rule** — §0.10; there is no candidate set.
 - **P4's form** — §0.1; `METRIC.md` §1 records that nothing in this folder defines it. Its inputs
   are stored (§7.6) so it needs no re-run once defined.
 - **Whether F3 may be built at all** — §0.12; a governance question outside this folder (§9.1).
@@ -747,23 +981,30 @@ entry point.
 (Provenance). It does not change what the build needs.
 
 **Nothing blocks the build.** The one item that did — where the harness can legally live — is decided
-in §3, and the metric selections the replay needed are made in §0. What the build needs beyond this
+in §3, and the metric selections the replay needed are made in §0. The one item that blocked a
+*quantity* rather than the build — §0.8's C1 needing a change to `formations.py`'s second total — is
+closed, and its row below is kept as closed rather than removed. What the build needs beyond this
 document is two file edits, `pyproject.toml` and `.importlinter` (§3.9), and the new
 `domain/fpl_squad.py` (§3.5). §5.1.1 states the order the module table implies.
 
 | Open item | Where | What it blocks |
 |---|---|---|
 | The `points_roll3` governance verdict | §9.1 | **F3, the recent-form floor ranker.** One of three, and cannot be built until it is answered |
-| No candidate bench-order scoring rule has been characterised | §0.10, §9.2 | **Nothing structural** — §4.4 supplies a working rule — but the rule is unsurveyed, so it cannot be reported as selected |
+| ~~No candidate bench-order scoring rule has been characterised~~ — **closed** | §0.10, §9.2 | **Nothing.** `METRIC.md` §4.3 now characterises O1–O5 and §0.10 selects O1 on an absolute counterfactual. Retained as a closed row so the routing stays legible. The storage consequence it opened is a live item in its own right — see the row below |
+| ~~The absolute counterfactual needs replay coverage T5 does not carry~~ — **closed** | §0.10, §7.2.1, §9.2 | **Nothing.** §7.2.1 selects a `best_permutation_total` column on T2 over the alternative of six permutation rows on T5, and `harness.py` emits it, so the ordering-regret *level* is now derivable. §4.5's paired difference was never blocked and is unchanged. Retained as a closed row so the routing stays legible |
 | `METRIC.md` §1's P4, "mean signed directional error", is named but undefined | §7.9 | **The results document.** Its inputs are stored, so no re-run is needed once it is defined |
 | Uncertainty on the bench-ordering sample | §4.11 | **The bench-order claim**, not the harness |
 | Facts §11 needs that `INVENTORY.md` does not carry | §11 | **Nothing structural**; each is a claim this document declines to make first-hand |
+| ~~`formations.py`'s second total is the formation gap, and §0.8 selects the XI gap~~ — **closed** | §0.8 | **Nothing.** `formations.py` now computes the XI gap by §0.8's four-subtraction rule, and `harness.py` calls the routine twice per squad-week — once on realised points for §0.1's regret, once on §0.9's as-of statistic for C1 — so §7.2's T2 carries both pairs. Both changes §0.8 flagged as unbuilt are built. Retained as a closed row rather than deleted, so the routing stays legible |
 | Whether the residual minutes-certainty tilt in a frozen GW2 pool is material to a ranker comparison | §0.16, §2.2 | **Nothing** — build-once is superseded, so the question is now about a construction this design does not use. Recorded because §2.2's argument would need it if build-once were ever revisited. *(The unsourced claim previously listed here is withdrawn; the two `METRIC.md` conflicts are closed. See Provenance.)* |
 
 **Measurements owed on the first run, which are outputs rather than blockers:** the sampler's
-acceptance rate against §2.6's trigger; the vacancy-order invariance test (§4.3.1); the per-ranker
+acceptance rate against §2.6's trigger; the per-ranker
 count of squad-weeks the no-fixture rule changed (§0.4); and the materiality of `p_play`'s DGW
-exclusion, which `INVENTORY.md` §3.4 records as unmeasurable without a squad set.
+exclusion, which `INVENTORY.md` §3.4 records as unmeasurable without a squad set. *(The
+vacancy-order invariance test this list previously owed has been run ahead of the first run. It
+failed; §4.3.1 carries the finding, the cost measured over all 11,100 squad-weeks, and the rule
+change it forced.)*
 
 ---
 
@@ -1683,9 +1924,16 @@ existing module changes.
 
 ### 4.1 What this closes, and what it deliberately leaves open
 
-§0.10 records the standing gap: `METRIC.md` §4.1 characterises **no** candidate bench-order scoring
-rule, so there is nothing to select from. §4 constructs one, because the harness cannot be built
-without it, and §0.10 states plainly that this is a construction rather than a selection.
+§0.10 **selects** the bench-order scoring rule: `METRIC.md` §4.3's O1, ordering regret, scored on
+realised points, with the counterfactual taken over all 6 permutations of the outfield bench. §4.4
+states the rule as built and §0.10 carries the reasons — including why O2, O3, O4 and O5 were not
+taken, and why the realised framing was chosen over the as-of one `METRIC.md` §4.4 left open.
+
+*This section previously recorded the opposite: that `METRIC.md` §4.1 characterised no candidate, so
+§4 constructed a rule rather than selecting one. That was accurate when written. The `METRIC.md`
+pass §0.10 asked for has since run, and the construction has been put through the survey it was
+missing — it survives, in a corrected form. The Provenance section records what changed and what it
+cost.*
 
 **The split of authority.** §0.2–§0.6 fix the substitution *mechanics* — the trigger, the GK/outfield
 split, the legality condition, the priority-queue semantics, incoming eligibility. §4 owns the
@@ -1728,7 +1976,7 @@ GK slot (separate process, per §0.6):
       swap them.                       # single slot; no ordering choice exists
 
 Outfield slots:
-  vacancies := blanked outfield starters, in canonical order (§4.3.1)
+  vacancies := blanked outfield starters, in §4.3.1's slack order (recomputed each pass)
   queue     := the 3 outfield bench players, in the ordering under test
   for each vacancy v:
       remove v from the XI                          # XI now has 10
@@ -1756,38 +2004,135 @@ retained**; DEF_b enters, restoring 1-3-5-2. Processing the MID vacancy: the que
 [FWD_a, MID_c], FWD_a now gives 1-3-4-3, which is legal, so FWD_a enters. Both substitutions fire, and
 FWD_a comes on **because he was retained rather than consumed** at the first vacancy.
 
-#### 4.3.1 The vacancy order is pinned, and the invariance is a test rather than an assumption
+#### 4.3.1 The vacancy order is served slackest-first, because a fixed order was measured to cost points
 
 The loop above iterates vacancies, so the order of that iteration is part of the rule. It is **fixed
-as: DEF, then MID, then FWD; ties broken by ascending `player_id`.**
+as: the vacancy whose position has the most live slack first — slack being that position's count in
+the current XI minus its XI minimum, recomputed before each vacancy — ties broken by DEF, then MID,
+then FWD, then by ascending `player_id`.**
 
-Two properties motivate the choice. It is **deterministic**, so a replay reproduces. And it is
+Three properties motivate the choice. It is **deterministic**, so a replay reproduces. It is
 **independent of the ranker**, so no ranker's scoring can influence which vacancy is served first —
-the same independence principle §0.16 applies to squad construction.
+the same independence principle §0.16 applies to squad construction. And it is **independent of the
+outcome**: slack is read off positions and eligibility, never off realised points, so the replay
+stays the mechanical substitution engine §0.6 describes rather than becoming a hindsight optimiser.
+The `player_id` tail is §6.8's tie-break, so the slice carries one tie-break rule rather than three.
 
-**Whether the final XI is invariant to this order is an open empirical question, and the design does
-not rely on it.** Worked examples suggest the outcome set is order-independent — the legality
-constraint depends only on the multiset of positions in the final XI, not on which vacancy a player
-nominally filled — but that is an observation across a handful of cases, not a proof, and the
-constraint structure near the formation bounds is where it would fail if it fails. Pinning the order
-makes the rule correct regardless. **The invariance claim is stated as a test obligation** — replay
-each ordering under all vacancy permutations and assert an identical realised total — and not as a
-premise. If the test fails, the pinned order is still the rule and the failure is a finding to report.
+**This section previously pinned a fixed DEF, then MID, then FWD order, stated the invariance of the
+final XI to that order as an open empirical question, and required the invariance be tested rather
+than assumed — "if the test fails, the pinned order is still the rule and the failure is a finding to
+report". The test failed. This is that finding, and the rule changed on the measurement it
+prompted.**
+
+**The failure, and its mechanism.** A minimal counterexample is pinned in `test_harness.py`. Chosen
+XI is 1-3-5-2; a DEF and a MID blank; both bench defenders blank too, so §0.5 leaves a single FWD as
+the only eligible substitute. Served DEF-first, removing the DEF leaves 1-2-5-2, the FWD would give
+1-2-5-3 and breaks the 3-DEF minimum, so the vacancy goes unfilled — and the XI is now permanently
+DEF-deficient, so at the MID vacancy the same FWD is illegal again for a reason the ordering created
+rather than the squad. He never enters and the XI finishes with nine. Served MID-first, he enters at
+1-3-4-3 and the XI finishes with ten. **An unfilled vacancy poisons every vacancy behind it**: it
+drops the XI below a positional minimum that can then never be restored. So the failure bites only
+where an uncovered blank (§4.6) is already present — and a DEF-first order is the worst available
+choice, because it serves first exactly the position whose 3-minimum binds.
+
+**The cost of the fixed order, measured rather than argued.** Over the full squad set — 300 squads at
+each of GW2–38, 11,100 squad-weeks, master seed 0, XIs fixed by a season-to-date as-of-PPG ranker —
+every ordering of the positions carrying a vacancy was replayed against the same fixed XI and the same
+realised points, and the best realised total taken. That maximum is an **exact upper bound** on what
+any vacancy order can achieve, not an estimate, so the gap to a candidate rule is its exact cost.
+
+| Vacancy order | Squad-weeks below the bound | Points forgone | Per squad-week | Worst week |
+|---|---|---|---|---|
+| DEF → MID → FWD (the retired pinned order) | 106 | 143 | 0.0129 | 7 |
+| Slackest-position first (**selected**) | 1 | 2 | 0.0002 | 2 |
+| Tightest-position first | 125 | 169 | 0.0152 | 7 |
+| FWD → MID → DEF | 23 | 31 | 0.0028 | 6 |
+| Best achievable (the upper bound) | 0 | 0 | 0 | 0 |
+
+11,049 of the 11,100 squad-weeks carry at least one vacancy and 10,438 carry vacancies at two or more
+positions, so the rule is exercised almost everywhere; the cost is small because the poisoning case is
+rare, not because the order rarely applies.
+
+**Why the fixed order was not kept as a known limitation.** 143 points over 11,100 squad-weeks is a
+small number, and if it were the whole picture the case for leaving the rule alone would be decent.
+Two things defeat it. First, the loss is **not symmetric across rankers**: which squad-weeks fall into
+the poisoning case depends on the XI, so it is a ranker-dependent penalty applied by the harness for a
+reason unrelated to ranking quality, entering the paired difference §4.5 takes as noise that is not
+independent of the thing being compared. Second, and decisively, the fix is **free**. There is no
+tradeoff to weigh: slack ordering is strictly better than the pinned order on this evidence — never
+worse on any one of the 11,100 squad-weeks, better on 105 of them, 141 of the 143 points recovered —
+and it costs one integer comparison per vacancy. A limitation is worth accepting when removing it
+costs something. This one costs nothing.
+
+**That dominance is measured, not proved.** No argument here shows slack ordering can never lose to
+the retired order on some squad the season did not contain, and none is offered. What is claimed is
+what was observed: zero losing weeks in 11,100, corroborated by a seeded synthetic sweep in
+`test_harness.py` over 1,438 multi-vacancy squad-weeks drawn at a blank rate far above the real one,
+where slack ordering is again never worse, strictly better on 183, and reaches the best-over-orderings
+bound on **every** one.
+
+**Why slackest-first rather than the try-all-orderings maximisation that produced the bound.** The
+maximisation is already implemented, so cost is worth stating precisely: it multiplies the replay by
+up to 3! = 6, and §7.2's T5 runs roughly 126,000 replays — 300 squads × 37 gameweeks × 4 rankers ×
+the policy count — which the measurement pass shows is seconds of work either way. **Compute is not
+the objection.** The objection is that the maximisation selects the vacancy order using **realised
+points**, which makes the substitution engine clairvoyant: it would award a manager an entrant the
+mechanical rule would never have brought on, inflate the chosen side, and depress §0.1's regret by an
+amount that is a property of the harness rather than of the ranker. §0.2's asymmetry already fixes
+which side sees substitutions; it does not license the substitution rule itself to see the outcome.
+Slack ordering reads only the formation, so it is a rule a manager could have followed in advance.
+
+**How close slackest-first gets, and what the residual is.** It leaves **2 points across the whole
+season-set**, in one squad-week. That week is not a failure of the heuristic: an outcome-independent
+selector that instead maximises the *number* of vacancies filled — ties broken by DEF, MID, FWD —
+agrees with slack ordering on **every one of the 11,049 squad-weeks**, and leaves the same 2 points.
+The residual is a case where several orderings fill the same number of vacancies but bring on
+different-scoring players, so closing it requires reading realised points, which the paragraph above
+rules out. **On this evidence slack ordering is optimal among outcome-independent vacancy orders**,
+and no cheaper-or-better candidate is outstanding.
+
+**The heuristic runs the opposite way to the obvious one, which is why it is stated explicitly.**
+Filling the position *closest* to its minimum first is the intuitive reading, and it is the retired
+order generalised — DEF at 3 with a 3-minimum has zero slack, so tightest-first serves DEF first. It
+measures **worse than the rule it would replace** (169 points against 143). The poisoning mechanism
+rewards deferring the tight position, not serving it: while a tight position's vacancy is still
+unprocessed its occupant is still counted, so every other vacancy is filled against a legal formation,
+and the tight vacancy — the one most likely to strand — is left until nothing sits behind it.
+
+**The invariance question this section formerly left open is closed: the final XI is not invariant to
+the vacancy order.** The claim is retired rather than restated, and the test that discharged it
+remains in the suite as a regression on the mechanism. Its scope is also measured: `test_harness.py`
+sweeps seeded multi-vacancy squad-weeks and finds **no** squad-week in which every ordering fills
+every vacancy and the totals still differ — so the order matters only where an uncovered blank is
+present, exactly as the mechanism predicts. That bound is what makes a heuristic targeting unfilled
+vacancies the right shape of fix.
 
 ### 4.4 How a bench ordering is scored
 
 **Ordering regret**, mirroring the shape of P1 (§0.1) rather than inventing a second vocabulary:
 
 ```
-ordering_regret(gw, squad, XI, σ) = realised_total(best σ*) − realised_total(σ)
+ordering_regret(gw, squad, XI, σ) = realised_total(σ*) − realised_total(σ)
+       σ* = argmax over all 3! = 6 orderings of the outfield bench
 ```
 
-over the same squad, the same chosen XI, the same realised minutes and points, with σ* the
-best-performing ordering among the candidates being compared. It is ≥ 0 and 0 for the best available
-call, exactly as P1 is.
+over the same squad, the same chosen XI, the same realised minutes and points. It is ≥ 0 and 0 only
+for an ordering that achieved the best total available, exactly as P1 is.
 
-**This is a construction, not a selection** — §0.10 states why, and that no alternative rule has been
-characterised for it to have been chosen over.
+**σ\* is the best of all 6 permutations, not the best of the policies compared, and the distinction
+is load-bearing.** The relative reading makes a policy's score a fact about the study rather than
+about the squad-week: adding a policy to a comparison moves every other policy's already-computed
+figure, and a run carrying a single policy — which §5.4 permits — scores it 0 at every squad-week and
+reports it perfect. The absolute reading is also the only one that actually mirrors P1, whose
+counterfactual is the best legal XI over the squad rather than the best among the rankers compared.
+§0.10 carries the full argument, including the fact that σ\* cancels from §4.5's paired difference, so
+the choice changes the reported level and no comparison.
+
+**This is a selection** — from `METRIC.md` §4.3's O1 through O5, with §0.10 recording why each of the
+other four was not taken and why the metric is scored on realised rather than as-of points. *An
+earlier version of this section recorded it as a construction rather than a selection, because at the
+time no candidate set existed to select from; that is no longer the case and the sentence is
+withdrawn.*
 
 **The counterfactual is the best *ordering*, holding the XI fixed — not the best XI.** That is what
 makes this the secondary decision rather than a restatement of the primary one. It is also strictly
@@ -1924,10 +2269,15 @@ back in would each inflate the apparent evidence without adding any.
 comparison, resampling squads and gameweeks separately at n = 10,000. Whether the same treatment
 transfers to a much smaller, differently-structured ordering sample — where the unit is an
 ordering-relevant squad-week rather than a squad-week — is not settled by that selection and is not
-settled here. It is a metric-level question about a metric (§4.4) that has itself never been surveyed,
-so it belongs with §0.10's flagged `METRIC.md` pass rather than being answered inside the build.
+settled here. §4.11 previously routed this to §0.10's flagged `METRIC.md` pass, on the ground that it
+was a metric-level question about a metric that had never been surveyed. **That pass has run and did
+not close it**: `METRIC.md` §4.5 states explicitly that uncertainty treatment on the ordering sample
+is not characterised there for any of O1–O5, because §6's candidate designs are written for a
+squad-week unit and an ordering-relevant squad-week is a different and much rarer one. The metric is
+now selected (§0.10) and this remains open, so the routing was wrong rather than merely unfulfilled —
+the question needs a `METRIC.md` pass of its own, aimed at §6 rather than §4.
 
-It is not filled with a plausible-looking rule, for the same reason `METRIC.md` §4.1 gives for leaving
+It is not filled with a plausible-looking rule, for the same reason `METRIC.md` §4.1 gave for leaving
 the scoring definition open: a rule written before the thing it quantifies has been characterised is a
 guess in the shape of a decision.
 
@@ -1937,7 +2287,9 @@ guess in the shape of a decision.
 - **How results are stored and reported.** §7.
 - **The ranker interface that produces an ordering.** §6. §4 assumes only that a ranker scores all 15
   and that the bench ordering is the induced order over the 4 non-selected players, GK separated — it
-  does not fix how.
+  does not fix how. *§6 now does: §6.7 fixes how a score panel becomes the chosen XI, and §6.8 the
+  tie-break between equally-scored players. The routing this bullet performed had no destination when
+  it was written — §6 carried no selection rule — and the omission was found from the build side.*
 - **Bench Boost.** `DECISION.md` §5 puts chip interaction out of scope; under Bench Boost every bench
   player scores and the ordering decision disappears entirely rather than changing form.
 
@@ -2409,6 +2761,152 @@ selects the rule that applies **identically to every ranker** for exactly that r
 never reach this one. The measurement §0.4 attaches — the per-ranker count of squad-weeks in which the
 rule changed the selected XI — is stored at §7.6.
 
+### 6.7 How a score panel becomes the chosen XI — the score-maximising legal XI (Reading A)
+
+*§6.7 and §6.8 are numbered by order of introduction, not by reading order, on the same convention
+§7.2 states. §6.6 keeps its number and still reads last.*
+
+**The gap this closes.** §4.12 recorded that §4 "assumes only that a ranker scores all 15 and that the
+bench ordering is the induced order over the 4 non-selected players, GK separated — it does not fix
+how", and routed the question here. §6 did not pick it up: §6.1 fixes the ranker's output shape, §6.3
+its window, §6.5 what happens to a row it cannot score — and none of them says how the resulting
+scores become eleven players. That is the harness's central operation, and P1's `chosen_xi_points`
+is undefined without it. It is settled here.
+
+**Two readings were live.**
+
+- **Reading A — the score-maximising legal XI.** The legal XI maximising the sum of the ranker's
+  scores, computed by the 8-formation prefix-sum enumeration `INVENTORY.md` §2.4 measures and
+  `formations.py` already implements for realised points.
+- **Reading B — rank-then-take.** Scan the 15 in the ranking order §0.4, §6.5 and §6.8 induce, taking
+  each player if the partial selection can still be completed to a legal XI. This is what §0.4's
+  "ranked last by the harness" and §6.5's "places unrankable players below every scored player" read
+  like on their face, since a demotion-to-last rule only bites on an order-driven selection.
+
+**Selected: Reading A**, and the selection is made on the result below rather than on taste.
+
+**The two readings return the same total, and this is a theorem rather than an observation.** Fix the
+four position groups of a 15, per-position bounds `[l_i, u_i]` and a fixed XI size *k*. The legal XIs
+are then the **bases of a matroid** on the fifteen players. The basis-exchange property is checked
+directly. Let *A* and *B* be legal XIs, let `x ∈ A \ B` lie in position group *p*, and write
+`a_i = |A ∩ P_i|`, `b_i = |B ∩ P_i|`.
+
+- **If `a_p > l_p`**, removing *x* leaves group *p* legal, and some `y ∈ B \ A` can be added. Suppose
+  not: then every such *y* lies in a group `q ≠ p` already at its ceiling, `a_q = u_q`. Call that set
+  of groups *Q*. For `q ∈ Q`, `b_q ≤ u_q = a_q`, so
+  `|(B\A) ∩ P_q| = b_q − |A∩B∩P_q| ≤ a_q − |A∩B∩P_q| = |(A\B) ∩ P_q|`. Summing over *Q*, and using
+  that `p ∉ Q` while `x ∈ (A\B) ∩ P_p`, gives `|B\A| ≤ |A\B| − 1` — contradicting `|A\B| = |B\A|`,
+  which holds because both are XIs of the same size.
+- **If `a_p = l_p`**, the replacement must come from group *p*, and one exists: *x* is in `A ∩ P_p`
+  and not in *B*, so `|A∩B∩P_p| ≤ a_p − 1 = l_p − 1 < l_p ≤ b_p`, leaving `(B\A) ∩ P_p` non-empty.
+
+Both cases produce a legal `A − x + y`, so the exchange property holds and the family is a matroid.
+The greedy algorithm attains a maximum-weight basis of a matroid, and Reading B **is** that greedy
+algorithm run on the ranker's scores. So Reading B's total is a maximum, which is Reading A's total.
+
+**Verified as well as proved, exhaustively rather than by sampling.** Over every score profile drawable
+from a 3-valued alphabet — 26,460 profiles, ties everywhere — Reading A, Reading B and brute-force
+maximisation over all 550 legal XIs of a 2/5/5/3 squad agree on the total in every case. The sweep was
+repeated over every 4-valued profile (627,200) and every 5-valued profile (8,334,900) with no
+disagreement. `test_harness.py` carries the 3-valued sweep, brute force included, so the claim is
+re-checked rather than cited.
+
+**The equivalence extends to membership, but only because of what the next paragraph fixes, and the
+distinction is load-bearing.** Membership matters here: §4.4 makes the bench the **complement** of the
+XI within the 15, so a different XI is a different bench, a different ordering under test and a
+different §4.3 replay. Under the maximisation the next paragraph specifies — over a value consistent
+with the **ranking** — the maximising XI is unique, and it is the greedy reading's XI: 0 membership
+differences across all 26,460 exhaustively enumerated profiles.
+
+**Had Reading A instead maximised the raw score column, the equivalence would have stopped at the
+total.** The same sweep puts the two readings on *different* maximising XIs in 19,602 of those 26,460
+profiles, because tied scores leave the maximiser non-unique. That formulation is ruled out for an
+independent reason — an unrankable row carries no score to maximise — so the divergence never
+arises. It is recorded because it is the specific way this decision could be implemented into a
+different answer while still answering to the name "Reading A", and because a reader checking the
+claim on scores rather than on ranks will reproduce the divergence and think the equivalence false.
+
+**Why Reading A, given that.** `formations.py` already computes this maximum, over the same 8
+combinations, for `best_legal_xi_points`; Reading A applies that routine to the ranker's scores in
+place of realised points and adds nothing. Reading B would be a second search obeying the same
+constraint set, and a second implementation of one rule is the thing §0.14 and §8.4 both decline
+elsewhere. The demotion rules read naturally under Reading A as well: a player ranked last is a player
+whose score sorts last, and the maximisation starts him only where a formation minimum forces someone
+in — which is what §0.4 intends, since a no-fixture player remains legal to select.
+
+**What is maximised, precisely — the harness's ranking, not the raw score column.** The two are the
+same wherever no demotion applies, and they must not be conflated where one does. §0.4 ranks a
+no-fixture player last for every ranker and §6.5 ranks an unrankable row below every scored one; a
+raw-score maximisation could honour neither, since an unrankable row carries **no score at all** and a
+no-fixture row may carry a perfectly ordinary one — `METRIC.md` §2.3 records that a PPG-style ranker
+scores a no-fixture player at 0, which is not last. So the quantity maximised is a value **consistent
+with the ranking**: strictly decreasing in rank position, with §0.4's and §6.5's demotions already
+applied and §6.8's tie-break already resolved. Because rank positions are distinct, the maximising XI
+is **unique**, which is what closes the membership question the equivalence result leaves open — and
+by the matroid argument above the same XI maximises every other weighting consistent with that
+ranking, the ranker's own scores among them wherever no demotion intervenes.
+
+**The two demotions are ordered, and the order is not arbitrary.** A scored player outranks an
+unrankable one (§6.5), and an unrankable one outranks a no-fixture one (§0.4). Putting §6.5's
+ranker-specific demotion *below* §0.4's harness-uniform one would let one ranker's own coverage hole
+decide a selection at the very margin where a formation minimum forces a demoted player in —
+reintroducing exactly the per-ranker asymmetry §0.4 exists to remove. The football agrees with the
+contract: a no-fixture player is a certain 0, while an unrankable one — `INVENTORY.md` §2.6's
+double-gameweek rows for F1 — is not.
+
+**How membership is fixed under Reading A.** For each of the eight formations, take the top *n* at each
+position by the ranking §6.8 makes strict; the XI is the maximising formation's selection. **No
+formation tie-break is needed, and this is a measured fact rather than an assumption.** Enumerating
+every assignment of the fifteen distinct rank values to the 2/5/5/3 quota — all 7,567,560 of them —
+finds **no case in which two formations tie on the rank-value sum**. §6.8's player-level tie-break is
+therefore sufficient on its own: once the ranking is strict, the maximising formation is unique and
+membership follows without a second rule. A lowest-formation-tuple convention is retained in the
+implementation as a total order over the eight, so the code has no reachable branch that depends on
+dict iteration order, but nothing turns on it and it can never fire.
+
+*Why this is worth a sentence rather than a shrug: had the maximisation been over raw scores, ties
+would be routine — the previous paragraph measures them at 19,602 profiles in 26,460 — and a
+formation tie-break would have been load-bearing and easy to leave implicit.*
+
+### 6.8 The tie-break between equally-scored players — ascending `player_id`, and it must not be random
+
+**Selected: ascending `player_id`.** Where two players carry the same score inside a ranker's declared
+window, the lower `player_id` ranks higher.
+
+**This is a different rule from §6.5's, and the distinction is worth keeping.** §6.5 orders
+**unrankable** players — rows a ranker declined to score — below every scored player, ties among them
+broken by ascending `player_id`. §6.8 orders **scored** players who tie *with each other*. Same
+ordering principle, different populations, and neither subsumes the other.
+
+**Why it needs saying at all.** It is not a corner case. `METRIC.md` §5.3 records F2 and F3 returning
+the same number for every player at GW2–GW4, and `METRIC.md` Appendix A.4 measures the two statistics
+still returning equal values on 38.6% of player-gameweek rows across GW5–38, 98.3% of those being
+players whose entire in-game history is zero points. §2.3 records that uniform squads are drawn mostly
+from cheap, rotation-prone players, which is the population that zero-points share is concentrated in.
+Ties at the selection boundary are therefore the common case in this study, not the rare one — and
+§6.7 establishes that membership under ties determines the bench, and so the ordering under test and
+the §4.3 replay.
+
+**The requirement that must not be lost in implementation: the tie-break is deterministic and is not a
+draw.** A random tie-break — even a seeded one — is ruled out, and the rule is stated here rather than
+left to the call site because the failure it prevents is invisible in the output. §2.8 makes the
+sampler's squad set reproducible from the master seed, and §7.3 makes `run_id` a deterministic hash of
+the identifying fields so that re-running identical inputs reproduces the run. A tie-break drawn at
+run time would break that from inside: two runs with the same seed, the same mart pin and the same
+`run_id` would select different XIs, different benches and different realised totals, while every
+field the manifest records stayed identical. `player_id` order is a property of the squad, not of the
+run, so it consumes no randomness and requires no seed. **Nothing in the slice may implement this as a
+live random choice, and no seed is passed to it — including §8.4's `seed = 0`, which governs the
+resampling call sites and has no business here.**
+
+**Why `player_id` rather than a substantive alternative.** Breaking ties on price, on club, or on any
+other squad attribute would make the selection depend on a variable the ranker did not score, which is
+a second ranking rule smuggled in beneath the first — and §2.2 identifies price specifically as the
+axis along which a comparison tilts. `player_id` is arbitrary with respect to every quantity under
+study, which is exactly what is wanted from a tie-break: it decides the case without deciding
+anything. It is also the convention §6.5 already sets and §4.3.1 already uses for the vacancy order,
+so the slice carries one tie-break rule rather than three.
+
 ### 6.6 What §6 does not decide
 
 - **The `points_roll3` governance verdict.** §0.12 gates F3 on it and §9.1 carries it. §6.4 decides
@@ -2416,6 +2914,11 @@ rule changed the selected XI — is stored at §7.6.
   binds, F3 does not exist in its current form and §6.4 is moot rather than wrong.
 - **Which bootstrap implementation is called** — §8.2.
 - **The as-of denominator** — §0.9 fixes it; §6 consumes it.
+- **The vacancy order and the replay** — §4.3 and §4.3.1. §6.7's selection rule produces the XI those
+  operate on; it does not touch how a substitution fires.
+- **Which formation a tie between equally-totalled formations resolves to** is decided *within* §6.7,
+  not left open: the lowest formation tuple. It is named there because it decides membership, which
+  §6.7 establishes the equivalence result does not cover.
 
 ---
 
@@ -2497,18 +3000,32 @@ right conclusion, which is why it survived unexamined.
 
 **T2 — `squad_weeks`. One row per (run, squad, gameweek, ranker).**
 
-`run_id, squad_id, gw, ranker, chosen_xi_points, best_legal_xi_points, second_best_xi_points,
-regret, closeness_gap, is_zero_gap, substitution_fired, uncovered_blank, no_fixture_rule_changed_xi`
+`run_id, squad_id, gw, ranker, chosen_xi_points, best_legal_xi_points, best_legal_xi_asof,
+second_best_xi_asof, regret, closeness_gap, is_zero_gap, substitution_fired, uncovered_blank,
+no_fixture_rule_changed_xi, best_permutation_total`
 
 This is the level P1's quantities are computed at and the level §0.8's zero-gap exclusions are applied
-at. `closeness_gap` is C1 — the gap between the best and second-best legal XI totals — which is why
-both totals are stored rather than only the maximum. **Both XI totals are stored, not just their
-difference**: see §7.6.
+at. **Two pairs, not one, and the split is §0.8's.** `chosen_xi_points` and `best_legal_xi_points` are
+realised-points quantities and are what `regret` is the difference of. `closeness_gap` is C1, which
+§0.8 settles as the gap between the best and second-best legal XI totals **on the as-of statistic**,
+so its two inputs are stored separately as `best_legal_xi_asof` and `second_best_xi_asof`. A single
+`second_best_xi_points` column carrying a realised-points runner-up is superseded: nothing consumes a
+realised-points runner-up, and the name invited exactly the conflation §0.8 records. **Both realised
+totals are still stored, not just their difference**: see §7.6.
 
-**Every figure in T2 is the *primary* ordering's.** §5.4 makes `bench_order` an ordered sequence with
-element 0 the primary, and §4.9 established that `regret` depends on which ordering produced it. T2
-carries element 0's replay and no other; the alternatives live in T5. The manifest names element 0
-explicitly (§7.3) so the attribution does not rest on positional convention alone.
+**Every *replayed* figure in T2 is the primary ordering's.** §5.4 makes `bench_order` an ordered
+sequence with element 0 the primary, and §4.9 established that `regret` depends on which ordering
+produced it. T2 carries element 0's replay and no other; the alternatives live in T5. The manifest
+names element 0 explicitly (§7.3) so the attribution does not rest on positional convention alone.
+
+**The two counterfactual columns are the exception, and they are not exceptions to the rule but to
+its scope.** `best_legal_xi_points` is §0.1's counterfactual and `best_permutation_total` is §0.10's;
+neither is any ordering's replay, and neither varies with which policy is element 0. They sit in T2
+because a counterfactual is a property of the squad-week, which is what T2's key is — the same
+placement §0.10 cites when it argues that O1's absolute σ\* mirrors P1's. `best_permutation_total` is
+`max` over the realised totals of all 3! = 6 orderings of the outfield bench, replayed against the
+same fixed XI, the same blanks and the same realised points; §7.2.1 records why it is stored here
+rather than as rows on T5.
 
 **T3 — `comparisons`. One row per (run, comparison).**
 
@@ -2566,9 +3083,61 @@ storing both.
 |---|---|---|
 | Per-ordering `realised_total` | **Stored** | A §4.3 replay output. Deterministic, but re-deriving it means re-running the replay, which is what §7.1 forbids |
 | Per-ordering entering players | **Stored** | Same, and §4.6 needs the *sets*, not the totals (below) |
-| **Ordering regret** (§4.4) | **Derived** | `max(realised_total) − realised_total(σ)` within `(run, squad, gw, ranker)`. A group-max over stored values: deterministic, seed-free, one join |
+| **The 6-permutation maximum** σ\* (§0.10) | **Stored, on T2** | A `max` over 6 §4.3 replays. Deterministic, but re-deriving it means re-running the replay, which §7.1 forbids. It carries no ordering dimension, so T2's key is its grain — see the selection below |
+| **Ordering regret** (§4.4) | **Derived** | `best_permutation_total − realised_total(σ)`, joining T2 to T5 on `(run, squad, gw, ranker)`. Deterministic, seed-free, one join. Gated on `substitution_fired` (§7.5): where no substitution fired it is null, not 0 |
 | **Ordering-relevant flag** | **Derived** | `substitution_fired` **and** the `entered_outfield` sets are not all identical within the group |
 | `ordering_relevant_count` in T3 | **Stored** | T3 is the report row: §0.11 requires both counts reported with every bench-order figure, and T3 denormalises what it is required to report. A derived quantity is computed **once, at assembly**, and written only where it must be reported |
+
+**The absolute counterfactual's storage — selected: a `best_permutation_total` column on T2.**
+§0.10 selects σ\* over all 6 permutations; T5 holds one row per candidate ordering, and a policy set
+smaller than 6 — which is every realistic run — cannot supply the maximum. This section previously
+recorded two available shapes and selected neither: a T5 that stores all 6 permutation replays with
+candidate policies mapped onto them, or a single column on T2 at squad-week × ranker grain. **The
+column is selected.** The harness emits it (§5.1's `run`, which replays all 6 per squad-week per
+ranker), T5's rows, meaning and count are untouched, and §9.2's first open item is closed.
+
+Three of this section's own conventions decide it, and the third is the one that makes the T5 shape
+actively unsafe rather than merely larger.
+
+- **Grain.** σ\* depends on `(squad, gw, ranker)` and on nothing else — on the ranker only because
+  §4.4 conditions the bench on that ranker's XI, and the bench is the complement of the XI within the
+  15. That is exactly T2's key. T5's key carries an ordering dimension σ\* does not have, so storing
+  it there writes one value onto every candidate row, which is the duplication this section's opening
+  principle exists to prevent: a second copy of a defined quantity can only diverge from the first.
+- **The mirror to P1 reaches the storage, not only the definition.** §0.10's argument for the
+  absolute form is that O1 mirrors P1, and it cites T2 storing P1's counterfactual **as a squad-week
+  property**. The mirror lands in the same table at the same grain, beside `best_legal_xi_points`,
+  and §7.2 records why that does not contradict T2 being the primary ordering's replay.
+- **The T5 shape would silently contaminate B2.** §4.6 defines the ordering-relevant count over *the
+  orderings actually compared*, and the row above derives it by comparing `entered_outfield` sets
+  **within the T5 group**. Put all 6 permutations in that group and the derivation becomes the
+  permutation-relevant count — exactly what §4.10 forbids when it says counting permutation-relevant
+  weeks instead of comparison-relevant ones would inflate the apparent evidence without adding any.
+  The T5 shape is therefore not the low-impact option it appears to be: it needs a
+  candidate-versus-permutation discriminator column **and** a re-gating of every derivation defined
+  over the group, on top of taking T5 from roughly 126,000 rows to 252,000.
+
+**What the selection gives up, stated rather than skipped.** The T5 shape would make a single
+squad-week's regret inspectable across all six orderings with no computation — the totals and the
+entering sets of the five roads not taken. The column stores only the maximum, so the artefact
+records *what* the best total was and not which ordering achieved it. That cost is accepted because
+the replay is deterministic and T1 holds the full player-level trace — XI membership, positions,
+minutes, realised points — so any particular week's six orderings are reconstructable from the
+artefact on demand. §7.1's constraint is that the **results document** be producible without
+re-running the harness, and the level, §4.5's comparison and B2 all now are. Six times T5's rows on
+every squad-week is not worth a forensic view of the handful of weeks anyone inspects.
+
+**The argmax is not stored alongside the total, and that is deliberate.** Permutation ties are not an
+edge case — §4.8's second case is precisely a tie across all six — so an argmax column would need a
+tie-break rule, which is a new contract of the kind §6.8 and §4.3.1 each cost a section to fix. The
+maximum is unique as a *value* and needs none.
+
+**σ\* still cancels from §4.5's paired difference, and under this shape it cancels structurally.**
+§0.10 establishes the cancellation as an identity. The column strengthens it: `best_permutation_total`
+has no ordering dimension, so at a given squad-week the two regrets being differenced read the
+**same stored cell**, not two values that happen to be equal. Nothing already settled about §4.5,
+§0.14 or §10 is disturbed, and the paired comparison remains computable from T5 alone — as it was
+before this column existed.
 
 **Relevance is defined on the entering *sets*, not on the totals, and storing only the totals would not
 have been enough.** §4.6 counts squad-weeks "where the resulting sets of entering players are not all
@@ -2874,13 +3443,30 @@ divergence from the other side: `assert_no_future_leakage` requires the column t
 guard and the mart contract cannot both stay as they are. Carried forward unresolved; blocks F3, and
 through it the floor set §0.13 determines (§5.1.1).
 
-### 9.2 No candidate bench-order scoring rule has been characterised
+### 9.2 The bench-order scoring rule — closed, and what it left open
 
-`METRIC.md` §4.1 records that no candidate rule exists in this folder and flags it as the survey's
-largest gap. §0.10 states the consequence for this document: §4.4's ordering regret is a construction
-rather than a selection, and has not been shown better than any alternative because no alternative has
-been characterised. Resolving it is a `METRIC.md` pass, not a `DESIGN.md` one. §4.11's open question —
-how uncertainty is quantified on the ordering sample — belongs with it.
+**Closed.** This section recorded that `METRIC.md` characterised no candidate bench-order rule, that
+§4.4's ordering regret was therefore a construction rather than a selection, and that resolving it was
+a `METRIC.md` pass rather than a `DESIGN.md` one. That pass has run — `METRIC.md` §4.3 characterises
+O1 through O5 — and §0.10 selects O1, on realised points, with an absolute counterfactual. The entry
+is kept rather than deleted so the routing stays legible.
+
+**Of the two items it left open, one is now closed and one is not. They were never the same item.**
+
+1. **The storage and interface change the absolute counterfactual requires — closed.** σ\* is the best
+   of all 6 permutations and T5 holds one row per candidate ordering, so the maximum could not be
+   derived from it (§7.2.1). The §7 pass that had to settle where the maximum lives has run and
+   selected a **`best_permutation_total` column on T2**; the §5.1 change followed in the same pass and
+   `harness.py` emits it. The entry is kept rather than deleted so the routing stays legible. While it
+   was open it blocked reporting an ordering-regret *level* and never blocked §4.5's comparison, from
+   which σ\* cancels exactly — and §7.2.1 records that the cancellation is unchanged, and now
+   structural, under the selected shape.
+2. **Uncertainty on the ordering sample — §4.11, still open, and it did not travel with the rest.**
+   §4.11 routed
+   it to this section's `METRIC.md` pass. That pass ran and declined it: `METRIC.md` §4.5 records that
+   uncertainty treatment is not characterised for any of the five, because §6's designs assume a
+   squad-week unit. It needs its own `METRIC.md` pass, aimed at §6. Selecting the metric did not
+   answer it and was never going to.
 
 ---
 
@@ -3221,8 +3807,11 @@ by asserting the fact here. §11 lists the open instances rather than filling th
 
 The same direction holds toward `METRIC.md` and `DECISION.md`: this document **selects from**
 `METRIC.md`'s candidates (§0) and consumes `DECISION.md`'s framing, and where either leaves a gap the
-gap is recorded and routed rather than closed locally — §0.10 and §9.2 for the bench-order scoring
-rule, §0.1 and §7.9 for P4's undefined form.
+gap is recorded and routed rather than closed locally — §0.1 and §7.9 for P4's undefined form. **The
+bench-order scoring rule is the worked example of that policy completing a full circuit**: the gap
+was recorded at §0.10 and §9.2, routed to `METRIC.md`, characterised there as O1–O5, and selected
+here. It is retained in this paragraph as the case that shows routing is not a way of shelving
+something.
 
 **Two conflicts with `METRIC.md` were opened by §0.16's weekly resampling. Both are now closed.**
 Under the charter this document selects from `METRIC.md` and never writes to it, so where this pass
@@ -3388,6 +3977,236 @@ loses only its number.
 explicitly disclaimed the job — its rows are gating questions, with the reasoning left here — so the
 sequence was defined nowhere, and three of the five phases were named nowhere at all. The sentence is
 gone rather than repointed, because there was no correct target to point it at.
+
+**C1 was underspecified in two independent ways, and the build exposed both.** Neither was an open
+question this document had registered; each was a sentence that read as settled and admitted more
+than one reading, which is the failure mode §0.8's own resolution paragraphs now guard against. Both
+are corrections to a previously-asserted position and are recorded here for that reason. Neither
+changes which candidate is selected: C1 was and remains the selection over C2 and C3.
+
+1. **§0.8 asserted that the runner-up over the 8-formation enumeration is the second-best legal XI.
+   It is not, and the assertion was inherited rather than checked.** `INVENTORY.md` §2.4 carried the
+   claim and this document cited it; the citation was correct and the fact was wrong. An
+   `INVENTORY.md` pass has since withdrawn it there and pinned a counterexample — best 745,
+   enumeration runner-up 729, second-best legal XI 744 — measured by
+   `decisions/starting_xi/test_formations.py`. §0.8 now **selects between** the two quantities rather
+   than assuming they coincide, and takes the XI gap. The cost sentence that carried the old position
+   ("the cost is one extra pass over eight combinations, which is nothing") is withdrawn as a
+   *reason*, not as a fact: it was true, and it is equally true of the alternative, which is precisely
+   why it never distinguished them. **The formation gap is retained in §0.8 as a characterised and
+   rejected candidate**, with the reason — it errs in one direction only, calling a week clear
+   whenever the two leading XIs share a formation, which is C2's confound wearing C1's name — so it
+   is not re-proposed on its cheapness. `formations.py` was built to the superseded specification and
+   is correct against it; the change it now needs is stated at §0.8 and registered at §1.5, and was
+   not made in the pass that wrote this entry.
+
+2. **§0.8 read as scoring C1 on realised points; `METRIC.md` §3.1 says an as-of statistic, and
+   `METRIC.md` is right.** The conflict was this document's to fix, since the charter has it select
+   from `METRIC.md` and a selection may not keep a candidate's name while dropping a clause of its
+   definition. §0.8 now states the as-of statistic explicitly, identifies it as §0.9's season-to-date
+   rate on §8.3's population, and records that the realised reading would have made §0.9's
+   denominator-coupling argument vacuous and would have conditioned the sample on the outcome. Two
+   consequences are recorded rather than absorbed. **§7.2's T2 is corrected**: `second_best_xi_points`
+   is superseded by an as-of pair alongside the realised pair, because the two quantities no longer
+   come from one call. And **§0.8's own gloss "and every ranker scores 0 regret" is withdrawn** — it
+   held only under the realised reading, was never `METRIC.md` §3.1's claim, and the zero-gap
+   exclusion does not rest on it.
+
+**One thing these two entries do not do.** Neither reopens C1 against C2 or C3, and neither touches
+P1. §0.1's regret is a realised-points quantity throughout and is unaffected by the second entry;
+what changed is only which statistic the *conditioning* reads, and which of two gaps the word
+"second-best" denotes.
+
+**Two selections §6 did not carry, added in this pass because the build could not proceed without
+them.** Both are recorded here as constructions with their justification, not as selections from a
+survey — `METRIC.md` characterises no candidate for either, which was the same shape of gap §0.10
+recorded for the bench-order scoring rule *(that one has since been routed, surveyed and closed; these
+two have not, and the parallel is to the gap as it stood, not to its resolution)*.
+
+1. **How a score panel becomes the chosen XI — §6.7.** §4.12 routed the question to §6 and §6 never
+   answered it; §6.6 did not list it as deferred either, so it was an omission rather than an open
+   item, and it was found from the build side rather than from a reading. The two live readings —
+   maximise total score over legal XIs, or scan the ranking taking whatever keeps a legal XI reachable
+   — are proved equivalent **on the total** at §6.7, because the legal XIs are the bases of a matroid
+   and the second reading is the greedy algorithm on it. The proof is given there in full and the
+   result is verified exhaustively rather than by sampling — and the equivalence covers **membership
+   as well as the total**, so the reading genuinely carries no consequence and is selected on
+   implementation grounds, `formations.py` already computing the same maximum over the same eight
+   combinations.
+
+   **One intermediate finding is recorded because it was briefly written into this document as a
+   limitation and is not one.** A first pass stated that the equivalence stopped at the total, on the
+   strength of a sweep in which Reading A maximised the **raw score column**: that formulation does
+   diverge on membership, in 19,602 of 26,460 profiles. It is not the formulation §6.7 selects, and
+   could not be — §6.5's unrankable rows carry no score to maximise, and §0.4's no-fixture demotion
+   contradicts the score it would maximise over. Once §6.7 fixes the maximisation over the *ranking*,
+   the maximiser is unique and the divergence disappears. The limitation is withdrawn; the sweep that
+   produced it is retained at §6.7 as the reason the maximised quantity has to be named explicitly.
+
+2. **The tie-break between equally-scored players — §6.8.** Ascending `player_id`, the convention §6.5
+   already sets for unrankable players and §4.3.1 for the vacancy order. §6.8 states the determinism
+   requirement at the site rather than leaving it to a call site, because a run-time draw would break
+   §2.8's and §7.3's reproducibility from inside — identical seed, identical mart pin and identical
+   `run_id`, different XIs — while every recorded field stayed the same.
+
+**One item these two entries open rather than close.** §7.2 specifies **T1** at per-player grain,
+including `selected`, `bench_slot` and `entered_as_sub`, which only the replay can produce — but
+§5.1's `harness.py` row returns the per-squad-week records and the per-ordering records only, and
+names no producer for T1. `results.py` "serialises frames it is handed" (§7.8), so it is not the
+producer either. The build follows §5.1's stated interface and emits T2 and T5; assigning T1's
+producer is a §5.1 pass and is not done here.
+
+**One rule of this document's own, changed on measurement — §4.3.1's vacancy order.** §4.3.1 pinned
+the vacancy order as DEF, then MID, then FWD; declined to assume the final XI was invariant to it;
+required the invariance be tested rather than assumed; and stated that a failing test would leave the
+pinned order standing as a finding to report. **The test failed**, and the finding was then measured
+rather than left as a note.
+
+**What the failure is.** An unfilled vacancy drops the XI below a positional minimum that can never
+afterwards be restored, so it makes every vacancy behind it unfillable for a reason the ordering
+created rather than the squad. DEF-first is the worst available order, because it serves first the
+position whose 3-minimum binds. A minimal two-vacancy counterexample costing 1 point was constructed
+while building `harness.py`; it is pinned in `test_harness.py`.
+
+**What the measurement found.** Every ordering of the positions carrying a vacancy was replayed
+against the same fixed XI and the same realised points over all 11,100 squad-weeks — 300 squads at
+each of GW2–38, seed 0, XIs fixed by an as-of-PPG ranker — and the maximum taken, which is an exact
+upper bound rather than an estimate. The retired order forgoes **143 points in 106 squad-weeks**,
+0.0129 per squad-week, worst week 7. Serving the slackest position first forgoes **2 points in one
+squad-week**, and is never worse than the retired order on any of the 11,100.
+
+**Why the rule changed rather than the limitation being accepted.** The loss is ranker-dependent —
+which squad-weeks poison depends on the XI — so it enters §4.5's paired difference as noise that is
+not independent of what is being compared. And the fix is free, so there is no tradeoff to weigh: one
+integer comparison per vacancy recovers 141 of the 143 points. The try-all-orderings maximisation that
+produced the bound was **not** selected, and not on compute grounds: it chooses the vacancy order
+using realised points, which would make the substitution engine clairvoyant and depress §0.1's regret
+by a property of the harness rather than of the ranker.
+
+**Two things this entry records so they are not re-proposed.** The intuitive heuristic — fill the
+position *closest* to its minimum first — is the retired order generalised and measures **worse** than
+it, 169 points against 143; the mechanism rewards deferring the tight position, not serving it. And
+the invariance claim §4.3.1 formerly held open is **withdrawn, not restated**: the final XI is not
+invariant to the vacancy order, and the sweep that bounds where it matters — only where a vacancy goes
+unfilled — is retained in the suite as the reason a heuristic of this shape is the right fix.
+`harness.py` and `test_harness.py` were changed in the same pass; the pinned counterexample is kept
+and now asserts the new rule's outcome on it.
+
+**The bench-order scoring rule, selected — and the charter inversion `METRIC.md` flagged, resolved.**
+§0.10 and §9.2 recorded for several passes that no candidate bench-order rule had been characterised,
+that §4.4's ordering regret was therefore a construction rather than a selection, and that closing it
+was a `METRIC.md` pass. That pass ran; `METRIC.md` §4.3 characterises O1–O5 with tiers and §4.4 there
+leaves a framing question open. §0.10 now selects **O1, ordering regret, on realised points, with an
+absolute counterfactual**. What follows is what was rejected and why, on the standard the C1 entries
+above set.
+
+**First, the inversion, because it gates everything after it.** `METRIC.md` §4.1 flagged that
+characterising any bench-order rule requires §2.5's GK mechanic — 3 outfield bench players if the GK
+slot is a separate process, four if not — and offered a disjunction: either the mechanics are properly
+open in the survey and its candidates rest on premises that are not fixed, or the mechanics were never
+open and §2.5 overstates the choice available.
+
+**The first horn is correct, and it is not a defect.** A survey characterises candidates
+*conditionally* on the variants it holds open — that is what §2 of that document is for, and
+`METRIC.md` §4.1 did exactly the right thing by stating its counts under the separate-GK setting while
+recording that every candidate still computes over four elements under the other. Nothing in §4.3
+requires the mechanic to be **fixed**; it requires it to be **stated**, and it was. **The second horn
+is rejected**: the choice was real, and §0.6 made it — the GK slot is a separate process, on the
+ground `INVENTORY.md` §2.2 supplies, and §4.2 works the consequence to 3 outfield players and 6
+orderings. A selection existing downstream does not retroactively close the survey it selected from,
+and a survey holding a question open is not evidence that the question is unanswered. This is the
+charter operating as designed rather than an inversion of it, and §0.10 now states the setting
+explicitly so no later pass has to re-derive which reading its figures are stated under.
+
+**Second, realised rather than as-of.** `METRIC.md` §4.4 set the tension out and declined to resolve
+it, correctly — it is a selection. It also declined to treat the C1 correction as automatic precedent,
+and that judgement is upheld here on inspection rather than accepted on authority. **C1 is a
+conditioning statistic**: §0.8 and §0.9 moved it to an as-of basis because conditioning on realised
+points selects the sample on the quantity being measured. **A scoring rule does no selecting**, so
+that mechanism does not operate. Two further reasons decide it. The decision being scored is
+**already as-of** — a policy consumes a ranker's scores and a ranker sees only prior data — so a
+realised metric asks what an as-of-constrained rule cost, which is exactly P1's question and P1's
+accepted posture. And `DECISION.md` §1 states the cost model in points; an as-of rule is not
+expressible in points, and the secondary figure is reported beside the primary one (§4.9). **The cost
+of this choice is recorded rather than glossed**: a realised rule charges a policy for outcomes
+nothing could have foreseen. That is P1's cost too, and it is accepted for P1's reason — the
+alternative prices a forecast instead of a decision.
+
+**Third, the four candidates not taken.**
+
+- **O5**, as-of expected-value ordering regret — excluded by the framing decision above, and
+  independently **speculative** in `METRIC.md`'s tiering: no defined as-of counterfactual for an
+  ordering exists, and §0.2's reading makes an undefined form disqualifying whatever inputs are
+  present.
+- **O2**, entrant points — prices the outcome rather than the decision. §0.1 declined P2 on precisely
+  that ground, and adopting O2 would apply two standards to one question. It also lacks any defined
+  cross-week normalisation.
+- **O3**, realised-order rank correlation — **the closest call, and the one whose rejection carries a
+  real cost.** It is the only candidate independent of §4.3.1's vacancy rule and the only one
+  measurable outside B2, which makes it the single available answer to §4.10's power problem. It was
+  declined because it is magnitude-free and so cannot be expressed in the unit the primary figure and
+  the cost model share; because it credits a policy for ordering players who could not lawfully have
+  entered, so part of what it measures is not the decision; and because two bits per squad-week is not
+  a quantity the artefact can store at its own grain. **§4.10's power problem is therefore not solved,
+  and this selection does not claim to solve it.** If a later pass wants O3 as a companion diagnostic
+  rather than as the metric, `METRIC.md` §4.3.2's tie-frequency gap has to be measured first — that is
+  an `INVENTORY.md` pass, and it is named here rather than assumed away.
+- **O4**, reachable-set rank correlation — closes O3's legality gap but returns to roughly B2's
+  population, forfeiting the only advantage that motivated O3, while carrying O1's §4.3.1 dependence
+  through its definition of "reachable" **and** O3's magnitude-freedom. It keeps both costs and
+  neither benefit.
+
+**None of the three `INVENTORY.md` gaps `METRIC.md` §4.3.2 flags blocks this selection**, and that is
+stated as a finding rather than assumed: O3 and O4 are declined on unit and construct grounds that
+hold at any tie frequency, and O5 on a definitional gap its input question does not touch. The one
+place a gap does bind is O3-as-companion, named above.
+
+**Fourth, O1's own flagged defect — removed, not tolerated.** `METRIC.md` records that σ\* under §4.4's
+form was the best ordering *among those compared*, so adding a policy moved every other policy's
+score and two studies were not on one scale. §0.10 takes σ\* over **all 6 permutations** instead. Three
+things decided it. The absolute form is the only one that actually mirrors P1, whose counterfactual is
+the best legal XI over the squad and not the best among the rankers compared — the relative form was a
+mismatch with the thing §4.4 justified itself by mirroring. The relative form **degenerates on a legal
+input**: §5.4 permits a one-policy `bench_order`, under which σ\* = σ and the artefact reports the
+single policy examined as perfect at every squad-week. And the change is inferentially free — σ\*
+cancels exactly from §4.5's paired difference, so **every comparison is identical under both forms**
+and only the reported level moves, which was the defective term. §0.11's B2 denominator is untouched:
+a counterfactual and a denominator answer different questions and legitimately take different scopes,
+which §0.10 now states so the hybrid is not mistaken for an oversight.
+
+**What that pass opened has since been closed; what it left open is named below.** The absolute
+counterfactual could not be derived from T5 as specified — §7.2.1's rule was a group-max over the
+*candidate* replays, which is the relative form — and that pass changed no code, leaving `harness.py`
+emitting the inputs to the form that had been withdrawn. **A subsequent pass closed both halves
+together, as the entry above said it would have to.** §7.2.1 selects the storage shape and §5.1's
+`run` emits it, so the gap between document and implementation is closed rather than carried.
+Separately, §4.11's uncertainty question was routed to this `METRIC.md` pass and **did not
+come back**: `METRIC.md` §4.5 records that it characterised no uncertainty treatment for any of the
+five, because §6's designs assume a squad-week unit. §4.11 and §9.2 now say so; the routing was wrong,
+not merely unfulfilled.
+
+**The shape of the absolute counterfactual's storage — decided, with the alternative recorded.** Two
+shapes were on the table at §7.2.1 and neither had been selected: six permutation rows on T5 with the
+candidate policies mapped onto them, or a single `best_permutation_total` column on T2 at
+squad-week × ranker grain. **The column is selected**, on §7's own conventions rather than on its
+being the smaller change. σ\* has no ordering dimension, so T2's key is its grain and T5's is one
+dimension too many; §0.10's mirror to P1 puts O1's counterfactual in the same table as P1's, which
+T2 already stores as a squad-week property; and the T5 shape would have redefined the group that
+§7.2.1's ordering-relevance derivation runs over, silently converting §4.6's comparison-relative B2
+into the permutation-relevant count §4.10 explicitly forbids. The rejected shape is recorded rather
+than dropped, together with what the selection costs — six orderings' totals and entering sets are no
+longer inspectable directly from the artefact for a given week, and are reconstructed from T1's trace
+when a particular week is examined. Storing the argmax permutation beside the total was considered and
+declined: permutation ties are routine (§4.8's second case is one) so an argmax needs a tie-break
+contract, while the maximum is unique as a value.
+
+**One thing verified rather than assumed to carry over.** §0.10 argues σ\* cancels from §4.5's paired
+difference. That was established for the metric's *definition*, and a storage shape could in principle
+have broken it — a per-ordering σ\* would leave two values whose equality is a property of the
+computation. Under the selected shape it cannot: `best_permutation_total` is a single T2 cell per
+`(squad, gw, ranker)`, so both regrets in the difference read the same cell and the cancellation is
+structural. §7.2.1 states this, and `test_harness.py` asserts it on the emitted frames rather than
+leaving it as a claim in prose.
 
 **One departure from `CLAUDE.md`, recorded rather than made silently.** *(This is the only standing
 departure. The charter departure recorded under conflict 1 above ended when that conflict closed.)* `CLAUDE.md` requires every

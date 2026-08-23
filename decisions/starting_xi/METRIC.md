@@ -379,14 +379,49 @@ right (§5.1). Which, is not decided here.
 `DECISION.md` §1 makes bench order the secondary decision and states it is reported separately
 rather than folded into the primary number.
 
-### 4.1 The scoring rule is undefined
+### 4.1 The scoring rule — the gap this section used to record, and what a rule has to measure
 
-**No candidate scoring rule for bench order exists in this folder.** Whatever rule is written has
-to respect §2.5's mechanics — the GK/outfield split and the priority-queue semantics — and those
-are themselves unresolved. A rule written before them is a guess in the shape of a decision.
+**This section previously stated that no candidate scoring rule for bench order existed in this
+folder, and flagged that as the largest genuine gap in the survey. §4.3 now characterises five.**
+The former statement is superseded and is retained in the Provenance section with what replaced it.
+§4.2 is unchanged and still characterises the candidate **denominators**; the numbering is held
+fixed because downstream documents cite it.
 
-*Flagged: this is the largest genuine gap in the survey. §4 characterises candidate
-**denominators** only.*
+**What a bench-order metric is measuring, stated before candidates are built on it.** The bench
+order is a decision taken over the players a ranker did **not** select. So the quantity is not "did
+the ranker choose well" — §3's C1/C2/C3 and §1's P1–P7 already scope that — but: **given the eleven
+already fixed, and given that some of them then failed to feature, did the policy put the players
+who turned out to be worth having earliest in the queue?**
+
+**Three conditions narrow that sentence, and each of them changes what a candidate can claim.**
+
+- **Usefulness is not a property of the player alone.** §2.4's eligibility setting, if taken,
+  requires an entering substitute to have featured himself; §2.5's legality setting, if taken,
+  requires the post-substitution XI to be a legal formation. Under both, the highest-scoring player
+  on a bench may be unable to enter at all in the week in question. A metric that scores an ordering
+  against raw realised points therefore rewards getting right an order that could never have been
+  executed — a property, not a defect, but one that separates the candidates in §4.3 sharply.
+- **The queue's length is set by §2.5's first mechanic and is not free.** If the GK slot is a
+  separate process, the bench holds exactly one goalkeeper — a squad holds two and every legal
+  formation starts one (`INVENTORY.md` §2.2) — an ordering over one element carries no information,
+  and the decision is an ordering over **3** outfield players, 3! = 6 in all. If the GK slot is
+  **not** separate, §2.5's own words apply and the decision is "one ranking of four". Every count in
+  §4.3 is stated for the first setting, because that is the one under which the ordering is a
+  decision at all; under the second every candidate below still computes, over four elements.
+- **Which bench player actually enters depends on the order the vacancies are served in.** Where two
+  or more starters blank, the rule that decides which vacancy is filled first decides which
+  substitutions are legal when, and therefore who comes on. That rule is not characterised in this
+  document and is not §4's to fix; the consequence for the candidates is stated per candidate in
+  §4.3 and summarised at §4.3.1 below.
+
+**One inversion this section cannot avoid, recorded on the same terms as §0.4.** Every candidate in
+§4.3 has to be characterised against substitution mechanics that §2.5 leaves **open** — and those
+mechanics have since been settled downstream, in the document that is supposed to select *from* this
+one. So either the settings are properly this survey's to leave open and the candidates below are
+characterised against premises that are not yet fixed, or the mechanics were never really open and
+§2.5 overstates the choice available. The candidates are written to be legible under either reading,
+and where a setting changes a candidate's properties that is said in the candidate's own row.
+**Flagged for a human; not resolved here.**
 
 ### 4.2 Candidate denominators
 
@@ -400,6 +435,287 @@ a low count is partly a consequence of that choice rather than a fact about the 
 `DECISION.md`'s Provenance section flags that if B2 is small the secondary decision may not be
 measurable on one season; that check has not been run and no number for it is asserted anywhere in
 this folder.
+
+### 4.3 Candidate scoring rules
+
+Five candidates. **None is recommended, and none is described as having lost** (§0.1); where a
+property is genuinely a defect it is stated as a property. Two of the five — **O1** and **O2** — are
+the alternatives a downstream document asked this survey to characterise; they are set out here
+alongside three others rather than as a pair, because a two-candidate survey would decide the
+question by its own framing.
+
+Throughout, σ is a candidate ordering of the bench, the XI is held **fixed** across the orderings
+being compared, and `replay(σ)` is the realised XI total that results from applying §2.5's mechanics
+under σ. Holding the XI fixed is not optional: the bench is the complement of the XI within the 15,
+so two rankers selecting different XIs have different bench *sets*, and comparing their orderings
+would compare selections wearing the clothes of an ordering comparison.
+
+| | Candidate | Definition | Population | Tier |
+|---|---|---|---|---|
+| **O1** | **Ordering regret** | `replay(σ*) − replay(σ)`, σ* the best-scoring ordering in the comparison set, same squad, same XI, same realised minutes and points | B2 | Feasible now |
+| **O2** | **Entrant points** | The realised points of the player or players the ordering actually brought on | B1 or B2 | Feasible now |
+| **O3** | **Realised-order rank correlation** | Kendall τ (or Spearman ρ) between σ and the ordering of the same bench players by realised points | Every squad-week, or any subset | Feasible now |
+| **O4** | **Reachable-set rank correlation** | O3 restricted to the bench players some ordering could actually have brought on that week | B2 | Feasible now |
+| **O5** | **As-of expected-value ordering regret** | O1 with the counterfactual taken over expected rather than realised points | B2 | **Speculative** |
+
+---
+
+**O1 — Ordering regret.**
+
+**What it measures.** The points forgone by ordering the bench the way this policy did, against the
+best the comparison could have done, holding everything that is not the ordering constant.
+
+**Properties.**
+
+- **Bounded below at 0 and 0 for the best available call**, exactly as P1 is, and for the same
+  structural reason: the counterfactual maximises over a set the scored option belongs to. It
+  mirrors P1's shape, which means a study reporting both carries one vocabulary rather than two.
+- **Prices the decision rather than the outcome.** An ordering that stranded a 12-point substitute
+  behind a blank is charged; an ordering that brought on the only eligible player there was, who
+  happened to score 2, is charged nothing — there was nothing else to do.
+- **Its counterfactual is relative to the candidate set, not absolute, and this is the property that
+  most distinguishes it from P1.** P1's counterfactual is the best legal XI, which is a fact about
+  the squad-week. O1's σ* is the best ordering *among those being compared*, which is a fact about
+  the study. Two studies comparing different policy sets produce O1 values that are not on the same
+  scale, and adding a policy to a comparison can change every other policy's score without any of
+  them changing behaviour. Taking σ* over all 6 permutations instead makes it absolute and
+  comparable, at the cost of measuring headroom no candidate was competing for; both readings are
+  live and neither is selected here.
+- **It inherits every underdetermination P1 has** — §2.1 through §2.6 — and adds the vacancy-order
+  dependence at §4.3.1.
+- **It cannot be summarised by its mean without stating the denominator**, for the reason §4.2 gives:
+  weeks where every ordering brings on the same player score 0 for all of them, and averaging those
+  in dilutes every policy's mean equally toward 0. That is a denominator question (§4.2), not a
+  property of the rule.
+
+**Requirements.** Realised points and minutes per player-gameweek; a fixed XI; §2.5's mechanics
+implemented. `INVENTORY.md` §2.5 records the minutes states and §2.3 records that no
+auto-substitution logic exists anywhere in the repository, so the replay is code that must be
+written; under §0.2's reading every input it consumes is present.
+
+---
+
+**O2 — Entrant points.**
+
+**What it measures.** The realised points the ordering actually harvested — the score of whoever it
+put on the pitch.
+
+**Properties.**
+
+- **Needs no counterfactual at all**, so it is the cheapest of the five and has no dependence on a
+  best-ordering definition, which is exactly the definitional question O1's σ* leaves live.
+- **Prices the outcome rather than the decision**, and this is the same relationship P2 bears to P1.
+  It charges an ordering the full difference between a 2-point substitute and a 12-point one whether
+  or not the 12-point one could ever have entered. A policy that faced no choice and a policy that
+  faced one and got it wrong are not separated.
+- **It is not comparable across squad-weeks without a normalisation nobody has defined.** A week in
+  which two substitutions fire scores roughly twice a week in which one does, for a reason that is a
+  property of how many starters blanked rather than of the ordering. Summing or averaging it across
+  weeks therefore weights weeks by blank count. Dividing by the number of substitutions, or scoring
+  only the first entrant, are both available and both change what is being measured; neither is
+  selected here.
+- **It is directional in a way the others are not:** higher is better, where O1 and O5 are losses and
+  O3/O4 are correlations. A study reporting it alongside a regret-style figure carries two signs.
+
+**Requirements.** Realised points; the replay's record of who entered. Strictly less than O1 needs.
+
+---
+
+**O3 — Realised-order rank correlation.**
+
+**What it measures.** Whether the policy's ordering agrees with the order the bench players turned
+out to deserve, ignoring magnitude entirely.
+
+**Properties.**
+
+- **It scores the ordering as an ordering.** The decision under study is a permutation, and this is
+  the only candidate whose value is a function of the permutation and the realised ranking alone —
+  a policy that puts a 12, a 4 and a 1 in that order scores identically to one that puts a 3, a 2
+  and a 1 in that order. Whether that is the right invariance is precisely the question: it makes
+  the metric insensitive to how much the ordering was worth, which is the quantity `DECISION.md` §1
+  frames the primary decision in.
+- **It is independent of §2.5's mechanics and of the vacancy-order rule entirely**, because it never
+  runs the replay. That independence is its most consequential property and it cuts both ways.
+  It means the metric is stable under changes to mechanics this survey leaves open — no other
+  candidate here is — and it means the metric **credits a policy for ordering correctly a set of
+  players who could not lawfully have entered**, or who were ineligible under §2.4, or who were
+  never called on because nobody blanked.
+- **It can be measured over every squad-week, not only over weeks where a substitution fired.** This
+  is the only candidate with that property, and it is a large one: a bench-order comparison
+  restricted to B2 may be too thin to resolve anything on one season, and O3 is not so restricted.
+  The cost of that reach is stated in the bullet above — most of the weeks it gains are weeks in
+  which the ordering had no consequence, so it buys sample size by measuring the decision in
+  conditions where the decision did not matter.
+- **Its resolution per squad-week is very coarse.** Over three elements with no ties, Kendall τ takes
+  four values — −1, −⅓, ⅓, 1 — so a single squad-week carries roughly two bits. It is a quantity to
+  aggregate, never to read one week at a time, and any interval on it has to respect that the
+  per-week value is near-categorical.
+- **Ties in the realised ranking are the live threat to it, not an edge case.** A bench player who
+  blanks scores 0, two who blank tie, and the tie-handling convention then decides the metric's
+  value on a large share of its own population. Whether that share is large is a repository fact
+  nobody has measured — see §4.3.2.
+
+**Requirements.** Realised points; the policy's ordering. No replay, no formation set, no minutes
+predicate. *Whether a rank-correlation routine already exists in the repository is not recorded in
+`INVENTORY.md` — §2.9 covers bootstrap and resampling conventions and says nothing about rank
+correlation. That is an `INVENTORY.md` gap (§4.3.2) and not a fact this document may assert. It does
+not bear on the tier either way: over three elements the statistic is arithmetic, and §0.2's reading
+tiers on inputs rather than on code.*
+
+---
+
+**O4 — Reachable-set rank correlation.**
+
+**What it measures.** O3, restricted to the choice the policy really faced: the bench players whom
+*some* ordering would have brought on that week.
+
+**Properties.**
+
+- **It closes the gap §4.1 opens between "worth having" and "able to enter".** The players it scores
+  over are exactly those the week made available, so it neither credits nor charges a policy for the
+  order it placed players in who were never a live option.
+- **It is the only candidate that is both magnitude-free and consequence-aware**, which places it
+  between O3 and O1 rather than as a variant of either.
+- **Its definition carries load the other four do not.** "Reachable" has to be defined, and the
+  natural definition — the union over orderings of the players who enter — is a construction rather
+  than a given, and one whose value depends on the vacancy-order rule (§4.3.1) in the same way O1's
+  does. A stricter definition (reachable under the vacancy order actually used) and a looser one
+  (reachable under any vacancy order) give different populations, and neither is selected here.
+- **It degenerates where the reachable set has fewer than two members**, which §4.10-style reasoning
+  suggests is the common case: with three outfield bench players, often only one is eligible. A
+  correlation over one element is undefined, so those weeks are excluded — which returns O4 to
+  roughly B2's population and forfeits the sample-size advantage O3 has. **O4 is therefore not a
+  strictly better O3; it trades reach for relevance.**
+- **It inherits O3's tie problem** over whatever population survives.
+
+**Requirements.** O3's, plus the replay run once per ordering to determine reachability — the same
+enumeration O1 needs.
+
+---
+
+**O5 — As-of expected-value ordering regret *(speculative)*.**
+
+**What it measures.** O1 with the counterfactual taken over what the bench players were *expected* to
+be worth at the time the order was set, rather than over what they turned out to be worth.
+
+**Properties.**
+
+- **It scores the ordering against the information the decision was actually taken on**, which is the
+  same reasoning §3.1's C1 rests on and the reason the conditioning statistic there is as-of rather
+  than realised. If a bench order is meant to inform an in-week decision, the case for the same
+  treatment here is structural rather than stylistic — see §4.4, where the tension is stated and
+  deliberately left open.
+- **It would make a good ordering one that was right in expectation and a bad one that was wrong in
+  expectation**, so a policy is not charged for a substitute who was correctly ranked last and then
+  hauled. Whether that is desirable depends on what the metric is for, which is a `DECISION.md`
+  matter and is not argued here.
+- **It is speculative on definitional grounds first, and input grounds second.** There is no defined
+  as-of counterfactual for an *ordering*: σ* under O1 is "the ordering that scored best", and the
+  as-of analogue would have to be "the ordering that was best in expectation", which requires a
+  per-player expected-points quantity for bench players and a rule for combining it across a queue
+  whose members enter conditionally. Neither exists in defined form, and §0.2 tiers a metric without
+  a defined form as speculative regardless of what data is present.
+- **A second, weaker form is available and is not the same metric:** score the ordering by rank
+  correlation between σ and an as-of statistic, which is nearly vacuous, since a policy ordering on a
+  ranker's scores would be scored against the thing it ordered on. It is recorded so it is not
+  mistaken for a cheap version of O5.
+
+**Requirements.** An as-of expected-points quantity per bench player, and a probability of featuring.
+`INVENTORY.md` §2.1 records as-of scoring-rate machinery and §2.6 records `p_play` with
+`WARMUP_GW = 3`. *Whether a per-player expected-points-conditional-on-playing forecast usable at
+as-of time exists is not recorded in `INVENTORY.md` in a form this candidate could cite* — an
+`INVENTORY.md` gap (§4.3.2). The tier does not turn on it: the definitional gap above is sufficient
+on its own.
+
+#### 4.3.1 Which candidates depend on the vacancy-order rule, and which do not
+
+*This subsection characterises a **dependency of the candidates above**. It does not state what the
+vacancy-order rule is or should be — that is a mechanic, it sits with §2.5's three, and like them it
+is not fixed in this document. A downstream document numbers its own vacancy-order section similarly;
+bare section numbers here mean this document's, per the charter.*
+
+Where two or more starters blank in the same week, the order the vacancies are served in determines
+which substitutions are legal when, and therefore which bench player enters. **Any candidate whose
+value is read off the replay is defined relative to that rule, and its values are not comparable
+across a change to it.** That splits the five:
+
+| Candidate | Depends on the vacancy-order rule? |
+|---|---|
+| **O1**, **O2** | **Yes, fully** — both read who entered, or what the resulting total was |
+| **O4** | **Yes, through its definition of "reachable"** — and differently depending on which of the two definitions above is taken |
+| **O3** | **No** — it never runs the replay |
+| **O5** | **Yes**, on whatever replay its counterfactual is defined over |
+
+**Two consequences worth stating, neither of them resolved here.** A change to the vacancy-order rule
+that causes more substitutions to fire — by salvaging a vacancy an earlier rule left unfilled —
+mechanically changes **B2**, §4.2's ordering-relevant count, and therefore the population every
+replay-based candidate is measured over. Nobody has measured that effect and no number for it is
+asserted anywhere in this folder. And a metric with **no** such dependence, which is O3 alone, buys
+that stability by not measuring the consequence — the property is not free in either direction.
+
+#### 4.3.2 Facts these candidates need that `INVENTORY.md` does not carry
+
+Flagged rather than asserted, per the charter; each requires an `INVENTORY.md` pass, not a sentence
+here.
+
+1. **How often the realised points of a squad-week's bench outfielders tie.** O3 and O4 are
+   rank-correlation metrics over three elements, and their behaviour is decided by the tie
+   convention on whatever share of weeks carries ties. `INVENTORY.md` §2.5 records that 17,977 mart
+   rows carry `minutes == 0`, which suggests the share is not small, but the quantity that matters is
+   ties **within a squad-week's bench**, and that is a different measurement over a population that
+   does not exist until squads are sampled. No number for it is asserted here.
+2. **Whether a rank-correlation routine exists in the repository, and with what tie convention.**
+   §2.9 records the bootstrap and resampling conventions and is silent on rank correlation. This
+   bears on the tie convention above rather than on any candidate's tier.
+3. **Whether an as-of expected-points-conditional-on-playing forecast exists per player-gameweek.**
+   §2.1 records as-of scoring rates and §2.6 records `p_play`; neither is the same quantity. Bears on
+   **O5**, though not on its tier.
+
+### 4.4 As-of or realised — an unresolved tension, stated not settled
+
+**Four of the five candidates score an ordering on what happened. The question this section refuses to
+answer is whether they should.**
+
+**Why the question is live rather than academic.** §3.1's C1 was corrected on exactly this axis: it
+had read as scoring on realised points, and the correction to an as-of statistic was made on the
+ground that the realised reading conditioned the sample on the outcome. A bench order is a decision a
+manager takes **before** the gameweek resolves, on information available then, and if the metric is
+meant to say whether the policy was a good way to order a bench, the same argument applies with the
+same force.
+
+**Why it does not simply follow.** C1 is a **conditioning** statistic — it selects which weeks carry
+information, and conditioning on the outcome selects the sample on the thing being measured, which is
+a bias with a name. A bench-order **scoring rule** is not doing that job. P1, the primary metric, is
+frankly counterfactual and scores on realised points by construction, and this survey records that as
+a property rather than a defect: "the benchmark is what was achievable, not what was predictable". An
+ordering metric that mirrors P1's shape inherits that posture legitimately. So the C1 correction is
+not automatically precedent here, and treating it as one would be an argument by analogy across two
+different jobs.
+
+**What turns on it.** If the ordering metric is realised, it answers "how much did this ordering cost
+in points", and a policy is charged for outcomes nothing could have foreseen — the same property P2
+carries and P1 partially avoids. If it is as-of, it answers "was this a well-reasoned ordering", a
+policy is charged only for being wrong about what was knowable, and the metric stops being
+expressible in points, which is the unit `DECISION.md` §1 states the cost model in.
+
+**Both framings are represented above** — O1, O2, O3 and O4 realised, O5 as-of — so a design
+selecting from this survey is choosing between them rather than inheriting one. **This document does
+not resolve it.** It is a selection, and selections are `DESIGN.md`'s.
+
+### 4.5 What §4 still does not contain
+
+- **A selection.** None of O1–O5 is recommended, and §4.2's B1 and B2 are likewise unselected.
+- **A rule for combining a scoring rule with a denominator.** O2 is listed against "B1 or B2" because
+  both are defensible for it and the choice changes what it measures; the other candidates' natural
+  denominators are listed but not fixed.
+- **Uncertainty treatment on the ordering sample.** §6's candidate designs are written for the
+  primary comparison, where the unit is a squad-week. An ordering-relevant squad-week is a different
+  and much rarer unit, and whether §6.2's resampling schemes transfer to it is not characterised
+  here for any of the five.
+- **The substitution mechanics.** §2.5 holds them, and §4.1 records that they are open here and
+  settled downstream.
+
+---
 
 ---
 
@@ -807,6 +1123,48 @@ replaces a wrong property statement with a correct one.
   rule cannot observe a player whose first gameweek is itself a blank, which is the one residual
   misclassification case. A.1 is not corrected here — it accurately reports what it counted — and the
   new measurement is `INVENTORY.md`'s to take.
+
+**The bench-order gap, closed on a pass prompted by `DESIGN.md` §0.10.** §4.1 formerly stated that
+**no** candidate scoring rule for bench order existed in this folder and flagged it as the largest
+genuine gap in the survey; §4 characterised candidate *denominators* only. `DESIGN.md` §0.10 recorded
+that it had constructed a rule rather than selected one, named two alternatives it wanted
+characterised — scoring an ordering by the points of the player it brought on, and rank correlation
+against the realised ordering — and routed the work here. **That statement is now superseded.** §4.3
+characterises five candidates, **O1** through **O5**, with tiers; §4.4 records an unresolved framing
+question; §4.2's B1 and B2 are unchanged, and the section numbering was held fixed so downstream
+citations still land.
+
+**What this pass did not do, deliberately.** It selected nothing. It did not rank the five, describe
+any of them as preferred, or treat the rule a downstream document already constructed as having an
+incumbent's standing — that rule is characterised as **O1**, on the same footing as the other four
+and with the properties that tell against it stated as plainly as the ones that tell for it. The
+handling follows §0.4's precedent for P1: a candidate an upstream or downstream document has already
+committed to is still characterised alongside its alternatives, because a survey that omitted it
+would not be a survey.
+
+**Three consequences of this pass that are not this document's to fix.**
+
+1. **Downstream citations of the superseded sentence.** `DESIGN.md` §0.10 and §4.1 both cite §4.1's
+   "no candidate exists" statement as the reason a construction was made instead of a selection, and
+   §4.4 there rests on the same ground. Those citations were accurate when written and are not now.
+   Whether §4.4's constructed rule survives contact with O2–O5 is a **selection**, so it is a
+   `DESIGN.md` pass; nothing here presumes its outcome. This document does not write to `DESIGN.md`
+   and has not.
+2. **A charter inversion, recorded at §4.1 and repeated here.** Characterising a bench-order rule
+   requires §2.5's substitution mechanics, which this document holds **open** and which have been
+   settled downstream. Either the mechanics are properly open here and §4.3's candidates rest on
+   unfixed premises, or they were never open and §2.5 overstates the choice. This is the same shape
+   as §0.4's unreconciled item, and it is flagged on the same terms rather than resolved.
+3. **Three `INVENTORY.md` gaps, listed at §4.3.2 rather than filled.** Tie frequency within a
+   squad-week's bench, whether a rank-correlation routine exists and with what tie convention, and
+   whether an as-of expected-points-conditional-on-playing forecast exists. Each is a repository fact
+   and `INVENTORY.md` is its owner; none is asserted here, and none changes a tier.
+
+**Nothing was added to Appendix A on this pass, and that is a decision rather than an omission.**
+Appendix A holds *measurements* — repository facts recorded only in this document because they are
+load-bearing for a candidate. This pass took no measurement. The quantities §4.3.2 names are
+**unmeasured**, which makes them `INVENTORY.md` gaps rather than Appendix A entries, and filing an
+unmeasured quantity there would misrepresent what the appendix contains.
 
 **What was not reconciled.** §0.4 records that `DECISION.md` §1 already commits to a cost model this
 document is no longer permitted to select. That is a live inconsistency between two documents in

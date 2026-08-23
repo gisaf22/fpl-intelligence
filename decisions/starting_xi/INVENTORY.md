@@ -158,6 +158,12 @@ The two states the 0-minute trigger distinguishes are separately present on the 
 
 No selection or optimisation routine exists over a squad, and no solver dependency is declared.
 
+**A later pass (2026-08-21) records that this is now dated.**
+`decisions/starting_xi/formations.py` has since been built to this section's enumeration, with
+`decisions/starting_xi/test_formations.py` beside it. The audit finding above describes the
+repository at the audit date and is left standing as that; §1's summary table is not re-audited
+here. What follows is unchanged except where marked.
+
 **The size of the search space, verified.** Under `squad_min_play`/`squad_max_play` there are exactly
 **8 legal formations** (1 GK; DEF 3–5, MID 2–5, FWD 1–3, summing to 11):
 
@@ -165,9 +171,29 @@ No selection or optimisation routine exists over a squad, and no solver dependen
 (1,3,4,3) (1,3,5,2) (1,4,3,3) (1,4,4,2) (1,4,5,1) (1,5,2,3) (1,5,3,2) (1,5,4,1)
 ```
 
-A best legal XI is therefore determined by sorting each position's realised points descending and
-taking the maximum over 8 prefix-sum combinations; the runner-up over the same enumeration is the
-second-best XI `METRIC.md` §3's closeness gap uses.
+A best legal XI is therefore determined by sorting each position's points descending and taking the
+maximum over 8 prefix-sum combinations.
+
+**The runner-up over that enumeration is the best total achievable by a *different* formation. It
+is not the second-best legal XI, and an earlier version of this section said it was.** The two come
+apart whenever the second-best XI shares the winning formation, which it does whenever demoting one
+starter for the next player at his position costs less than switching formation. The withdrawn
+claim was that the runner-up over the 8 combinations is the quantity `METRIC.md` §3.1's closeness
+gap names.
+
+**Measured, on a pinned squad.**
+`decisions/starting_xi/test_formations.py::test_the_runner_up_is_the_second_best_formation_not_the_second_best_xi`
+holds a 15 whose best legal XI totals **745** at formation (1,5,4,1). The runner-up over the 8
+combinations is **729**, at (1,5,3,2). The second-best legal XI totals **744** — the same (1,5,4,1)
+side with its one forward demoted. The test asserts all three, and asserts the strict ordering
+between them, so the two quantities cannot silently converge. Its reference for the 744 is
+`_brute_force` in the same file, which enumerates all 1,365 eleven-subsets of the 15 and filters
+them by the §2.2 bounds rather than by the routine under test.
+
+The relation holds in one direction by construction: the second-best legal XI is at least the best
+total achievable by a different formation, so the runner-up over the 8 combinations never exceeds
+it. **How much it understates it in general is not measured here** — no test in the repository
+covers more than the pinned case above, and this document does not assert beyond what is run.
 
 **A name collision.** `model/eval/decision/metrics.py:20` defines
 `regret(actual_best_points, picked_points)`. It is **not** the metric's regret: it is

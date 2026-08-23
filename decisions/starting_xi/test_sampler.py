@@ -22,6 +22,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from itertools import combinations, product
 
@@ -34,6 +35,7 @@ from decisions.starting_xi.sampler import (
     PILOT_PROPOSALS,
     AcceptanceRedLine,
     ProposalCapExceeded,
+    SquadSample,
     _universes,
     sample_squads,
     week_seed,
@@ -52,7 +54,13 @@ SEED_SWEEP_ENV = "FPL_SEED_SWEEP"
 # ---------------------------------------------------------------------------
 
 
-def _mart(counts: dict[str, int], gws: range, prices, teams, debuts) -> pd.DataFrame:
+def _mart(
+    counts: dict[str, int],
+    gws: range,
+    prices: Callable[[str, int], float],
+    teams: Callable[[str, int, int], int],
+    debuts: Callable[[str, int], int],
+) -> pd.DataFrame:
     rows = []
     player_id = 0
     for position, n in counts.items():
@@ -79,7 +87,7 @@ def _mart(counts: dict[str, int], gws: range, prices, teams, debuts) -> pd.DataF
 def mart() -> pd.DataFrame:
     """A season-shaped universe: 68 players over GW1-6, a third of them entering after GW2."""
     rng = np.random.default_rng(11)
-    price = {}
+    price: dict[tuple[str, int], float] = {}
 
     def prices(position: str, slot: int) -> float:
         return price.setdefault((position, slot), float(np.round(rng.uniform(4.0, 13.0), 1)))
@@ -93,7 +101,7 @@ def mart() -> pd.DataFrame:
     )
 
 
-def _joined(sample, mart: pd.DataFrame) -> pd.DataFrame:
+def _joined(sample: SquadSample, mart: pd.DataFrame) -> pd.DataFrame:
     """Join each drawn player to his row **at his own squad's gameweek**.
 
     This join is the test. Keying it on a fixed gameweek instead would silently pass three of
@@ -355,7 +363,7 @@ def _enumerate_feasible(mart: pd.DataFrame, gw: int) -> list[frozenset[int]]:
     return feasible
 
 
-def _observed_counts(sample, feasible: list[frozenset[int]]) -> np.ndarray:
+def _observed_counts(sample: SquadSample, feasible: list[frozenset[int]]) -> np.ndarray:
     """Realised frequency per member of F, aligned to `feasible`."""
     drawn = sample.squads.groupby("squad_id")["player_id"].apply(frozenset)
     assert set(drawn) <= set(feasible), "an infeasible squad was drawn"
@@ -479,7 +487,7 @@ def test_a_red_line_in_one_week_stops_the_whole_build() -> None:
     assert list(raised.value.pilots["gw"]) == [2, 3], "the pilot series is reported for every week"
 
 
-def test_the_per_gameweek_proposal_cap_names_the_week(mart: pd.DataFrame, monkeypatch) -> None:
+def test_the_per_gameweek_proposal_cap_names_the_week(mart: pd.DataFrame, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("decisions.starting_xi.sampler.PROPOSAL_CAP_PER_GW", PILOT_PROPOSALS)
     with pytest.raises(ProposalCapExceeded, match="gameweek 4"):
         sample_squads(mart, [4], 40, 0)

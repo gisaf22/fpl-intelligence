@@ -313,7 +313,7 @@ def _feasible(price_tenths: np.ndarray, team_id: np.ndarray) -> np.ndarray:
     within_budget = price_tenths.sum(axis=1) <= BUDGET_CAP_TENTHS
     ordered = np.sort(team_id, axis=1)
     within_club_limit = (ordered[:, MAX_PER_CLUB:] != ordered[:, :-MAX_PER_CLUB]).all(axis=1)
-    return within_budget & within_club_limit
+    return within_budget & within_club_limit  # type: ignore[no-any-return]
 
 
 def _pilot_week(rng: np.random.Generator, universe: _Universe) -> int:

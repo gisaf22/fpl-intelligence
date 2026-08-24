@@ -708,10 +708,14 @@ not resolve it.** It is a selection, and selections are `DESIGN.md`'s.
 - **A rule for combining a scoring rule with a denominator.** O2 is listed against "B1 or B2" because
   both are defensible for it and the choice changes what it measures; the other candidates' natural
   denominators are listed but not fixed.
-- **Uncertainty treatment on the ordering sample.** §6's candidate designs are written for the
-  primary comparison, where the unit is a squad-week. An ordering-relevant squad-week is a different
-  and much rarer unit, and whether §6.2's resampling schemes transfer to it is not characterised
-  here for any of the five.
+- **Uncertainty treatment on the ordering sample — no longer absent; see §6.4.** This bullet
+  formerly read that §6's candidate designs are written for a squad-week unit, that an
+  ordering-relevant squad-week is "a different and much rarer unit", and that whether §6.2's schemes
+  transfer to it is not characterised here for any of the five. **The premise was wrong**, and §6.4
+  supersedes it: §6.2's schemes are characterised over a *panel*, by which margin they resample, and
+  the ordering sample is the same panel under a different exclusion predicate rather than a different
+  unit. What genuinely does not transfer is a set of occupancy assumptions, which §6.4 names and
+  characterises candidates against. The withdrawn text is recorded in Provenance.
 - **The substitution mechanics.** §2.5 holds them, and §4.1 records that they are open here and
   settled downstream.
 
@@ -894,6 +898,167 @@ resample count can be fixed before the first run and not revised in response to 
 `evidence.yaml` + freeze-test pattern `INVENTORY.md` §2.9 records is the only mechanism in the
 repository that makes such a fixing enforceable rather than aspirational.
 
+### 6.4 Uncertainty on an exclusion-filtered subpanel — the bench-order sample
+
+*This subsection exists because §4.5 sent the question here. It was previously routed the other way:
+a downstream document asked §4 to characterise uncertainty for O1–O5, and §4.5 replied that §6's
+designs assume a squad-week unit and the ordering sample is a different one. **That reply rested on a
+false premise about §6.2 and is superseded.** The correction is made here rather than in §4 because
+the gap is §6's — it is about what §6.2's schemes are indexed by, which is not a property of any
+candidate scoring rule. §4.5 now points here.*
+
+#### 6.4.1 What §6.2's schemes are actually indexed by — a margin, not a unit
+
+**§6.2 does not assume a squad-week unit, and nothing in it ever did.** Read against §6.2's own
+table, the four schemes are distinguished by **which margin of a squad × gameweek panel is
+resampled**:
+
+| Scheme | What moves | What is held |
+|---|---|---|
+| **U1** | the **squad** margin | the gameweek set |
+| **U2** | the **gameweek** margin | the squads |
+| **U3** | rows, treated as independent | nothing — which is the objection |
+| **U4** | clusters | whatever the cluster is a cluster *of* |
+
+The squad-week is the panel's **row**, and it is the unit only of U3 — the scheme §6.2 characterises
+as manufacturing precision the data does not contain. So "§6 is written for a squad-week unit" was a
+description of the one scheme §6.2 rejects. U1 and U2 are indexed by margins, and §6.2's closing
+paragraph already says as much when it records that the schemes are "characterised against a
+population" whose dependence structure §7.1's construction decides.
+
+#### 6.4.2 The ordering sample is the same panel under a different exclusion predicate
+
+**B2 (§4.2) is a filter over the panel, not a redefinition of it.** The ordering-relevant count is
+"the subset where the orderings compared bring on different players" — a predicate evaluated on
+squad-weeks that were already drawn, at gameweeks that were already in scope. It removes rows. It
+does not change what a row is, what was randomised to produce one, or which margins the panel has.
+The same holds for B1.
+
+**This document already contains the precedent, and it is not a loose analogy.** §3.1's conditioning
+scheme excludes zero-gap squad-weeks from the *primary* sample, so the primary comparison is itself
+run on an exclusion-filtered subpanel rather than on the raw draw. §6.2's schemes were never
+characterised against an unfiltered panel; they were characterised against the panel that survives
+§3.1. B2 is a second predicate of the same kind, differing in **how much** it removes rather than in
+kind.
+
+**So U1 and U2 transfer to the ordering sample unchanged in form**, and no fifth scheme is required.
+A design selecting an uncertainty treatment for a bench-order figure selects from §6.2's existing
+table, on §6.1's existing paired/unpaired axis, against §6.3's existing bars. **Building a parallel
+framework for the ordering sample would be building a second vocabulary for one question** — the
+objection §4.3's O1 rests on in the scoring-rule case, applied here.
+
+#### 6.4.3 What does not transfer — three occupancy assumptions, stated as the conditions they are
+
+What separates the two samples is **occupancy**: how many rows survive the predicate, and how they
+distribute across the gameweek margin. §4.10-style reasoning is a downstream document's, but this
+survey's own §4.2 records B2 as "strictly smaller than B1, possibly much smaller" and records that
+the check has not been run. Three assumptions that are harmless on a dense panel become load-bearing
+on a sparse one, and each is a property of the *panel*, so each is §6's.
+
+- **A1 — U1's within-stratum draw needs more than one row per stratum to contribute any variance.**
+  Where the schemes are applied with the gameweek margin held fixed (§6.2's closing paragraph, the
+  U1 variant that resamples within a fixed gameweek margin), a gameweek contributing exactly one
+  surviving row is redrawn identically in every replicate. It carries its full weight into the mean
+  and **zero** variance into the interval. On a dense panel singleton strata are a curiosity; under
+  B2 they are an expected case, and the resulting interval is too narrow by an amount that grows
+  with how many there are.
+- **A2 — U2's block structure assumes a contiguous ordered series.** §6.2 records U2 as a
+  moving-block bootstrap over a per-gameweek series, and `INVENTORY.md` §2.9 records the available
+  implementation as a moving-block bootstrap of the mean of such a series, motivated by consecutive
+  gameweeks autocorrelating. A gameweek in which **no** row survives the predicate has no
+  per-gameweek mean, so the series is **punctured** rather than merely shorter, and adjacency in the
+  surviving series is no longer adjacency in the season. Blocking is the one scheme whose validity
+  turns on that distinction.
+- **A3 — the series must be long enough to contain a block.** A block bootstrap over a series
+  shorter than one block is not a weaker version of the scheme; it has no resampling structure left.
+  The binding count for a bench-order figure is the number of gameweeks carrying at least one
+  ordering-relevant row, which is bounded above by, and may be well below, the scoreable-gameweek
+  count a primary comparison runs on.
+
+**None of the three is a defect in U1 or U2.** They are preconditions those schemes always carried,
+which a dense panel satisfies silently and a sparse one may not. Stating them as conditions is what
+lets a design check them rather than discover them.
+
+#### 6.4.4 Candidate treatments where A1 fails — the squad margin
+
+Characterised, not selected (§0.1). Each holds the gameweek margin fixed, per U1.
+
+| | Candidate | What it does | Tier |
+|---|---|---|---|
+| **W1** | **Stratify unchanged, and report the occupancy profile beside the interval** | Applies U1's within-gameweek draw as-is. Singleton strata contribute no variance; the count of them is reported so a reader can see how much of the interval's narrowness is structural | Feasible now |
+| **W2** | **Pool adjacent gameweeks into strata until each meets a minimum occupancy** | Restores a within-stratum draw with something to draw from | Feasible now |
+| **W3** | **Drop the stratification; bootstrap surviving rows flat** | The sparse case makes this tempting, which is why it is listed | Feasible now |
+
+- **W1's property, stated as a property.** The understatement is not unknown — it is a computable
+  function of the occupancy profile, since a stratum of size 1 contributes exactly zero and a
+  stratum of size *n_g* contributes in proportion to its own within-stratum variance. So W1 produces
+  an interval whose defect is **measurable from the same output that produced it**. What it does not
+  do is correct it, and an interval reported without the profile beside it is not distinguishable
+  from a well-occupied one.
+- **W2's property, and the thing it gives up.** Stratifying by gameweek is justified in §6.2 and
+  §7.1 by the fact that squad-weeks sharing a gameweek share that week's realised fixtures and
+  results — the stratum is the shared realisation. A pooled stratum spanning several gameweeks is no
+  longer that object, so W2 buys variance contribution by weakening the conditioning that motivated
+  stratifying at all. It also introduces a pooling rule — how many weeks, chosen how — which is a
+  new parameter with the pre-registration obligation §6.3's closing paragraph describes.
+- **W3 is U3 under another name, and the sparse case does not rehabilitate it.** §6.2's objection to
+  U3 has two halves, and §7.1 records that the first — a squad recurring across gameweeks — is
+  present only under a held squad. The second, rows sharing a gameweek, is present under either
+  construction. Sparsity **weakens** that half without removing it: a gameweek contributing three
+  rows induces less shared-realisation dependence than one contributing three hundred, but the rows
+  are still not independent draws from a season-level distribution. W3 is recorded so that the
+  narrowing it produces is recognised as the U3 signature rather than mistaken for the sparse
+  panel's own behaviour.
+
+#### 6.4.5 Candidate treatments where A2 or A3 fails — the gameweek margin
+
+| | Candidate | What it does | Tier |
+|---|---|---|---|
+| **V1** | **Compact the series**, blocking over surviving gameweeks only | Blocks span non-adjacent real gameweeks; the adjacency the block exists to preserve is partly fictional, and the distortion grows with how punctured the series is | Feasible now |
+| **V2** | **Keep the season index**, carrying empty gameweeks as missing | Preserves true adjacency. Replicate means are taken over blocks with varying numbers of defined values, and an all-empty block contributes nothing — so the effective resample count is below the nominal one by an amount the occupancy profile determines | Feasible now |
+| **V3** | **Report U1 only**, and decline the gameweek interval for this figure | §6.2 already records that U1 and U2 answer different questions and "can be reported as two intervals rather than one", so reporting one is coherent rather than a truncation. What is forgone is sensitivity to which weeks the season contained | Feasible now |
+
+**V3 is not the null option it looks like.** Under A3 — a surviving series shorter than one block —
+V1 and V2 are both unavailable in substance, and V3 is what remains. Whether that state obtains is
+an occupancy question, not a design preference.
+
+#### 6.4.6 The precondition is unmeasured, and the measurement is cheap
+
+**Which of §6.4.4's and §6.4.5's candidates is even applicable is decided by two numbers**: the count
+of gameweeks carrying at least one surviving ordering-relevant row, and the distribution of surviving
+row counts across them. **Neither exists.** §4.2 owns this and records both halves: that the B2
+check has not been run and no number for it is asserted anywhere in this folder, and that
+`DECISION.md`'s Provenance section flags that if the ordering-relevant count is small the secondary
+decision may not be measurable on one season.
+
+**Both fall out of the first run rather than requiring one of their own** — they are counts over the
+same rows the bench-order figure is computed from. So the honest form of this section's contribution
+is a **conditional characterisation**: the schemes transfer, the preconditions are named, and which
+treatment is applicable is determined by an occupancy profile that the run producing the figure also
+produces. A design may therefore pre-register the treatment **as a rule over the profile** rather than
+as a fixed choice, which §6.3's closing paragraph permits — pre-registration constrains *when* a bar
+is fixed, not whether it may be conditional on a measured quantity.
+
+**This bears on §6.3's bars, and the connection is not decorative.** S2 is "the paired resampled
+interval on the difference excludes zero". Under A1 an interval can exclude zero *because* singleton
+strata suppressed its width, and under A2 because compaction treated distant weeks as adjacent. So
+on a sparse subpanel S2 is only as trustworthy as the occupancy profile behind it, and S1 and S3 —
+direction and materiality — carry no such dependence. A bar composed for a sparse subpanel may
+reasonably weight them differently from one composed for the primary comparison; §6.3 characterises
+the three conditions as separable and this is one of the cases that separability exists for.
+
+#### 6.4.7 What §6.4 does not decide
+
+- **The selection.** None of W1–W3 or V1–V3 is recommended, and §6.2's U1 and U2 remain unselected
+  for this figure as for the primary one. §8's table carries the obligation.
+- **The occupancy numbers themselves.** They are measurements, and this document does not assert
+  measurements it has not taken; §6.4.6 states where they come from.
+- **Whether a downstream estimator's contract admits a filtered subpanel at all.** A treatment
+  selected here is a *characterisation*; whether the module that computes it can be called on a
+  sample shorter than the primary comparison's is a property of that module's interface, which this
+  document neither owns nor can see. It is named as a consequence in Provenance so it is not
+  discovered from the build side.
+
 ---
 
 ## 7. Candidate populations to measure over
@@ -1055,11 +1220,20 @@ are **not settled anywhere**, and `DESIGN.md`'s own pass must select and justify
 | 14 | Paired or unpaired; which resampling schemes; the resample count | §6.1, §6.2 |
 | 15 | Which success conditions, and any threshold | §6.3 |
 | 16 | The population, and the choices inside it | §7 |
+| 17 | The uncertainty treatment on an exclusion-filtered subpanel, and the occupancy conditions it is selected against | §6.4, W1–W3 and V1–V3 |
 
 **Two of these were formerly blocked on something outside `DESIGN.md`; neither is now.** #12 depended
 on the `points_roll3` governance question, which §5.2 records as **measured** — the record answers it,
 and `DESIGN.md` §9.1 draws the verdict. #10 had no candidate to select from until §4.3 characterised
 O1–O5.
+
+**#17 is new, and it is not blocked — it is *conditional*.** §6.4 characterises the candidates and
+names the occupancy profile they are selected against; §6.4.6 records that the profile is unmeasured
+and falls out of the first run. So #17 may be selected as a rule over the profile before the run, or
+as a choice after it, and §6.4.6 states what pre-registration permits in each case.
+
+*Row #10 is stale as written: §4.3 characterises five candidates, O1–O5. It is left standing in this
+pass, which is §6's, and its correction belongs to the pass that owns §4.*
 
 ---
 
@@ -1194,6 +1368,42 @@ Appendix A holds *measurements* — repository facts recorded only in this docum
 load-bearing for a candidate. This pass took no measurement. The quantities §4.3.2 names are
 **unmeasured**, which makes them `INVENTORY.md` gaps rather than Appendix A entries, and filing an
 unmeasured quantity there would misrepresent what the appendix contains.
+
+**The §4.11 uncertainty question, resolved in §6 after being wrongly routed to §4.** A downstream
+document routed uncertainty-on-the-ordering-sample to the bench-order survey pass. §4.5 came back
+with: *"§6's candidate designs are written for the primary comparison, where the unit is a
+squad-week. An ordering-relevant squad-week is a different and much rarer unit, and whether §6.2's
+resampling schemes transfer to it is not characterised here for any of the five."* **That is
+withdrawn.** Its premise misreads §6.2: the schemes there are indexed by which **margin** of the
+squad × gameweek panel is resampled — U1 the squad margin, U2 the gameweek margin — and the
+squad-week is the *row*, which is the unit of U3 alone, the scheme §6.2 rejects. The ordering sample
+is the same panel under a different exclusion predicate (B2, §4.2), in the same way the primary
+sample is the panel under §3.1's zero-gap exclusion. §6.4 carries the resolution.
+
+**Why the original routing could not have worked, which is worth recording so it is not repeated.**
+The question was sent to §4 as though it were a property of the scoring rule, and it is not: every
+one of O1–O5 is a mean over surviving rows of the same panel, so none of them can differ from
+another in which margins exist to be resampled. A pass aimed at §4 would have had to answer it five
+times and would have got the same answer each time. The gap was in §6's own characterisation —
+specifically, that §6.2's preconditions on occupancy were left implicit because the primary panel
+satisfies them silently. §6.4.3 names them A1, A2 and A3.
+
+**What this pass added, and what it deliberately did not.** §6.4 characterises three candidate
+treatments on the squad margin (W1–W3) and three on the gameweek margin (V1–V3), with tiers, and
+records the connection to §6.3's S2. **It selected none of them**, and §8 carries the obligation as
+new row #17. It also took no measurement: §6.4.6 names the two occupancy quantities the selection
+turns on and records that neither exists, which makes them a gap rather than an Appendix A entry —
+the same reasoning the bench-order pass applied to §4.3.2's three.
+
+**One consequence for a downstream document, named rather than left to be found from the build
+side.** A treatment selected from §6.4 is computed by some estimator, and a filtered subpanel is
+**shorter than the primary comparison's sample by construction** — fewer surviving gameweeks, fewer
+rows within each. Any estimator whose interface is written against the primary comparison's
+dimensions, whether by asserting a series length or by assuming a stratum is well-occupied, will
+therefore reject or mis-handle a bench-order call **even where the treatment selected here is
+perfectly well defined**. Whether that is so is a property of that module's contract, which this
+document cannot see and does not own; it is flagged here so the selection is not made in the belief
+that the computation is already available.
 
 **What was not reconciled.** §0.4 records that `DECISION.md` §1 already commits to a cost model this
 document is no longer permitted to select. That is a live inconsistency between two documents in

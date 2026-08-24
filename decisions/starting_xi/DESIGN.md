@@ -2352,7 +2352,7 @@ rather than assumed.
 |---|---|---|---|---|
 | `formations.py` | A | a 15's realised points with each player's position; or a candidate XI | the best legal XI total and the runner-up (§0.8's C1), and a legality predicate over a candidate XI | everything project-internal except `domain/` — no `dal/`, no `model/`, no `research/`, no `serve/`, no sibling slice module |
 | `sampler.py` | A | mart across the gameweeks in scope (`dal/`); the **gameweek list**, explicitly; quota + cap (`domain/`); `n_squads` **per gameweek**; **master `seed` — required, no default** (§2.9) | frozen squad table (`gw`, `squad_id`, `player_id`), one `gw` per `squad_id` **plus a per-gameweek run record**: derived seed, \|U_g\|, pilot k_g and p̂_g, proposals drawn, accepted count, realised acceptance rate, that week's **squad digest**, four diversity diagnostics — and the run-level **mart pin** (§5.3) and **squad-set id** (§5.3.2) | `model/`, `research/`, `serve/`, `operational/`, `rankers.py` |
-| `harness.py` | A | squad table; **`rank_fn`**; **`bench_order` — required, no default**: a non-empty ordered sequence of named ordering **policies** (callables), element 0 primary (§5.4); mart (`dal/`); comparison window | per-squad-week records — chosen XI, realised total, best-legal-XI total, runner-up total, regret, substitution and uncovered-blank flags — **plus one replay record per candidate ordering** (§7.2's T5). Ordering-relevance is derived at assembly, not emitted (§7.2.1) | `model/`, `research/`, `serve/`, `rankers.py` — it receives a ranker, never imports one |
+| `harness.py` | A | squad table; **`rank_fn`**; **`bench_order` — required, no default**: a non-empty ordered sequence of named ordering **policies** (callables), element 0 primary (§5.4); mart (`dal/`); the ranker's own declared window (`RankerOutput.window`, §6.1, §6.3.1) | per-squad-week records — chosen XI, realised total, best-legal-XI total, runner-up total, regret, substitution and uncovered-blank flags — **plus one replay record per candidate ordering** (§7.2's T5). Ordering-relevance is derived at assembly, not emitted (§7.2.1) | `model/`, `research/`, `serve/`, `rankers.py` — it receives a ranker, never imports one |
 | `orderings.py` | A | §5.4's `Sequence[BenchPlayer]` — one squad-week's outfield bench, as the harness derives it | those three players' ids in priority order; and **`PRE_REGISTERED_ORDERINGS`**, §5.4.1's frozen `bench_order` value | `model/`, `research/`, `serve/`, `rankers.py`, `uncertainty.py` |
 | `rankers.py` | B | the mart | a `RankerOutput` per ranker — name, declared window, score panel (§6.1) | `harness.py`, `sampler.py`, `formations.py` — no Tier A module. `model/`, `dal/`, `domain/` are permitted |
 | `results.py` | A | the harness's per-squad-week and per-ordering records, the comparison results, and the manifest fields (§7.3) | nothing — writes T1–T5 to `results/` and returns the `run_id` | `model/`, `research/`, `serve/`, `rankers.py` |
@@ -2416,6 +2416,77 @@ which module is written when.
 A, and the Tier A modules reach each other only where a shape genuinely requires it — once, for the
 legality predicate. A contract that produced a long build chain would be one whose modules knew more
 about each other than their interfaces require.
+
+### 5.1.2 T3 assembly lives in `operational/starting_xi.py`, as named private functions behind a thin `run_study`
+
+**Nobody in §0–§10 states who assembles T3 in so many words, and the reason is that the answer is
+already given four times over in a different form.** §5.1.1 states it as data flow — `results.py` and
+`uncertainty.py` consume the harness's and sampler's outputs "**as data at the composition root**, not
+as an import"; §10.6 places the interval calls "after the harness, **at the composition root**"; §8.2
+says the same of the wiring — "**the composition root** imports `harness.py`, `rankers.py` and
+`uncertainty.py` and wires them together"; §7.2.1 calls the same work "computed once, **at assembly**"
+without naming a module because none of §5.1's seven rows is a candidate. Four sections locate the same
+work at the same place using different words for it. That is a converging description, not a silence to
+be filled by elimination alone — elimination (§5.1's table has no row that fits, and §7.8 states
+`results.py` "reads no data of its own", ruling it out by its own stated shape) is the confirming
+argument, not the only one.
+
+**What "T3 assembly" is, named so the size of the claim is explicit.** §0.13's floor determination
+(argmin of mean regret over the comparison's rankers, on the intersection); §10.7's differencing (pivot
+T2 on `ranker`, subtract, drop `is_zero_gap` rows, restrict to the window); the two `uncertainty.py`
+calls this produces inputs for (§10.6); §7.2.1's `ordering_relevant_count` derivation from T5; §0.15's
+S1/S2/S3 evaluation; §7.5's `status` table. Six pieces of logic, all of them fully specified by name and
+rule elsewhere in this document — none is a choice left to whoever assembles T3.
+
+**That last property is what decides the shape, against the one on-point precedent this document
+already has.** §5.4.1 declined to put the bench-ordering policies at the composition root, and its
+reason was specific: "**a policy is where a decision is taken, not where two modules are joined**" — a
+policy being a swappable strategy behind an interface, with a real prospect of siblings (`by_rank` today,
+`METRIC.md` characterising others tomorrow). T3 assembly has no such prospect. Every one of the six
+pieces above is pinned to a single rule by this document already; there is no interface to satisfy, no
+second implementation anyone is expected to write, and nothing to keep swappable. §5.4.1's objection —
+that housing a decision where two modules are joined hides the decision — does not transfer to logic
+that does not decide anything, only executes what §0 and §10 already decided. Where the precedent's
+underlying test ("is this a decision, or is this two modules being joined") is applied to T3 assembly
+rather than merely to its size, it answers the other way from the ordering-policy case.
+
+**Selected: the logic lives in `operational/starting_xi.py`, as a set of named private functions —
+`_determine_floor`, `_difference_and_restrict`, `_derive_ordering_relevant_count`, `_evaluate_bar`, one
+per §7.5 `status` case — called from a thin public `run_study(...)`.** Not inlined into one function,
+and not a new §5.1 Tier module.
+
+- **Against inlining into one large function.** The six pieces are independently the kind of logic a
+  test wants to hold fixed while everything around it changes — §0.13's floor rule, in particular, is
+  exactly the kind of "re-determined per comparison" logic a synthetic three-ranker T2 fixture can pin
+  without touching the harness at all. Named private functions taking and returning frames make that
+  possible without changing the module's import closure or its position outside every tier.
+- **Against a new §5.1 Tier module.** Three reasons, not one. First, the precedent above: nothing here
+  is a policy, so §5.4.1's reason for isolating one in its own module does not apply. Second, tier
+  mechanics: the assembly has to call `uncertainty.py`'s two functions (§10.6, Tier B), so a dedicated
+  module doing this work would itself have to be Tier B — a real module whose only reason to exist is to
+  sit between two things the composition root already imports and wires together directly today (§8.2),
+  which is the join-point §3.8 already describes, given a name. Third, cost without benefit: §3.9
+  records that granting a permission nothing uses is not free, and the same argument applies to a module
+  boundary — nothing else in this repository is a second caller of T3-shaped assembly, so there is no
+  reuse case, only the cost of a `.importlinter` entry and a `__init__.py` for a module with one caller.
+- **Testability is not the cost this incurs.** The functions take and return frames — `_determine_floor`
+  needs no `dal/` or `model/` import, only the T2 rows for the rankers in one comparison — so a test
+  imports `operational.starting_xi` directly and calls the private function with a constructed frame,
+  exactly as it would if the function lived in a Tier module. Python does not gate testability on a
+  package boundary, and `operational/` being outside every import contract (`INVENTORY.md` §2.11, §3.8)
+  does not change what a test can import.
+
+**This makes `operational/starting_xi.py` a larger module than a wiring-only reading of §3.8 would
+suggest, and that reading is corrected rather than assumed.** §3.8 states one constraint on the root —
+"only the composition root, and tests" may import the slice — and that direction is what protects
+`.importlinter`'s layering (§3.8's own stated reason). §5.4.1 additionally *characterises* the root as
+thin wiring, in the sentence quoted above, but that characterisation is made while arguing a narrower
+point (where a policy belongs), not stated anywhere as a general limit on what the root may compute. No
+section anywhere caps the root's size or complexity, and none needs to: §5.1's table and §3's contract
+already say what may not happen there (no module-worthy policy, no import a tier forbids elsewhere), and
+T3 assembly does neither. `recommend.py` and `backtest.py` being thin is an `INVENTORY.md`-side fact
+about those two files, not a rule this document states about every composition root — asserting it as
+one would be exactly the first-hand repository claim §11 exists to flag rather than make.
 
 ### 5.2 No module's shape needs an import §3 forbids
 
@@ -2906,6 +2977,61 @@ what the two existing implementations return below that length is a repository f
 not carry** — §11 flags it as an `INVENTORY.md` gap. The design does not depend on the answer: the
 comparison is reported underpowered either way, and the only thing at stake is whether the harness must
 guard the call or may rely on the estimator's own behaviour.
+
+### 6.3.1 `harness.run` is called once per ranker, at that ranker's own declared window — never per comparison
+
+**§5.1's table said "comparison window" in `harness.py`'s `Takes` column, and that wording is
+superseded here as imprecise.** Read literally it suggests the value this section's intersection
+computes — which would force one `harness.run` call per comparison, and a comparison over three floor
+rankers has three pairs, each potentially compared again against a future candidate. `rank_fn` is a
+single callable in that same row, not a collection, so a `harness.run` call was already scoped to one
+ranker by the signature; a window argument named for a multi-ranker comparison never matched the
+single-ranker call it sits beside.
+
+**What the harness actually needs the window for.** §6.5's unrankable rule is what makes a ranker's own
+declared window bind — F1's `p_play` produces no score panel before GW4 at all (`WARMUP_GW = 3`,
+§0.7), not merely a degraded one, so a `harness.run` call for F1 has nothing to replay before its
+own declared start regardless of what any comparison later intersects it against. §6.1 has `rankers.py`
+return the declared window on `RankerOutput` itself. **Selected: the composition root passes that same
+ranker's own `RankerOutput.window` into the `harness.run` call replaying it** — the widest span for
+which that ranker can produce anything, and no narrower. §5.1's row is corrected to read "**the ranker's
+own declared window (`RankerOutput.window`, §6.1)**" in place of "comparison window".
+
+**Whether "replay wide, restrict at assembly" is actually correct, checked rather than assumed against
+what the window argument does inside the run.** §10.7 already specifies the answer for the differencing
+step in these exact words: "**the differencing is the caller's step, not the artefact's**: pivot T2 on
+`ranker`, subtract, drop zero-gap rows, **restrict to the window**" — stated as a post-hoc operation
+over T2's rows, not as something `harness.run` must be re-invoked to produce. Checking whether the
+window argument does anything *inside* the run that a post-hoc restriction could not reconstruct: it
+does not. §7.2 fixes T2's grain at `(run, squad, gw, ranker)`, one row per squad-week, computed from
+that squad-week's mart rows and that ranker's own score panel alone — nothing in §4.3's replay, §6.7's
+XI selection, or §0.8's C1 conditions on any *other* squad-week or any other ranker, so a row replayed
+at GW10 is identical whether the call that produced it was windowed to GW4–38 or to GW4–10. The window
+argument therefore does exactly one thing inside the run — bounds which squad-weeks get replayed at
+all — and nothing it does is unrecoverable from a wider run's output by filtering rows. A per-comparison
+intersection is always a subset of the ranker's own declared window (§6.3's formula), so every row a
+narrower run would have produced is already present in the wider one.
+
+**So a comparison's window is never an argument to `harness.run`.** It is computed once, at assembly,
+by intersecting the declared windows already sitting on T2's rows for the rankers in that comparison
+(exactly §6.3's formula, applied post-hoc rather than pre-run), narrowed by §0.8's exclusions, and
+written to T3's `window_first_gw`/`window_last_gw` (§7.2) — the same restriction §5.1.2 lists as one of
+the six pieces of T3 assembly and the same operation §10.7 already specifies for building
+`uncertainty.py`'s inputs. **This is now the second instance of a pattern §5.4 established once
+already**: §5.4's `bench_order` sequence replaces "one policy per `harness.run` call, then a post-hoc
+join" specifically because a split into multiple runs "would again rest on reproducibility rather than
+construction" and would refit the expensive part of the harness once per split for nothing. The same
+argument applies here with more force, since re-running per comparison *pair* would refit `p_play` once
+per pair rather than once per ranker, and every pair's replay is a strict subset of rows the per-ranker
+run already computed.
+
+**What this changes.** §5.1's `harness.py` row is corrected as stated above; nothing else in §5 or §6
+moves. `run_study` (§5.1.2) calls `harness.run` once per ranker in the pre-registered set (§0.12, §5.4.1),
+accumulates the results into T1/T2/T5, and computes every comparison's window, floor and statistics from
+those tables afterward. No comparison-window parameter is added to `harness.run`'s signature, and none
+is owed to `PRE_REGISTRATION.yaml` beyond what §10.8 already pins — the per-comparison window is a T3
+output, not a run input, and was already specified as such at §7.2's `window_first_gw`/`window_last_gw`
+columns before this section named who computes it or when.
 
 ### 6.4 F3's `min_periods` — 1, via `add_lagged_rolls`, over a harness-built population
 
@@ -4914,3 +5040,73 @@ on this document's behalf, which is the failure §5.4.1's entry records for the 
    for the two properties §7.3 names. **No metric, no threshold, no window, no population and no module
    boundary moves**, and `run_id`'s identity set is unchanged — `squad_set_id` was already one of its
    members and now has a value rather than a placeholder.
+
+**T3 assembly had a job and no producer — §5.1.2's pass, and why it did not repeat §5.4.1's
+outcome.** §7.8 states `results.py` "serialises frames it is handed and reads no data of its own"; §5.1's
+table has no row whose `Takes` column is T2, T5 and the sampler's mart pin together. Something has to
+compute §0.13's floor, §10.7's differencing, §7.2.1's `ordering_relevant_count` and §0.15's S1/S2/S3
+before `results.py` can be called at all, since `results.py`'s own `Takes` column requires "the
+comparison results" as an already-built input. This is the same shape of gap §5.4.1 and §5.3.2 each
+found — a downstream section presupposing an artefact no section names a producer for — and it was
+checked against both precedents rather than resolved by pattern-matching either one.
+
+1. **The gap was already answered, four times, in language rather than in a table row.** Unlike the
+   bench-ordering set and the squad-set id, no repository fact and no `METRIC.md`/`INVENTORY.md` read
+   was needed to close this one: §5.1.1, §7.2.1, §8.2 and §10.6 each independently locate this work "at
+   the composition root" or "at assembly" while explaining something else. §5.1.2 treats that
+   convergence as the answer and elimination (no §5.1 row fits, §7.8 rules `results.py` out by its own
+   stated shape) as the confirming argument rather than the whole of it.
+2. **The precedent that mattered was §5.4.1's, and it was checked rather than assumed to transfer.**
+   §5.4.1 declined the composition root for the bench-ordering policies on a stated test — "a policy is
+   where a decision is taken, not where two modules are joined" — and the pass verified this test
+   against T3 assembly's actual content (§0.13, §10.7, §7.2.1, §0.15, §7.5) rather than against its
+   size. None of the six pieces is a swappable strategy with a real prospect of a second implementation;
+   every one is a single rule this document already pins. The precedent's test, applied honestly, answers
+   the opposite way for T3 assembly than it did for the bench ordering — which is why §5.1.2 selects the
+   composition root and does not open a new Tier module.
+3. **A wording correction the gap check surfaced.** §5.1's `harness.py` row read "comparison window",
+   which named a T3-level concept in a row scoped to one ranker (`rank_fn` is singular there). Checking
+   who computes T3 required checking what a "comparison window" actually is and where it is computed,
+   which surfaced that the table's own wording didn't match the single-ranker call beside it. Corrected
+   at §5.1 and closed at §6.3.1 — see the next entry, opened by the same pass.
+4. **What §5.1.2 did not change.** No metric, no threshold, no population, no module boundary, no
+   import contract. `results.py`'s `Takes` column and `Manifest` requirement (§7.3, §7.8) are unmodified
+   — they already required "the comparison results" as an input; §5.1.2 says who builds that input and
+   where, not what it contains. `uncertainty.py`'s signature (§5.1, §10.6) is unmodified — it is called
+   *by* the composition root, exactly as §8.2 and §10.6 already stated, and continues to take arrays
+   rather than frames.
+
+**`harness.run`'s window argument was named for the wrong grain — §6.3.1's pass, opened while closing
+the entry above.** §5.1's table gave `harness.py` a "comparison window" input, but §6.3 computes that
+window as an intersection **over the rankers in one comparison**, while `harness.py`'s own row takes a
+single `rank_fn`. The mismatch was not caught earlier because nothing before this pass asked what value
+a composition root would actually have on hand to pass into that argument at the point it calls
+`harness.run` for one ranker — the comparison the ranker will eventually appear in is not yet chosen at
+that point, and may be several comparisons.
+
+1. **Checked against what the argument does inside the run, not assumed from §10.7's wording alone.**
+   §10.7 already states that differencing — including "restrict to the window" — is "the caller's step,
+   not the artefact's", which is suggestive but is a statement about `uncertainty.py`'s inputs, not
+   about `harness.run`'s own window argument. §6.3.1 checks the further claim directly: whether anything
+   `harness.run` does *during* a replay depends on which other rankers or gameweeks are also in scope.
+   It does not — §7.2's T2 grain is one row per `(squad, gw, ranker)`, computed from that squad-week's
+   own mart rows and that ranker's own score panel, with no cross-row or cross-ranker term anywhere in
+   §4.3's replay, §6.7's selection or §0.8's C1. A row is identical whichever window produced it, so a
+   wider run's rows are a strict superset of a narrower one's, and restriction is safe to defer.
+2. **Selected: the ranker's own declared window (`RankerOutput.window`, §6.1).** One `harness.run` call
+   per ranker, at the widest span that ranker can produce anything over — narrower than the study scope
+   where §0.7's declared windows already bind (§6.5's unrankable rule does not merely degrade a ranker
+   outside its own window, §6.5 records that F1 has no score panel there at all), and never narrowed to
+   a comparison's intersection, which is computed afterward from already-replayed rows.
+3. **The precedent this rests on was already in the document, for a different question.** §5.4's
+   argument against one-policy-per-`harness.run`-call plus a post-hoc join — "would again rest on
+   reproducibility rather than construction" and would refit `p_play` once per split for nothing — is
+   the same argument against one-`harness.run`-call-per-comparison-pair, and applies with more force
+   here: refitting once per pair rather than once per ranker, over rows that are already a subset of a
+   per-ranker run's output. §6.3.1 names this as the same pattern rather than reasoning it afresh.
+4. **What §6.3.1 did not change.** No metric, no threshold, no population. §6.3's intersection formula
+   is unchanged — it now runs post-hoc over T2 rather than as a pre-run argument, which is a change in
+   *when* it is computed, not in what it computes or what it is stored as (§7.2's `window_first_gw`/
+   `window_last_gw` were already comparison-level T3 columns, not run inputs, before this section said
+   so explicitly). `PRE_REGISTRATION.yaml`'s schedule (§7.4, §10.8) gains no new parameter: the
+   per-comparison window was always a T3 output.

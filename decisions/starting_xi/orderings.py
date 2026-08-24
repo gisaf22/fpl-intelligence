@@ -77,6 +77,61 @@ def order_by_rank(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
     return rank_squad(bench)
 
 
+BY_WEIGHTED_SCORE: Final[str] = "by_weighted_score"
+"""A second naive floor-candidate for the bench-order comparison set (§5.4.1's open item).
+
+Not pre-registered: §5.4.1 records that closing "which ordering policies form the comparison set"
+takes a `METRIC.md` pass, which has not run. Defined and tested here so that pass has a second
+naive candidate to characterise against `by_rank` -- `by_rank` cannot be the sole naive baseline
+for the same reason F1 alone could not stand in for §5.1's three naive rankers.
+"""
+
+_POSITION_WEIGHT: Final[dict[str, float]] = {"DEF": 1.00, "MID": 1.05, "FWD": 1.10}
+"""A fixed multiplier on `score`, read off `position` alone -- no `model/` access, no new input.
+
+**The rule.** Within the scored tier, sort on `score * _POSITION_WEIGHT[position]` descending
+instead of on `score` alone; the no-fixture and unrankable tiers are unchanged from `order_by_rank`
+because §6.7 fixes that demotion and a naive alternative has no basis to relitigate it. **Why these
+three numbers and this direction:** FPL's biggest hauls cluster in the most advanced positions
+(one attacking return is worth more to a FWD's week than a defensive one is to a DEF's), so a
+bench-caller who trusts nothing but position tendency nudges an advanced player above an
+equal-or-slightly-higher-scored deeper one rather than reading `score` as position-neutral.
+"""
+
+
+def order_by_weighted_score(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
+    """Position-weighted score, best first -- the module's second naive ordering.
+
+    Args:
+        bench: the outfield bench -- the same three records `order_by_rank` sees, and nothing more
+            (`score`, `position`, `no_fixture`, `player_id`).
+
+    Returns:
+        Their `player_id`s in priority order. Strict: ties inside the scored tier -- on
+        `score * _POSITION_WEIGHT[position]`, not on `score` -- break on ascending `player_id`,
+        the same tie-break §6.8 fixes for `order_by_rank`, so the two policies differ only on the
+        weighting and never on how a remaining tie resolves.
+
+    A function of the records alone, by the same sort-is-a-total-order argument `order_by_rank`'s
+    docstring makes: this key is total on the records handed to it, so restricting or permuting the
+    input cannot change the answer. `test_orderings.py` sweeps that claim exhaustively, and
+    separately proves this policy is not a relabelled `order_by_rank` -- it produces a different
+    order on a bench constructed to expose the weighting, not merely runs without error.
+    """
+    no_fixture = [player for player in bench if player.no_fixture]
+    unrankable = [player for player in bench if not player.no_fixture and player.score is None]
+    scored = [player for player in bench if not player.no_fixture and player.score is not None]
+
+    scored_ordered = sorted(
+        scored,
+        key=lambda p: (-(p.score * _POSITION_WEIGHT[p.position]), p.player_id),  # type: ignore[operator]
+    )
+    unrankable_ordered = sorted(unrankable, key=lambda p: p.player_id)
+    no_fixture_ordered = sorted(no_fixture, key=lambda p: p.player_id)
+
+    return tuple(player.player_id for player in (*scored_ordered, *unrankable_ordered, *no_fixture_ordered))
+
+
 # ---------------------------------------------------------------------------
 # The pre-registered set (§5.4.1, §7.4)
 # ---------------------------------------------------------------------------

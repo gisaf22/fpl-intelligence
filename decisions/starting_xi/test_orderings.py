@@ -30,7 +30,13 @@ import pandas as pd
 import pytest
 
 from decisions.starting_xi.harness import BenchPlayer, registration_gw, run
-from decisions.starting_xi.orderings import BY_RANK, PRE_REGISTERED_ORDERINGS, order_by_rank
+from decisions.starting_xi.orderings import (
+    BY_RANK,
+    BY_WEIGHTED_SCORE,
+    PRE_REGISTERED_ORDERINGS,
+    order_by_rank,
+    order_by_weighted_score,
+)
 from domain.fpl_squad import POSITIONS, SQUAD_SELECT
 
 pytestmark = pytest.mark.unit
@@ -174,6 +180,83 @@ def test_equal_scores_break_on_ascending_player_id_and_not_on_arrival_order() ->
     ]
     assert order_by_rank(bench) == (3, 9)
     assert _identity(bench) == (9, 3), "the fixture no longer separates the two rules"
+
+
+# ---------------------------------------------------------------------------
+# The second naive candidate (§5.4.1's open item -- not pre-registered)
+# ---------------------------------------------------------------------------
+
+
+def test_weighted_score_produces_a_different_order_than_by_rank_where_the_weighting_bites() -> None:
+    """The falsification probe: a bench built so the two policies must disagree if the weighting
+    is live, mirroring the one that caught the earlier vacuous `by_rank` equivalence test.
+
+    A FWD scores fractionally below a DEF -- close enough that `_POSITION_WEIGHT`'s 1.10 flips the
+    ordering and no other rule would. If this ever passes with `order_by_weighted_score` agreeing
+    with `order_by_rank`, the weighting stopped doing anything and the "second candidate" claim is
+    false.
+    """
+    bench = [
+        BenchPlayer(player_id=1, position="DEF", score=4.05, no_fixture=False),
+        BenchPlayer(player_id=2, position="FWD", score=4.00, no_fixture=False),
+    ]
+    assert order_by_rank(bench) == (1, 2), "fixture assumption broken: by_rank should rank the DEF first on raw score"
+    assert order_by_weighted_score(bench) == (2, 1), "the FWD weight never overtook the DEF's higher raw score"
+
+
+def test_weighted_score_still_demotes_no_fixture_and_unrankable_players() -> None:
+    """§6.7's tier order is not something a naive alternative relitigates -- only the ranking
+    inside the scored tier changes. A high-weighted FWD with no fixture still sinks below a
+    lower-scored, in-tier DEF."""
+    bench = [
+        BenchPlayer(player_id=1, position="FWD", score=10.0, no_fixture=True),
+        BenchPlayer(player_id=2, position="DEF", score=1.0, no_fixture=False),
+        BenchPlayer(player_id=3, position="MID", score=None, no_fixture=False),
+    ]
+    assert order_by_weighted_score(bench) == (2, 3, 1)
+
+
+def test_weighted_score_is_a_function_of_the_records_and_not_of_their_order() -> None:
+    """Same exhaustive-permutation sweep as `order_by_rank`'s: the weighted key is total on the
+    records, so every one of the 3! arrangements of one bench must give one answer."""
+    bench = (
+        BenchPlayer(player_id=7, position="MID", score=2.0, no_fixture=False),
+        BenchPlayer(player_id=3, position="DEF", score=None, no_fixture=False),
+        BenchPlayer(player_id=9, position="FWD", score=5.0, no_fixture=True),
+    )
+    answers = {order_by_weighted_score(list(candidate)) for candidate in permutations(bench)}
+    assert answers == {(7, 3, 9)}, answers
+
+
+def test_weighted_score_ties_break_on_ascending_player_id() -> None:
+    """Two DEFs sharing a weight and a score must break the same way `order_by_rank` breaks ties:
+    ascending `player_id`, never arrival order -- the two policies differ only on the weighting."""
+    bench = [
+        BenchPlayer(player_id=9, position="DEF", score=4.0, no_fixture=False),
+        BenchPlayer(player_id=3, position="DEF", score=4.0, no_fixture=False),
+    ]
+    assert order_by_weighted_score(bench) == (3, 9)
+
+
+def test_weighted_score_is_consumed_by_the_harness_and_is_not_vacuously_equal_to_identity() -> None:
+    """Mirrors `order_by_rank`'s harness-integration and non-vacuousness tests: run it as a live
+    policy through `harness.run`, confirm it is actually called on real benches, and confirm at
+    least one of those benches arrives in an order the weighting changes -- otherwise this test
+    would pass for a policy that is secretly `order_by_rank` in disguise, or the argument untouched.
+    """
+    mart, squads, ranker = _fixture()
+    seen: list[tuple[BenchPlayer, ...]] = []
+
+    def spy(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
+        seen.append(tuple(bench))
+        return tuple(record.player_id for record in bench)
+
+    result = run(squads, lambda _: ranker, [(BY_WEIGHTED_SCORE, spy)], mart, (2, 4))
+
+    assert seen, "the harness never called the policy; there is nothing to compare"
+    assert result.squad_weeks["substitution_fired"].sum() > 0, "no substitution fired; the ordering was never live"
+    differs_from_rank = [bench for bench in seen if order_by_weighted_score(bench) != order_by_rank(bench)]
+    assert differs_from_rank, "every live bench ordered identically under both policies; the weighting is untested"
 
 
 # ---------------------------------------------------------------------------

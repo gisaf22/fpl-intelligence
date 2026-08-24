@@ -37,6 +37,7 @@ from decisions.starting_xi.sampler import (
     ProposalCapExceeded,
     SquadSample,
     _universes,
+    _week_digest,
     sample_squads,
     week_seed,
 )
@@ -211,6 +212,7 @@ def test_same_seed_reproduces_the_squad_table_exactly(mart: pd.DataFrame) -> Non
     pd.testing.assert_frame_equal(first.squads, second.squads)
     pd.testing.assert_frame_equal(first.run_record, second.run_record)
     assert first.mart_pin == second.mart_pin
+    assert first.squad_set_id == second.squad_set_id
 
 
 def test_building_a_subset_of_gameweeks_reproduces_those_gameweeks_exactly(mart: pd.DataFrame) -> None:
@@ -538,6 +540,72 @@ def test_the_mart_pin_covers_every_gameweek_in_scope(mart: pd.DataFrame) -> None
     out_of_scope = sample_squads(untouched, [2, 4, 6], 40, 0).mart_pin
     assert out_of_scope.slice_sha256 == baseline.slice_sha256
     assert out_of_scope.mart_rows == baseline.mart_rows
+
+
+# ---------------------------------------------------------------------------
+# §5.3.2 — the squad-set id
+# ---------------------------------------------------------------------------
+
+
+def test_the_squad_set_id_is_a_content_hash_of_the_drawn_squads(mart: pd.DataFrame) -> None:
+    """§5.3.2 selects a function of the *squads* over an encoding of the inputs that drew them,
+    because §2.8 establishes the seed does not determine the squads — so only a content hash can
+    carry the assertion §7.3 attaches to the field.
+
+    The last assertion is the check a reader of two results directories actually performs: the
+    per-week digests are recomputable from the returned squad table alone.
+    """
+    baseline = sample_squads(mart, [2, 4, 6], 40, 0)
+    assert baseline.squad_set_id == sample_squads(mart, [2, 4, 6], 40, 0).squad_set_id
+    assert len(baseline.squad_set_id) == 64
+
+    other = sample_squads(mart, [2, 4, 6], 40, 1)
+    assert not baseline.squads.equals(other.squads)
+    assert other.squad_set_id != baseline.squad_set_id
+
+    recomputed = {int(gw): _week_digest(week) for gw, week in baseline.squads.groupby("gw")}
+    recorded = {
+        int(gw): digest
+        for gw, digest in zip(baseline.run_record["gw"], baseline.run_record["squad_sha256"], strict=True)
+    }
+    assert recomputed == recorded
+
+
+def test_a_partial_rebuild_is_checkable_week_by_week(mart: pd.DataFrame) -> None:
+    """§7.3's second clause, and the reason the digest is per gameweek rather than one flat hash
+    over the set: rebuilding two weeks reproduces exactly those weeks' digests, and checking them
+    needs neither the other weeks nor a re-run of them. A flat whole-set digest would satisfy the
+    row's first clause and fail this one."""
+    whole = sample_squads(mart, [2, 3, 4, 5, 6], 40, 0).run_record.set_index("gw")["squad_sha256"]
+    part = sample_squads(mart, [5, 3], 40, 0).run_record.set_index("gw")["squad_sha256"]
+    assert part.loc[3] == whole.loc[3]
+    assert part.loc[5] == whole.loc[5]
+
+
+def test_the_run_level_id_covers_the_whole_set_and_not_one_week(mart: pd.DataFrame) -> None:
+    """The counterpart to the test above, and the contrast is the point: matching per-week digests
+    do not make two runs the same run. §7.3 has the id cover all 37 weeks' squads, so a build over a
+    different gameweek set carries a different id even where every shared week reproduces
+    exactly."""
+    whole = sample_squads(mart, [2, 3, 4, 5, 6], 40, 0)
+    part = sample_squads(mart, [5, 3], 40, 0)
+    assert part.squad_set_id != whole.squad_set_id
+
+
+def test_the_week_digest_reads_the_key_and_not_the_emitted_row_order(mart: pd.DataFrame) -> None:
+    """§5.3.2 hashes the `(squad_id, player_id)` pairs, not the row order: §2.9 makes the key the
+    identity of the set, so a digest that moved when players were re-ordered *within* a squad would
+    raise a false alarm on a change that altered no squad. `squad_id` is the different question with
+    the opposite answer — T1, T2 and T5 all key on it (§7.2), so the same squads under permuted ids
+    are a different artefact."""
+    week = sample_squads(mart, [4], 40, 0).squads
+    shuffled = week.sample(frac=1.0, random_state=7).reset_index(drop=True)
+    assert _week_digest(shuffled) == _week_digest(week)
+
+    permuted = week.copy()
+    swap = {week["squad_id"].iloc[0]: week["squad_id"].iloc[-1], week["squad_id"].iloc[-1]: week["squad_id"].iloc[0]}
+    permuted["squad_id"] = [swap.get(squad_id, squad_id) for squad_id in permuted["squad_id"]]
+    assert _week_digest(permuted) != _week_digest(week)
 
 
 # ---------------------------------------------------------------------------

@@ -35,6 +35,11 @@ The construction, and where each part is decided:
   stream per gameweek derived from the master seed *and* the gameweek number. Building one
   gameweek in isolation reproduces exactly the squads that building all of them produces, and
   rebuilding GW7 does not perturb GW8.
+* **Squad-set identity** (§5.3.2). The returned set carries a content hash of itself — one digest
+  per gameweek in the run record, folded into a run-level `squad_set_id`. It is what §7.3's
+  manifest lets a later run assert a replay against, and it catches what neither the mart pin nor
+  the seed can: a change to `PROPOSAL_BATCH` or to the per-week derivation moves every squad in
+  every week while every recorded *input* stays identical.
 
 Import closure: `dal/`, `domain/`, `numpy`, `pandas` (§2.9). Tier A — never `model/`,
 `research/`, `serve/`, `operational/` or `rankers.py` (§3.5).
@@ -134,19 +139,25 @@ class MartPin:
 
 @dataclass(frozen=True)
 class SquadSample:
-    """The sampler's return value (§2.9): squads, the per-gameweek run record, and the pin.
+    """The sampler's return value (§2.9): squads, the run record, the pin and the set's own id.
 
     `squads` is the frozen squad table at (`gw`, `squad_id`, `player_id`) — 15 rows per squad,
     `squad_id` unique across the set and belonging to exactly one `gw`. Everything else about a
     drawn player (position, price, club) is a join back onto the pinned mart rather than a
     denormalised column, which is what keeps the key the thing under test in §2.8.
 
-    `run_record` is one row per build gameweek. `mart_pin` is run-level and carried once.
+    `run_record` is one row per build gameweek, and carries that week's `squad_sha256`.
+
+    `mart_pin` and `squad_set_id` are both run-level and carried once, and they identify opposite
+    ends of the same contract (§5.3.2): the pin says what the set is reproducible *against*, the
+    id says what was *produced*. §7.3 makes both identity fields of a run, and neither substitutes
+    for the other — when two ids differ, only the pin says whether the mart moved.
     """
 
     squads: pd.DataFrame
     run_record: pd.DataFrame
     mart_pin: MartPin
+    squad_set_id: str
 
 
 @dataclass(frozen=True)
@@ -440,6 +451,42 @@ def _mart_pin(mart: pd.DataFrame, gameweeks: Sequence[int]) -> MartPin:
     )
 
 
+def _week_digest(week: pd.DataFrame) -> str:
+    """One gameweek's squads, as a content digest (§5.3.2).
+
+    Taken over the `(squad_id, player_id)` pairs in ascending order, **not** over the emitted row
+    order. §2.9 keys the squad table on those two plus `gw` and states that everything else about a
+    drawn player is a join, so the identity of the set *is* the key; a digest sensitive to the order
+    players happen to appear in within a squad would move on a change that altered no squad — the
+    same false alarm §5.3 rejects when it restricts the mart pin to the columns actually read.
+
+    `squad_id` is hashed, which is a different question with the opposite answer: T1, T2 and T5 all
+    key on it (§7.2), so the same squads under permuted ids are a different artefact.
+    """
+    canonical = week.loc[:, ["squad_id", "player_id"]].sort_values(["squad_id", "player_id"])
+    return hashlib.sha256(canonical.to_csv(index=False).encode("utf-8")).hexdigest()
+
+
+def _squad_set_id(run_record: pd.DataFrame) -> str:
+    """Fold the run record's per-week digests into the run-level squad-set id (§5.3.2, §7.3).
+
+    A fold rather than one pass over the whole squad table, because §7.3 asks the id to do two
+    things and only the second constrains its shape. A flat digest covers all 37 weeks and cannot be
+    checked week by week: a rebuild of GW7 alone yields nothing from which one can be recovered, so
+    the check would mean rebuilding the other 36 — the re-run the id exists to avoid. Composing it
+    out of the per-week digests makes that check the recomputation of a single digest, which is what
+    §5.3.1's order-independent derivation is worth in the artefact rather than only in a test.
+
+    Each digest carries its gameweek, so two weeks' digests cannot be swapped without moving the id,
+    and the weeks are sorted here rather than inherited from the caller's ordering.
+    """
+    ordered = run_record.sort_values("gw")
+    payload = "\n".join(
+        f"{int(gw)}:{digest}" for gw, digest in zip(ordered["gw"], ordered["squad_sha256"], strict=True)
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def _ladder(acceptance_rate: float) -> str:
     """§2.6's ladder, applied to one gameweek's measured p̂_g."""
     if acceptance_rate >= LADDER_PROCEED:
@@ -536,29 +583,33 @@ def sample_squads(
         squads, cost_tenths, proposals = _build_week(streams[gw], universe, n_squads)
 
         squad_ids = np.array([f"gw{gw:02d}-{i:04d}" for i in range(n_squads)])
-        frames.append(
-            pd.DataFrame(
-                {
-                    "gw": np.repeat(gw, n_squads * SQUAD_SIZE),
-                    "squad_id": np.repeat(squad_ids, SQUAD_SIZE),
-                    "player_id": squads.ravel(),
-                }
-            )
+        week = pd.DataFrame(
+            {
+                "gw": np.repeat(gw, n_squads * SQUAD_SIZE),
+                "squad_id": np.repeat(squad_ids, SQUAD_SIZE),
+                "player_id": squads.ravel(),
+            }
         )
+        frames.append(week)
         records.append(
             row
             | {
                 "proposals": proposals,
                 "accepted": n_squads,
                 "acceptance_rate": n_squads / proposals,
+                "squad_sha256": _week_digest(week),
             }
             | _diversity(squads, cost_tenths, universe, entrants)
         )
 
+    # The id is folded from the record's own column rather than recomputed from the squad table, so
+    # the two can never disagree about what a week's squads were (§5.3.2).
+    run_record = pd.DataFrame(records)
     return SquadSample(
         squads=pd.concat(frames, ignore_index=True),
-        run_record=pd.DataFrame(records),
+        run_record=run_record,
         mart_pin=_mart_pin(mart, weeks),
+        squad_set_id=_squad_set_id(run_record),
     )
 
 

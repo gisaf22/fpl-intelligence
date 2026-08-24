@@ -1569,12 +1569,17 @@ Exact names and signatures are §5's to fix.
 **Returns:** the frozen squad set — 15 rows per squad, keyed by `gw`, `squad_id` and `player_id`,
 with `squad_id` unique across the whole set and belonging to exactly one `gw` (§2.8) — plus a **run
 record that is now per gameweek**: one row per build week carrying that week's derived seed, |U_g|,
-the pilot's k_g and p̂_g, the proposals drawn, the accepted count, the realised acceptance rate, and
+the pilot's k_g and p̂_g, the proposals drawn, the accepted count, the realised acceptance rate, **a
+content digest of that week's squads**, and
 the three **diversity diagnostics** of that week's 300 squads — the count of distinct `player_id`s
 appearing anywhere in them, stated against |U_g|; the selection frequency of the most-selected
 player, as a count out of 300; and the spread of total squad cost at that gameweek, as min, median
-and max. The mart pin is run-level, not per week, and is carried once. The run record is returned,
-not logged and not stored (§2.8).
+and max. The mart pin is run-level, not per week, and is carried once. **So is the squad-set id §7.3
+makes identity, and it is the sampler's to emit.** It must be a function of the **drawn squads**
+rather than of the inputs that drew them, and it must **decompose per gameweek**, so that a partial
+rebuild is checkable week by week — the per-week digest above is that decomposition. §5.3.2 fixes the
+construction and the reasoning; §2.9 fixes only what it must satisfy, on the same division as the seed
+derivation below. The run record is returned, not logged and not stored (§2.8).
 
 **Why the record is per week rather than aggregated.** An aggregate acceptance rate across 37 weeks
 would average away exactly what §2.6's ladder is read on, and the diversity diagnostics are worse
@@ -1679,6 +1684,8 @@ by §0.16's independence requirement.
 
 - **The exact derivation function for the per-week streams** — §5.3.1, which now fixes it; §2.9 fixes
   only that it must be a function of the master seed and the gameweek, and order-independent.
+- **The exact construction of the squad-set id** — §5.3.2, on the same division; §2.9 fixes only that
+  it is a function of the drawn squads and that it decomposes per gameweek.
 - **How squads are stored and where the frozen set lives** — §7.
 - **The sampler's exact function and column names** — §5.
 - **Which seed constant the harness passes** — §8.4; §2 only refuses to default it.
@@ -2344,7 +2351,7 @@ rather than assumed.
 | Module | Tier | Takes | Returns | Forbidden from importing |
 |---|---|---|---|---|
 | `formations.py` | A | a 15's realised points with each player's position; or a candidate XI | the best legal XI total and the runner-up (§0.8's C1), and a legality predicate over a candidate XI | everything project-internal except `domain/` — no `dal/`, no `model/`, no `research/`, no `serve/`, no sibling slice module |
-| `sampler.py` | A | mart across the gameweeks in scope (`dal/`); the **gameweek list**, explicitly; quota + cap (`domain/`); `n_squads` **per gameweek**; **master `seed` — required, no default** (§2.9) | frozen squad table (`gw`, `squad_id`, `player_id`), one `gw` per `squad_id` **plus a per-gameweek run record**: derived seed, \|U_g\|, pilot k_g and p̂_g, proposals drawn, accepted count, realised acceptance rate, four diversity diagnostics — and the run-level **mart pin** (§5.3) | `model/`, `research/`, `serve/`, `operational/`, `rankers.py` |
+| `sampler.py` | A | mart across the gameweeks in scope (`dal/`); the **gameweek list**, explicitly; quota + cap (`domain/`); `n_squads` **per gameweek**; **master `seed` — required, no default** (§2.9) | frozen squad table (`gw`, `squad_id`, `player_id`), one `gw` per `squad_id` **plus a per-gameweek run record**: derived seed, \|U_g\|, pilot k_g and p̂_g, proposals drawn, accepted count, realised acceptance rate, that week's **squad digest**, four diversity diagnostics — and the run-level **mart pin** (§5.3) and **squad-set id** (§5.3.2) | `model/`, `research/`, `serve/`, `operational/`, `rankers.py` |
 | `harness.py` | A | squad table; **`rank_fn`**; **`bench_order` — required, no default**: a non-empty ordered sequence of named ordering **policies** (callables), element 0 primary (§5.4); mart (`dal/`); comparison window | per-squad-week records — chosen XI, realised total, best-legal-XI total, runner-up total, regret, substitution and uncovered-blank flags — **plus one replay record per candidate ordering** (§7.2's T5). Ordering-relevance is derived at assembly, not emitted (§7.2.1) | `model/`, `research/`, `serve/`, `rankers.py` — it receives a ranker, never imports one |
 | `orderings.py` | A | §5.4's `Sequence[BenchPlayer]` — one squad-week's outfield bench, as the harness derives it | those three players' ids in priority order; and **`PRE_REGISTERED_ORDERINGS`**, §5.4.1's frozen `bench_order` value | `model/`, `research/`, `serve/`, `rankers.py`, `uncertainty.py` |
 | `rankers.py` | B | the mart | a `RankerOutput` per ranker — name, declared window, score panel (§6.1) | `harness.py`, `sampler.py`, `formations.py` — no Tier A module. `model/`, `dal/`, `domain/` are permitted |
@@ -2507,6 +2514,103 @@ holds that naming is not what these contracts depend on, and the derivation is t
 identifier. Not the master seed's **value**: §2.9 refuses to default it and §8.4 fixes it at `0` for
 every call site in the slice, so the two questions stay separate. And not where the derived seeds are
 written — §7 owns storage, on the same terms as the pin above.
+
+### 5.3.2 The squad-set id is a content hash of the squads, and the sampler emits it
+
+§7.3 makes the **squad-set id** an identity field and states what it is for. **No section said what it
+is, and none named a producer.** §2.9's `Returns` listed the squads, the run record and the pin and no
+id; §5.1's table restated that list; and the only occurrence anywhere was a placeholder literal in a
+test. The gap was found from the build side, as §5.3.1's was: `results.py`'s manifest requires the
+field, so the composition root cannot be assembled without a value, and whoever assembled it would have
+chosen a construction on this document's behalf.
+
+**This subsection sits under §5.3 for the reason §5.3.1 does — it is the third part of one contract.**
+§5.3 pins the **input** the frozen set is reproducible against; §5.3.1 fixes the **stream** each week
+draws from; this fixes the identity of the **output** those two produce. A reader holding the first two
+and not the third can establish that two runs were given the same mart and the same master seed, and
+still cannot establish that they hold the same squads.
+
+**Two constructions were available, and only one does this field's job.**
+
+**An encoding of the reproducibility inputs** — the master seed, §5.3.1's derivation, `PROPOSAL_BATCH` —
+is **rejected**. The smaller objection is redundancy: §7.3 already carries the master seed as an
+identity field in its own right and §5.3's pin as another, so an encoding built out of them is a
+function of what the hash already holds and moves `run_id` in no case where the existing fields do not.
+The larger objection is that it cannot support the claim §7.3 attaches to the field. §2.8 establishes
+that **the seed does not determine the squads** — that is the entire reason the pin exists — so an
+input encoding agrees across two runs whose squads differ whenever anything outside the encoding moved.
+§7.3 asks the id to let a later run *assert* it is replaying the same squads; an assertion about the
+squads has to be a function of the squads.
+
+**A content hash of the drawn squads** is **selected**. Per gameweek, a SHA-256 digest over that week's
+`(squad_id, player_id)` pairs in ascending order; the run-level id is a SHA-256 digest over the per-week
+digests, in ascending gameweek order, each carrying its gameweek. Full-length hex, matching the mart
+pin's slice digest — it is the same kind of value emitted by the same module, and `results.py`'s
+truncation of `run_id` is that module's presentational choice, which does not travel here.
+
+**The per-week decomposition is required rather than convenient, and §7.3's own text is what requires
+it.** That row asks the id to do two things, and only the second constrains its shape. A single flat
+digest over 37 weeks satisfies "covers all 37 weeks' squads" and **fails** "lets a partial rebuild be
+checked week by week": a rebuild of GW7 alone produces GW7's rows, from which no whole-set digest can be
+recovered, so the check would require rebuilding the other 36 — which is the re-run the id exists to
+avoid. Composing the run-level id out of per-week digests makes the week-by-week check the
+recomputation of one digest. That is what §5.3.1's order-independence is worth **in the artefact**
+rather than in a test: §2.8 asserts the partial-rebuild property by holding both frames at once, which
+is available to a test suite and not to a reader of two results directories.
+
+**Where the per-week digests live: §2.9's run record**, which is already the per-week ledger and already
+opens with that week's derived seed. They reach T4 inside §7.3's **metadata** half, and that placement
+is decided rather than defaulted — the run-level id is identity and the fold carries every per-week
+change into it, so recording the decomposition as identity too would hash one thing twice while
+inviting the reading that a week's digest identifies a run on its own.
+
+**What is hashed and what is deliberately not, on §5.3's own principle.** The `(squad_id, player_id)`
+pairs are hashed and **the emitted row order is not**. §2.9 keys the squad table at `(gw, squad_id,
+player_id)` and states that everything else about a drawn player is a join back onto the pinned mart, so
+the identity of the set *is* the key; a digest sensitive to the order players happen to appear in within
+a squad would move on a change that altered no squad. That is exactly the false alarm §5.3 rejects when
+it restricts the pin to the columns actually read, applied to rows instead of columns. **`squad_id` is
+hashed**, which is a different question and gets the opposite answer: §7.2's T1, T2 and T5 all key on
+it, so the same squads under permuted ids are a different artefact and the id must move.
+
+**What this makes redundant is nothing, and the third case is what the field is actually for.** Not the
+**mart pin**: the pin identifies the input, so when two ids differ the pin is what says whether the mart
+moved, which the id alone cannot. Not the **master seed**: the seed is what a rebuild is driven by and
+the id is what it is checked against, which is the pairing §7.3 states. And the id catches what
+**neither input field can** — §5.3.1's derivation and `PROPOSAL_BATCH` are properties of the *code*
+rather than manifest fields, and a change to either moves every squad in every week while every recorded
+input stays identical. `PROPOSAL_BATCH` is fixed in the sampler for precisely that reason; the id is
+what makes the consequence visible in the artefact rather than only in the constant's justification.
+
+**The producer is the sampler, and the cheaper alternative is declined on a stated argument rather than
+passed over.** The composition root could compute it — §2.9 returns the squad table, so nothing the hash
+needs is out of reach — and computing it there would leave `sampler.py`, the one module in this slice
+already built, tested and committed, untouched. That is the cheaper landing. It is not taken, for three
+reasons.
+
+1. **The canonical form is a property of a frame the root does not own.** A digest needs a fixed row
+   order and column set over the squad table, and that table is the sampler's construction. A root
+   fixing the canonicalisation would be legislating for a frame it merely receives, and a later change
+   to how the sampler builds its rows would move an id computed elsewhere with nothing to catch it.
+2. **The per-week digests have no home outside the run record.** A root computing them would either
+   append columns to another module's return value or carry a parallel structure at the record's own
+   grain, duplicating §2.9's ledger for no gain.
+3. **§5.3 decided this question already, for the pin** — "part of the sampler's output, not a note
+   beside it", because a value recorded beside an artefact by its consumer is a property of the consumer
+   and "could not be asserted on". The squad-set id is the same kind of value, and splitting two halves
+   of one reproducibility contract across two modules needs a reason this document does not have.
+
+**The cost is real and is stated rather than glossed.** This changes `sampler.py`'s committed interface:
+its return type gains a field and its run record gains a column. Both are additive; the module has no
+caller outside its own tests; and the addition meets the standard §2.9 already sets for what the record
+may carry — a single pass over the returned squad table, needing nothing the sampler does not already
+hold. **`results.py` is a candidate on neither reading**: §7.8 has it serialise frames it is handed, and
+§7.3 names `run_id` as the one thing it computes.
+
+**What §5 does not fix here.** Not the *name* of the routine that computes the digest — §5.7's rule that
+these contracts do not depend on identifiers applies as it does to §5.3.1. Not where the id is written:
+§7.3 places it in the manifest's identity half and §7.4 owns storage, on the same terms as the pin and
+the derived seeds.
 
 ### 5.4 The harness takes the bench ordering explicitly
 
@@ -3303,11 +3407,15 @@ identical inputs yields the same `run_id`.
 | **Bench ordering — the whole ordered policy set, with element 0 named as primary** | §4.9: the chosen XI is scored **after** substitutions fire, so primary regret is a function of element 0 and a regret figure without it is not reproducible. The **rest of the set is identity too**: §4.6 defines B2 over the orderings actually compared, so two runs sharing a primary but comparing different candidates produce different counts in T3 |
 | **Window** — per comparison, in T3 | §0.13: the floor is determined on the intersection of **every** ranker in the comparison, candidate included, so the window is a property of the comparison and not of the run |
 | **Floor ranker** — per comparison, in T3 | Same selection: the floor is **window-relative and re-determined per comparison**, so recording "the floor" once at run level would be wrong |
-| **Master seed + squad-set id** | The squad set is drawn per gameweek (§0.16), so the id covers all 37 weeks' squads and the seed is the master seed §2.9's per-week streams derive from. Together they are what lets a later run assert it is replaying the same squads rather than new draws — and, because §2.9's derivation is order-independent, what lets a partial rebuild be checked week by week |
+| **Master seed + squad-set id** | The squad set is drawn per gameweek (§0.16), so the id covers all 37 weeks' squads and the seed is the master seed §2.9's per-week streams derive from. Together they are what lets a later run assert it is replaying the same squads rather than new draws — the seed is what a rebuild is *driven by*, the id what it is *checked against* — and, because §2.9's derivation is order-independent, what lets a partial rebuild be checked week by week. **The id is a content hash of the drawn squads, composed from one digest per gameweek, and the sampler emits it**; §5.3.2 fixes the construction, and states why an encoding of the reproducibility inputs cannot do this row's second job |
 | **The build gameweek set** | Weekly resampling makes the set of build weeks a property of the run rather than a constant. Two runs over the same window but different build weeks — a re-run after §0.7's scope moved — produce different squads at the same `gw`, and nothing else in this table would distinguish them |
 
 The manifest also carries, for completeness rather than identity: each ranker's **declared** window
-(§6.3), the sampler's acceptance diagnostics (§2.6), and the bootstrap parameters actually passed —
+(§6.3), the sampler's acceptance diagnostics (§2.6) — which carry §5.3.2's **per-gameweek squad
+digests**, the decomposition the id above is folded from, and they sit in this half rather than the
+identity half because the fold already carries every per-week change into `run_id`, so hashing them
+again would hash one thing twice and invite the reading that a week's digest identifies a run on its
+own — and the bootstrap parameters actually passed —
 **recorded per interval, because there are two sets and they differ**. The gameweek interval carries
 `n`, `block`, `ci_level`, `seed` (§8.2); the squad interval carries `n`, `ci_level`, `seed` and **no**
 `block`, squads being unordered (§10.1). Recording one merged set would leave a reader unable to tell
@@ -4761,3 +4869,48 @@ otherwise re-open one of them:
 described. §7.4's frozen list already read "and the bench ordering" and needed no edit; §5.4.1 says
 what that phrase now denotes. The `.importlinter` cost is three list edits, adding
 `decisions.starting_xi.orderings` to the two Tier A source lists and to the Tier B forbidden list.
+
+**§7.3's squad-set id had a job and no producer — §5.3.2's pass, and the four things it turned up.**
+§7.3 listed the id as an identity field and said what it was for; **no section said what it is, and none
+named the module that emits it**. §2.9's `Returns` and §5.1's table both enumerated the sampler's output
+without it, and the only occurrence anywhere in the repository was a placeholder literal in
+`test_results.py`'s manifest fixture. `results.py`'s `Manifest` requires the field, so the composition
+root could not be assembled without a value — and whoever assembled it would have chosen a construction
+on this document's behalf, which is the failure §5.4.1's entry records for the bench ordering.
+
+1. **The gap is this document's, and that was checked rather than assumed.** `INVENTORY.md` and
+   `METRIC.md` were both read before the pass proceeded, on the ground that §5.4.1's comparable gap
+   turned out to be **upstream** and a second one might be too. It is not. Both documents use "squad
+   set" only as a noun phrase for the drawn squads — `INVENTORY.md` §3.4 and `METRIC.md` §2.3 on the
+   DGW exclusion being unmeasurable without one, `METRIC.md` §7.1 on the pairing — and neither carries
+   any notion of an *identifier* for one. Nor could either: an artefact's identity is a property of the
+   design that produces the artefact, not a repository fact and not a metric candidate. **Nothing was
+   routed**, and §11's list is unchanged.
+
+2. **A construction was selected against a stated alternative.** §5.3.2 takes a **content hash of the
+   drawn squads**, composed from one digest per gameweek. The alternative — an encoding of the
+   reproducibility inputs, seed plus derivation plus `PROPOSAL_BATCH` — is recorded there as rejected
+   rather than passed over, and its decisive defect is one that generalises: §2.8 establishes that the
+   seed does not determine the squads, so an input encoding agrees across two runs whose squads differ
+   and cannot support the assertion §7.3 attaches to the field. The redundancy objection is recorded
+   too, as the weaker of the two, so a later pass does not re-propose the encoding on the ground that
+   the seed is "already there".
+
+3. **§7.3's second clause was already a constraint on the construction and had not been read as one.**
+   "What lets a partial rebuild be checked week by week" rules out a flat whole-set digest, because a
+   rebuild of one week yields nothing from which a whole-set digest can be recovered. That clause is
+   why the run record gains a per-gameweek column rather than the id being a single pass over the whole
+   table. Nothing in §7.3's text changed in substance here; what this pass adds is the observation that
+   the sentence constrains the shape rather than merely describing a benefit — and the related
+   observation that §2.8 asserts the same partial-rebuild property by holding two frames at once, which
+   is available to a test suite and not to a reader of two results directories.
+
+4. **The producer decision touches the one already-committed module in the slice, and the cost is
+   carried deliberately.** §5.3.2 weighs the composition root against the sampler and takes the
+   sampler, on §5.3's own argument for the mart pin — a value recorded beside an artefact by its
+   consumer is a property of the consumer. It records that the root is the **cheaper** landing, that
+   the root has everything it would need, and why the saving is declined anyway. `sampler.py`'s return
+   type gains `squad_set_id` and its run record a `squad_sha256` column; `test_sampler.py` gains tests
+   for the two properties §7.3 names. **No metric, no threshold, no window, no population and no module
+   boundary moves**, and `run_id`'s identity set is unchanged — `squad_set_id` was already one of its
+   members and now has a value rather than a placeholder.

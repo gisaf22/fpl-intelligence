@@ -270,7 +270,10 @@ def _manifest() -> Manifest:
         },
         bench_order=("by_rank", "reversed"),
         master_seed=0,
-        squad_set_id="squads-v1",
+        # §5.3.2 fixes the id as the sampler's content hash of the drawn squads, so the fixture
+        # carries a digest-shaped value rather than a version label -- the earlier "squads-v1"
+        # invited exactly the reading §5.3.2 rejects. This module treats it as an opaque string.
+        squad_set_id="b" * 64,
         build_gameweeks=(4, 5),
         ranker_windows={"F1": (4, 38), "F2": (2, 38)},
         sampler_diagnostics=[{"gw": 4, "acceptance_rate": 0.21}, {"gw": 5, "acceptance_rate": 0.19}],
@@ -391,7 +394,7 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
         "mart_pin": replace(base, mart_pin={**base.mart_pin, "slice_rows": 4321}),
         "bench_order_membership": replace(base, bench_order=("by_rank", "other")),
         "master_seed": replace(base, master_seed=1),
-        "squad_set_id": replace(base, squad_set_id="squads-v2"),
+        "squad_set_id": replace(base, squad_set_id="c" * 64),
         "build_gameweeks": replace(base, build_gameweeks=(4, 5, 6)),
     }
     for field, perturbed in identity_perturbations.items():

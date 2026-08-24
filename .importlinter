@@ -68,31 +68,29 @@ forbidden_modules =
 
 # The starting_xi slice's two-tier contract (decisions/starting_xi/DESIGN.md 3.9). It must be
 # written per-module: the package as a whole has to be allowed to import `model` for the Tier B
-# ranker edge, while every Tier A module must not. Only `formations`, `sampler` and `harness` exist
-# today, so only those are named -- import-linter fails on a source or forbidden module that is not
-# in the graph, so the remaining Tier A modules join this list as they are built, and the Tier
-# A-to-Tier B rule cannot be written until `rankers` and `uncertainty` exist.
+# ranker edge, while every Tier A module must not.
 #
-# `results` joins the shared contract and nothing more. DESIGN.md 5.1 forbids it `model`, `research`,
-# `serve` and `rankers.py`; the first three are here and the fourth cannot be a `forbidden` contract
-# while `rankers` is not in the graph. DESIGN.md 7.8 adds that it needs neither `dal` nor `model` --
-# but that is a claim about the module's shape rather than an entry in 5.1's forbidden column, so it
-# is not written as a contract here; the subprocess import-closure test in
-# decisions/starting_xi/test_results.py enforces both halves, and carries a falsification case
-# proving the same probe fails against a module that does reach `dal`.
+# All seven slice modules now exist, so the two rules earlier passes had to defer -- Tier A must not
+# import a Tier B module, and Tier B must not import a Tier A one -- are written below rather than
+# left to the subprocess import-closure tests. import-linter fails on a source or forbidden module
+# that is not in the graph, which is the only reason they were deferred.
 #
-# `harness` joins the shared contract and nothing more. DESIGN.md 5.1 also forbids it `rankers.py`
-# -- it receives a ranking function and never imports one, which is the single absent edge 3.6's
-# transitivity guarantee rests on -- but that cannot be written as a `forbidden` contract while
-# `rankers` is not in the graph, so it is enforced by the subprocess import-closure test in
-# decisions/starting_xi/test_harness.py. It cannot join the `dal` contract below either: 5.1
-# permits `harness` the mart, and 5.3.1's `build` is the call site that reads it.
+# What still cannot be a `forbidden` contract, and stays enforced by a subprocess test:
 #
-# `formations` is tighter still than this contract: DESIGN.md 5.1 forbids it `dal` and every sibling
-# slice module too. The `dal` half is a second contract below -- it cannot join the shared one,
-# which `sampler` legitimately violates. The sibling half is what no `forbidden` contract can
-# express without also naming modules that do not yet exist, and it stays enforced by the
-# subprocess import-closure test in decisions/starting_xi/test_formations.py.
+# * `operational` is not a root package (INVENTORY.md 2.11), so no contract can name it. Both Tier B
+#   modules' closure tests assert it is unreached.
+# * `formations` is tighter than the shared contract: DESIGN.md 5.1 forbids it `dal` and *every*
+#   sibling slice module. The `dal` half is a second contract below -- it cannot join the shared
+#   one, which `sampler` legitimately violates. The Tier B half is covered by the Tier A -> Tier B
+#   contract; `formations` -> `sampler` / `harness` / `results` is not expressible without
+#   forbidding those modules to the other Tier A sources, which 5.1 permits, so it stays in
+#   decisions/starting_xi/test_formations.py.
+# * `results` needs neither `dal` nor `model` (DESIGN.md 7.8). That is a claim about the module's
+#   shape rather than an entry in 5.1's forbidden column, so it is not written as a contract; the
+#   subprocess test in test_results.py enforces both halves and carries a falsification case
+#   proving the same probe fails against a module that does reach `dal`.
+# * `harness` cannot join the `dal` contract below: 5.1 permits it the mart, and 5.3.1's `build` is
+#   the call site that reads it.
 
 [importlinter:contract:no_starting_xi_tier_a_to_downstream]
 name = starting_xi Tier A must not import model, research or serve
@@ -102,6 +100,7 @@ source_modules =
     decisions.starting_xi.sampler
     decisions.starting_xi.harness
     decisions.starting_xi.results
+    decisions.starting_xi.orderings
 forbidden_modules =
     model
     research
@@ -126,3 +125,38 @@ source_modules =
     serve
 forbidden_modules =
     decisions
+
+# DESIGN.md 5.1 forbids `rankers` and `uncertainty` to every Tier A module -- `harness` receives a
+# ranking function and never imports one, which is the single absent edge 3.6's transitivity
+# guarantee rests on.
+[importlinter:contract:no_starting_xi_tier_a_to_tier_b]
+name = starting_xi Tier A must not import a Tier B module
+type = forbidden
+source_modules =
+    decisions.starting_xi.formations
+    decisions.starting_xi.sampler
+    decisions.starting_xi.harness
+    decisions.starting_xi.results
+    decisions.starting_xi.orderings
+forbidden_modules =
+    decisions.starting_xi.rankers
+    decisions.starting_xi.uncertainty
+
+# DESIGN.md 3.3 defines the two tiers exhaustively: Tier B's permitted list is `model`, `dal` and
+# `domain`, so `research` and `serve` are admitted to neither tier (3.9 records why that exclusion
+# is deliberate rather than an oversight), and 3.3 forbids Tier B from being imported by Tier A --
+# which makes importing a Tier A sibling forbidden in this direction too.
+[importlinter:contract:no_starting_xi_tier_b_to_tier_a_or_downstream]
+name = starting_xi Tier B may import model, dal and domain -- not research, serve or a Tier A sibling
+type = forbidden
+source_modules =
+    decisions.starting_xi.rankers
+    decisions.starting_xi.uncertainty
+forbidden_modules =
+    research
+    serve
+    decisions.starting_xi.formations
+    decisions.starting_xi.sampler
+    decisions.starting_xi.harness
+    decisions.starting_xi.results
+    decisions.starting_xi.orderings

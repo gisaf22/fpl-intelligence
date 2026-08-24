@@ -1018,11 +1018,21 @@ document is two file edits, `pyproject.toml` and `.importlinter` (§3.9), and th
 | ~~No candidate bench-order scoring rule has been characterised~~ — **closed** | §0.10, §9.2 | **Nothing.** `METRIC.md` §4.3 now characterises O1–O5 and §0.10 selects O1 on an absolute counterfactual. Retained as a closed row so the routing stays legible. The storage consequence it opened is a live item in its own right — see the row below |
 | ~~The absolute counterfactual needs replay coverage T5 does not carry~~ — **closed** | §0.10, §7.2.1, §9.2 | **Nothing.** §7.2.1 selects a `best_permutation_total` column on T2 over the alternative of six permutation rows on T5, and `harness.py` emits it, so the ordering-regret *level* is now derivable. §4.5's paired difference was never blocked and is unchanged. Retained as a closed row so the routing stays legible |
 | `METRIC.md` §1's P4, "mean signed directional error", is named but undefined | §7.9 | **The results document.** Its inputs are stored, so no re-run is needed once it is defined |
-| **Which ordering policies form the comparison set** — `METRIC.md` §8's table has no row for it, and §5.4.1 pre-registers only §4.12's induced order | §5.4.1 | **The bench-order claim, and only it.** Nothing structural: §5.4 permits a one-policy run, §7.3 identifies it, and §0.10's `best_permutation_total` measures the decision's headroom regardless. What it blocks is the *comparison*: §4.6's B2 is 0 under a one-policy set, so §4.7 leaves every bench-order figure without a denominator. Closing it is a `METRIC.md` pass characterising candidate orderings, as §5.1 did for naive rankers — bounded by the interface constraint §5.4.1 records |
+| ~~Which ordering policies form the comparison set~~ — **closed, as measured-and-negligible** | §5.4.1, §5.4.2 | **Nothing.** `by_rank` (§4.12/§6.7/§6.8) and `order_by_weighted_score` (§5.4.2 — declined only as a Markov extension, built as the second naive policy) were run and compared: B2 headroom ≈0.0004 pts/squad-week, with divergence in 1–5 of 32,700 squad-weeks — run ids `3821cc931fabc610` and `4b348fe01573bd1e`. §0.10's `best_permutation_total` gate, which §5.4.1 named as the thing to read before growing the set, is at floor: there is effectively no headroom left for a third policy to claim. No further ordering-policy work is planned unless new evidence changes this. §4.11's uncertainty item below is unaffected — it is about the sampling distribution of the measured figure, not about whether more policies are worth building |
+| ~~Floor-ranker quality — is there room for a fourth candidate (F4 or otherwise)?~~ — **closed, as measured-and-negligible** | §0.12, §0.13 | **Nothing.** F1, F2 and F3 each land within ~1% of the hindsight-optimal legal XI on the common window (§0.10's `best_permutation_total` counterfactual). The one differentiator anyone has proposed — minutes-certainty, via the AVAIL lens study already on record (`research/families/availability/`) — is weak signal. §0.12's F4 (5-GW window variant) remains unregistered on the same grounds it already carried: no evidence has been offered that a fourth ranker would close a gap that exists. No F4 or other additional floor ranker is planned unless a specific signal is proposed with evidence |
 | Uncertainty on the bench-ordering sample | §4.11 | **The bench-order claim**, not the harness |
 | Facts §11 needs that `INVENTORY.md` does not carry | §11 | **Nothing structural**; each is a claim this document declines to make first-hand |
 | ~~`formations.py`'s second total is the formation gap, and §0.8 selects the XI gap~~ — **closed** | §0.8 | **Nothing.** `formations.py` now computes the XI gap by §0.8's four-subtraction rule, and `harness.py` calls the routine twice per squad-week — once on realised points for §0.1's regret, once on §0.9's as-of statistic for C1 — so §7.2's T2 carries both pairs. Both changes §0.8 flagged as unbuilt are built. Retained as a closed row rather than deleted, so the routing stays legible |
 | Whether the residual minutes-certainty tilt in a frozen GW2 pool is material to a ranker comparison | §0.16, §2.2 | **Nothing** — build-once is superseded, so the question is now about a construction this design does not use. Recorded because §2.2's argument would need it if build-once were ever revisited. *(The unsourced claim previously listed here is withdrawn; the two `METRIC.md` conflicts are closed. See Provenance.)* |
+
+**What the two closures above do not touch.** P4 (mean signed directional error — the row above,
+§7.9) is still undefined: the closures say nothing about whether ordering or floor-ranker regret is
+*systematic* rather than irreducible, because P4 is the statistic that would distinguish the two and
+it has not been computed. Goal-conditional scoring — whether a ranker should be evaluated
+differently depending on whether it is protecting a lead or chasing rank — is not evaluated anywhere
+in this document; nothing above bears on it. §4.11/#17 (`bench_order_ci`, the confidence-interval
+treatment on the bench-order sample) is unresolved and stays a stub, per the row above and
+`METRIC.md` §8's row #17.
 
 **Measurements owed on the first run, which are outputs rather than blockers:** the sampler's
 acceptance rate against §2.6's trigger; the per-ranker
@@ -2826,6 +2836,49 @@ sentence — but only the second is a function of the records alone, which is th
 `rank_squad` is built to have. A policy that read its answer off the argument's order would be
 correct by coincidence of what the caller passed.
 
+### 5.4.2 A third policy candidate — sequential/"Markov" entry-probability weighting — assessed and declined
+
+A design-only assessment (no code, nothing in this folder modified) considered a policy that orders
+the bench by an estimated expected-value calculus over the harness's substitution sequence, rather
+than by `score` alone. Two independent findings closed it.
+
+**The interface cannot carry it, and the block is not the Tier A/Tier B wall.** `OrderingPolicy`
+(§5.4) is `Callable[[Sequence[BenchPlayer]], Sequence[int]]` — the three outfield bench records and
+nothing else; the policy is never shown the starting XI. But `harness.replay`'s vacancy order is
+recomputed every substitution from `slack`, which is a function of the XI's live position counts.
+Even a policy using only formation combinatorics, no probability, and therefore no `model/` access
+at all still cannot be written against this signature — it needs XI context the interface does not
+carry. Delivering that context means either widening `BenchPlayer` (§5.4.1's four fields) or widening
+`OrderingPolicy` itself, and the latter — the only shape that actually unblocks it — touches `BenchOrder`,
+both existing policies' signatures, `PRE_REGISTERED_ORDERINGS`, and the §7.4 freeze. Neither is a
+mechanical change; both alter a frozen, identity-bearing contract.
+
+**"Sequential" is also the wrong name for what would be added.** `harness.replay` already models the
+sequential structure exactly: vacancies are consumed one at a time, the order recomputed from `slack`
+after each entry, and entering one player changes which entries are legal next (§0.6). The only
+stochastic object in the process is which starters blank, and all eleven of those draws are realised
+simultaneously before the deterministic greedy assignment runs — there is no time axis for a Markov
+chain to run along. What a smarter policy would add is **entry-probability weighting** on top of a
+sequential structure the harness already has; it would not add sequential reasoning that is missing.
+
+**Even with a free interface, §5.4.2's own closure (above, in §1.5) removes the reason to build it.**
+A Markov policy diverges from `by_rank` only when the expected-value calculus reverses the score
+order *and* a substitution fires *and* the reversal changes who enters — a conjunction strictly
+rarer than B2 itself, and B2's own measured rate (1–5 of 32,700 squad-weeks, run ids
+`3821cc931fabc610` / `4b348fe01573bd1e`) leaves no denominator for a third policy to be compared
+against. `p_play` (`model/terms/p_play/p_play.py`) is the one estimable primitive that could ever
+feed such a policy — a historical autosub-transition route is closed on definition, not on data
+availability: an autosub event is a function of *some manager's* bench order, so "historical
+transition probabilities" would measure other people's decisions, not football. If entry probability
+ever were delivered via the score panel, F2 and F3 (§0.12's naive floor rankers) would have to either
+import `p_play` — destroying the naive floor the headline ranker comparison depends on — or emit
+nulls, making the ordering comparison differ by ranker. That cost was never paid because the
+build was never justified.
+
+**What would revisit this.** B2 in the hundreds rather than single digits, or a headroom figure
+large enough to justify an `OrderingPolicy` contract change and the ranker-contamination cost above.
+Absent that, this candidate is closed rather than merely deferred.
+
 ### 5.5 Where the block bootstrap is called
 
 **`uncertainty.py`** — a module whose *shape* §5 fixes. It takes paired per-gameweek or per-squad
@@ -4466,6 +4519,12 @@ recorded here as closed rather than removed so the routing stays legible.
 ---
 
 ## Provenance
+
+**§5.4.2's source.** The Markov/sequential-ordering assessment was first written as a standalone
+scratch document during design review, never committed. Its content is folded into §5.4.2 rather
+than kept as a separate artefact, per `decisions/README.md`'s self-containment requirement — a
+rejected-alternative writeup follows the same convention §5.4.1 already uses for declined module
+placements, not a fifth document type.
 
 **The policy this document operates under.** `DESIGN.md` **cites `INVENTORY.md` and never writes to
 it** — not to add a fact, not to correct one. Where this document needs a repository fact

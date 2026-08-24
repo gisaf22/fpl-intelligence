@@ -1004,7 +1004,9 @@ entry point.
 (Provenance). It does not change what the build needs.
 
 **Nothing blocks the build.** The one item that did — where the harness can legally live — is decided
-in §3, and the metric selections the replay needed are made in §0. The one item that blocked a
+in §3, and the metric selections the replay needed are made in §0. *One item added by §5.4.1's pass
+blocks a **claim** rather than the build, and is listed below: the ordering comparison set. The
+composition root has a real `bench_order` to pass and the primary arc runs without it.* The one item that blocked a
 *quantity* rather than the build — §0.8's C1 needing a change to `formations.py`'s second total — is
 closed, and its row below is kept as closed rather than removed. What the build needs beyond this
 document is two file edits, `pyproject.toml` and `.importlinter` (§3.9), and the new
@@ -1016,6 +1018,7 @@ document is two file edits, `pyproject.toml` and `.importlinter` (§3.9), and th
 | ~~No candidate bench-order scoring rule has been characterised~~ — **closed** | §0.10, §9.2 | **Nothing.** `METRIC.md` §4.3 now characterises O1–O5 and §0.10 selects O1 on an absolute counterfactual. Retained as a closed row so the routing stays legible. The storage consequence it opened is a live item in its own right — see the row below |
 | ~~The absolute counterfactual needs replay coverage T5 does not carry~~ — **closed** | §0.10, §7.2.1, §9.2 | **Nothing.** §7.2.1 selects a `best_permutation_total` column on T2 over the alternative of six permutation rows on T5, and `harness.py` emits it, so the ordering-regret *level* is now derivable. §4.5's paired difference was never blocked and is unchanged. Retained as a closed row so the routing stays legible |
 | `METRIC.md` §1's P4, "mean signed directional error", is named but undefined | §7.9 | **The results document.** Its inputs are stored, so no re-run is needed once it is defined |
+| **Which ordering policies form the comparison set** — `METRIC.md` §8's table has no row for it, and §5.4.1 pre-registers only §4.12's induced order | §5.4.1 | **The bench-order claim, and only it.** Nothing structural: §5.4 permits a one-policy run, §7.3 identifies it, and §0.10's `best_permutation_total` measures the decision's headroom regardless. What it blocks is the *comparison*: §4.6's B2 is 0 under a one-policy set, so §4.7 leaves every bench-order figure without a denominator. Closing it is a `METRIC.md` pass characterising candidate orderings, as §5.1 did for naive rankers — bounded by the interface constraint §5.4.1 records |
 | Uncertainty on the bench-ordering sample | §4.11 | **The bench-order claim**, not the harness |
 | Facts §11 needs that `INVENTORY.md` does not carry | §11 | **Nothing structural**; each is a claim this document declines to make first-hand |
 | ~~`formations.py`'s second total is the formation gap, and §0.8 selects the XI gap~~ — **closed** | §0.8 | **Nothing.** `formations.py` now computes the XI gap by §0.8's four-subtraction rule, and `harness.py` calls the routine twice per squad-week — once on realised points for §0.1's regret, once on §0.9's as-of statistic for C1 — so §7.2's T2 carries both pairs. Both changes §0.8 flagged as unbuilt are built. Retained as a closed row rather than deleted, so the routing stays legible |
@@ -1792,6 +1795,7 @@ hold under any naming.
 | `formations.py` — the shared 8-formation routine | **A** | `domain/` only (plus stdlib, `numpy`, `pandas`) | `harness.py`, the sampler, tests |
 | `sampler.py` — the squad sampler | **A** | `domain/`, `dal/`, `formations.py` | `harness.py`, tests |
 | `harness.py` — the replay engine | **A** | `dal/`, `domain/`, `formations.py`, `sampler.py` | the composition root, tests |
+| `orderings.py` — the bench-ordering policies | **A** | `harness.py` (§5.4's policy type lives there), `domain/` | the composition root, tests |
 | `rankers.py` — ranker implementations | **B** | `model/`, `dal/`, `domain/` | the composition root, tests — **never a Tier A module** |
 
 **The 8-formation routine is the most constrained module in the slice, deliberately.** It may import
@@ -2342,6 +2346,7 @@ rather than assumed.
 | `formations.py` | A | a 15's realised points with each player's position; or a candidate XI | the best legal XI total and the runner-up (§0.8's C1), and a legality predicate over a candidate XI | everything project-internal except `domain/` — no `dal/`, no `model/`, no `research/`, no `serve/`, no sibling slice module |
 | `sampler.py` | A | mart across the gameweeks in scope (`dal/`); the **gameweek list**, explicitly; quota + cap (`domain/`); `n_squads` **per gameweek**; **master `seed` — required, no default** (§2.9) | frozen squad table (`gw`, `squad_id`, `player_id`), one `gw` per `squad_id` **plus a per-gameweek run record**: derived seed, \|U_g\|, pilot k_g and p̂_g, proposals drawn, accepted count, realised acceptance rate, four diversity diagnostics — and the run-level **mart pin** (§5.3) | `model/`, `research/`, `serve/`, `operational/`, `rankers.py` |
 | `harness.py` | A | squad table; **`rank_fn`**; **`bench_order` — required, no default**: a non-empty ordered sequence of named ordering **policies** (callables), element 0 primary (§5.4); mart (`dal/`); comparison window | per-squad-week records — chosen XI, realised total, best-legal-XI total, runner-up total, regret, substitution and uncovered-blank flags — **plus one replay record per candidate ordering** (§7.2's T5). Ordering-relevance is derived at assembly, not emitted (§7.2.1) | `model/`, `research/`, `serve/`, `rankers.py` — it receives a ranker, never imports one |
+| `orderings.py` | A | §5.4's `Sequence[BenchPlayer]` — one squad-week's outfield bench, as the harness derives it | those three players' ids in priority order; and **`PRE_REGISTERED_ORDERINGS`**, §5.4.1's frozen `bench_order` value | `model/`, `research/`, `serve/`, `rankers.py`, `uncertainty.py` |
 | `rankers.py` | B | the mart | a `RankerOutput` per ranker — name, declared window, score panel (§6.1) | `harness.py`, `sampler.py`, `formations.py` — no Tier A module. `model/`, `dal/`, `domain/` are permitted |
 | `results.py` | A | the harness's per-squad-week and per-ordering records, the comparison results, and the manifest fields (§7.3) | nothing — writes T1–T5 to `results/` and returns the `run_id` | `model/`, `research/`, `serve/`, `rankers.py` |
 | `uncertainty.py` | **B** | **(a)** an ordered per-gameweek series of paired differences, plus `n`, `block`, `ci_level`, `seed`; **(b)** a `(gw, squad_id, value)` panel of paired differences, plus `n`, `ci_level`, `seed`; stratified by `gw` (§10.3). Two functions, not one (§10.6) | a `(lo, hi)` percentile interval per call, unrounded | `research/`, `serve/`, `operational/`, and every Tier A module — `harness.py`, `sampler.py`, `formations.py`, `results.py`. `model/`, `dal/`, `domain/` are permitted |
@@ -2359,7 +2364,7 @@ harness's half of the problem.
 answers "what can be built now". It fixes no priority and no schedule: which of two unordered modules
 is written first is not a design question and is not decided here.
 
-**Exactly one sibling import edge exists.**
+**Exactly two sibling import edges exist.**
 
 - **`formations.py`** — §5.1 forbids it everything project-internal except `domain/`, **including every
   sibling slice module**. A leaf by contract.
@@ -2374,9 +2379,14 @@ is written first is not a design question and is not decided here.
   needed.
 - **`harness.py`** — §5.1 has it return the best-legal-XI and runner-up totals, and §4.3's replay
   evaluates §0.6's legality against a full XI at every vacancy. Both are `formations.py`'s outputs.
-  **`harness.py` → `formations.py` is the only edge in the graph.**
+  **`harness.py` → `formations.py` is the first edge.**
+- **`orderings.py`** — §5.4.1 places the ordering policies in their own Tier A module, and §5.4's
+  `OrderingPolicy` is stated over `BenchPlayer`, which `harness.py` defines. **`orderings.py` →
+  `harness.py` is the second edge**, and its direction is the selection §5.4.1 makes rather than an
+  accident of where the type happened to be written: the harness never imports its policies.
 
-So `formations.py` is built before `harness.py`, and nothing else is ordered by an import.
+So `formations.py` is built before `harness.py`, `harness.py` before `orderings.py`, and nothing
+else is ordered by an import.
 
 **Four modules are mutually unordered, and this document does not order them.** `formations.py`,
 `rankers.py`, `results.py` and `uncertainty.py` depend on one another in no direction and on
@@ -2542,6 +2552,104 @@ XI computed once.
 argument". §4.9's obligation makes that two arguments rather than one. This is a consequence of §4,
 not a departure from §3: the import contract §3.2 exists to protect is about what `harness.py`
 **imports**, and it is unaffected by how many callables it receives.
+
+### 5.4.1 The pre-registered ordering set, and the module it lives in
+
+§5.4 fixes `bench_order`'s **shape** and names no member of it. §7.3 makes the whole ordered policy
+set part of `run_id`; §7.4 requires "the bench ordering" written into `PRE_REGISTRATION.yaml` and
+pinned by a freeze test before the first run. Nothing in §0–§10 said what that set contains, and the
+omission is structural rather than an oversight of drafting: **`METRIC.md` §8's selection table
+carries a row for the bench-order scoring rule (#10) and one for its denominator (#11), and no row
+for the comparison set at all.** Where §0.12 could select a floor from `METRIC.md` §5.1's survey of
+candidate naive rankers, there is no corresponding survey of candidate *orderings* to select from.
+
+**Selected: one policy, `by_rank`, pre-registered as element 0 and primary.** §4.12 is the one place
+this document says what a bench ordering *is* — "the bench ordering is the induced order over the 4
+non-selected players, GK separated" — and §6.7 and §6.8 fix how a score panel induces it: §6.7's
+three tiers, then descending score, then §6.8's ascending `player_id`. That ordering is named,
+frozen, and is the only one this document can supply without writing a candidate characterisation it
+does not own.
+
+**No second policy is selected here, and the reason is the charter rather than caution.** A second
+candidate has to order on *something* — expected minutes, position scarcity, price, nailedness — and
+each such rule is a decision-domain claim about how a bench ought to be ordered. `METRIC.md` §5.1
+surveys candidate naive rankers for exactly that reason, and `METRIC.md` §5.3 records why a set
+rather than a nominated single is the right shape for a floor: which naive method wins is itself a
+result. The same argument plainly transfers to orderings, and *that transfer is a `METRIC.md` pass,
+not a `DESIGN.md` sentence.* §1.5 carries it as an open item.
+
+**The consequence is stated here rather than discovered on the first run.** §4.6 defines B2 over the
+orderings **actually compared** and §4.7 makes B2 the denominator of every bench-order claim. Under a
+one-policy set no two orderings can differ, so **B2 = 0 and no bench-order figure is reportable**.
+`DECISION.md` §1's secondary decision is therefore *unmeasured* until the set grows — which is a
+legitimate first-run outcome, and is not the same thing as a null result. §7.5's posture applies: the
+artefact says so rather than omitting the number.
+
+**Three things that consequence does not touch, because the temptation is to over-read it.** §5.4
+permits a one-policy run explicitly and this is that case, not a degenerate one. Primary regret is
+fully defined under element 0 and §7.3 identifies the ordering it was computed under, so every
+primary figure is reproducible. And §0.10's absolute counterfactual is a **squad-week** property, not
+a comparison-set one: `best_permutation_total` is emitted whatever the policy count, so §4.10's
+headroom — how much the ordering decision is worth against the best of all six permutations — **is**
+measured on the first run. That figure is what tells a later pass whether growing the set is worth
+the work, which is the right order to learn it in.
+
+**Where the policies live: a new Tier A module, `orderings.py`.** Three homes were available and the
+cost of the selected one is the highest of the three, so it is stated plainly.
+
+- **Inside `harness.py`. Declined.** Cheapest by a distance — no §5.1 row, no §3.5 row, no contract
+  edit. It is declined because it puts an identity-bearing **runtime argument** inside the module it
+  identifies. §0.10 draws precisely this distinction when it explains why the vacancy-order rule needs
+  no manifest entry: that rule is "a fixed, documented and measured property of the harness rather
+  than a runtime argument, so it is identified by the code version rather than by the manifest". The
+  bench ordering is the other kind of thing, and §7.3 puts it in the manifest for that reason. Housing
+  both in one file makes a distinction the design just drew invisible in the layout. It also weakens
+  §5.4's own argument — that an implicit or defaulted ordering emits a figure which cannot be
+  reconstructed from its stated inputs — by having the harness author the input it is handed.
+- **Inside the composition root. Declined.** It keeps orderings out of both tiers, which is a real
+  benefit. Against it: §3.8 has the root as thin wiring — "`operational/` imports `rankers.py`,
+  imports `harness.py`, and passes the first into the second" — and a policy is where a decision is
+  taken, not where two modules are joined. `INVENTORY.md` §2.11 records that `operational/` is not a
+  root package, so nothing written there is covered by any import contract. And it splits the frozen
+  object from its definition: §7.4 freezes the ordering into `decisions/starting_xi/`, which
+  `decisions/README.md` requires be self-contained.
+- **A new Tier A module. Selected.** The cost is a §5 and a §3 pass at once — a §5.1 row, a §3.5 row,
+  the amendment §5.1.1 needed once a second sibling edge existed, and three `.importlinter` list
+  edits. What it buys is that the runtime-argument/code-property distinction stays legible in the file
+  layout, and that the slice has **one shape** for "the pre-registered set of callables the
+  composition root passes into the harness": `rankers.py`'s `FLOOR_RANKERS` (§0.12) and
+  `orderings.py`'s `PRE_REGISTERED_ORDERINGS`, both frozen by §7.4.
+
+**Tier A is forced, not chosen.** §5.4's `OrderingPolicy` is stated over a `Sequence[BenchPlayer]`
+and `BenchPlayer` is defined in `harness.py`, so any module importing the policy type imports a Tier
+A module — which §3.3 forbids Tier B. §3.3 permits a Tier A module to import Tier A siblings, and
+this one needs nothing else: `by_rank` reads no data and reaches no layer.
+
+**The edge direction, stated because the alternative was live.** `orderings.py` imports `harness.py`,
+never the reverse. Relocating `BenchPlayer` into `orderings.py` and having the harness import it
+would make the policy module a leaf and shorten §5.1.1's chain. It is declined: it would make
+`harness.py` depend on the module holding the policies it is meant to *receive*, which is the
+coupling §5.4 exists to keep out, and it would move the type away from the module that constructs it.
+
+**A forward constraint this creates, named because it bounds the open decision above.** An ordering
+policy that had to read `model/` — the natural analogue of §0.12's F1, ordering the bench by `p_play`
+— would be Tier B and could not import `BenchPlayer`. §6.1 solved the mirror-image problem for
+rankers by making `RankerOutput` a `Protocol` rather than a shared base class, so `rankers.py` could
+satisfy it structurally without importing Tier A; §5.4's narrowing of the policy argument to a single
+`BenchPlayer` sequence did not do the same. **So the comparison set §1.5 leaves open is today bounded
+to policies expressible as functions of `(player_id, position, score, no_fixture)`** — the four fields
+`BenchPlayer` carries. Widening it is a §5.4 interface change and is not made here; it is recorded so
+that the `METRIC.md` pass which characterises candidate orderings knows what the current interface
+admits before it proposes one it does not.
+
+**One implementation point that is a design point.** `harness.py` hands each policy the outfield
+bench **already in ranking order**, so `by_rank` could be written as a function returning its
+argument untouched. It is not: it calls the harness's own `rank_squad` on the bench it is given. The
+two agree — sorting a subset under a total order agrees with restricting the sorted whole, and
+`test_orderings.py` asserts it on every bench the harness produces rather than leaving it to this
+sentence — but only the second is a function of the records alone, which is the property
+`rank_squad` is built to have. A policy that read its answer off the argument's order would be
+correct by coincidence of what the caller passed.
 
 ### 5.5 Where the block bootstrap is called
 
@@ -4613,3 +4721,43 @@ boundary. §0.12's set membership is what it already was; §6.4's construction i
 and §6.4 now records why the closure makes it the only admissible one rather than merely a valid one.
 The `pyproject.toml` and `.importlinter` edits §3.9 names, and `domain/fpl_squad.py` (§3.5), are
 unaffected.
+
+**§5.4.1's pass — the bench ordering had a shape and no members, and the gap was found from the
+build side.** §5.4 fixed `bench_order` as a required, non-empty sequence of named policies; §7.3 made
+the set run identity; §7.4 required it frozen before the first run. **No section named a member**, so
+the composition root had nothing to pass and `OrderingPolicy` had no implementation anywhere in the
+slice. Four things came out of closing it, and each is recorded because a later reader would
+otherwise re-open one of them:
+
+1. **The gap is upstream, not local.** `METRIC.md` §8's selection table carries #10 (the bench-order
+   scoring rule) and #11 (its denominator) and **no row for the comparison set**. Under the charter
+   this document selects from `METRIC.md`'s candidates and does not write them, so §5.4.1 pre-registers
+   the one ordering `DESIGN.md` already commits to — §4.12's induced order — and routes the rest.
+   Naming a second policy here would have been this document asserting a candidate characterisation it
+   does not own, which is the failure mode the ownership routing exists to prevent. **Routed, not
+   shelved:** §1.5 carries it with what it blocks, on the same terms §0.10's own gap was carried
+   before `METRIC.md` §4.3 came back with O1–O5.
+2. **A one-policy set is legal and its cost is exact.** §4.6's B2 is 0 when no two orderings can
+   differ, and §4.7 then leaves every bench-order figure without a denominator. This is stated at
+   §5.4.1 rather than left to the run. What survives is more than it first looks: the primary arc is
+   untouched, and §0.10's `best_permutation_total` is a squad-week property, so the decision's
+   *headroom* is measured on the first run even though no policy comparison is. That is the figure a
+   later `METRIC.md` pass should be reading when it decides whether the comparison is worth building.
+3. **The module home is a §5 selection with a real cost, and the cheaper options were declined on
+   stated grounds rather than passed over.** §5.4.1 records all three. The decisive argument against
+   putting the policies in `harness.py` is §0.10's own distinction between a runtime argument
+   identified by the manifest and a code property identified by the version — the bench ordering is
+   the first kind and the vacancy-order rule is the second, and one file holding both hides that.
+4. **An interface constraint was found, and deliberately not fixed.** `BenchPlayer` is a dataclass in
+   Tier A, not a `Protocol` as `RankerOutput` is, so an ordering policy needing `model/` cannot be
+   written against §5.4's signature at all. That bounds the open item in (1) — the admissible set is
+   today the policies expressible over `(player_id, position, score, no_fixture)` — and widening it is
+   a §5.4 interface change. §5.4.1 records it where the `METRIC.md` pass will need it, and this pass
+   does not make the change, since selecting an interface to fit an uncharacterised candidate is the
+   wrong order.
+
+**What §5.4.1 did not change.** No metric, no threshold, no denominator, no window, no population.
+§4.12, §6.7 and §6.8 are cited and unmodified — the ordering selected is the one they already
+described. §7.4's frozen list already read "and the bench ordering" and needed no edit; §5.4.1 says
+what that phrase now denotes. The `.importlinter` cost is three list edits, adding
+`decisions.starting_xi.orderings` to the two Tier A source lists and to the Tier B forbidden list.

@@ -24,10 +24,12 @@ make before the harness can be built. This section makes them. Each selection na
 `METRIC.md` candidate adopted, the candidates not adopted, and the reason — which is the only place
 in this folder where those reasons are recorded.
 
-One of the sixteen cannot be settled here, and is stated as a gap rather than filled: **#12**'s
-recent-form component, gated on a governance question outside this folder (§0.12, §9.1). **#10**,
-the bench-order scoring rule, was a gap for the same reason until `METRIC.md` §4.3 characterised a
-candidate set; §0.10 now selects from it.
+All sixteen are now settled. Two were gaps for a time and are worth naming, because both closed by a
+pass on the document that owned the gap rather than by a decision taken here. **#12**'s recent-form
+component was gated on a governance question outside this folder until an `INVENTORY.md` §2.1 pass
+read the record; §9.1 closes it and §0.12 selects F3 unconditionally. **#10**, the bench-order
+scoring rule, was a gap until `METRIC.md` §4.3 characterised a candidate set; §0.10 now selects from
+it.
 
 ### 0.1 The primary scoring metric — P1, counterfactual regret (#1)
 
@@ -551,10 +553,10 @@ ordering ever have mattered here?" rather than "did the methods under comparison
 only the second can support a claim about *those* methods. The permutation count is a legitimate
 diagnostic of the decision's headroom and may be reported as one; it is not the denominator.
 
-### 0.12 The floor rankers — F1 and F2 now, F3 gated, F4 not pre-registered (#12)
+### 0.12 The floor rankers — F1, F2 and F3, F4 not pre-registered (#12)
 
 **Selected: F1 (`p_play` alone), F2 (season-long PPG-to-date) and F3 (3-gameweek recent form)
-as the pre-registered floor set, with F3 conditional on the governance question below.**
+as the pre-registered floor set. F3 is no longer conditional — the gate below is closed (§9.1).**
 
 **Why a set rather than one ranker.** `METRIC.md` §5.3 records that which naive ranker wins is
 itself a result — if F1 is hard to beat, that says something about the decision no candidate
@@ -568,15 +570,34 @@ half-populated by one family. `METRIC.md` §5.1's argument for the 3-gameweek le
 to track rotation, long enough that one blank does not dominate, and matching the window the
 platform already uses for lag-1 rolling signals — is the reason F3 rather than F4 is the member.
 
-**F3 is gated, and the gate is outside this folder.** `METRIC.md` §5.2 records that
-`INVENTORY.md` §2.1 measures **no `points_roll3` on the governed mart** — the feat layer omits
-`total_points` from `_ROLL_COLS`, annotated as removed by lens evaluation for evaluation
-circularity or G2-FAIL — and that what is unsettled is not the absence but its **scope**: whether
-that exclusion binds a *baseline ranker* as well as a governed signal. `METRIC.md` §5.2 states what
-settles it (the lens record behind the annotation) and where the answer belongs
-(`research/families/form/validate/evidence.yaml`). This document cannot answer it and does not.
-§9.1 carries it as the one item blocking F3. If the verdict binds, F3 does not exist in its
-present form and §6.4's construction is moot rather than wrong.
+**F3 was gated on a question outside this folder. The gate is closed: the exclusion does not
+bind F3.** `METRIC.md` §5.2 records that `INVENTORY.md` §2.1 measures **no `points_roll3` and no
+`points_roll5` on the governed mart**, and that what was unsettled was not the absence but its
+**scope** — whether that exclusion binds a *baseline ranker* as well as a governed signal. It does
+not. §9.1 states the reading in full and is where the reasoning lives; the two facts that carry it
+are that the rule is written **with its scope attached** in every file that states it (a *primary
+representation*, an *operational representation*, a *feature*, a *synthesis candidate* — never the
+statistic as such), and that the one role the rule leaves standing, **naive evaluation baseline**, is
+not merely permitted but **mandatory** under `research/families/form/LENS_DESIGN.md`, which registers
+`points_roll3` as FORM-004 on exactly that basis. A floor ranker is a bar-to-beat in an evaluation
+comparison. That is the sanctioned role, not the excluded one.
+
+**What the exclusion does impose, and §6.4 already satisfies it.** `INVENTORY.md` §2.1 measures that
+no mart column exists to read and that the enforcement is over `build_player_gameweek_state`'s output
+columns. So F3 must **derive** its statistic over a population it supplies rather than read one — the
+same thing the form study does at `study.py:342–350` and ADR-010 ratifies. §6.4 selected that
+construction before the gate was resolved and needs no change; §6.4's own closing note records why.
+
+**The narrow reading this pass declined, and why.** A reading is available on which the exclusion
+binds: F3 ranks on a lagged value of `total_points` and the harness's outcome is realised
+`total_points`, so F3 *is* "using lagged target values against the target" — the phrase
+`representation-rules.md` §8 uses for the circularity. That reading proves too much. It is a
+description of what **every** naive baseline is, and it would exclude the naive baseline the same
+document makes mandatory. The distinction the record actually draws is not whether the statistic is
+circular — it is, and openly so — but whether the circular thing is being **advanced as a
+representation of the target** or **held up as the floor a representation must clear**. F3 is the
+second. `METRIC.md` §5.3 makes the point independently from the metric side: which naive ranker wins
+is a *result about the decision*, not a candidate for adoption.
 
 **A degeneracy that must be reported, not designed away.** `METRIC.md` §5.3 records that F2 and F3
 return the same number for every player at GW2, GW3 and GW4, first diverging at GW5, with the
@@ -900,7 +921,9 @@ calendar and must be re-checked against any other season.
 
 - **P4's form** — §0.1; `METRIC.md` §1 records that nothing in this folder defines it. Its inputs
   are stored (§7.6) so it needs no re-run once defined.
-- **Whether F3 may be built at all** — §0.12; a governance question outside this folder (§9.1).
+- ~~**Whether F3 may be built at all**~~ — **no longer open.** §9.1 closes it: the exclusion does
+  not bind a baseline ranker, and §0.12 selects F3 unconditionally. Retained as a struck row so the
+  routing stays legible.
 - **Whether N2 is worth its assumptions** — §0.16; measurable only from an N1 run.
 - **Anything about implementation.** §1–§10 own that, and they consume §0's selections rather than
   re-opening them.
@@ -989,7 +1012,7 @@ document is two file edits, `pyproject.toml` and `.importlinter` (§3.9), and th
 
 | Open item | Where | What it blocks |
 |---|---|---|
-| The `points_roll3` governance verdict | §9.1 | **F3, the recent-form floor ranker.** One of three, and cannot be built until it is answered |
+| ~~The `points_roll3` governance verdict~~ — **closed** | §0.12, §9.1 | **Nothing.** §9.1 reads the record through `INVENTORY.md` §2.1 and finds the exclusion is a mart-membership and governed-signal rule that leaves the naive-baseline role mandatory; F3 is selected unconditionally at §0.12 and §6.4's construction stands. Retained as a closed row so the routing stays legible |
 | ~~No candidate bench-order scoring rule has been characterised~~ — **closed** | §0.10, §9.2 | **Nothing.** `METRIC.md` §4.3 now characterises O1–O5 and §0.10 selects O1 on an absolute counterfactual. Retained as a closed row so the routing stays legible. The storage consequence it opened is a live item in its own right — see the row below |
 | ~~The absolute counterfactual needs replay coverage T5 does not carry~~ — **closed** | §0.10, §7.2.1, §9.2 | **Nothing.** §7.2.1 selects a `best_permutation_total` column on T2 over the alternative of six permutation rows on T5, and `harness.py` emits it, so the ordering-regret *level* is now derivable. §4.5's paired difference was never blocked and is unchanged. Retained as a closed row so the routing stays legible |
 | `METRIC.md` §1's P4, "mean signed directional error", is named but undefined | §7.9 | **The results document.** Its inputs are stored, so no re-run is needed once it is defined |
@@ -2732,6 +2755,21 @@ the ranker must first build the population — the full player-gameweek spine re
 post-registration window, with null `total_points` filled to **0** — before any rolling call. §8.3
 states the assertion that protects it.
 
+**Why the construction stands unchanged now the gate is closed (§9.1).** This section was written
+while §0.12 still gated F3, under the standing note that if the verdict bound, the construction was
+moot rather than wrong. The verdict does not bind, and the construction is not merely still valid —
+it is the one the exclusion *requires*. `INVENTORY.md` §2.1 measures no `points_roll*` column on the
+governed mart and records the enforcement as being over `build_player_gameweek_state`'s output
+columns, so a ranker reading a mart column would have had nothing to read and a ranker adding one
+would have broken `tests/test_state_architecture.py`. **Deriving over a harness-built population is
+the only admissible construction**, and it is the same pattern `research/families/form/validate/study.py`
+uses for the same two statistics — down to the convention, `shift(1).rolling(N).mean()` with
+`min_periods=1`, which is what `add_lagged_rolls` computes. The `min_periods` selection above is
+therefore not merely compatible with the governance record; it matches the value the record's own
+consumer uses. *The population is still this section's choice and not the study's — §0.9 fixes the
+denominator as gameweeks elapsed, where the study rolls over its own `minutes >= 60` population. The
+convention is shared; the frame is not.*
+
 **Interaction with the declared window.** `min_periods = 1` is what lets F3 declare **GW2–38**
 honestly: every player in the squad universe has at least GW1 in the game under §0.16's registration
 predicate, so every player has at least one prior gameweek from GW2 onward and no player is
@@ -2909,9 +2947,10 @@ so the slice carries one tie-break rule rather than three.
 
 ### 6.6 What §6 does not decide
 
-- **The `points_roll3` governance verdict.** §0.12 gates F3 on it and §9.1 carries it. §6.4 decides
-  *how* the column is computed if it may be computed; it does not decide *whether*. If the verdict
-  binds, F3 does not exist in its current form and §6.4 is moot rather than wrong.
+- ~~**The `points_roll3` governance verdict.**~~ **Closed at §9.1** — the exclusion does not bind a
+  baseline ranker. §6.4 decided *how* the column is computed; *whether* is now answered, and the
+  answer requires exactly what §6.4 already selected: derivation by the consumer, not a mart read.
+  Retained as a struck bullet so the routing stays legible.
 - **Which bootstrap implementation is called** — §8.2.
 - **The as-of denominator** — §0.9 fixes it; §6 consumes it.
 - **The vacancy order and the replay** — §4.3 and §4.3.1. §6.7's selection rule produces the XI those
@@ -3277,7 +3316,8 @@ reads no data of its own, so it needs neither `dal/` nor `model/`.
 
 ### 7.9 What §7 does not decide
 
-- **The `points_roll3` governance verdict** — §9.1.
+- ~~**The `points_roll3` governance verdict**~~ — **closed at §9.1**; it does not bind, and §7's
+  shape is unaffected either way.
 - **The definition of P4's signed directional error** — §7.6 stores its inputs; §0.1 records that
   defining it is a `METRIC.md` question and `METRIC.md` §1 records the same gap from the survey side.
 - **Whether results are committed or git-ignored.** `INVENTORY.md` §2.9 records that `research/runs/`
@@ -3316,7 +3356,7 @@ argument passed explicitly: `block=4, n=10000, ci_level=0.95, seed=0` (§8.2). I
 records that it would also have lost on merit.
 
 **`assert_no_future_leakage` (`research/kernels/evaluation.py:46`) is not adopted.** `INVENTORY.md`
-§5.7 records, verified by execution, that it requires `points_roll3` — which the governed mart
+§3.7 records, verified by execution, that it requires `points_roll3` — which the governed mart
 excludes — so it raises on the first evaluated gameweek, and that its own remediation message names the
 source the failing call already used. A ranker needing a leakage assertion writes one against the
 columns it actually uses (§6.2).
@@ -3421,27 +3461,103 @@ elsewhere in the repository, so the direction chosen here is the established one
 
 ### 8.5 What §8 does not decide
 
-- **The `points_roll3` governance verdict** — §9.1. If it binds, F3 does not exist in its present form
-  and the `add_lagged_rolls` reuse is moot rather than wrong.
+- ~~**The `points_roll3` governance verdict**~~ — **closed at §9.1**; it does not bind. The
+  `add_lagged_rolls` reuse stands, and §9.1 records that deriving rather than reading is what the
+  exclusion actually requires.
 - **The squad-level interval** — a build, not a reuse; designed at §10. It is a bootstrap stratified by gameweek (§10.3), not the cluster bootstrap an earlier pass planned, because §0.16's weekly resampling leaves the panel with no clusters to draw.
 
 ---
 
 ## 9. Open items
 
-### 9.1 The `points_roll3` governance verdict — blocking F3
+### 9.1 The `points_roll3` governance verdict — closed; it does not bind F3
 
-`INVENTORY.md` §2.1 records that `total_points` is excluded from the feat layer's `_ROLL_COLS` by lens
-decision (`dal/feat/feat_player_gameweek.py:16–22`, "removed by lens evaluation (evaluation_circularity
-or G2-FAIL)"), verified against the mart's 64 columns. `METRIC.md` §5.2 states what is actually
-unsettled — not the absence but its **scope**, whether the exclusion binds a *baseline ranker* as well
-as a governed signal — and names both what settles it (the lens record behind the annotation) and where
-the answer belongs (`research/families/form/validate/evidence.yaml`).
+**Closed 2026-08-23. The exclusion does not bind a baseline ranker.** This section formerly read that
+the verdict was carried forward unresolved and blocked F3, and through it the floor set §0.13
+determines. It is superseded in place rather than deleted, so the reasoning that closed it is on the
+record and the routing stays legible.
 
-Whichever way it lands, it governs whether F3 exists (§0.12). `INVENTORY.md` §3.7 records the same
-divergence from the other side: `assert_no_future_leakage` requires the column the mart excludes, so the
-guard and the mart contract cannot both stay as they are. Carried forward unresolved; blocks F3, and
-through it the floor set §0.13 determines (§5.1.1).
+**What was asked.** `METRIC.md` §5.2 stated what was actually unsettled — not the absence of
+`points_roll3` from the governed mart but its **scope**, whether the exclusion binds a *baseline
+ranker* as well as a governed signal — and named the lens record behind the annotation as what settles
+it. An `INVENTORY.md` §2.1 pass read that record. This section reads §2.1.
+
+**The answer, in one sentence.** The exclusion is a **mart-membership and governed-signal rule** — it
+governs which columns the feat layer materialises and which signals may enter synthesis — and it is
+written throughout **with its scope attached**, leaving the naive-evaluation-baseline role not merely
+open but mandatory. F3 occupies that role.
+
+**The four facts it rests on, each cited to `INVENTORY.md` §2.1.**
+
+1. **The rule is scoped in its own text, every time it is stated.**
+   `docs/foundations/representation-rules.md` §8's family rule rejects the rolling mean of
+   `total_points` **"as a primary representation"** and, in the same paragraph, records the lag-1
+   value as *"the standard naive baseline used in evaluation comparisons (G-EDA7-02), **not an
+   operational representation**"*. Its table qualifies all four rows the same way — *"as naive
+   baseline only"*, *"as evaluation baseline … **not a feature**"*, *"as primary representation …
+   excluded regardless of naive rho"*. Not one row excludes the statistic; each excludes a **use** of
+   it, and names the use.
+2. **The role F3 occupies is mandatory, not merely tolerated.**
+   `research/families/form/LENS_DESIGN.md:33–34` registers `points_roll3` as FORM-004 and
+   `points_roll5` as FORM-005 with one basis each: *"Mandatory naive baseline per EVAL_DESIGN.md §6
+   (G-EDA7-02)."* A rule cannot both mandate a statistic as an evaluation baseline and forbid its
+   computation for use as one.
+3. **The repository already does the excluded-from-the-mart, derived-for-the-baseline thing, and
+   ADR-010 ratifies it.** The form study computes both columns locally
+   (`study.py:342–350`) under a comment naming them NAIVE_BASELINES and stating they are *"deliberately
+   not materialised in the governed DAL mart"*; ADR-010 (`:185–188`) records that derivation as the
+   **resolution** of a study↔DAL drift, not a violation of the exclusion. `study.py:367–372` then
+   computes the naive baseline rho from `points_roll3` at all four positions irrespective of that
+   signal's own `decision_class`.
+4. **The enforcement's boundary matches that scope exactly.**
+   `tests/test_state_architecture.py` asserts the two columns are absent from
+   `build_player_gameweek_state`'s **output columns** and asserts nothing else about them, while nine
+   other test files construct `points_roll3`/`points_roll5` as supplied columns on their own frames
+   without objection — one of them ranking players on `points_roll3` directly. The rule is enforced
+   at the mart boundary and nowhere else.
+
+**What the judgement record calls the thing being excluded.**
+`research/families/form/validate/annotations.yaml` sets `leakage_risk: evaluation_circularity` on both
+columns at all four positions, and its `points_roll5`-at-MID entry is the only one naming what they
+are excluded *from*: *"retained only as naive evaluation baseline — **excluded as synthesis
+candidate** to prevent evaluation circularity contaminating SYNTH-01."* Synthesis candidacy is the
+boundary. This harness proposes no synthesis candidate.
+
+**The reading this closure rejects, stated so it is not re-proposed.** §0.12 sets it out: F3 ranks on
+a lagged `total_points` and regret is measured on realised `total_points`, so F3 is circular in
+precisely the sense `representation-rules.md` §8 names. It is — and so is every naive baseline the
+same document mandates, which is why that reading proves too much. What the record distinguishes is
+not circular from non-circular but **advanced as a representation** from **held up as a floor**.
+
+**Two things this closure does not touch.**
+
+- **`INVENTORY.md` §3.7's divergence stays open, and it was never this slice's.** §3.7 records that
+  `assert_no_future_leakage` requires `points_roll3` and that `operational/backtest.py` is therefore
+  unrunnable against the governed mart. That guard sits at `model/eval/decision/backtest.py:59`
+  and `:137`, and reaches this slice not at all: `harness.py` is Tier A (§3.5) with an import closure
+  of `dal/`, `domain/`, `formations.py`, stdlib, numpy and pandas, and `rankers.py` is Tier B and may
+  import `model/` but is not required to, and does not, adopt the guard. **This harness does not adopt
+  `assert_no_future_leakage`** — already decided at §6.2 and §8.2, on the ground that the guard fails
+  closed against the very data this harness reads. *(`METRIC.md`'s Provenance lists that direction
+  among the implementation direction that left that document and notes it is "recorded elsewhere yet"
+  — nowhere. It is recorded, twice, in the two sections just named; that Provenance note is stale,
+  and correcting it is a `METRIC.md` pass.)* The guard and the mart contract still cannot both stay as
+  they are; that is a fix owed on the operational path, not here.
+- **The record's own defects, which are outside this folder.** `INVENTORY.md` §2.1 records that the
+  `annotations.yaml` entry for `points_roll5` at MID asserts a gate outcome its own `evidence.yaml`
+  does not carry, quoting a different signal's rho. It does not bear on this closure — the scope
+  question turns on no single rho — but it is a third instance of the defect class
+  `docs/PROJECT.md:470` already logs twice, and it is not fixed here.
+
+**The knock-on §9.1 previously carried, worked through.** This section said the verdict blocked "the
+floor set §0.13 determines". Under the closure the pre-registered set is unchanged at F1, F2 and F3,
+so nothing downstream moves: §0.13 elects the floor **per comparison** from whichever rankers are
+involved, §7.2's T3 stores `floor_ranker` as a comparison-level column for that reason, and §0.15's
+S3 is fixed at 10% **of whatever the elected floor's own mean regret turns out to be**. No section
+names a ranker as the floor, so no section could have gone stale on this. Had the verdict gone the
+other way, what would have changed is §0.12's membership and §0.13's candidate pool — the shape of
+§0.15's bar, and its 10% level, would have been untouched either way. Provenance records this, because
+the pass that closed the gate was briefed on the contrary understanding.
 
 ### 9.2 The bench-order scoring rule — closed, and what it left open
 
@@ -3955,7 +4071,8 @@ at the moment it matters, and the artefact §7 specifies carries no trace of it.
 
 ### 10.9 What §10 does not decide
 
-- **The `points_roll3` governance verdict** — §9.1.
+- ~~**The `points_roll3` governance verdict**~~ — **closed at §9.1**; it does not bind, and §10 is
+  unaffected either way.
 - **P4's "mean signed directional error"** — §7.9.
 - **The uncertainty *treatment* on the bench-ordering sample** — §4.11, §9.2. *Narrowed by §10.10.
   `METRIC.md` §6.4.7's third bullet routed one half of this here — whether this module's contract
@@ -4453,3 +4570,46 @@ design document to carry a capabilities table. This document does not carry one,
 file-purpose charter governing this folder specifies that `DESIGN.md` is pure prose reasoning with no
 label or verdict tables of its own. The two rules conflict; the charter is followed here and the
 conflict is flagged for a human rather than resolved by this document.
+
+**The `points_roll3` gate, closed (2026-08-23) — and the corrections the pass turned up.**
+§9.1 carries the closure and its reasoning. Four things belong here rather than there.
+
+1. **A disagreement with the brief that directed the pass, recorded so it is not re-proposed.** The
+   pass was briefed on the understanding that §9.1's knock-on was §0.15's threshold — that losing F3
+   would change which ranker is the floor, which would change the bar, and that §0.15 must not be
+   left "pointing at a ranker that no longer holds that role". **§0.15 points at no ranker and never
+   did.** §0.13 selects `METRIC.md` §5.3's first option, which makes the floor **whichever naive
+   ranker carries the lowest mean regret, re-determined per comparison**; §0.15's S3 is 10% of *that*
+   ranker's own mean regret, whichever it turns out to be; and §7.2's T3 carries `floor_ranker` as a
+   comparison-level column precisely because the identity is an output rather than a constant. §9.1's
+   own text named the floor **set** §0.13 determines, not §0.15's threshold. The distinction matters
+   beyond this instance: it is the property that makes the bar robust to changes in the floor set,
+   and a pass that "fixed" §0.15 to name a ranker would have destroyed it. Nothing was changed in
+   §0.15 or §0.13.
+2. **A second cross-reference corrected in passing.** §8.2's `assert_no_future_leakage` paragraph
+   cited `INVENTORY.md` **§5.7**, which does not exist; the claim is §3.7's, worded identically at
+   §6.2 four hundred lines earlier. Corrected. It is unrelated to the gate and was found only because
+   the closure had to establish where that guard reaches — recorded rather than fixed silently.
+3. **A citation error corrected at source, with three copies.** `INVENTORY.md` §2.1 had the
+   annotation at `dal/feat/feat_player_gameweek.py:16–22`; it is at `:94–96`, and `:16–22` is the
+   bare `_ROLL_COLS` list with no comment on it. §9.1 here and `METRIC.md` §5.2 both carried the
+   citation, having taken it from `INVENTORY.md`. All three are now correct. Recorded because the
+   three copies were not independent evidence of the line range, and reading any two of them would
+   have looked like corroboration.
+4. **A charter point this pass had to observe, and one it had to route.** The verdict is a
+   *selection* and so is this document's; the record it rests on is *repository fact* and so is
+   `INVENTORY.md`'s. §9.1 accordingly cites §2.1 for all four supporting facts and asserts none of
+   them first-hand, which required an `INVENTORY.md` pass to run first. The one thing this document
+   states first-hand is where the `assert_no_future_leakage` guard does and does not reach in the
+   slice's own tier structure — a property of the design, not of the repository — and §9.1 states it
+   by pointing at §6.2 and §8.2, which had already decided it, rather than deciding it afresh. **No
+   new `INVENTORY.md` gap was opened**, so §11's list is unchanged. One item is routed out:
+   `METRIC.md`'s Provenance still records "this harness must not adopt `assert_no_future_leakage`" as
+   direction with no home elsewhere, which §6.2 and §8.2 falsify. That is a `METRIC.md` correction and
+   this document does not make it.
+
+**What the closure did not change.** No metric, no threshold, no window, no population, no module
+boundary. §0.12's set membership is what it already was; §6.4's construction is what it already was,
+and §6.4 now records why the closure makes it the only admissible one rather than merely a valid one.
+The `pyproject.toml` and `.importlinter` edits §3.9 names, and `domain/fpl_squad.py` (§3.5), are
+unaffected.

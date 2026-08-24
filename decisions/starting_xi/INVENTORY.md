@@ -15,6 +15,15 @@ all in §2.5, all verified against the same mart.** Targeted tests were executed
 than assumed from the presence of a test file. Where a claim could not be verified it is
 listed in §3, not softened into a finding.
 
+**A further pass (2026-08-23) rewrote §2.1's `points_roll3` entry.** It was prompted by `DESIGN.md`
+§9.1, which needed the scope of the feat-layer exclusion and could not assert it first-hand. Three
+things changed. The annotation's citation was **corrected** — it is at
+`dal/feat/feat_player_gameweek.py:94–96`, not the `:16–22` an earlier pass recorded, and `:16–22`
+carries no comment at all. The five committed files that state the rule the annotation abbreviates
+are now quoted rather than summarised. And the boundary the exclusion is enforced over — STATE output
+columns — is recorded with the search that establishes it. No verdict is stated here; `DESIGN.md`
+§0.12 and §9.1 draw one from these facts.
+
 ---
 
 ## 1. Summary table
@@ -74,10 +83,98 @@ The statistic it returns is therefore determined by the frame the caller supplie
 statistic behind `mart[(mart["minutes"] > 0) & (~mart["is_dgw"])]`. That filter drops rows for a
 player with no fixture; `METRIC.md` §6 keeps such a player selectable at 0 points.
 
-**`points_roll3`.** There is **no `points_roll3` on the governed mart** — the
-feat layer excludes `total_points` from `_ROLL_COLS` by lens decision
-(`dal/feat/feat_player_gameweek.py:16–22`, "removed by lens evaluation (evaluation_circularity
-or G2-FAIL)"). Verified: the mart's 64 columns contain no `points_roll*`. The one helper in the
+**`points_roll3` and `points_roll5`.** There is **no `points_roll3` and no `points_roll5` on the
+governed mart** — the feat layer excludes `total_points` from `_ROLL_COLS`. Verified: the mart's 64
+columns contain no `points_roll*`.
+
+**The annotation is at `dal/feat/feat_player_gameweek.py:94–96`, not `:16–22`.** `:16–22` is the bare
+five-element `_ROLL_COLS` list — `minutes`, `xgi`, `xgc`, `clean_sheets`, `goals_conceded` — and carries
+no comment of any kind. The annotation sits above the rolling loop inside
+`build_player_gameweek_state` and reads in full: *"Excluded cols (total_points, xg, goals_scored,
+assists, saves, penalties_saved, bonus, bps): removed by lens evaluation (evaluation_circularity or
+G2-FAIL)."* It covers **eight** columns on **disjunctive** grounds and does not say which ground
+applies to which column. *(An earlier pass of this document cited `:16–22`. `DESIGN.md` §9.1 and
+`METRIC.md` §5.2 repeat that citation from here; repointing them is each document's own pass.)*
+
+**The rule the annotation abbreviates, quoted from the five committed files that carry it.**
+
+- **`docs/foundations/representation-rules.md` §8, "Outcome family".** The family rule (`:413–417`):
+  *"`total_points` is the analysis target. Using its rolling mean **as a primary representation** is
+  analytically circular — the model would be using lagged target values to characterise the target.
+  The lag-1 raw value is the standard naive baseline used in evaluation comparisons (G-EDA7-02), **not
+  an operational representation**. Rolling mean of total_points **as a primary representation** is
+  REJECTED at all positions."* Its four-row table (`:425–428`) qualifies every row the same way:
+  `total_points_lag1 (raw)` — *"APPROVED as naive baseline only … not an operational
+  representation"*; `total_points_roll5 at MID` — *"CONDITIONAL **as evaluation baseline** …
+  position-conditional baseline, **not a feature**"*; `total_points_roll3` — *"REJECTED-BEHAVIORAL …
+  uninformative or unstable at all positions"*; `total_points rolling mean **as primary
+  representation**` — *"REJECTED-BEHAVIORAL … excluded regardless of naive rho"*. *(This file has
+  uncommitted working-tree edits at `:28–31` only; the cited lines are unchanged from HEAD but sit
+  two lines lower than their committed positions.)*
+- **`research/families/form/LENS_DESIGN.md:33–34`** registers `points_roll3` (FORM-004) and
+  `points_roll5` (FORM-005) with one basis each: *"**Mandatory naive baseline** per EVAL_DESIGN.md §6
+  (G-EDA7-02)."* `:171–176` states the gate that consumes them — every other signal's rho is compared
+  against FORM-004 or FORM-005, and *"The naive baseline gate is not a disqualifying gate; it is a
+  context gate."*
+- **`research/families/form/validate/study.py:55–57`:** *"points_roll3/5 are included only as a
+  bar-to-beat, not as governed signals."* `:342–350` derives both locally rather than reading them:
+  *"Derive evaluation-only features. These are deliberately not materialised in the governed DAL mart
+  (ADR-010): points_roll3/5 are NAIVE_BASELINES (bar-to-beat only) … Research derives them here using
+  the DAL's exact lag-1 convention: shift(1).rolling(N).mean() so that GW N uses only GWs 1..N-1, with
+  no future leakage."* The call at `:347–350` passes `min_periods=1`. `:367–372` computes
+  `naive_rho_by_position` from `points_roll3` at all four positions irrespective of that signal's own
+  verdict.
+- **`research/families/form/validate/annotations.yaml:71–115`** sets `leakage_risk:
+  evaluation_circularity` on `points_roll3` and `points_roll5` at all four positions. `:104–110`
+  (`points_roll5` at MID) is the only entry that names what the exclusion excludes *from*: *"retained
+  only as naive evaluation baseline — **excluded as synthesis candidate** to prevent evaluation
+  circularity contaminating SYNTH-01."*
+- **`docs/decisions/010-layered-decision-model.md:185–188`** records the derive-locally pattern as the
+  **resolution** of a study↔DAL drift rather than a violation of it: *"The form study referenced
+  points_roll3/5 + goals_scored_roll3, which the governed mart deliberately does not materialize
+  (blocked naive baselines / excluded signals …). The study now derives them locally with the DAL's
+  lag-1 convention (shift(1).rolling(N).mean()), mirroring how the other studies already derive their
+  targets."*
+
+**Where the exclusion is code-enforced, and over what.** `tests/test_state_architecture.py:182–208`
+lists `points_roll3` and `points_roll5` among 16 `_REJECTED_BEHAVIORAL` columns, annotated
+*"Analytically circular (target rolling mean) — LENS-FORM FORM-004/005"* (`:204`).
+`test_rejected_behavioral_columns_absent` (`:210–227`) asserts they are absent from
+`build_player_gameweek_state`'s **output columns**, and `:229` parametrises the same list over the
+same output. `tests/test_state_architecture.py` is unmodified in the working tree.
+
+**What the rest of the test suite does with the same two columns.** A grep of `points_roll` across
+`tests/` returns 9 further files. Seven of them **construct `points_roll3` and/or `points_roll5` as
+supplied columns on synthetic frames** and assert on the result — `test_evaluation_features.py:31–54`
+and `:216–241`, `test_evaluation_core.py:40–68` and `:235–274`, `test_intelligence_outputs.py:38–115`,
+`test_rolling_xgi_study.py:60–62`, `test_minutes_stability_study.py:44` and `:85–95`,
+`test_decision_backtest.py:32`, `test_operational_backtest.py:28`. `test_evaluation_core.py:254`
+(`test_orders_by_points_roll3_descending`) ranks players on `points_roll3` directly. Nothing in the
+suite objects to a frame carrying the column; what is asserted is only that
+`build_player_gameweek_state` does not emit it.
+
+**The verdict is separately frozen in code.** `tests/test_evidence_verdict_freeze.py:83–90` pins
+`decision_class: uninformative` for `points_roll3` and `points_roll5` at all four positions, under a
+`FORM_EXPECTED_VERDICTS` header (`:71–73`) reading *"Study-emitted decision_class (machine half).
+Note: annotations.yaml may override some uninformative entries to informative in
+evaluation_metadata.yaml."* This file has uncommitted working-tree edits at `:102`, `:195` and
+`:219–225`; the cited lines are unchanged from HEAD.
+
+**What the named verdict-of-record contains.** `research/families/form/validate/evidence.yaml:65–114`
+records `decision_class: uninformative` for `points_roll3` and `points_roll5` at all four positions,
+`rho_pooled` ranging 0.0906–0.1529. Its per-(signal, position) fields are `rho_pooled`,
+`rho_ci_lower`, `rho_ci_upper`, `block_stability_count` and `decision_class`. It carries no field
+expressing a scope, membership or applicability rule.
+
+**One internal inconsistency inside that record.** `annotations.yaml:106–107` states that
+`points_roll5` at MID *"passes all gates at MID (rho=0.158, 3/3 blocks)"*. `evidence.yaml:103–108`
+records `points_roll5` MID at `rho_pooled: 0.1529` with `decision_class: uninformative`, and `0.158`
+is `xgi_roll5` MID's `rho_pooled` (`evidence.yaml:35`). The annotation therefore quotes a different
+signal's rho and asserts a gate outcome its own evidence file does not carry. `docs/PROJECT.md:470`
+logs two instances of this defect class (`minutes_roll8@DEF`, `xgi_roll5@DEF`) as open; this third
+one is not among them. Both files sit outside `decisions/starting_xi/` and are not changed here.
+
+**The materialisation helper.** The one helper in the
 repository that materialises a rolling window of an arbitrary mart column is
 `model/features/build.py:37 add_lagged_rolls`, guarded by the `assert_lag_safe` property
 (`build.py:190`: a strictly-prior feature must be NaN on each player's first appearance).

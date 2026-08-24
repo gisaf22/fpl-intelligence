@@ -744,29 +744,56 @@ beating F2 demonstrates little about a method — is **decision-domain reasoning
 behaviour**, and `DECISION.md` is its proper home. It is recorded there, in `DECISION.md` §1
 ("A note on what a naive comparison proves").
 
-### 5.2 One requirement that is not yet satisfied — F3 and F4
+### 5.2 The requirement F3 and F4 carry — measured, and what it constrains
 
-`INVENTORY.md` §2.1 records that **no `points_roll3` exists on the governed mart**: the feat layer
-omits `total_points` from its rolling set, annotated as removed by lens evaluation for evaluation
-circularity or G2-FAIL.
+*This section formerly read "One requirement that is not yet satisfied". The requirement has since
+been measured against the record, by an `INVENTORY.md` §2.1 pass. The question it posed is unchanged
+and is restated below; what changed is that the record now answers it. Selecting F3 on that answer is
+`DESIGN.md`'s (§0.12) and is not done here. The withdrawn "where an answer would be recorded" claim
+is in Provenance with its reason.*
 
-**What is unsettled is not the absence but its scope** — whether that exclusion is a governance
+`INVENTORY.md` §2.1 records that **no `points_roll3` and no `points_roll5` exist on the governed
+mart**: the feat layer omits `total_points` from its rolling set, under an annotation at
+`dal/feat/feat_player_gameweek.py:94–96` covering eight columns on the disjunctive grounds
+"evaluation_circularity or G2-FAIL".
+
+**What was unsettled was not the absence but its scope** — whether that exclusion is a governance
 decision that also binds a *baseline ranker*, or an omission specific to the signal registry's
 purposes. The circularity concern was about a governed signal predicting a target derived from
-itself, which is not what a baseline ranker does; but that argument has to be made and accepted
+itself, which is not what a baseline ranker does; but that argument had to be made and accepted
 rather than assumed.
 
 | | |
 |---|---|
 | **Question** | Does the governed mart's exclusion of `points_roll3` bind a baseline ranker in this harness? |
 | **What settles it** | The lens record behind the annotation on `_ROLL_COLS` in `dal/feat/feat_player_gameweek.py`. Reading the record is the whole task |
-| **Where an answer would be recorded** | A governance verdict belongs in `research/families/form/validate/evidence.yaml`, the durable verdict-of-record |
-| **Status** | Open. F3 and F4 are **speculative until it is answered** — not because the statistic is hard to compute, but because whether it may be computed here is undetermined |
+| **Where the answer already sits** | Not in a single file. `INVENTORY.md` §2.1 measures the rule as carried across five committed files, each stating the exclusion **with its scope attached** — `docs/foundations/representation-rules.md` §8, `research/families/form/LENS_DESIGN.md`, the form study, its `annotations.yaml`, and ADR-010 |
+| **Status** | **Measured.** `INVENTORY.md` §2.1 records what each of the five says. F3 and F4 are no longer speculative on this ground; whether either is *selected* is `DESIGN.md` §0.12's |
+
+**The property this fixes for both candidates, and it is a construction constraint rather than a
+permission.** Whatever `DESIGN.md` selects, `INVENTORY.md` §2.1 measures that no mart column exists
+to read and that the enforcement is over `build_player_gameweek_state`'s **output columns**. So F3
+and F4 are candidates whose statistic must be **derived by the consumer over a population the
+consumer supplies** — which makes the population a metric-affecting choice rather than an
+implementation detail, since the same statistic over appearances and over gameweeks elapsed are
+different numbers. §2.6 and §3 characterise the denominator candidates; the choice between them is
+`DESIGN.md`'s.
+
+**A second property, which distinguishes F3 and F4 from each other on this axis and did not before.**
+`INVENTORY.md` §2.1 records `docs/foundations/representation-rules.md` §8 carrying two different
+statuses: `total_points_roll3` is REJECTED-BEHAVIORAL outright, while `total_points_roll5 at MID` is
+CONDITIONAL "as evaluation baseline … not a feature". Both rows are about *feature* status and
+neither is about floor-ranker use, so neither ranks the two candidates for this harness. It is
+recorded because a reader meeting the two rows out of context could take the roll5 row as the more
+permissive one and prefer F4 on that basis, which would not follow.
 
 **The same divergence has been observed from the other side.** `INVENTORY.md` §3.7 records that
 `assert_no_future_leakage` requires `points_roll3` and that the existing decision-backtest path is
-unrunnable against the governed mart for that reason. Whichever way the question is answered, the
-guard and the mart contract cannot both stay as they are.
+unrunnable against the governed mart for that reason. That divergence is **not resolved** by the
+measurement above: it is a property of `model/eval/decision/backtest.py`'s path, and the guard and
+the mart contract still cannot both stay as they are. Whether *this* harness adopts that guard is a
+separate question and `DESIGN.md`'s — Provenance already records it as implementation direction that
+left this document.
 
 ### 5.3 Candidate ways to determine the floor from the naive rankers
 
@@ -1029,8 +1056,10 @@ are **not settled anywhere**, and `DESIGN.md`'s own pass must select and justify
 | 15 | Which success conditions, and any threshold | §6.3 |
 | 16 | The population, and the choices inside it | §7 |
 
-Two of these are **blocked on something outside `DESIGN.md`**: #12 depends on the `points_roll3`
-governance question (§5.2), and #10 has no candidate to select from.
+**Two of these were formerly blocked on something outside `DESIGN.md`; neither is now.** #12 depended
+on the `points_roll3` governance question, which §5.2 records as **measured** — the record answers it,
+and `DESIGN.md` §9.1 draws the verdict. #10 had no candidate to select from until §4.3 characterised
+O1–O5.
 
 ---
 
@@ -1169,3 +1198,28 @@ unmeasured quantity there would misrepresent what the appendix contains.
 **What was not reconciled.** §0.4 records that `DECISION.md` §1 already commits to a cost model this
 document is no longer permitted to select. That is a live inconsistency between two documents in
 this folder, and it is recorded rather than resolved.
+
+**One claim withdrawn from §5.2 on a pass prompted by `DESIGN.md` §9.1 (2026-08-23).** §5.2's
+requirement table carried a row reading: *"Where an answer would be recorded — A governance verdict
+belongs in `research/families/form/validate/evidence.yaml`, the durable verdict-of-record."* **That
+is withdrawn**, and the reason is a property of the file rather than a change of view about where
+governance verdicts belong. `INVENTORY.md` §2.1 now measures `evidence.yaml`'s per-(signal, position)
+fields as `rho_pooled`, `rho_ci_lower`, `rho_ci_upper`, `block_stability_count` and `decision_class`,
+with **no field expressing a scope, membership or applicability rule**. The question §5.2 poses is
+about the *scope* of an exclusion, so the named file could not have carried the answer in any form.
+The row is replaced by one recording where the answer actually sits — distributed across five
+committed files, each stating the exclusion with its scope attached, per `INVENTORY.md` §2.1. The
+withdrawal selects nothing; it replaces a wrong property statement about a file with a correct one.
+
+**A second correction in the same pass, inherited rather than originated here.** §5.2 cited the
+annotation at `dal/feat/feat_player_gameweek.py:16–22`. It is at `:94–96`; `:16–22` is the bare
+`_ROLL_COLS` list and carries no comment. The citation came from `INVENTORY.md` §2.1, which has
+corrected it at source, and §5.2 now cites the corrected line range. Recorded because `DESIGN.md`
+§9.1 carried the same inherited citation and needed the same correction — one error, three copies,
+and the copies are not independent evidence of anything.
+
+**What this pass did not do.** It did not select F3, did not describe F4 as having lost, and did not
+convert the measured requirement into a verdict. §5.2's status line reads *measured*, which is a
+property of the candidates; whether either is built is `DESIGN.md` §0.12's, and this document has not
+written to it. It also took no measurement of its own — every fact in the rewritten §5.2 is cited to
+`INVENTORY.md` §2.1 or §3.7 — so Appendix A is unchanged.

@@ -222,6 +222,19 @@ The paired resampling scheme underlying step 2's tests, and the gameweek populat
 over, are §3's, not this section's. This rule is stated in terms of "the qualifying gameweek set"
 without yet fixing what that set is.
 
+**Recorded, since this section was written: the three tests do not share an identical sample
+size.** §2.1 above is written as though all three paired tests draw on the same qualifying
+gameweek set. They do not. Per §3.3's measured warm-up finding, the C1-vs-C3 comparison is a
+guaranteed zero at GW2–GW4 — the recent-form and season-PPG signals are collinear there — so that
+series runs on an effective **n = 29**, while C1-vs-C2 and C2-vs-C3 run on the full **n = 32**.
+The consequence is that the three legs of the conjunctive rule carry unequal statistical power: a
+marginal result on the C1-vs-C3 leg rests on three fewer informative gameweeks and is therefore
+weaker evidence than an equally-marginal result on either of the other two. Any report of the
+verdict must state the per-leg n alongside the per-leg test result rather than leave the asymmetry
+implicit in a single boolean. Nothing in §2.1 changes: the conjunctive requirement, the
+Holm–Bonferroni correction, the family-wise α = 0.05 and the one-sided framing all stand. This
+note records a property of the data the rule runs on, not a revision of the rule.
+
 ---
 
 ## 3. Gameweek population and sample size

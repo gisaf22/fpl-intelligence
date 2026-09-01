@@ -309,3 +309,68 @@ No file besides this one was created, moved, or edited. `orderings.py`, `harness
 `decisions/free_hit/DESIGN.md` does not exist yet and nothing here proposes its content, a sampling
 scheme, a value-signal proxy, a primitive's home, or an import strategy — each place a judgment call
 was reachable, it is named and left to `DESIGN.md` rather than made here.
+
+---
+
+## Addendum (2026-09-01): top-10k-average reference figure
+
+Not one of `DECISION.md` §7's original four questions; added because `METRIC.md` §4.2 flags the
+top-10k-average figure as an open inventory gap distinct from the overall-average figure (confirmed
+present via `events.average_entry_score` in §2 above) — `METRIC.md` §4.2's own words: *"Its existence
+and source are not addressed by either source document... `INVENTORY.md` must be extended to check
+for this before a report can include it."* This addendum does that check only; it does not revisit
+or re-verify §1–§4 above.
+
+**Mart** (`~/.fpl/fpl.mart.parquet`, read via the project venv's `pyarrow`, 64 columns total): no
+column name contains `top`, `10k`, `percentile`, or any rank-threshold-like term. Full column list
+checked: `player_id, gw, player_name, position_code, position_label, team_id, purchase_price,
+ownership_count, transfers_in, total_points, minutes, goals_scored, assists, clean_sheets,
+yellow_cards, red_cards, saves, bonus, bps, goals_conceded, xg, xa, xgi, xgc, fdr_avg, fixture_count,
+is_bgw, is_dgw, home_count, away_count, was_home, starts, penalties_saved, own_goals,
+penalties_missed, tackles, clearances_blocks_interceptions, recoveries, defensive_contribution,
+influence, creativity, threat, ict_index, transfers_out, deadline_time, finished, is_previous,
+is_live, is_next, minutes_roll3/5/8, xgi_roll3/5, xgc_roll3/5, clean_sheets_roll3/5,
+goals_conceded_roll3/5, fixture_context, minutes_trend, is_warmup_gw, position`. All player-grain;
+no manager-aggregate column of any kind exists on the mart, not just no top-10k one.
+
+**Raw sqlite (`~/.fpl/fpl.db`), `events` table — full column list:** `id, name, deadline_time,
+deadline_time_epoch, deadline_time_game_offset, release_time, released, average_entry_score,
+highest_score, highest_scoring_entry, ranked_count, finished, data_checked, is_previous, is_current,
+is_next, can_enter, can_manage, cup_leagues_created, h2h_ko_matches_created, most_selected,
+most_transferred_in, most_captained, most_vice_captained, top_element, top_element_points,
+transfers_made, chip_plays_json, ingested_at`. No top-10k or percentile column. Note:
+`top_element`/`top_element_points` name the single highest-scoring *player* of the gameweek — an
+unrelated concept to a top-10k-*managers* average, worth flagging only because the name invites
+confusion. The DB's full table list (`_runs, sqlite_sequence, _metadata, players, teams, fixtures,
+fixture_stats, gameweeks, player_histories, events, element_types, _stage_lineage`) has no
+leagues/standings/manager-aggregate table of any kind.
+
+**`fpl-ingest` extraction stages** (`bootstrap.py`, `event_status.py`, `element_summary.py`,
+`gameweeks.py`, `fixtures.py`): grepped for `top.?10k`, `top_10k`, `top10k`, `percentile`,
+`top.?ten.?thousand` (case-insensitive) — zero matches in code or comments across all five files.
+Separately grepped the whole `extract/` tree for `leagues-classic`, `leagues_classic`, `standings`,
+`entry/` — zero matches. This is the only live FPL API surface (the classic-league "Overall"
+standings endpoint, paginated to rank ≈10,000) publicly known to make a top-10k figure derivable at
+all; the pipeline never calls it.
+
+**Raw JSON payloads** (`~/.fpl/raw/bootstrap.json`, `~/.fpl/raw/gw_1.json`): `bootstrap.json`'s
+`events[]` objects carry the same field set as the sqlite `events` table (`average_entry_score`,
+`highest_score`, `top_element`, `top_element_info`, no top-10k/percentile field). `gw_1.json` is
+`{"elements": [...]}`, player-grain only, no manager-aggregate fields. One genuine near-hit on a
+literal grep for `10k`/`percentile`: `game_settings.percentile_ranks` and (duplicated)
+`game_config.rules.percentile_ranks`, each `[1, 5, 10, 15, ..., 95]` — this is FPL's static UI
+percentile-bucket configuration (the boundaries the app buckets a manager's rank into for display),
+not a computed score/average at any percentile. It is a false positive for this question, not a
+partial answer, and is named here only so it isn't rediscovered and misread as the target figure in
+a future pass.
+
+**Conclusion: PARTIALLY RESOLVED.** No top-10k-average figure, or any manager-aggregate figure
+besides `average_entry_score`/`highest_score`, exists anywhere in this repository's ingested data —
+mart, raw sqlite, or raw JSON — confirmed absent at all three layers. This is not the same as
+"doesn't exist at all": per public FPL API documentation/community knowledge (not independently
+re-verified against the live API in this pass, since only already-ingested artifacts were checked),
+a top-10k-average figure is derivable from the classic-league "Overall" standings endpoint by reading
+the entry at rank ≈10,000 — a real, separate live API surface from anything `fpl-ingest` currently
+calls, not a single ready-made field the way `average_entry_score` is. Whether to add that endpoint
+to the ingest pipeline is a future `INVENTORY`/`DESIGN` question and is explicitly not addressed
+here.

@@ -308,6 +308,55 @@ must be confirmed — likely by `DESIGN.md`, against Free Hit's own mart facts r
 over starting_xi's separately-measured warm-up figures — before the qualifying set in §3.2 has a
 final count under either DGW/BGW reading.
 
+**Resolved, since this section was written: GW1 is excluded, on a measured degeneracy rather than
+on the precautionary grounds this section anticipated.** The question above asks *where* each
+baseline's as-of statistic first becomes well-defined. Measured against the live mart, through
+`candidates.py`'s own `shift(1)`-lagged derivations:
+
+- **Season-PPG (C1) and value (C2) are undefined at GW1 and well-defined from GW2.** `shift(1)`
+  has no prior row at the season's first gameweek, so all 690 GW1 candidates carry NaN on all
+  three signals.
+- **Recent-form PPG (C3) is *defined* from GW2 but not *distinct* until GW5.** With
+  `candidates.RECENT_FORM_WINDOW == 3`, C3's `shift(1).rolling(3, min_periods=1)` window spans
+  exactly the same prior gameweeks as C1's `shift(1).expanding()` while fewer than four gameweeks
+  have elapsed: `recent_form_ppg == season_ppg` for every candidate at GW2 (705/705), GW3
+  (712/712) and GW4 (740/740), first diverging at GW5 (382/741). “Thin”, as this section put it,
+  understates it — at GW2–GW4 the recent-form baseline is not a thin version of a different
+  signal, it *is* the season-PPG signal.
+
+**GW1 is excluded because it is a guaranteed-zero, zero-variance observation, not a weak one.**
+With every signal NaN, the greedy fill falls through to its ascending-`player_id` tie-break
+(`candidates._sort_key`), so C1, C2 and C3 return the identical 15-player squad and every pairwise
+`ConstructionRegret_{C,B}(1)` in §1.3 is exactly 0 by construction, before any outcome is observed.
+§3.1's paired bootstrap resamples the gameweek panel; an observation that is zero with zero
+variance in every resample is not an observation the bootstrap can learn from, and carrying it
+narrows §2's intervals toward a difference the design never had the power to detect. The same
+degeneracy also disqualifies GW1 from §2's eventual candidate-vs-baseline tests for a second
+reason: a squad chosen by ascending player id is not the naive baseline `DECISION.md` §4 defines,
+so a GW1 observation would not measure the comparison §2's verdict rule claims to make.
+`gameweek_population.WARM_UP_EXCLUDED` carries the exclusion; the qualifying set is **32
+gameweeks**, §3.2's 33 less GW1. Measured effect on the three mean pairwise construction-regret
+series: +7.97 / +4.94 / −3.03 with GW1, +8.22 / +5.09 / −3.13 without (C1−C2, C1−C3, C2−C3).
+
+**GW2–GW4 are *not* excluded, and this is a constraint on reading §1.3's series rather than a
+second exclusion.** The C1/C3 collinearity above makes `ConstructionRegret_{C1,C3}(g)` a
+guaranteed zero at GW2, GW3 and GW4 too — but pair-scoped, not global: those three gameweeks carry
+real, differing signal for C1-vs-C2 and C2-vs-C3, and dropping 3 of 32 gameweeks from two
+informative comparisons to repair a third is a worse trade than recording the defect. Two
+consequences follow for §2, and are recorded here rather than acted on:
+
+1. **The C1-vs-C3 series has an effective n of 29, not 32**, for any interval computed on it.
+2. **§2's conjunctive rule is not three independent tests at GW2–GW4.** A candidate's comparison
+   against C1 and its comparison against C3 are the *same* comparison in those weeks, so “beats
+   all three baselines” is a two-baseline claim there. This does not weaken §2.2's argument for
+   conjunctive-over-best-of-three — the rule remains strictly harder to satisfy than
+   best-of-three — but it removes the third test's independent contribution in three of the 32
+   weeks, and §2's power calculation, when one is done, must use 29 for that pair.
+
+This resolution closes §3.3's question for the three baselines `DECISION.md` §4 defines. A future
+candidate with a different as-of statistic re-opens it for that statistic alone: the axis is
+per-signal, and nothing here licenses assuming any new signal is well-defined from GW2.
+
 ---
 
 ## 4. Budget and external-reference handling
@@ -382,8 +431,12 @@ Consolidated from above, each already flagged in place:
    §3.2. A one-gameweek population would have made this document's statistical machinery inoperable
    for v1's single season; `DESIGN.md` §2 has since adopted the club-schedule-level definition,
    yielding 33 of 38 qualifying gameweeks, which satisfies §3.2's non-degenerate-interval condition.
-3. Where each baseline's as-of statistic first becomes well-defined within Free Hit's own GW1–38
-   range — §3.3.
+3. **Resolved.** Where each baseline's as-of statistic first becomes well-defined within Free
+   Hit's own GW1–38 range — §3.3. Season-PPG and value are undefined at GW1 and well-defined from
+   GW2; recent-form PPG is defined from GW2 but identical to season-PPG until GW5. GW1 is excluded
+   as a guaranteed-zero, zero-variance observation that would bias §3.1's paired bootstrap, leaving
+   32 qualifying gameweeks; GW2–GW4's C1/C3 collinearity is recorded in §3.3 as a constraint on
+   §2's conjunctive rule (effective n = 29 for that pair) rather than as a further exclusion.
 4. Whether a reusable paired/bootstrap significance-testing utility exists anywhere accessible to
    this slice — §5.
 5. Whether a top-10k-average figure exists anywhere in this repository's data surfaces, and if so

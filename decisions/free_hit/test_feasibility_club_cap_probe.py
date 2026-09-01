@@ -56,7 +56,7 @@ from decisions.free_hit import candidates as candidates_mod
 from decisions.free_hit.candidates import build_candidates
 from decisions.free_hit.feasibility import _Pool
 from decisions.free_hit.feasibility import can_complete as real_can_complete
-from decisions.free_hit.gameweek_population import qualifying_gameweeks
+from decisions.free_hit.gameweek_population import schedule_clean_gameweeks
 from decisions.free_hit.test_candidates import POLICIES
 from domain.fpl_squad import BUDGET_CAP_TENTHS, MAX_PER_CLUB, POSITIONS, SQUAD_SELECT
 
@@ -133,7 +133,11 @@ def test_the_club_cap_approximation_never_rejects_a_completable_squad_on_the_rea
     force confirms is genuinely completable? Module docstring. See this file's module docstring
     for the 2026-08-31 finding this test pins: no, 0 of 75 `False` verdicts disagreed."""
     live_mart = load().mart
-    qualifying = sorted(qualifying_gameweeks(live_mart))
+    # The §3.2 schedule axis, not `qualifying_gameweeks` -- this probe asks whether the club-cap
+    # approximation is ever wrong, so it sweeps every gameweek a squad is built for, including
+    # the warm-up week `METRIC.md` §3.3 excludes from *scoring*. Narrowing it would shrink the
+    # probe's coverage and silently change the pinned 75-verdict figure below.
+    qualifying = sorted(schedule_clean_gameweeks(live_mart))
     assert len(qualifying) == 33  # DESIGN.md §2 / INVENTORY.md §1's cited figure
 
     total_false = 0

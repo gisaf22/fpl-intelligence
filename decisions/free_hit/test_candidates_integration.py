@@ -26,7 +26,7 @@ def test_each_policy_produces_a_legal_squad_at_every_qualifying_gameweek(policy:
 
     live_mart = load().mart
     qualifying = qualifying_gameweeks(live_mart)
-    assert len(qualifying) == 33  # DESIGN.md §2 / INVENTORY.md §1's cited figure
+    assert len(qualifying) == 32  # DESIGN.md §2 / INVENTORY.md §1's 33, less METRIC.md §3.3's GW1
 
     for gw in sorted(qualifying):
         candidates = build_candidates(live_mart, gw)

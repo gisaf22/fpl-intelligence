@@ -3,7 +3,8 @@
 Builds a small synthetic mart (mirroring `decisions/starting_xi/test_sampler.py`'s `_mart`
 helper) so registration filtering, NaN-score handling, and the infeasibility exception are
 exercised without the live DB. `test_candidates_integration.py` runs all three policies against
-the real mart across every one of `DESIGN.md` §2's 33 qualifying gameweeks, in its own
+the real mart across every one of the 32 qualifying gameweeks (`DESIGN.md` §2's 33, less
+`METRIC.md` §3.3's excluded GW1), in its own
 integration-only file -- `decisions/starting_xi`'s own unit test files never touch the live DB,
 for the same reason this pass keeps that split as a separate file rather than a mixed marker on
 one: a module-level `pytestmark = pytest.mark.unit` plus a per-function

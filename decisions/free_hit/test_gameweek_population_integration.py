@@ -1,0 +1,26 @@
+"""Integration test for the gameweek population utility -- `DESIGN.md` §2.
+
+Kept in its own file, entirely marked `integration`, rather than mixed into
+`test_gameweek_population.py` with a per-function `@pytest.mark.integration`: a module-level
+`pytestmark = pytest.mark.unit` plus a per-function `integration` mark both apply to that
+function, so `pytest -m unit` (what CI's unit-test job actually runs, against a fixture DB with
+no live mart) would still collect and try to run it. This file requires `~/.fpl/fpl.db` and is
+excluded from that job by carrying only the `integration` mark.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from dal.pipeline import load
+from decisions.free_hit.gameweek_population import qualifying_gameweeks
+
+pytestmark = pytest.mark.integration
+
+
+def test_matches_the_known_anomaly_list_on_the_live_mart() -> None:
+    live_mart = load().mart
+    qualifying = qualifying_gameweeks(live_mart)
+    all_gws = frozenset(int(gw) for gw in live_mart["gw"].unique())
+    assert all_gws - qualifying == frozenset({26, 31, 33, 34, 36})  # DESIGN.md §2 / INVENTORY.md §1
+    assert len(qualifying) == 33

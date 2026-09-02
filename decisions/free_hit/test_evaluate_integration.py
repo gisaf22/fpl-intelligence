@@ -15,12 +15,24 @@ full-season replay, while still exercising real prices, real registrations and r
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import pytest
 
 from dal.pipeline import load
-from decisions.free_hit.evaluate import POLICIES, build, evaluate
+from decisions.free_hit.evaluate import (
+    C1_SEASON_PPG,
+    C2_VALUE,
+    C3_RECENT_FORM,
+    C4_COMPOSITE,
+    C4_NOFDR,
+    POLICIES,
+    EvaluationResult,
+    build,
+    evaluate,
+)
 from decisions.free_hit.gameweek_population import WARM_UP_EXCLUDED, qualifying_gameweeks
+from decisions.free_hit.verdict import verdict
 from domain.fpl_squad import SQUAD_SIZE
 
 pytestmark = pytest.mark.integration
@@ -124,3 +136,48 @@ def test_c1_and_c3_are_collinear_until_gw5_on_the_live_mart(live_mart: pd.DataFr
 
     diverged = build_candidates(live_mart, RECENT_FORM_WINDOW + 2)
     assert any(c.season_ppg != c.recent_form_ppg for c in diverged), "C1 and C3 must diverge by GW5"
+
+
+@pytest.fixture(scope="module")
+def full_run() -> EvaluationResult:
+    """The full-season run, shared across the verdict tests below -- it is the expensive call in
+    this file (32 gameweeks x 5 policies through the harness), so it is built once."""
+    return build()
+
+
+def test_the_composite_produces_a_non_degenerate_verdict_end_to_end(full_run: EvaluationResult) -> None:
+    """`DESIGN.MD` §7 end to end on the live mart: C4 through `evaluate` and then through
+    `METRIC.md` §2.1's rule. Asserts the verdict is *well-formed and non-degenerate* -- three legs
+    on the full 32 gameweeks, finite p-values, real variation in every series -- deliberately
+    **not** that it passes. Pinning PASS/FAIL here would make a test assert an empirical result
+    about the world rather than the correctness of the machinery that measures it.
+    """
+    regret = full_run.construction_regret
+    family: dict[str, np.ndarray] = {}
+    for baseline in (C1_SEASON_PPG, C2_VALUE, C3_RECENT_FORM):
+        leg = regret[(regret["policy_c"] == C4_COMPOSITE) & (regret["policy_b"] == baseline)]
+        family[f"C4_vs_{baseline}"] = leg.sort_values("gw")["combined_regret"].to_numpy(dtype=float)
+
+    result = verdict(family)
+
+    assert len(result.legs) == 3  # exactly METRIC.md §2's pre-registered family, no fourth arm
+    assert result.alpha == 0.05
+    for leg in result.legs:
+        assert leg.n == 32  # DESIGN.MD §7.6: all three legs run on the full gameweek set
+        assert np.isfinite(leg.mean) and np.isfinite(leg.std) and leg.std > 0
+        assert 0.0 < leg.p_value <= 1.0
+        assert leg.p_value <= leg.p_adjusted <= 1.0  # Holm never lowers a raw p-value
+        assert leg.ci_lower < leg.ci_upper
+    assert result.passed == all(leg.rejected for leg in result.legs)
+
+
+def test_the_ablation_series_are_computed_but_never_enter_the_verdict_family(full_run: EvaluationResult) -> None:
+    """`DESIGN.MD` §7.3: C4-nofdr is a diagnostic. Its regret series must exist (so the ablation
+    can be read) while the corrected family stays at exactly three legs."""
+    regret = full_run.construction_regret
+    policies = set(regret["policy_c"])
+    assert C4_NOFDR in policies
+
+    paired = regret[(regret["policy_c"] == C4_COMPOSITE) & (regret["policy_b"] == C4_NOFDR)]
+    assert len(paired) == 32
+    assert (paired["combined_regret"] != 0).any(), "the fdr term changed no squad in any gameweek"

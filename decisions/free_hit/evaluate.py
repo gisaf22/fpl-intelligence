@@ -28,10 +28,12 @@ evaluation wiring. Three concrete gaps had to be closed to run anything end to e
    `gameweek_population.WARM_UP_EXCLUDED` has since removed it on `METRIC.md` §3.3's resolved
    warm-up axis -- see `STUDY_WINDOW` and `rank_season_ppg`'s own note.
 
-**What this module does not compute.** `METRIC.md` §2's Holm-corrected verdict is not implemented
-and must not be: §2 tests a *candidate* against the three baselines, and the cheap composite
-candidate does not exist yet. Only §1.2's per-squad selection series and §1.3/§1.4's pairwise
-construction/combined series are assembled here. `Oracle(S, g)` and `SelectionRegret(S, g)` are
+**What this module does not compute.** `METRIC.md` §2's Holm-corrected verdict lives in
+`verdict.py`, not here: this module assembles §1.2's per-squad selection series and §1.3/§1.4's
+pairwise construction/combined series, and the verdict is a separate reduction over three
+specific series drawn from `construction_regret`. Keeping the split means the regret series can
+be inspected without the multiplicity correction being implicitly applied to whatever pairs
+happen to be present. `Oracle(S, g)` and `SelectionRegret(S, g)` are
 **not** recomputed -- the harness already emits both (`best_legal_xi_points` and `regret`), and
 §1.1 explicitly defines its oracle as starting_xi's own P1 construct.
 
@@ -54,6 +56,8 @@ from dal.pipeline import load
 from decisions.free_hit.candidates import (
     ConstructionPolicy,
     build_candidates,
+    greedy_by_composite,
+    greedy_by_composite_nofdr,
     greedy_by_recent_form,
     greedy_by_season_ppg,
     greedy_by_value,
@@ -63,15 +67,33 @@ from decisions.starting_xi.harness import HarnessResult, run
 from decisions.starting_xi.orderings import PRE_REGISTERED_ORDERINGS
 from domain.fpl_squad import BUDGET_CAP_TENTHS, SQUAD_SELECT
 
+C1_SEASON_PPG: Final[str] = "C1_season_ppg"
+C2_VALUE: Final[str] = "C2_value"
+C3_RECENT_FORM: Final[str] = "C3_recent_form"
+C4_COMPOSITE: Final[str] = "C4_composite"
+C4_NOFDR: Final[str] = "C4_composite_nofdr"
+"""Policy labels, named rather than left as string literals now that `verdict.py` and the
+reporting path both have to refer to specific pairs of them."""
+
 POLICIES: Final[Mapping[str, ConstructionPolicy]] = {
-    "C1_season_ppg": greedy_by_season_ppg,
-    "C2_value": greedy_by_value,
-    "C3_recent_form": greedy_by_recent_form,
+    C1_SEASON_PPG: greedy_by_season_ppg,
+    C2_VALUE: greedy_by_value,
+    C3_RECENT_FORM: greedy_by_recent_form,
+    C4_COMPOSITE: greedy_by_composite,
+    C4_NOFDR: greedy_by_composite_nofdr,
 }
-"""`DECISION.md` §4's three naive baselines, named as `DESIGN.md` §6 labels them (C1/C2/C3).
+"""`DECISION.md` §4's three naive baselines (C1/C2/C3, as `DESIGN.md` §6 labels them), plus
+`DESIGN.MD` §7's composite candidate C4 and its §7.3 ablation C4-nofdr.
 
 Insertion-ordered, and every frame this module emits is sorted on these names rather than on dict
 order, so the output does not depend on this mapping's construction order.
+
+**C4-nofdr is here as a diagnostic, not as a fourth candidate.** `construction_regret` emits every
+ordered pair in this mapping, so adding it here gets its regret series computed for free -- but
+`DESIGN.MD` §7.3 forbids it entering `METRIC.md` §2's Holm-Bonferroni family, which is
+pre-registered as exactly three candidate-vs-baseline comparisons. Membership in this mapping is a
+statement about which series get computed, not about which legs the verdict corrects over; that
+selection is made where `verdict.verdict` is called.
 """
 
 LOCAL_SEASON_PPG: Final[str] = "local_season_ppg"
@@ -113,8 +135,8 @@ class EvaluationResult:
     `regret` is §1.2's `SelectionRegret(S, g)` -- all three already computed by the harness, none
     recomputed here.
 
-    `selection_regret` is §1.2's four-series view (three here, until a candidate exists), pulled out
-    of `squad_weeks` under §1.2's own column names.
+    `selection_regret` is §1.2's per-policy view -- one series per entry in `POLICIES` -- pulled
+    out of `squad_weeks` under §1.2's own column names.
 
     `construction_regret` is §1.3's `ConstructionRegret_{C,B}(g)`, one row per (policy_c, policy_b,
     gameweek) ordered pair. §1.4 resolves Combined regret to *the same computed quantity* under a

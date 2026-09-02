@@ -81,6 +81,8 @@ def _mart(gws: range) -> pd.DataFrame:
                         "fixture_count": 1,
                         "minutes": 90,
                         "total_points": int(rng.integers(0, 12)),
+                        # C4's fdr term needs a rating; integer 1-5, as the live mart carries.
+                        "fdr_avg": float(((player_id + gw) % 5) + 1),
                     }
                 )
     mart = pd.DataFrame(rows)

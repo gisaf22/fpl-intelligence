@@ -1082,3 +1082,15 @@ byte-identical output across **274,098** field comparisons plus full CSV
 snapshot hashes — and is not re-argued here. It is the reason C5, C5-nofdr and
 the re-measurement of §8.2's NaN rate could all be run and re-verified in one
 pass.
+
+**Pointer — a signal survey was run after this section, and lives outside this document.**
+Following C5's closure, a standalone read-only pass measured whether any unexploited cheap signal
+remains in the mart at all: nine already-available signals against next-gameweek points (lag-1),
+per position, over `build_candidates`'s full ex-ante pool across the same 32 qualifying gameweeks.
+Its record is `decisions/free_hit/SIGNAL_SURVEY.md` — kept separate because it answers a question
+above any single candidate and is fact-finding rather than a build specification, so it does not
+belong as a §9 here. **Its conclusion:** no cheap signal beats season-PPG at any position in a way
+that reaches the selected squad, which leaves two paths open for a `DECISION.md`-level call —
+sourcing genuinely new data, or restructuring the prediction problem to separate "will play" from
+"will score well". Nothing in §1-§8 above is amended by it; see `SIGNAL_SURVEY.md` §5 for how its
+`fdr_bin` measurement reconciles with §8.8's ablation finding.

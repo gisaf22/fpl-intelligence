@@ -26,6 +26,8 @@ from decisions.free_hit.evaluate import (
     C3_RECENT_FORM,
     C4_COMPOSITE,
     C4_NOFDR,
+    C5_COMPOSITE,
+    C5_NOFDR,
     POLICIES,
     EvaluationResult,
     build,
@@ -141,7 +143,7 @@ def test_c1_and_c3_are_collinear_until_gw5_on_the_live_mart(live_mart: pd.DataFr
 @pytest.fixture(scope="module")
 def full_run() -> EvaluationResult:
     """The full-season run, shared across the verdict tests below -- it is the expensive call in
-    this file (32 gameweeks x 5 policies through the harness), so it is built once."""
+    this file (32 gameweeks x 7 policies through the harness), so it is built once."""
     return build()
 
 
@@ -181,3 +183,56 @@ def test_the_ablation_series_are_computed_but_never_enter_the_verdict_family(ful
     paired = regret[(regret["policy_c"] == C4_COMPOSITE) & (regret["policy_b"] == C4_NOFDR)]
     assert len(paired) == 32
     assert (paired["combined_regret"] != 0).any(), "the fdr term changed no squad in any gameweek"
+
+
+def test_c5_produces_a_non_degenerate_verdict_end_to_end(full_run: EvaluationResult) -> None:
+    """`DESIGN.MD` §8 end to end on the live mart: C5 through `evaluate` and then through
+    `METRIC.md` §2.1's rule, on the same machinery C4 used unmodified.
+
+    Asserts the verdict is *well-formed and non-degenerate* -- three legs on the full 32
+    gameweeks, finite p-values, real variation in every series -- deliberately **not** that it
+    passes, for the same reason its C4 sibling does not: pinning PASS/FAIL here would make a test
+    assert an empirical result about the world rather than the correctness of the machinery that
+    measures it.
+    """
+    regret = full_run.construction_regret
+    family: dict[str, np.ndarray] = {}
+    for baseline in (C1_SEASON_PPG, C2_VALUE, C3_RECENT_FORM):
+        leg = regret[(regret["policy_c"] == C5_COMPOSITE) & (regret["policy_b"] == baseline)]
+        family[f"C5_vs_{baseline}"] = leg.sort_values("gw")["combined_regret"].to_numpy(dtype=float)
+
+    result = verdict(family)
+
+    assert len(result.legs) == 3  # §8.4.1 keeps the family at exactly three, no ablation arm
+    assert result.alpha == 0.05
+    for leg in result.legs:
+        assert leg.n == 32
+        assert np.isfinite(leg.mean) and np.isfinite(leg.std) and leg.std > 0
+        assert 0.0 < leg.p_value <= 1.0
+        assert leg.p_value <= leg.p_adjusted <= 1.0
+        assert leg.ci_lower < leg.ci_upper
+    assert result.passed == all(leg.rejected for leg in result.legs)
+
+
+def test_the_c5_ablation_series_is_computed_but_never_enters_the_verdict_family(
+    full_run: EvaluationResult,
+) -> None:
+    """`DESIGN.MD` §8.4.1: C5-nofdr is a diagnostic. Its paired series against C5 must exist -- it
+    is what answers "did the fdr term move anything, and in which direction" -- while the corrected
+    family stays at exactly three legs."""
+    regret = full_run.construction_regret
+    assert C5_NOFDR in set(regret["policy_c"])
+
+    paired = regret[(regret["policy_c"] == C5_COMPOSITE) & (regret["policy_b"] == C5_NOFDR)]
+    assert len(paired) == 32
+    assert (paired["combined_regret"] != 0).any(), "the fdr term changed no squad in any gameweek"
+
+
+def test_c5_and_c4_are_separate_candidates_on_the_live_mart(full_run: EvaluationResult) -> None:
+    """§8.1: C5 shares one ingredient with C4 and is scored, run and judged separately. On real
+    data the two must actually construct different squads, or the ingredient swap changed nothing
+    and neither candidate's verdict says anything about the other's."""
+    squads = full_run.squads
+    by_gw = squads.groupby(["squad_id", "gw"])["player_id"].apply(frozenset)
+    differing = sum(1 for gw in sorted(set(squads["gw"])) if by_gw[(C4_COMPOSITE, gw)] != by_gw[(C5_COMPOSITE, gw)])
+    assert differing > 0, "C4 and C5 picked identical squads at every gameweek"

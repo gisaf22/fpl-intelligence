@@ -83,11 +83,27 @@ def _mart(gws: range) -> pd.DataFrame:
                         "total_points": int(rng.integers(0, 12)),
                         # C4's fdr term needs a rating; integer 1-5, as the live mart carries.
                         "fdr_avg": float(((player_id + gw) % 5) + 1),
+                        # C5's two new terms (`DESIGN.MD` §8.2), both read straight off the
+                        # governed mart rather than derived in `candidates.py`. `transfers_in`
+                        # is `never_null` at this grain and deliberately spans several orders of
+                        # magnitude, matching the live column's shape that §8.3 cites as making
+                        # rank normalization non-negotiable.
+                        "transfers_in": float(10 ** ((player_id % 5) + 1) + gw),
                     }
                 )
     mart = pd.DataFrame(rows)
     mart["minutes"] = mart["minutes"].astype("Int64")
     mart["total_points"] = mart["total_points"].astype("Int64")
+    # `minutes_roll3` mirrors the governed FEAT column's construction exactly
+    # (`dal/feat/feat_player_gameweek.py:98-101`): lag-1 then a 3-gameweek rolling mean, so a
+    # player's first row is NaN and lands in `_sort_key`'s unrankable tier -- the structural
+    # cold-start §8.2 measures at 2.827% on the live mart.
+    mart["minutes_roll3"] = (
+        mart.sort_values(["player_id", "gw"])
+        .groupby("player_id")["minutes"]
+        .transform(lambda s: s.shift(1).rolling(3, min_periods=1).mean())
+        .astype("float64")
+    )
     return mart
 
 

@@ -56,6 +56,9 @@ from dal.pipeline import load
 from decisions.free_hit.candidates import (
     ConstructionPolicy,
     build_candidates,
+    derive_signals,
+    greedy_by_c5_composite,
+    greedy_by_c5_composite_nofdr,
     greedy_by_composite,
     greedy_by_composite_nofdr,
     greedy_by_recent_form,
@@ -72,6 +75,8 @@ C2_VALUE: Final[str] = "C2_value"
 C3_RECENT_FORM: Final[str] = "C3_recent_form"
 C4_COMPOSITE: Final[str] = "C4_composite"
 C4_NOFDR: Final[str] = "C4_composite_nofdr"
+C5_COMPOSITE: Final[str] = "C5_composite"
+C5_NOFDR: Final[str] = "C5_composite_nofdr"
 """Policy labels, named rather than left as string literals now that `verdict.py` and the
 reporting path both have to refer to specific pairs of them."""
 
@@ -81,17 +86,20 @@ POLICIES: Final[Mapping[str, ConstructionPolicy]] = {
     C3_RECENT_FORM: greedy_by_recent_form,
     C4_COMPOSITE: greedy_by_composite,
     C4_NOFDR: greedy_by_composite_nofdr,
+    C5_COMPOSITE: greedy_by_c5_composite,
+    C5_NOFDR: greedy_by_c5_composite_nofdr,
 }
 """`DECISION.md` §4's three naive baselines (C1/C2/C3, as `DESIGN.md` §6 labels them), plus
-`DESIGN.MD` §7's composite candidate C4 and its §7.3 ablation C4-nofdr.
+`DESIGN.MD` §7's composite candidate C4 and its §7.3 ablation C4-nofdr, and §8's second composite
+candidate C5 and its §8.4.1 ablation C5-nofdr.
 
 Insertion-ordered, and every frame this module emits is sorted on these names rather than on dict
 order, so the output does not depend on this mapping's construction order.
 
-**C4-nofdr is here as a diagnostic, not as a fourth candidate.** `construction_regret` emits every
-ordered pair in this mapping, so adding it here gets its regret series computed for free -- but
-`DESIGN.MD` §7.3 forbids it entering `METRIC.md` §2's Holm-Bonferroni family, which is
-pre-registered as exactly three candidate-vs-baseline comparisons. Membership in this mapping is a
+**Both `-nofdr` entries are here as diagnostics, not as candidates.** `construction_regret` emits
+every ordered pair in this mapping, so adding one here gets its regret series computed for free --
+but §7.3 and §8.4.1 alike forbid them entering `METRIC.md` §2's Holm-Bonferroni family, which is
+pre-registered per candidate as exactly three candidate-vs-baseline comparisons. Membership in this mapping is a
 statement about which series get computed, not about which legs the verdict corrects over; that
 selection is made where `verdict.verdict` is called.
 """
@@ -194,11 +202,18 @@ def build_squads(
 
     `build_candidates` is called once per gameweek and its result shared across the three policies:
     the candidate pool is a property of the gameweek, and each policy sets its own `.score` from the
-    raw signals the pool already carries (`candidates.py`'s `_scored`).
+    raw signals the pool already carries (`candidates.py`'s `_scored`). The mart-wide signal
+    derivation is hoisted a level further out still -- once per `build_squads` call rather than once
+    per gameweek -- since it does not depend on `gw` at all.
     """
+    # Derived once for the whole run, not once per gameweek: every signal `build_candidates` reads
+    # is lag-1 and keyed on `player_id`, so the mart-wide pass is identical for every `gw` and was
+    # previously repeated 32 times per run at ~4.4s each. Derived from `mart` itself, so a caller
+    # passing a truncated frame still gets that frame's own population (`derive_signals`).
+    derived = derive_signals(mart)
     rows: list[dict[str, object]] = []
     for gw in sorted(gameweeks):
-        pool = build_candidates(mart, gw)
+        pool = build_candidates(mart, gw, derived=derived)
         for name in sorted(policies):
             squad = policies[name](pool, budget_tenths, dict(SQUAD_SELECT))
             rows.extend({"squad_id": name, "gw": gw, "player_id": c.player_id} for c in squad)

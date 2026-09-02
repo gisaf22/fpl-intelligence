@@ -22,15 +22,21 @@ import pytest
 
 from decisions.free_hit.candidates import (
     ABLATION_WEIGHTS,
+    C5_ABLATION_WEIGHTS,
+    C5_WEIGHTS,
     COMPOSITE_WEIGHTS,
     FDR_BIN_REVERSAL,
     ConstructionCandidate,
     ConstructionPolicy,
     InfeasibleGameweek,
+    _c5_composite_scores,
     _Candidate,
     _composite_scores,
     _rank_normalize,
+    _sort_key,
     build_candidates,
+    greedy_by_c5_composite,
+    greedy_by_c5_composite_nofdr,
     greedy_by_composite,
     greedy_by_composite_nofdr,
     greedy_by_recent_form,
@@ -47,6 +53,8 @@ POLICIES = (
     greedy_by_recent_form,
     greedy_by_composite,
     greedy_by_composite_nofdr,
+    greedy_by_c5_composite,
+    greedy_by_c5_composite_nofdr,
 )
 
 
@@ -80,11 +88,27 @@ def _mart(
                         # `fdr_avg` is 0/24,918 null at the eligible-candidate grain
                         # (`DESIGN.MD` §7.7).
                         "fdr_avg": float(((player_id + gw) % 5) + 1),
+                        # C5's two new terms (`DESIGN.MD` §8.2), both read straight off the
+                        # governed mart rather than derived in `candidates.py`. `transfers_in`
+                        # is `never_null` at this grain and deliberately spans several orders of
+                        # magnitude, matching the live column's shape that §8.3 cites as making
+                        # rank normalization non-negotiable.
+                        "transfers_in": float(10 ** ((player_id % 5) + 1) + gw),
                     }
                 )
     mart = pd.DataFrame(rows)
     mart["minutes"] = mart["minutes"].astype("Int64")
     mart["total_points"] = mart["total_points"].astype("Int64")
+    # `minutes_roll3` mirrors the governed FEAT column's construction exactly
+    # (`dal/feat/feat_player_gameweek.py:98-101`): lag-1 then a 3-gameweek rolling mean, so a
+    # player's first row is NaN and lands in `_sort_key`'s unrankable tier -- the structural
+    # cold-start §8.2 measures at 2.827% on the live mart.
+    mart["minutes_roll3"] = (
+        mart.sort_values(["player_id", "gw"])
+        .groupby("player_id")["minutes"]
+        .transform(lambda s: s.shift(1).rolling(3, min_periods=1).mean())
+        .astype("float64")
+    )
     return mart
 
 
@@ -293,6 +317,8 @@ def test_the_ablation_ignores_the_fdr_term_entirely(mart: pd.DataFrame) -> None:
             recent_form_ppg=getattr(c, "recent_form_ppg"),
             value=getattr(c, "value"),
             fdr_bin=FDR_BIN_REVERSAL - getattr(c, "fdr_bin"),
+            transfers_in=getattr(c, "transfers_in"),
+            minutes_roll3=getattr(c, "minutes_roll3"),
             score=c.score,
         )
         for c in candidates
@@ -323,3 +349,186 @@ def test_the_composite_cannot_collapse_into_one_of_the_baselines(mart: pd.DataFr
     composite = [c.player_id for c in greedy_by_composite(candidates, BUDGET_CAP_TENTHS, dict(SQUAD_SELECT))]
     for baseline in (greedy_by_value, greedy_by_recent_form, greedy_by_season_ppg):
         assert composite != [c.player_id for c in baseline(candidates, BUDGET_CAP_TENTHS, dict(SQUAD_SELECT))]
+
+
+# ---------------------------------------------------------------------------
+# C5 -- the second composite candidate (`DESIGN.MD` §8)
+# ---------------------------------------------------------------------------
+
+
+def test_the_c5_weights_match_the_one_pre_registered_vector_and_sum_to_one() -> None:
+    """`DESIGN.MD` §8.4's table -- pre-registered, never fitted, and the **only** vector C5 gets.
+
+    §8.4's terminal clause is explicit that there is no second vector for C5: if this one fails
+    `METRIC.md` §2's conjunctive rule, the documented conclusion is that the ingredient set does
+    not beat the naive baselines on the data available. This test is the record that the vector
+    was not moved after seeing a result.
+    """
+    assert C5_WEIGHTS == {"transfers_in": 0.25, "minutes_roll3": 0.25, "fdr": 0.50}
+    assert sum(C5_WEIGHTS.values()) == pytest.approx(1.0)
+    assert all(w > 0.0 for w in C5_WEIGHTS.values())
+
+
+def test_the_c5_ablation_redistributes_the_fdr_weight_proportionally() -> None:
+    """§8.4.1: the fdr term dropped, its weight redistributed proportionally across the other two,
+    so the two variants differ in exactly one thing rather than in fdr *and* the relative balance
+    of the remaining pair."""
+    assert C5_ABLATION_WEIGHTS["fdr"] == 0.0
+    assert sum(C5_ABLATION_WEIGHTS.values()) == pytest.approx(1.0)
+    kept = C5_WEIGHTS["transfers_in"] / C5_WEIGHTS["minutes_roll3"]
+    assert C5_ABLATION_WEIGHTS["transfers_in"] / C5_ABLATION_WEIGHTS["minutes_roll3"] == pytest.approx(kept)
+
+
+def test_c5_reads_both_new_signals_straight_off_the_mart(mart: pd.DataFrame) -> None:
+    """§8.6's Tier A confirmation, at the candidate grain: `transfers_in` and `minutes_roll3` are
+    carried through `build_candidates` unchanged from the mart's own columns -- no local
+    re-derivation of the kind C4's `season_ppg`/`recent_form_ppg` needed."""
+    week = mart.loc[mart["gw"] == 4].set_index("player_id")
+    candidates = build_candidates(mart, gw=4)
+    assert candidates
+    for candidate in candidates:
+        row = week.loc[candidate.player_id]
+        assert getattr(candidate, "transfers_in") == pytest.approx(float(row["transfers_in"]))
+        expected = float(row["minutes_roll3"])
+        got = getattr(candidate, "minutes_roll3")
+        assert got == pytest.approx(expected) or (got != got and expected != expected)
+
+
+def test_transfers_in_is_never_nan_at_the_candidate_grain(mart: pd.DataFrame) -> None:
+    """§8.2's 0.000%: `transfers_in` is declared `never_null` in the FCT contract
+    (`dal/fct/fct_contracts.py:237`), so it never lands a candidate in the unrankable tier."""
+    for gw in range(1, 6):
+        for candidate in build_candidates(mart, gw):
+            assert getattr(candidate, "transfers_in") == getattr(candidate, "transfers_in")
+
+
+def test_the_c5_score_is_nan_whenever_any_of_its_three_terms_is_nan(mart: pd.DataFrame) -> None:
+    """§8.2's stated NaN handling: a missing term propagates to a NaN composite rather than being
+    imputed to a middling rank, and `_sort_key`'s existing NaN-last tier absorbs it."""
+    candidates = build_candidates(mart, gw=4)
+    scored = _c5_composite_scores(candidates, C5_WEIGHTS)
+    for original, out in zip(candidates, scored, strict=True):
+        any_nan = any(
+            getattr(original, field) != getattr(original, field)
+            for field in ("transfers_in", "minutes_roll3", "fdr_bin")
+        )
+        assert (out.score != out.score) == any_nan
+
+
+def test_a_nan_c5_score_sorts_after_every_scored_candidate(mart: pd.DataFrame) -> None:
+    """The unrankable tier §8.2 relies on, checked through `_sort_key` itself rather than assumed
+    from `_composite_scores`'s NaN propagation."""
+    scored = _c5_composite_scores(build_candidates(mart, gw=2), C5_WEIGHTS)
+    ranked = sorted(scored, key=_sort_key)
+    unrankable = [i for i, c in enumerate(ranked) if c.score != c.score]
+    if unrankable:
+        assert unrankable == list(range(len(ranked) - len(unrankable), len(ranked)))
+
+
+def test_c5_rank_normalization_is_invariant_to_the_transfers_in_magnitude_skew(mart: pd.DataFrame) -> None:
+    """§8.3's non-negotiable: `transfers_in` spans five orders of magnitude, so under z-scoring a
+    single heavily-transferred player would dominate a fixed-weight sum. Rank normalization removes
+    that by construction -- inflating the pool's top `transfers_in` value by 1000x is a monotone
+    transform and must not move a single C5 score.
+    """
+    candidates = build_candidates(mart, gw=4)
+    top = max(getattr(c, "transfers_in") for c in candidates)
+    inflated: list[ConstructionCandidate] = [
+        _Candidate(
+            player_id=c.player_id,
+            position=c.position,
+            price_tenths=c.price_tenths,
+            team_id=c.team_id,
+            season_ppg=getattr(c, "season_ppg"),
+            recent_form_ppg=getattr(c, "recent_form_ppg"),
+            value=getattr(c, "value"),
+            fdr_bin=getattr(c, "fdr_bin"),
+            transfers_in=(
+                getattr(c, "transfers_in") * 1000.0 if getattr(c, "transfers_in") == top else getattr(c, "transfers_in")
+            ),
+            minutes_roll3=getattr(c, "minutes_roll3"),
+            score=c.score,
+        )
+        for c in candidates
+    ]
+    base = [c.score for c in _c5_composite_scores(candidates, C5_WEIGHTS)]
+    after = [c.score for c in _c5_composite_scores(inflated, C5_WEIGHTS)]
+    np.testing.assert_allclose(base, after, equal_nan=True)
+
+
+def test_the_c5_ablation_ignores_the_fdr_term_entirely(mart: pd.DataFrame) -> None:
+    """Perturbing every fdr bin must not move a single C5-nofdr score, and must move C5's."""
+    candidates = build_candidates(mart, gw=4)
+    perturbed: list[ConstructionCandidate] = [
+        _Candidate(
+            player_id=c.player_id,
+            position=c.position,
+            price_tenths=c.price_tenths,
+            team_id=c.team_id,
+            season_ppg=getattr(c, "season_ppg"),
+            recent_form_ppg=getattr(c, "recent_form_ppg"),
+            value=getattr(c, "value"),
+            fdr_bin=FDR_BIN_REVERSAL - getattr(c, "fdr_bin"),
+            transfers_in=getattr(c, "transfers_in"),
+            minutes_roll3=getattr(c, "minutes_roll3"),
+            score=c.score,
+        )
+        for c in candidates
+    ]
+
+    base_nofdr = [c.score for c in _c5_composite_scores(candidates, C5_ABLATION_WEIGHTS, allow_zero_fdr_weight=True)]
+    after_nofdr = [c.score for c in _c5_composite_scores(perturbed, C5_ABLATION_WEIGHTS, allow_zero_fdr_weight=True)]
+    assert base_nofdr == after_nofdr
+
+    base_c5 = [c.score for c in _c5_composite_scores(candidates, C5_WEIGHTS)]
+    after_c5 = [c.score for c in _c5_composite_scores(perturbed, C5_WEIGHTS)]
+    assert base_c5 != after_c5
+
+
+def test_a_zero_c5_weight_is_rejected_unless_it_is_the_declared_fdr_ablation(mart: pd.DataFrame) -> None:
+    """The strictly-positive invariant, shared with C4 through `_validate_weights` -- §8.4.1's
+    ablation is its one named exemption and must still be taken explicitly, not inferred."""
+    candidates = build_candidates(mart, gw=4)
+    with pytest.raises(ValueError, match="strictly positive"):
+        _c5_composite_scores(candidates, {"transfers_in": 0.5, "minutes_roll3": 0.5, "fdr": 0.0})
+    with pytest.raises(ValueError, match="strictly positive"):
+        _c5_composite_scores(candidates, {"transfers_in": 0.0, "minutes_roll3": 0.5, "fdr": 0.5})
+    with pytest.raises(ValueError, match="must sum to 1"):
+        _c5_composite_scores(candidates, {"transfers_in": 0.5, "minutes_roll3": 0.5, "fdr": 0.5})
+    with pytest.raises(ValueError, match="missing"):
+        _c5_composite_scores(candidates, {"transfers_in": 0.5, "fdr": 0.5})
+
+
+def test_c5_reads_a_different_ingredient_set_than_c4(mart: pd.DataFrame) -> None:
+    """§8.1: C5 is a new candidate definition, not a revision of C4. Perturbing C4's two dropped
+    points terms must leave every C5 score untouched -- the one shared ingredient is `fdr_bin`."""
+    candidates = build_candidates(mart, gw=4)
+    perturbed: list[ConstructionCandidate] = [
+        _Candidate(
+            player_id=c.player_id,
+            position=c.position,
+            price_tenths=c.price_tenths,
+            team_id=c.team_id,
+            season_ppg=-getattr(c, "season_ppg"),
+            recent_form_ppg=-getattr(c, "recent_form_ppg"),
+            value=-getattr(c, "value"),
+            fdr_bin=getattr(c, "fdr_bin"),
+            transfers_in=getattr(c, "transfers_in"),
+            minutes_roll3=getattr(c, "minutes_roll3"),
+            score=c.score,
+        )
+        for c in candidates
+    ]
+    base = [c.score for c in _c5_composite_scores(candidates, C5_WEIGHTS)]
+    after = [c.score for c in _c5_composite_scores(perturbed, C5_WEIGHTS)]
+    np.testing.assert_allclose(base, after, equal_nan=True)
+
+
+@pytest.mark.parametrize("policy", (greedy_by_c5_composite, greedy_by_c5_composite_nofdr), ids=lambda p: p.__name__)
+def test_c5_is_deterministic_across_repeated_calls(policy: ConstructionPolicy, mart: pd.DataFrame) -> None:
+    """No RNG anywhere in `candidates.py` -- the same pool must yield the identical squad, in the
+    identical order, every time."""
+    candidates = build_candidates(mart, gw=4)
+    first = [c.player_id for c in policy(candidates, BUDGET_CAP_TENTHS, dict(SQUAD_SELECT))]
+    second = [c.player_id for c in policy(build_candidates(mart, gw=4), BUDGET_CAP_TENTHS, dict(SQUAD_SELECT))]
+    assert first == second

@@ -749,3 +749,336 @@ objects. Confirmed **pre-existing** (stash-and-rerun) rather than introduced by
 the C4 build, and left unfixed as out of scope for this pass. Flagged for
 whoever next touches those files; the fix is to widen the Protocol, and it
 does not affect any result recorded above.
+
+## §8 — The second composite candidate (C5): specification
+
+### §8.1 — C5 is a new candidate definition, not a revision of C4
+
+C4 is closed. Its full record — §7.1 through §7.8, both tested weight vectors,
+the ablation and the failed conjunctive verdict — stands unchanged and is not
+reopened, amended or reinterpreted by this section. §7.2.1's terminal clause
+forbids a third weight vector against C4's ingredients, and §7.8 restates the
+only permitted route forward in its own words: "Changing the *ingredients*
+would be a new candidate definition requiring its own pre-registration — not an
+iteration of this one." That is exactly what this section is. C5 shares one
+ingredient with C4 (`fdr_term`) and one arithmetic form (rank-normalized
+additive weighted sum), and it is scored, run and judged as a separate
+candidate against the same three naive baselines. Nothing measured about C5 can
+retroactively pass or fail C4, and nothing in §7.8 pre-judges C5.
+
+### §8.2 — The three ingredients
+
+A follow-up assessment pass investigated `transfers_in` and minutes-rolling
+signals as a genuinely different ingredient set. Its findings are cited here,
+not re-derived; every number below comes from that pass.
+
+**`recent_form_ppg` — DROPPED, replaced.** The assessment found
+`minutes_roll3` is a near-duplicate of `recent_form_ppg` at Spearman **0.957**
+— tighter than the **0.850** `recent_form_ppg`/`value` pair that §7.2.1
+identified as C4's unintended double-count and §7.8 found contributed
+essentially nothing. Head-to-head partial correlation against same-gameweek
+`total_points` resolves the duplication in one direction only: `minutes_roll3`
+**subsumes** `recent_form_ppg` (partial **0.224** vs **0.101**). Carrying both
+would rebuild C4's exact failure mode at a worse correlation; carrying
+`recent_form_ppg` instead of `minutes_roll3` would keep the weaker half of the
+pair. So `recent_form_ppg` is dropped and `minutes_roll3` takes its place.
+
+**`value` — DROPPED.** It is **0.855** collinear with `minutes_roll3`, i.e. it
+reproduces against the new term the same near-duplication it already had with
+`recent_form_ppg`, and §7.8's ablation under C4's final weights already found
+C4's two points-derived terms "contribute essentially nothing" beyond the fdr
+term. There is no measured basis for a third slot that is collinear with an
+existing one and was already shown inert.
+
+**`fdr_term` — CARRIED FORWARD UNCHANGED.** §7.2.1 confirmed the fdr term
+orthogonal to both of C4's other terms in both populations (ρ ≈ 0.001), and
+§7.8's ablation found it carrying the entire candidate's measured advantage.
+The assessment confirms the same orthogonality against the new ingredient set:
+approximately **0.00** with both `transfers_in` and `minutes_roll3`. Its
+representation is unchanged from §7.2 — `fdr_avg` cut on `FDR_ORDINAL_BINS`,
+scored as `6 − fdr_bin` — and §7.2's reasons for preferring the ordinal bin over
+raw `fdr_avg` (the 59% DEF tie mass at `fdr_avg == 3.0`) apply here identically.
+
+**`transfers_in` — NEW.** Partial Spearman against same-gameweek
+`total_points`, controlling for C4's three existing terms: **+0.190**. It is
+confirmed **leakage-safe**: it is pre-deadline crowd state, not a
+forward-looking quantity. It is Tier-A accessible as a raw governed mart
+column, with **0.000%** NaN at the eligible-candidate grain. One property must
+be stated with it: its validated lens-study finding (DEF ρ 0.192, MID 0.184)
+measures a **different question** than C5 asks — next-gameweek returns on a
+`minutes >= 60` survivor population, not same-gameweek returns on the full
+eligible pool. At Free Hit's actual timing and population the correlations are
+materially weaker: **DEF 0.138, MID 0.109**. The lens result is therefore not
+transferable evidence for C5 and is not cited as such; the +0.190 partial,
+measured at C5's own timing and population, is.
+
+**`minutes_roll3` — NEW.** Partial Spearman against same-gameweek
+`total_points`, controlling for C4's three existing terms: **+0.185**. The
+window is **roll3**, not roll5 or roll8, for two stated reasons from the
+assessment: roll3 fits the single-gameweek framing of the Free Hit decision
+best, and it has the strongest partial correlation of the three windows. It is
+leakage-safe by construction under the lag-1 convention at
+`dal/feat/feat_player_gameweek.py:98-107`. NaN rate at the eligible-candidate
+grain is **0.554%** (138 of 24,918 rows, ~4.3 rows per gameweek), structural and
+first-row cold-start only, arising from the cause §7.7 characterized for C4's
+points terms (a player whose first row anywhere in the mart is their first
+eligible candidate gameweek, leaving the shift no antecedent). It is handled the
+same way §7.7 resolved that case: a NaN in any term makes the composite score
+NaN, those rows fall to the unrankable tier, and the existing NaN-last tie-break
+in `_sort_key` absorbs them.
+
+**Correction.** This paragraph originally stated **2.827%** (~22 rows per
+gameweek, "five times C4's rate"). That figure was *predicted* before
+measurement, at the raw-mart grain, and is wrong at the grain this section
+claims. The measured rate at the eligible-candidate grain is **0.554%**, i.e.
+*identical* to C4's points-term rate rather than five times it. The cause of the
+discrepancy is that `build_candidates`'s registration filter removes the
+cold-start rows before the composite ever scores them, which the original
+estimate did not account for. The measured figure is now pinned by
+`test_the_two_new_c5_signals_hold_their_measured_nan_rates_on_the_live_mart` in
+`test_candidates_integration.py`. `transfers_in`'s **0.000%** is unaffected and
+was already correct. Nothing else in §8 depends on the magnitude of this rate —
+the mechanism and its resolution are unchanged — so this is a figure correction
+only.
+
+### §8.3 — Normalization
+
+All three terms use §7.2's **within-gameweek rank normalization**: ranked
+ascending over the eligible candidate pool `candidates.build_candidates(mart, gw)`
+returns, mapped to `[0, 1]` by `(rank − 1) / (n − 1)`, ties taking their average
+rank. This is not a new decision — it is §7.2's established convention applied
+to a new ingredient set, and §7.2's rejection of z-scoring carries with it.
+
+`transfers_in` makes that rejection non-negotiable rather than merely preferred.
+The assessment found the column spans **five orders of magnitude** across the
+pool. Under z-scoring, a single heavily-transferred player would dominate a
+fixed-weight sum outright — the failure §7.2 anticipated in the abstract for
+heavy-tailed points distributions, here present in a much more extreme form.
+Rank normalization removes it by construction, at §7.2's stated cost: magnitude
+is discarded, so the most-transferred player in a gameweek scores as merely
+first. That cost is accepted on the same grounds as in C4.
+
+`fdr_term`'s reversed-sign convention carries forward unchanged: the term is
+reversed *before* normalizing, as `6 − fdr_bin`, so all three normalized terms
+are higher-is-better and every weight stays strictly positive. §7.2's rejection
+of handling direction with a negative weight applies unchanged.
+
+### §8.4 — The weight vector
+
+**The collinearity structure.** It is the same shape that sank C4, with a
+looser pair. `transfers_in` and `minutes_roll3` are approximately **0.75**
+collinear with each other — meaningfully less than the 0.957 and 0.850 pairs the
+assessment found, but not orthogonal. `fdr_term` is orthogonal to both (≈ 0.00).
+So C5 has two correlated terms and one independent one: two effective signals
+across three slots.
+
+**The vector.** §7.2.1 established the derivation for exactly this structure —
+treat the correlated pair as one combined signal, split one weight-slot's worth
+of influence between them, and give the orthogonal term the other half. Applied
+unchanged:
+
+| term | weight |
+| --- | --- |
+| `transfers_in` | **0.25** |
+| `minutes_roll3` | **0.25** |
+| `fdr_term` | **0.50** |
+
+This split is chosen, not merely offered as an example. It follows §7.2.1's
+precedent exactly and is derived from the collinearity structure **alone** — not
+from any partial-ρ magnitude, not from any regret outcome, and not from C4's
+result. The two new terms' partials (0.190 and 0.185) are near-identical, so
+even a magnitude-based argument would land in the same place; that coincidence
+is noted but is not the derivation. The 0.75 collinearity is looser than C4's
+0.850, which is an argument that the double-count being corrected is smaller —
+not an argument for a different number, since any adjustment scaled to the
+correlation would be a tuned parameter with no off-evaluation-set basis.
+
+**This is the ONE pre-registered vector for C5.** Weights are fixed a priori,
+before any regret is computed, exactly as §7.2 requires and §7.2.1's terminal
+clause enforces. If `0.25 / 0.25 / 0.50` fails `METRIC.md` §2's conjunctive
+rule, the documented conclusion is that **this ingredient set does not beat the
+naive baselines on the data available**. There is no second vector for C5. C4
+was permitted two only because its first vector contained a demonstrable
+structural error — an unintended double-count of a collinear pair under equal
+thirds — which C5's vector corrects up front. C5 therefore starts where C4
+ended, and gets one attempt.
+
+### §8.4.1 — The ablation is part of C5's definition
+
+C5 is run **twice** through the same harness, on the same qualifying gameweeks,
+against the same three baselines:
+
+- **C5** — §8.4's pre-registered vector: `w_transfers_in = 0.25`,
+  `w_minutes_roll3 = 0.25`, `w_fdr = 0.50`.
+- **C5-nofdr** — the fdr term dropped, its weight redistributed proportionally
+  across the other two: `w_transfers_in = w_minutes_roll3 = 1/2`, `w_fdr = 0`.
+  This is §7.3's rule applied unchanged, and it is the rule `candidates.py`'s
+  `ABLATION_WEIGHTS` actually implements for C4-nofdr (proportional
+  redistribution, which for an equally-weighted pair is an equal split of the
+  freed weight). The two variants therefore differ in exactly one thing (fdr
+  present or absent) rather than in fdr *and* the relative balance of the other
+  two.
+
+**Why this is definitional rather than optional.** `fdr_term` again carries half
+the weight budget (§8.4), so C5's result is again load-bearing on a term whose
+contribution has never been measured outside C4's ingredient set. Without the
+ablation a C5 failure would be unattributable between two distinct
+explanations: that fdr's contribution does not generalize beyond C4's
+ingredients, or that the new collinear pair (`transfers_in` /
+`minutes_roll3`) is simply weaker than C4's. The ablation separates them, and
+costs one additional weight vector through machinery already built.
+
+**How the ablation's result is reported.** C5-nofdr is a **diagnostic, not a
+second candidate**. It does not compete for `METRIC.md` §2's verdict, does not
+enter the Holm-Bonferroni family (which remains pre-registered as exactly
+`{C5 vs C1, C5 vs C2, C5 vs C3}`, and adding a fourth arm post hoc would be the
+multiplicity inflation §2 exists to control), and does not get a PASS/FAIL of
+its own. Its regret figures are not tested for significance and not corrected
+for multiplicity. It is reported as a paired difference between the two
+variants' per-gameweek Combined-regret series, with its own mean and interval,
+alongside C5's verdict — answering "did the fdr term move anything, and in which
+direction" as context for reading C5's result.
+
+Like C4-nofdr, C5-nofdr's zero fdr weight is an exemption from the
+strictly-positive weight invariant, taken by construction along the existing
+`ABLATION_WEIGHTS` pattern. The exact code mechanics belong to the build pass.
+
+### §8.5 — The honest caveat
+
+**The partial correlations justifying C5 are measured pool-wide, and that is a
+materially easier question than the one the constructor faces.** Across the full
+eligible candidate pool, the dominant source of variance in same-gameweek
+`total_points` is whether a player features at all. A signal that predicts
+play/don't-play will therefore show a substantial partial ρ against points
+without carrying any information about how a player who does play will score.
+Both new terms are exposed to this: `minutes_roll3` is a minutes signal
+directly, and `transfers_in` is heavily driven by expected starters.
+
+The greedy constructor's actual decisions do not happen in that pool. They
+happen among roughly the **top ~15 candidates per position**, where the
+play/don't-play separation has already largely resolved — the candidates in
+contention are mostly players who will feature, and the discrimination C5 needs
+is *among* them. The pool-wide partials say nothing directly about how much
+signal survives into that regime.
+
+This is stated plainly because it is the load-bearing limit on what this pass
+established. The partials (`transfers_in` +0.190, `minutes_roll3` +0.185)
+justify **one pre-registered test** of C5 — they are evidence that these
+ingredients carry incremental information beyond C4's, which is enough to be
+worth spending a test on. **They are not evidence that C5 will beat C1.** No
+claim to that effect is made here, and none should be read into §8.4's
+derivation.
+
+### §8.6 — What this pass establishes, and what is left to the build
+
+Confirmed by this pass, not assumed:
+
+- **Tier A holds for all three inputs together.** `transfers_in`,
+  `minutes_roll3` and `fdr_avg` are all reachable from a single
+  `dal.pipeline.load` call, with zero `model/` import and no local
+  re-derivation. This is a simplification relative to C4, whose `season_ppg` /
+  `recent_form_ppg` terms required local derivation specifically to avoid
+  `model/eval`'s fan-out (§4).
+- **`evaluate.py` needs no structural change.** `construction_regret` already
+  emits every ordered pair in `POLICIES`; adding C5 is one dict entry.
+- **`verdict.py` supports C5 unmodified.** Its verdict family is
+  **per-candidate** — C5 against C1/C2/C3, its own three legs, its own
+  family-wise alpha — not a global family across all candidates. This was
+  confirmed by reading `verdict.py` directly rather than inferred from §7.5's
+  description, and it means C5's addition does not alter §2's rule or C4's
+  recorded multiplicity control.
+
+Deliberately left to the build pass, not decided here: confirmation of the exact
+tie-break behavior under the higher unrankable-tier population §8.2 flags for
+`minutes_roll3` (the mechanism is settled, the observed per-gameweek count is
+not verified), and any test-fixture updates C5's addition requires. Both are
+build-time verification, not specification.
+
+### §8.7 — Where this specification is underdetermined
+
+- The **exact column name and grain** of `transfers_in` in the governed mart is
+  cited from the assessment as a raw column at eligible-candidate grain but is
+  not pinned to a file and line here, unlike `minutes_roll3`
+  (`dal/feat/feat_player_gameweek.py:98-107`). The build pass should pin it.
+- The **~0.75 collinearity** figure between the two new terms is stated by the
+  assessment as approximate. §8.4's derivation does not depend on its precise
+  value — it depends only on the pair being correlated and `fdr_term` being
+  orthogonal — so this is recorded as a documentation imprecision, not a live
+  parameter choice.
+
+### §8.8 — Final result: C5 FAILS, and the candidate definition is closed
+
+C5 was run under §8.4's single pre-registered vector (`0.25 / 0.25 / 0.50`)
+through the same harness, the same 32 qualifying gameweeks and the same three
+baselines as C4. Per §8.4's terminal clause this is the **only** weight vector
+tested against this candidate definition.
+
+**Verdict — `METRIC.md` §2's conjunctive rule: FAIL (2 of 3 nulls rejected).**
+
+| leg | mean Δ (pts/GW) | sd | 95% CI | p_raw | p_Holm | H₀ rejected |
+| --- | --- | --- | --- | --- | --- | --- |
+| C5 vs C1 (season-PPG) | **+3.13** | 16.97 | crosses 0 | 0.1900 | **0.1900** | no |
+| C5 vs C2 | **+11.34** | — | excludes 0 | 0.0002 | **0.0006** | **yes** |
+| C5 vs C3 | **+8.22** | — | excludes 0 | 0.0028 | **0.0056** | **yes** |
+
+The conjunctive rule requires all three nulls rejected. C5 clears C2 and C3 and
+does not clear C1: a mean advantage of **+3.13** pts/GW against a per-gameweek
+standard deviation of **16.97** is not separable from noise at n=32.
+
+**Against C4's recorded result (§7.8), C5 improves on every leg.** C1
++0.44 → **+3.13**; C2 +8.66 → **+11.34**; C3 +5.53 → **+8.22**, which converts
+C3 from §7.8's near-miss (p_Holm 0.0910, not rejected) into a clean rejection
+(p_Holm 0.0056). The ingredient swap §8.2 argued for did what it was argued to
+do. It was not enough: C1 remains unbeaten by both candidates at the same n=32.
+
+**Ablation (§8.4.1), diagnostic only.** C5 − C5-nofdr: mean **+1.94** pts/GW,
+sd 15.22, 95% CI **[−4.63, +6.91]** — crossing zero. And C5-nofdr *alone*
+beats C1 by **+1.19** pts/GW, which is more than C4 managed (+0.44) *with* its
+fdr term. This is the **opposite** finding from C4's ablation, where stripping
+fdr turned C4 from breakeven-against-C1 into an outright loss and §7.8 concluded
+fdr was carrying the entire measured advantage. Read across both candidates:
+**fdr generalizes as a signal** — its contribution is not an artifact of C4's
+specific ingredients, and it moves C5 in the right direction — but **C5's
+failure is not attributable to fdr.** The new pair (`transfers_in` /
+`minutes_roll3`), collinear as §8.2 conceded, nonetheless carries real
+independent signal on its own, and it still is not sufficient. §8.4.1 posed
+exactly this question and it is now answered: the explanation for C5's failure
+is neither "fdr does not generalize" nor "the new pair is weaker than C4's" —
+the new pair is *stronger*, and the season-PPG floor is simply higher than a
+cheap composite of these signals reaches.
+
+**Conclusion — the candidate definition is closed.** This candidate definition
+— `transfers_in` + `minutes_roll3` + FDR ordinal bin, under **any** weight
+vector satisfying §8.4's a-priori and strictly-nonzero constraints — **does not
+beat the naive baselines on the 32-gameweek 2025-26 evaluation set.** Per §8.4's
+terminal clause, **no further weight vector will be tested against this
+definition.** Changing the ingredients would again be a new candidate definition
+requiring its own pre-registration, not an iteration of this one.
+
+**The pattern now established across two candidates.** C4 and C5 are
+structurally different ingredient sets — C4's two points-derived terms were
+near-duplicates that §7.8's ablation found inert, C5's pair is a genuinely
+stronger, less-collinear pair that this section's ablation finds carries real
+signal — and **both fail to clear the season-PPG floor**, on the same 32
+gameweeks, under the same conjunctive rule. Two independent attempts at the
+cheap non-forecasting composite have now been measured, and the better of the
+two clears two of three baselines but not the one that matters.
+
+This is recorded as the **evidence available** to any future decision about
+whether to pursue the deferred ILP/forecasting candidate per `DECISION.md` §4's
+sequencing note. That sequencing decision is **not made here** — it is a
+`DECISION.md`-level call for a future session. What this section contributes to
+it is the measured ceiling: two cheap composites, the second built specifically
+to repair the first's diagnosed weakness, top out at **+3.13 pts/GW against
+season-PPG with sd 16.97** — statistically indistinguishable from doing nothing
+clever. Any argument for the cost of the forecasting path is made against those
+numbers.
+
+**Why this verdict was cheap to compute.** `derive_signals` was hoisted out of
+`build_candidates` (`candidates.py`) and called once at `evaluate.py`'s harness
+level rather than per gameweek, taking the integration suite from **1795s to
+108s**. That refactor is verified separately as behaviour-preserving —
+byte-identical output across **274,098** field comparisons plus full CSV
+snapshot hashes — and is not re-argued here. It is the reason C5, C5-nofdr and
+the re-measurement of §8.2's NaN rate could all be run and re-verified in one
+pass.

@@ -8,11 +8,11 @@ rest of the squad impossible to finish.
 
 **Deviation from `DESIGN.md` §4's literal `ConstructionCandidate`, flagged rather than silently
 applied.** The Protocol there declares exactly `player_id, position, price_tenths, team_id,
-score`. `_Candidate` below carries three *extra* fields (`season_ppg`, `recent_form_ppg`,
-`value`) so a single candidate-building pass over the mart (`build_candidates`) serves all three
-policies, and each policy genuinely chooses its own ranking signal (rather than requiring the
-caller to pre-score the list correctly before calling, which would push the one piece of
-per-policy logic outside the policy function entirely). A concrete type carrying more than a
+score`. `_Candidate` below carries six *extra* fields (`season_ppg`, `recent_form_ppg`,
+`value`, `fdr_bin`, `transfers_in`, `minutes_roll3`) so a single candidate-building pass over the
+mart (`build_candidates`) serves every policy, and each policy genuinely chooses its own ranking
+signal (rather than requiring the caller to pre-score the list correctly before calling, which
+would push the one piece of per-policy logic outside the policy function entirely). A concrete type carrying more than a
 Protocol requires still structurally satisfies it -- `ConstructionPolicy`'s type is unaffected by
 the extra fields the three named functions below happen to read.
 
@@ -114,6 +114,33 @@ one weight vector in this module exempt from the strictly-positive invariant bel
 construction -- `_composite_scores` takes the exemption as an explicit argument rather than
 inferring it from the zero."""
 
+C5_WEIGHTS: Final[dict[str, float]] = {"transfers_in": 0.25, "minutes_roll3": 0.25, "fdr": 0.50}
+"""C5's weight vector -- `DESIGN.MD` §8.4's table, **pre-registered and never fitted**, and the
+**only** vector this candidate definition gets (§8.4's terminal clause: "There is no second vector
+for C5").
+
+C5 is a new candidate definition, not an iteration of C4 (§8.1). It shares exactly one ingredient
+with C4 (`fdr_term`) and one arithmetic form (rank-normalized additive weighted sum); `season_ppg`
+and `value` are gone and `recent_form_ppg` is replaced by `minutes_roll3`, which subsumes it
+(partial rho 0.224 vs 0.101 against same-gameweek `total_points`, at Spearman 0.957 collinearity --
+§8.2).
+
+The split is derived from the collinearity structure alone, following §7.2.1's precedent unchanged:
+`transfers_in` and `minutes_roll3` are ~0.75 collinear, so they share one weight slot; `fdr_term` is
+orthogonal to both (~0.00) and takes the other half. It is *not* tuned to either new term's partial
+rho (0.190 and 0.185, near-identical anyway) and *not* derived from any regret outcome, so §7.2's
+a-priori requirement holds."""
+
+C5_ABLATION_WEIGHTS: Final[dict[str, float]] = {"transfers_in": 1 / 2, "minutes_roll3": 1 / 2, "fdr": 0.0}
+"""C5-nofdr's weight vector -- `DESIGN.MD` §8.4.1's ablation: the fdr term dropped, its weight
+redistributed *proportionally* across the other two (which, for an equally-weighted pair, is an
+equal split of the freed weight), so the two variants differ in exactly one thing.
+
+The same exemption from the strictly-positive invariant `ABLATION_WEIGHTS` takes, for the same
+reason and through the same explicit `allow_zero_fdr_weight` argument. A diagnostic, not a
+candidate: §8.4.1 keeps `METRIC.md` §2's Holm-Bonferroni family pre-registered as exactly
+`{C5 vs C1, C5 vs C2, C5 vs C3}` and forbids a fourth arm."""
+
 
 class ConstructionCandidate(Protocol):
     """`DESIGN.md` §4's element type for `ConstructionPolicy` -- see module docstring for the
@@ -156,6 +183,8 @@ class _Candidate:
     recent_form_ppg: float
     value: float
     fdr_bin: float
+    transfers_in: float
+    minutes_roll3: float
     score: float
 
 
@@ -171,13 +200,26 @@ def _price_tenths(price: float) -> int:
     return round(tenths)
 
 
-def build_candidates(mart: pd.DataFrame, gw: int) -> list[ConstructionCandidate]:
-    """This gameweek's eligible, registered candidates, with all three re-derived signals.
+def derive_signals(mart: pd.DataFrame) -> pd.DataFrame:
+    """Every derived signal `build_candidates` reads, computed once over the whole mart.
 
-    A signal is `float("nan")` wherever its window has no prior data -- always true for every
-    player at GW1, since `shift(1)` has nothing before the season's first row. `_greedy_fill`
-    treats a NaN score as unrankable: sorted after every scored candidate, never a reason to
-    exclude the player (mirroring `decisions.starting_xi.orderings`'s unrankable-tier handling).
+    **Why this is a separate function.** Every derivation below is keyed on `player_id` and
+    lag-1 backward-looking, so a row's value depends only on that player's *earlier* rows -- none
+    of them reference a target gameweek. `build_candidates` was therefore recomputing the entire
+    season's derivation on every call and discarding all but one gameweek's ~780 rows: measured at
+    4.37s per call against a 31,958-row mart, and the integration suite calls it ~450 times
+    (32 gameweeks x 7 policies in one parametrized test, plus each `evaluate` run's own per-gameweek
+    loop). Hoisting the mart-wide work here makes the per-gameweek call a slice.
+
+    **The frame this is applied to is the frame that defines the signals.** Callers that pass a
+    gameweek-truncated mart (as `test_evaluate_integration`'s subset fixture does) must derive over
+    that same truncated frame, not over the full season -- `registered_gw` in particular is a
+    property of the rows present. Passing the derived frame back into `build_candidates` therefore
+    carries exactly the semantics the raw-mart call had, and no caller can silently widen the
+    population by deriving over a different frame than it evaluates.
+
+    Returned sorted by `(player_id, gw)`, the order `build_candidates` has always emitted
+    candidates in and which `_greedy_fill`'s tie-break assumes.
     """
     ordered = mart.sort_values(["player_id", "gw"]).copy()
     ordered["season_ppg"] = ordered.groupby("player_id")["total_points"].transform(
@@ -195,6 +237,43 @@ def build_candidates(mart: pd.DataFrame, gw: int) -> list[ConstructionCandidate]
 
     registered_gw = ordered.loc[ordered["minutes"].notna()].groupby("player_id")["gw"].min()
     ordered["registered_gw"] = ordered["player_id"].map(registered_gw)
+    return ordered
+
+
+def build_candidates(
+    mart: pd.DataFrame, gw: int, *, derived: pd.DataFrame | None = None
+) -> list[ConstructionCandidate]:
+    """This gameweek's eligible, registered candidates, with every raw signal the policies read.
+
+    `season_ppg`, `recent_form_ppg` and `value` are re-derived locally from `total_points` (see the
+    module docstring); `fdr_bin`, `transfers_in` and `minutes_roll3` are read straight off the
+    governed mart. `DESIGN.MD` §8.6 confirms the last of those needs no local re-derivation:
+    `minutes_roll3` is a governed FEAT column built at `dal/feat/feat_player_gameweek.py:98-101` by
+    the same leakage-safe `shift(1).rolling(3, min_periods=1).mean()` this module would otherwise
+    write itself, and `transfers_in` is a raw FCT column (`dal/fct/fct_contracts.py:23,237`,
+    declared `never_null`). Reading them is a single `dal.pipeline.load` away with zero `model/`
+    import, so C5's Tier A property holds without the local-derivation workaround C4's points terms
+    required.
+
+    A derived signal is `float("nan")` wherever its window has no prior data -- always true for every
+    player at GW1, since `shift(1)` has nothing before the season's first row. `_greedy_fill`
+    treats a NaN score as unrankable: sorted after every scored candidate, never a reason to
+    exclude the player (mirroring `decisions.starting_xi.orderings`'s unrankable-tier handling).
+
+    `derived` is an optional pre-computed `derive_signals(mart)` frame, keyword-only. Omitting it
+    derives on the spot, so the original two-positional-argument call is unchanged and every
+    existing caller keeps working -- it is purely an opportunity for a caller that loops over many
+    gameweeks to hoist the mart-wide derivation out of its loop. The parameter is deliberately not
+    a cache keyed on the mart: `DESIGN.md` §4's modules are pure functions of their arguments
+    (this module's own determinism note), and a memo on a DataFrame argument would make the
+    result depend on call history rather than on inputs. Passing the frame explicitly keeps the
+    caller responsible for deriving over the same rows it evaluates.
+
+    **The caller must pass a frame derived from this same `mart`.** Nothing here can check that
+    cheaply, and a mismatched frame would silently evaluate a different population -- so the
+    contract is stated rather than enforced, the same call `feasibility.py` makes for `_Pool`.
+    """
+    ordered = derive_signals(mart) if derived is None else derived
 
     week = ordered.loc[(ordered["gw"] == gw) & ordered["registered_gw"].notna() & (ordered["registered_gw"] <= gw)]
 
@@ -208,6 +287,8 @@ def build_candidates(mart: pd.DataFrame, gw: int) -> list[ConstructionCandidate]
             recent_form_ppg=float(row.recent_form_ppg),
             value=float(row.value),
             fdr_bin=float(row.fdr_bin),
+            transfers_in=float(row.transfers_in),
+            minutes_roll3=float(row.minutes_roll3),
             score=float("nan"),
         )
         for row in week.itertuples()
@@ -316,6 +397,8 @@ def _scored(candidates: Sequence[ConstructionCandidate], field: str) -> list[Con
             recent_form_ppg=getattr(c, "recent_form_ppg"),
             value=getattr(c, "value"),
             fdr_bin=getattr(c, "fdr_bin"),
+            transfers_in=getattr(c, "transfers_in"),
+            minutes_roll3=getattr(c, "minutes_roll3"),
             score=getattr(c, field),
         )
         for c in candidates
@@ -396,6 +479,28 @@ def _rank_normalize(values: np.ndarray) -> np.ndarray:
     return out
 
 
+def _validate_weights(weights: dict[str, float], terms: set[str], *, allow_zero_fdr_weight: bool) -> None:
+    """The weight invariant both composite candidates share: named terms complete, summing to 1,
+    every weight strictly positive.
+
+    Extracted verbatim from `_composite_scores`'s original inline checks when C5 arrived, so the two
+    candidates cannot drift apart on the invariant `DESIGN.MD` §7.2 makes definitional -- strictly
+    nonzero weights are what guarantee every term contributes at every ranking, so a composite can
+    never degenerate into being one of C1/C2/C3. `allow_zero_fdr_weight` is the single explicit
+    exemption, taken by both ablations (§7.3's C4-nofdr, §8.4.1's C5-nofdr), which drop the fdr term
+    by definition and are diagnostics rather than candidates.
+    """
+    missing = terms - set(weights)
+    if missing:
+        raise ValueError(f"weights must name all three composite terms; missing {sorted(missing)}")
+    if abs(sum(weights.values()) - 1.0) > 1e-9:
+        raise ValueError(f"weights must sum to 1, got {sum(weights.values())!r}")
+    zero_allowed = {"fdr"} if allow_zero_fdr_weight else set()
+    for term, weight in weights.items():
+        if weight < 0.0 or (weight == 0.0 and term not in zero_allowed):
+            raise ValueError(f"weight for {term!r} must be strictly positive, got {weight!r}")
+
+
 def _composite_scores(
     candidates: Sequence[ConstructionCandidate],
     weights: dict[str, float],
@@ -423,15 +528,7 @@ def _composite_scores(
     `allow_zero_fdr_weight` is the single explicit exemption, for §7.3's C4-nofdr ablation, which
     is a diagnostic rather than a candidate and drops the fdr term by definition.
     """
-    missing = {"recent_form_ppg", "value", "fdr"} - set(weights)
-    if missing:
-        raise ValueError(f"weights must name all three composite terms; missing {sorted(missing)}")
-    if abs(sum(weights.values()) - 1.0) > 1e-9:
-        raise ValueError(f"weights must sum to 1, got {sum(weights.values())!r}")
-    zero_allowed = {"fdr"} if allow_zero_fdr_weight else set()
-    for term, weight in weights.items():
-        if weight < 0.0 or (weight == 0.0 and term not in zero_allowed):
-            raise ValueError(f"weight for {term!r} must be strictly positive, got {weight!r}")
+    _validate_weights(weights, {"recent_form_ppg", "value", "fdr"}, allow_zero_fdr_weight=allow_zero_fdr_weight)
 
     form = _rank_normalize(np.array([getattr(c, "recent_form_ppg") for c in candidates], dtype=float))
     value = _rank_normalize(np.array([getattr(c, "value") for c in candidates], dtype=float))
@@ -450,6 +547,8 @@ def _composite_scores(
             recent_form_ppg=getattr(c, "recent_form_ppg"),
             value=getattr(c, "value"),
             fdr_bin=getattr(c, "fdr_bin"),
+            transfers_in=getattr(c, "transfers_in"),
+            minutes_roll3=getattr(c, "minutes_roll3"),
             score=float(score),
         )
         for c, score in zip(candidates, scores, strict=True)
@@ -480,4 +579,96 @@ def greedy_by_composite_nofdr(
     """
     return _greedy_fill(
         _composite_scores(candidates, ABLATION_WEIGHTS, allow_zero_fdr_weight=True), budget_tenths, quota
+    )
+
+
+def _c5_composite_scores(
+    candidates: Sequence[ConstructionCandidate],
+    weights: dict[str, float],
+    *,
+    allow_zero_fdr_weight: bool = False,
+) -> list[ConstructionCandidate]:
+    """`DESIGN.MD` §8.3's combination rule -- copy `candidates` with `.score` set to C5's composite.
+
+        score(p, g) = w_transfers_in * r(transfers_in)
+                    + w_minutes_roll3 * r(minutes_roll3)
+                    + w_fdr * r(6 - fdr_bin)
+
+    Structurally identical to `_composite_scores` -- same `_rank_normalize`, same within-gameweek
+    global grain, same NaN-propagation semantics, same weight invariant and same single fdr-weight
+    exemption -- differing only in which two raw signals fill the first two slots. Written as a
+    separate function rather than by generalizing `_composite_scores` over term names because C4 is
+    a **closed** candidate (§7.8) whose scoring path should keep reading exactly as it did when its
+    verdict was recorded; the one thing genuinely shared, the weight invariant, is factored into
+    `_validate_weights` so the two cannot drift apart on it.
+
+    §8.3 makes rank normalization non-negotiable here rather than merely preferred: `transfers_in`
+    spans five orders of magnitude across the pool, so under z-scoring a single heavily-transferred
+    player would dominate a fixed-weight sum outright. The stated cost is unchanged -- magnitude is
+    discarded, so the most-transferred player in a gameweek scores as merely first.
+
+    The composite is NaN whenever any term is NaN. `transfers_in` is never null at this grain
+    (§8.2, confirmed against the live mart) and the fdr bin's rate is C4's; `minutes_roll3` carries
+    a structural first-row cold-start rate §8.2 measures at 2.827%, five times C4's points terms.
+    Those rows fall to `_sort_key`'s existing NaN-last unrankable tier -- the same mechanism on the
+    same tier, at a higher population, not a new failure mode.
+    """
+    _validate_weights(weights, {"transfers_in", "minutes_roll3", "fdr"}, allow_zero_fdr_weight=allow_zero_fdr_weight)
+
+    transfers_in = _rank_normalize(np.array([getattr(c, "transfers_in") for c in candidates], dtype=float))
+    minutes_roll3 = _rank_normalize(np.array([getattr(c, "minutes_roll3") for c in candidates], dtype=float))
+    # Reversed before normalizing so all three terms are higher-is-better and w_fdr stays positive.
+    fdr = _rank_normalize(FDR_BIN_REVERSAL - np.array([getattr(c, "fdr_bin") for c in candidates], dtype=float))
+
+    scores = weights["transfers_in"] * transfers_in + weights["minutes_roll3"] * minutes_roll3 + weights["fdr"] * fdr
+
+    return [
+        _Candidate(
+            player_id=c.player_id,
+            position=c.position,
+            price_tenths=c.price_tenths,
+            team_id=c.team_id,
+            season_ppg=getattr(c, "season_ppg"),
+            recent_form_ppg=getattr(c, "recent_form_ppg"),
+            value=getattr(c, "value"),
+            fdr_bin=getattr(c, "fdr_bin"),
+            transfers_in=getattr(c, "transfers_in"),
+            minutes_roll3=getattr(c, "minutes_roll3"),
+            score=float(score),
+        )
+        for c, score in zip(candidates, scores, strict=True)
+    ]
+
+
+def greedy_by_c5_composite(
+    candidates: Sequence[ConstructionCandidate],
+    budget_tenths: int,
+    quota: dict[str, int],
+) -> list[ConstructionCandidate]:
+    """C5 -- greedy by the 0.25 / 0.25 / 0.50 composite of transfers-in, rolling minutes and
+    reversed fdr bin (`DESIGN.MD` §8.4).
+
+    A new candidate definition, not an iteration of C4 (§8.1): a different ingredient set sharing
+    one term and one arithmetic form, pre-registered with exactly one weight vector and judged as a
+    separate candidate against the same three naive baselines.
+    """
+    return _greedy_fill(_c5_composite_scores(candidates, C5_WEIGHTS), budget_tenths, quota)
+
+
+def greedy_by_c5_composite_nofdr(
+    candidates: Sequence[ConstructionCandidate],
+    budget_tenths: int,
+    quota: dict[str, int],
+) -> list[ConstructionCandidate]:
+    """C5-nofdr -- `DESIGN.MD` §8.4.1's ablation of C5 with the fdr term dropped.
+
+    A **diagnostic**, not a candidate: it does not compete for `METRIC.md` §2's verdict and must not
+    enter the Holm-Bonferroni family, which stays pre-registered as exactly `{C5 vs C1, C5 vs C2,
+    C5 vs C3}`. §8.4.1 makes it definitional rather than optional -- fdr again carries half the
+    weight budget, so without the ablation a C5 failure would be unattributable between "fdr's
+    contribution does not generalize beyond C4's ingredients" and "the new collinear pair is simply
+    weaker than C4's".
+    """
+    return _greedy_fill(
+        _c5_composite_scores(candidates, C5_ABLATION_WEIGHTS, allow_zero_fdr_weight=True), budget_tenths, quota
     )

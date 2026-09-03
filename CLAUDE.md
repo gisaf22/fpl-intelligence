@@ -8,6 +8,8 @@ Project state, structure, and the document hierarchy live in `CONTEXT.md`.
 ## 9. Rules — never break these
 
 Design before code — always design in Claude UI first, no code until design is agreed
+This overrides the global default of making a reasonable assumption and proceeding when ambiguity
+does not materially affect the outcome — here, design agreement is required regardless.
 
 Every design document must include a capabilities table (Determinism, Observability, Contracts,
 Lineage, Idempotency, Testability, Operability, Evolvability) before the changes section —
@@ -31,6 +33,10 @@ the fixtures they need; anything the product runs moves to a real layer and the 
 Clean break on every refactor — no shims, aliases, re-export wrappers, deprecation layers, or
 old→new glossaries; repoint every caller, delete the old, and prune redundant tests rather than
 porting them 1:1
+For refactors specifically, this overrides the global default of identifying the smallest correct
+change — the full clean break is the correct change here.
+Pruning redundant tests overrides the global default of treating existing tests as part of the
+specification — a test that only pins the deleted shape is deleted with it.
 
 No worktree agents for targeted refactors — mechanical, well-defined sweeps (column removals,
 renames, contract updates) are done with direct edits; worktrees are only for genuinely

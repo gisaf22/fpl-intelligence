@@ -123,3 +123,37 @@ Original late block: "GW 27-33"
 
 **Amended:** Late block is **GW 27-38** (11 GWs).
 Implementation: `"late": (27, 38)` in `GW_BLOCKS`.
+
+---
+
+## Amendment B — Gate 2 quintile cut adopts characterization's ordinal binning
+
+**Amendment date:** 2026-08-16  
+**Governing decision:** `research/registry/CHARACTERIZE_DESIGN.md` §2  
+**Sections amended:** §9 (quintile bin decision relevance), and by extension §7's Gate 2
+
+### §9 amendment
+
+Original: quintile stratification cut every signal, including `fdr_avg`, with
+`pd.qcut(series.rank(method="first"), 5)` in `research/kernels/hypothesis/stratification.py`.
+
+**Amended:** Gate 2's quintile cut for `fdr_avg` now consumes the ordinal bin scheme
+characterization selects for FDR signals — `research/kernels/descriptive/binning.py::
+select_bucketing_scheme`, which returns `("ordinal", (FDR_ORDINAL_BINS, FDR_ORDINAL_LABELS))`
+for any signal in `FDR_SIGNALS`, per `CHARACTERIZE_DESIGN.md` §2. The rank-tie-break cut
+manufactured quintile boundaries inside `fdr_avg`'s heavily tied values (e.g. 59% of DEF rows
+sit at exactly 3.0); the ordinal scheme instead bins on the rating's own natural scale, one bin
+per FDR value. `research/kernels/hypothesis/stratification.py::quintile_stratification` now
+calls `select_bucketing_scheme` for every signal it evaluates and only proceeds with a quintile
+split when the returned scheme is `ordinal` or a 5-way `quantile` cut; other schemes are not a
+five-group quintile split and are reported as not decision-relevance-testable rather than forced
+into one. `was_home` and `fixture_count` (this lens's other two signals) are both binary on the
+mart (`nunique() == 2`) and route to the `discrete` scheme, so Gate 2 now returns "not
+decision-relevant" for them (no quintile) rather than a manufactured 5-way split. This does not
+change either signal's `decision_class`: both were already `uninformative`, and their
+pre-amendment Q5-Q1 gaps (was_home DEF −0.03, MID +0.12; fixture_count DEF −0.60, MID −0.34) sit
+far below the 1.0 threshold regardless of binning.
+
+This changes Gate 2's outcome for `fdr_avg` at MID, FWD, and GK (recovers a monotonic profile);
+DEF is not rescued (CHARACTERIZE_DESIGN.md §2 limit 1 — it still reverses at bins 1→2). See
+CHARACTERIZE_DESIGN.md §2 and §3 for the full accounting, including the three named limits.

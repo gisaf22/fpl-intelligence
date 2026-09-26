@@ -1,4 +1,10 @@
-"""Semantic enrichment rules for governed signal registries."""
+"""Semantic enrichment rules for governed signal registries.
+
+downstream_status here describes layer-role eligibility and shape caveats for the
+characterization registry — it carries no gate/verdict authority over whether a
+signal qualifies for use. That verdict is evidence.yaml's decision_class, computed
+independently per lens study. See research/registry/CHARACTERIZE_DESIGN.md §1.
+"""
 
 from __future__ import annotations
 

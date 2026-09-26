@@ -2,7 +2,7 @@
 # decision/weight/role. Ratified into synth01_decisions.yaml by governance via
 # generate_synth01_decisions.py (ADR-010 ruling c).
 version: synth01
-produced: '2026-06-06'
+produced: '2026-08-16'
 authority: Operational Convergence Plan Phase 7
 candidate_registry: model/assemble/synth01_candidates.yaml
 design_doc: docs/decisions/010-layered-decision-model.md
@@ -33,7 +33,7 @@ fdr_moderation_check:
     signals:
     - minutes_roll3
     - minutes_roll8
-    fraction_rank_changed: 1.0
+    fraction_rank_changed: 0.75
     material: true
 group_summary:
 - group: DEF × form

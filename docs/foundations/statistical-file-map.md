@@ -405,7 +405,8 @@ for operational use?
 experimental, blocked} from registry fields.  
 **Input:** governed registry DataFrame  
 **Output:** registry with promotion_class column  
-**Run order:** After governance enrichment (semantics.py)  
+**Run order:** After governance enrichment (semantics.py). Terminal — the
+`promote.py` publication step that used to consume its output was deleted 2026-08-16.  
 
 ---
 

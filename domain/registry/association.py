@@ -1,6 +1,11 @@
 """Association-class assignment and flag consolidation for governed signal registries.
 
-These are governance decision functions — they map completed evidence records to
+association_class describes the *shape* of a signal's relationship to the target
+(monotonic, tail-dependent, unstable, ...). It carries no gate or verdict authority —
+it does not decide whether a signal qualifies. That decision is evidence.yaml's
+decision_class, computed independently per lens study. See CHARACTERIZE_DESIGN.md §1.
+
+These are classification functions — they map completed evidence records to
 structural classification labels. They live in domain/ so both research/foundation/
 and research/registry/ layers can import them without violating layer order.
 

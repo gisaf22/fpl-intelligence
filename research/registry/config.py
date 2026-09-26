@@ -7,8 +7,8 @@ from pathlib import Path
 from domain.registry.schema import RESEARCH_REGISTRY_PATH
 
 # Build writes the finding to an exploratory research location (under
-# research/findings/, which the lifecycle gate marks exploratory). Promotion to
-# the operational outputs/registry/ is a governance concern (model.governance.promote).
+# research/findings/, which the lifecycle gate marks exploratory). The promotion
+# step that published it to outputs/registry/ was deleted on 2026-08-16 (no consumer).
 DEFAULT_FINDING_OUTPUT_ROOT = Path(__file__).parent.parent.parent / "research/findings/registry_builds"
 
 # The registry builder is a research tool: it reads the EDA registry and packages it.
@@ -23,7 +23,7 @@ def default_finding_output_dir(gw: int) -> Path:
     """Return the default registry-build finding directory for a gameweek.
 
     Lives under research/findings/ — an exploratory location. The build stops
-    here; governance promotes the finding to outputs/registry/.
+    here; there is no longer a promotion step downstream of it.
     """
     return DEFAULT_FINDING_OUTPUT_ROOT / f"gw{gw}"
 

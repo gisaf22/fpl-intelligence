@@ -1,15 +1,18 @@
-# GENERATED — DO NOT EDIT BY HAND (ADR-010 ruling c).
-# Regenerate with: python -m model.governance.generate_synth01_decisions
+# Run output of the SYNTH-01 composition study — regenerable, not a persisted database.
+# The former ratification step (model/governance/generate_synth01_decisions.py +
+# synth01_annotations.yaml) was retired in ae90398; this file now tracks
+# synth01_recommendations.yaml directly. xgi_roll5@DEF corrected 2026-08-16: the prior
+# ratification had overridden the recommended EXCLUDED-REDUNDANT verdict with
+# APPROVED-SECONDARY, contradicting this file's own group_summary for DEF × form.
 # Source: model/assemble/synth01_recommendations.yaml
-#       + model/governance/synth01_annotations.yaml
 version: synth01
 produced: '2026-06-06'
 authority: Operational Convergence Plan Phase 7
 candidate_registry: model/assemble/synth01_candidates.yaml
 design_doc: docs/decisions/010-layered-decision-model.md
 total_decisions: 14
-approved_count: 10
-excluded_count: 3
+approved_count: 9
+excluded_count: 4
 fdr_moderation_check:
   material: true
   n_material_groups: 3
@@ -124,12 +127,12 @@ decisions:
   signal: xgi_roll5
   position: DEF
   lens: form
-  decision: APPROVED-SECONDARY
+  decision: EXCLUDED-REDUNDANT
   partial_rho: 0.018
   partial_ci_lower: -0.0199
   partial_ci_upper: 0.0558
-  composition_weight: 0.5
-  contribution_class: secondary
+  composition_weight: 0.0
+  contribution_class: redundant
   marginal_gain: 0.018
   evidence: partial_rho=0.0180; CI=[-0.0199, 0.0558]; controlling for ['xgi_roll3'];
     n=2471

@@ -520,7 +520,9 @@ The study succeeds by being executed correctly and interpreted honestly.
 ## 19. Related Documents
 
 - [rolling-xgi-horizon-study.md](rolling-xgi-horizon-study.md) — prior study; motivates this one
-- [EVAL_DESIGN.md](../../signals/evaluation/EVAL_DESIGN.md) — evaluation framework and governance
-- [adr/004-analytical-foundations.md](../adr/004-analytical-foundations.md) — population and method decisions
-- [adr/005-signal-exclusions.md](../adr/005-signal-exclusions.md) — structural xGI exclusions
-- `signals/lenses/avail/LENS_DESIGN.md` — availability lens (separate study; related topic)
+- [EVAL_DESIGN.md](../../model/governance/EVAL_DESIGN.md) — evaluation framework and governance
+  (moved from `signals/evaluation/` in the 2026-06-04 `studies/`→`research/`+`model/` migration)
+- `research/families/availability/validate/LENS_DESIGN.md` — availability lens (separate study; related topic)
+
+*(The `adr/004-analytical-foundations.md` and `adr/005-signal-exclusions.md` links carried here from
+the original draft never existed under `docs/decisions/`; removed.)*

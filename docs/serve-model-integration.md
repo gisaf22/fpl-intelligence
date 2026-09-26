@@ -214,7 +214,7 @@ The closeout of the integration. Documentation + evidence only; no code behaviou
 - **ADR-011** written (`docs/decisions/011-model-forecast-supersedes-composites.md`) — the model forecast
   supersedes the serve composites; ADR-002 marked **Superseded** (kept, not deleted — the record of why
   additive weighting was right for its moment), decisions `README.md` index updated.
-- **signal-traceability-matrix.md** — deleted the captain/value/transfers/fixtures composite-consumption
+- **signal-traceability-matrix.md** *(the doc was itself deleted 2026-08-16 as superseded by `docs/PROJECT.md`)* — deleted the captain/value/transfers/fixtures composite-consumption
   tables (their per-position governance moved to the model term gates); kept the signal *evidence* rows,
   the availability + signal_selector tables, and marked the composite-consumption governance gaps
   superseded. Retirement banner + updated fdr/fixture_context notes.

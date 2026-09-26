@@ -1,4 +1,11 @@
-"""Schema contract for governed EDA signal registries."""
+"""Schema contract for governed EDA signal registries.
+
+association_class, promotion_class, and downstream_status describe the shape and
+layer role a computed row falls into — they carry no gate/verdict authority and do
+not assert that a signal "qualifies." The qualification verdict lives solely in
+evidence.yaml's decision_class (research/families/*/validate/, computed fresh per
+lens study run). See research/registry/CHARACTERIZE_DESIGN.md §1, §7.5.
+"""
 
 from __future__ import annotations
 

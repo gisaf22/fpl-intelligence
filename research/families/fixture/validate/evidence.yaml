@@ -1,8 +1,8 @@
 lens: fixture_gw
 target: total_points
 evidence_run:
-  source: LENS-FIXTURE-GW-20260606_151201
-  produced: '20260606_151201'
+  source: LENS-FIXTURE-GW-20260816_220229
+  produced: '20260816_220229'
   db_path: /Users/safarifgisa/.fpl/fpl.db
 signals:
   fdr_avg:
@@ -11,7 +11,7 @@ signals:
       rho_ci_lower: -0.2346
       rho_ci_upper: -0.0919
       block_stability_count: 2
-      decision_class: uninformative
+      decision_class: informative
     DEF:
       rho_pooled: -0.1923
       rho_ci_lower: -0.2246
@@ -23,7 +23,7 @@ signals:
       rho_ci_lower: -0.1922
       rho_ci_upper: -0.1244
       block_stability_count: 3
-      decision_class: uninformative
+      decision_class: informative
     FWD:
       rho_pooled: -0.1127
       rho_ci_lower: -0.1818

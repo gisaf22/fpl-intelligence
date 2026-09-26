@@ -1,5 +1,9 @@
 # Phase 1 audit -- ICC / variance components + shrinkage ranker (D1/D2) + level-estimator study
 
+> **Historical record as of 2026-07-12.** File paths referenced below no longer exist
+> post-`ae90398` (2026-08-16) — see [docs/PROJECT.md](../PROJECT.md) for current structure.
+> Left unedited to preserve the audit trail.
+
 **Run:** 2026-07-12 - assessment + plan only (no code changed).
 **Lenses:** platform SWE / analytics engineer / data scientist.
 **Reproduction oracle:** `docs/studies/results/predictive-phase1-icc-shrinkage.md`,

@@ -2,10 +2,10 @@
 
 Research builds the *raw evidence* finding (computed relationship sections +
 association class) and writes it to an exploratory research location (under
-research/findings/). It stops there — it does not enrich, validate the contract,
-or publish to outputs/registry/. Governance enrichment (signal-layer semantics +
-promotion class), contract validation, the lifecycle gate, and publication are
-governance concerns: see ``model.governance.promote``.
+research/findings/). It stops there — it does not enrich or validate the contract.
+Governance enrichment (signal-layer semantics + promotion class) lives in
+``model.governance.{semantics,promotion}``. The publication step that followed it
+(``model/governance/promote.py`` → ``outputs/registry/``) was deleted 2026-08-16.
 """
 
 from __future__ import annotations
@@ -37,8 +37,7 @@ class RegistryBuildResult:
     """Finding locations and counts from one registry build.
 
     ``finding_path`` points at an exploratory research artifact (under
-    research/findings/). It is not operationally consumable until promoted by
-    ``model.governance.promote``.
+    research/findings/). It is a research finding, not an operational artifact.
     """
 
     gw: int
@@ -120,10 +119,9 @@ def run_registry_build(
 ) -> RegistryBuildResult:
     """Build the gameweek-scoped registry finding and write it to research/findings/.
 
-    This stops at the raw evidence finding: it does not enrich, validate the
-    registry contract, or publish to outputs/registry/. Governance enrichment +
-    promotion is a governance concern — call
-    ``model.governance.promote.promote_registry`` on the finding artifact.
+    This stops at the raw evidence finding: it does not enrich or validate the
+    registry contract. Governance enrichment lives in
+    ``model.governance.{semantics,promotion}``; there is no publication step.
     """
     if gw <= 0:
         raise ValueError(f"gw must be positive, got {gw}")
@@ -297,7 +295,6 @@ def main(argv: list[str] | None = None) -> int:
     if result.comparison_path is not None:
         print(f"  compare:  {result.comparison_path}")
     print(f"  metadata: {result.metadata_path}")
-    print("  next:     promote via model.governance.promote to publish to outputs/registry/")
     return 0
 
 

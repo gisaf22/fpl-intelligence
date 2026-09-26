@@ -54,7 +54,7 @@ gates on it
 
 1. Read `CONTEXT.md` — current project state, structure, and the document hierarchy
 2. Read `docs/architecture/adlc.md` — the authoritative analysis lifecycle and test contracts
-3. Read `docs/implementation-plan.md` — the phased, dependency-ordered plan; start at Phase 0
+3. Read `docs/implementation-plan.md` — the ADRs still to be written, and the questions gating the `starting_xi` slice
 4. Read `dal/pipeline.py` docstring for DAL entry points; read `dal/fct/fct_contracts.py` and `dal/feat/feat_contracts.py` for contract enforcement if any DAL work is planned
 5. Read `docs/governance/eng-issues-2026.md` for active engineering issues
 6. Read the relevant design document for the current task

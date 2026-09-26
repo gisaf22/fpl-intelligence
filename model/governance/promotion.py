@@ -1,8 +1,11 @@
 """Promotion class assignment for governed signal registries.
 
-promotion_class is a downstream interpretation layer, not a prediction layer.
+promotion_class is a downstream interpretation layer, not a prediction layer, and
+carries no gate/verdict authority — it does not assert that a signal qualifies.
 It classifies non-blocked registry rows into one of five controlled values
-that describe how a signal should be used in weekly analytical outputs.
+that describe how a signal should be used in weekly analytical outputs. The
+qualification verdict lives solely in evidence.yaml's decision_class, computed
+independently per lens study. See research/registry/CHARACTERIZE_DESIGN.md §1.
 
 Vocabulary decision: schema uses {stable, scope_sensitive, untested} for
 population_robustness. The EDA_DESIGN.md alternative {robust, moderate_shift,

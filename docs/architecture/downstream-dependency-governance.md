@@ -63,7 +63,11 @@ Any module that reconstructs these independently will eventually diverge from th
 
 ## Enforcement
 
-Static checks are in [tests/test_downstream_governance.py](../../tests/test_downstream_governance.py):
+Static checks live in [tests/test_layer_isolation.py](../../tests/test_layer_isolation.py) and
+[tests/test_dal_architecture.py](../../tests/test_dal_architecture.py); the layer-order contracts
+themselves are enforced by `import-linter` (see `[tool.importlinter]` in `pyproject.toml`).
+(`tests/test_downstream_governance.py`, which used to hold the G-1..G-4 checks below, was deleted
+at `ae90398`.)
 
 | Check | What it catches |
 |-------|----------------|

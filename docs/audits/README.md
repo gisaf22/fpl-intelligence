@@ -3,7 +3,7 @@
 Program-level code-quality cleanup: each phase assessed through platform-SWE / analytics-engineer /
 data-scientist lenses to reuse shared components, delete redundancy, and set concern boundaries.
 **Kit + reusable prompt:** [PHASE_AUDIT_KIT.md](PHASE_AUDIT_KIT.md). Runs produce `{phase}-audit.md`
-(assessment + plan only). A final [PROGRAM_PLAN.md](PROGRAM_PLAN.md) folds them together.
+(assessment + plan only). A final `PROGRAM_PLAN.md` will fold them together — **not yet written**.
 
 | phase | audit doc | status | top actions |
 |---|---|---|---|
@@ -21,9 +21,3 @@ reproduction oracle); execution is a separate approved step, one phase per branc
 before merge.
 
 ---
-
-## Related: whole-system audit
-
-[ARCHITECTURE_AUDIT_PROMPT.md](ARCHITECTURE_AUDIT_PROMPT.md) is a separate, system-wide audit prompt
-(correctness / governance integrity / layer consistency — code-truth bound, non-designing). Use it for
-a cross-layer architecture pass, distinct from the per-phase code-quality kit above.

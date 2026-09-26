@@ -9,7 +9,7 @@ and approved xgi_roll3/roll5 for DEF/MID. The minutes-as-returns rejection is ca
 by the AVAIL reframing (row C), not here.
 
 Entry point: ``run()``  — produces correlation_results.csv, block_results.csv,
-quintile_results.csv, classification_summary.csv, run_metadata.json, evidence.yaml.
+quintile_results.csv, run_metadata.json, evidence.yaml.
 """
 
 from __future__ import annotations
@@ -436,7 +436,6 @@ def run(db_path: Path = DB_PATH) -> Path:
     pd.DataFrame(full_assoc_rows + window_assoc_rows).to_csv(out_dir / "correlation_results.csv", index=False)
     pd.DataFrame(window_assoc_rows).to_csv(out_dir / "block_results.csv", index=False)
     pd.DataFrame(stratification_rows).to_csv(out_dir / "quintile_results.csv", index=False)
-    pd.DataFrame(qualification_rows).to_csv(out_dir / "classification_summary.csv", index=False)
 
     meta = {
         "timestamp": ts,

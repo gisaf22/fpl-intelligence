@@ -4,8 +4,8 @@ Assembles the *raw evidence* registry: the computed relationship sections
 (geometry, stability, decomposition, haul) plus the association class and
 consolidated support flags. It deliberately stops short of governance
 enrichment — signal-layer semantics, downstream status, and promotion class
-are applied at promotion time by ``model.governance`` (the build is research;
-enrichment is a governance decision). The promoted artifact carries the full
+are applied by ``model.governance.{semantics,promotion}`` (the build is research;
+enrichment is a governance decision). An enriched artifact carries the full
 ``REQUIRED_COLUMNS`` contract; the finding this produces is a subset of it.
 """
 

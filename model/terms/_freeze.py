@@ -12,8 +12,7 @@ from __future__ import annotations
 import numpy as np
 
 
-def assert_frozen(got: np.ndarray, n_scored: int, sum6: float,
-                  spot_idx: list[int], spot_vals: list[float]) -> None:
+def assert_frozen(got: np.ndarray, n_scored: int, sum6: float, spot_idx: list[int], spot_vals: list[float]) -> None:
     """Assert a walk-forward prediction vector against its frozen regression record."""
     nn = ~np.isnan(got)
     assert int(nn.sum()) == n_scored, f"n_scored {int(nn.sum())} != {n_scored}"

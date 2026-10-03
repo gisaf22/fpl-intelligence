@@ -50,7 +50,7 @@ class BinaryPerPositionComponent:
 
     # Guards carried from the god-files so predictions reproduce to the bit.
     min_train_rows: ClassVar[int] = 50
-    min_positive_events: ClassVar[int] = 20     # detectability floor (positive class)
+    min_positive_events: ClassVar[int] = 20  # detectability floor (positive class)
     logit_positions: ClassVar[tuple[str, ...]] = ("DEF", "MID", "FWD")
 
     # Whether TRAIN is filtered to appearances (minutes>0). True for every conditional-on-played term
@@ -67,7 +67,8 @@ class BinaryPerPositionComponent:
     hypotheses: ClassVar[tuple[Hypothesis, ...]] = ()
 
     def __init__(
-        self, variant: Literal["minimal", "selected"] = "selected",
+        self,
+        variant: Literal["minimal", "selected"] = "selected",
         feature_override: list[str] | None = None,
     ) -> None:
         if variant not in ("minimal", "selected"):
@@ -119,8 +120,9 @@ class BinaryPerPositionComponent:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             try:
-                res = sm.GLM(tr[self.target].to_numpy(float), _design(tr, features),
-                            family=sm.families.Binomial()).fit()
+                res = sm.GLM(
+                    tr[self.target].to_numpy(float), _design(tr, features), family=sm.families.Binomial()
+                ).fit()
                 return res.predict(_design(test, features))
             except Exception:
                 return np.full(len(test), np.nan)
@@ -145,8 +147,12 @@ class BinaryPerPositionComponent:
                 if test.empty:
                     continue
                 pred.loc[test.index] = self._fit_predict(train, test, features)
-        return Fitted(name=self.name, predictions=pred, features=tuple(features),
-                      meta={"variant": self.variant, "population_index": df.index})
+        return Fitted(
+            name=self.name,
+            predictions=pred,
+            features=tuple(features),
+            meta={"variant": self.variant, "population_index": df.index},
+        )
 
     def emit(self, fitted: Fitted) -> dict[str, np.ndarray]:
         """The scored view — one term (``self.term``): P(target=1) per row (points mapping is compose-layer)."""
@@ -160,8 +166,8 @@ class BinaryComponentTerm:
     """
 
     name: ClassVar[str]
-    baseline_col: ClassVar[str]              # an existing lagged column (NOT lagged-mean-of-target)
-    view_col: ClassVar[str]                  # the model-prediction column label in the gate table
+    baseline_col: ClassVar[str]  # an existing lagged column (NOT lagged-mean-of-target)
+    view_col: ClassVar[str]  # the model-prediction column label in the gate table
     _model_cls: ClassVar[type[BinaryPerPositionComponent]]
     positions: ClassVar[tuple[str, ...]] = POSITIONS
     default_variant: ClassVar[Literal["minimal", "selected"]] = "selected"
@@ -185,11 +191,19 @@ class BinaryComponentTerm:
             if sub.empty:
                 continue
             r_model = grouped_spearman(sub, self.view_col, target, ["gw"], MIN_ROWS_PER_POS)
-            r_base = grouped_spearman(sub.dropna(subset=[self.baseline_col]), self.baseline_col, target,
-                                      ["gw"], MIN_ROWS_PER_POS)
-            rows.append({"position": pos, "baseline": round(r_base, 4), self.view_col: round(r_model, 4),
-                         "delta": round(r_model - r_base, 4), "base_rate": round(float(sub[target].mean()), 3),
-                         "n_gw": int(sub["gw"].nunique())})
+            r_base = grouped_spearman(
+                sub.dropna(subset=[self.baseline_col]), self.baseline_col, target, ["gw"], MIN_ROWS_PER_POS
+            )
+            rows.append(
+                {
+                    "position": pos,
+                    "baseline": round(r_base, 4),
+                    self.view_col: round(r_model, 4),
+                    "delta": round(r_model - r_base, 4),
+                    "base_rate": round(float(sub[target].mean()), 3),
+                    "n_gw": int(sub["gw"].nunique()),
+                }
+            )
             passed[pos] = r_model > r_base
         table = pd.DataFrame(rows)
         if not table.empty:
@@ -197,8 +211,7 @@ class BinaryComponentTerm:
             table = table.sort_values("position").reset_index(drop=True)
         # level gate: for a binary term this is P(event) vs the realized base rate — ranking cannot see it.
         cal, passed_cal = level_gate(ev[ev["position"].isin(self.positions)], self.view_col, target)
-        return GateResult(term=self.name, table=table, passed=passed,
-                          calibration=cal, passed_calibration=passed_cal)
+        return GateResult(term=self.name, table=table, passed=passed, calibration=cal, passed_calibration=passed_cal)
 
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
         """Residuals (worst-missed rows) + per-feature ablation on the ranking (post-gate)."""
@@ -206,9 +219,12 @@ class BinaryComponentTerm:
         fitted = self.model.fit(mart)
         ev = self._scored_rows(mart, fitted).copy()
         ev["abs_resid"] = (ev[target] - ev[self.view_col]).abs()
-        residuals = (ev.sort_values("abs_resid", ascending=False)
-                       .loc[:, ["player_id", "gw", "position", target, self.view_col, "abs_resid"]]
-                       .head(20).reset_index(drop=True))
+        residuals = (
+            ev.sort_values("abs_resid", ascending=False)
+            .loc[:, ["player_id", "gw", "position", target, self.view_col, "abs_resid"]]
+            .head(20)
+            .reset_index(drop=True)
+        )
         full_feats = self.model.features(self.model.population(mart))
         rows = []
         for drop in full_feats:

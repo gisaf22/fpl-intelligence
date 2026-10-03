@@ -26,19 +26,27 @@ def _mart(n_teams: int = 20, n_gw: int = 16, seed: int = 0) -> pd.DataFrame:
     for team in range(n_teams):
         strength = rng.uniform(0.4, 2.2)  # team's baseline goals-against rate
         for gw in range(1, n_gw + 1):
-            ga = rng.poisson(strength)               # goals the team conceded this fixture
+            ga = rng.poisson(strength)  # goals the team conceded this fixture
             xgc_team = strength + rng.normal(0, 0.2)
             was_home = int(rng.random() < 0.5)
             fdr = rng.integers(2, 6)
-            for p in range(rng.integers(11, 14)):    # players who appeared for the team
+            for p in range(rng.integers(11, 14)):  # players who appeared for the team
                 pos = ["GK", "DEF", "DEF", "MID", "MID", "FWD"][p % 6]
-                rows.append({
-                    "player_id": team * 100 + p, "team_id": team, "gw": gw, "position": pos,
-                    "minutes": 90, "is_dgw": False,
-                    "goals_conceded": ga, "xgc": max(0.0, xgc_team + rng.normal(0, 0.1)),
-                    "was_home": was_home, "fdr_avg": float(fdr),
-                    "clean_sheets": int(ga == 0),
-                })
+                rows.append(
+                    {
+                        "player_id": team * 100 + p,
+                        "team_id": team,
+                        "gw": gw,
+                        "position": pos,
+                        "minutes": 90,
+                        "is_dgw": False,
+                        "goals_conceded": ga,
+                        "xgc": max(0.0, xgc_team + rng.normal(0, 0.1)),
+                        "was_home": was_home,
+                        "fdr_avg": float(fdr),
+                        "clean_sheets": int(ga == 0),
+                    }
+                )
     df = pd.DataFrame(rows)
     # Lag-safe per-player clean-sheet roll — the CS term's baseline_col (present on the real mart).
     df["clean_sheets_roll3"] = df.groupby("player_id")["clean_sheets"].transform(
@@ -59,7 +67,12 @@ def test_selected_draws_the_frozen_team_ga_features() -> None:
     panel = TeamGoalsAgainstModel.population(_mart())
     # The materializable pool today is exactly points_model.TEAM_GA_FEATURES, in order.
     assert TeamGoalsAgainstModel(variant="selected").features(panel) == [
-        "ga_roll3", "ga_roll5", "xgc_roll3", "xgc_roll5", "was_home", "fdr_avg",
+        "ga_roll3",
+        "ga_roll5",
+        "xgc_roll3",
+        "xgc_roll5",
+        "was_home",
+        "fdr_avg",
     ]
     assert TeamGoalsAgainstModel(variant="minimal").features(panel) == ["ga_roll3"]
 
@@ -90,12 +103,27 @@ def test_selected_emit_reproduces_godfile_team_ga_frozen() -> None:
     """Frozen: the joint team-GA layer (lambda_ga, p_cs, e_conceded_pts) ≡ the (deleted) walk_forward_team_ga."""
     tf = TeamGoalsAgainstModel(variant="selected").fit(_mart()).meta["team_frame"]
     tf = tf.sort_values(["team_id", "gw"]).reset_index(drop=True)
-    assert_frozen(tf["lambda_ga"].to_numpy(), n_scored=260, sum6=350.97815,
-                  spot_idx=[3, 83, 163, 243], spot_vals=[1.8188, 2.906, 2.5069, 2.0002])
-    assert_frozen(tf["p_cs"].to_numpy(), n_scored=260, sum6=77.087285,
-                  spot_idx=[3, 83, 163, 243], spot_vals=[0.1622, 0.0547, 0.0815, 0.1353])
-    assert_frozen(tf["e_conceded_pts"].to_numpy(), n_scored=260, sum6=-117.2961,
-                  spot_idx=[3, 83, 163, 243], spot_vals=[-0.666, -1.2038, -1.0051, -0.7547])
+    assert_frozen(
+        tf["lambda_ga"].to_numpy(),
+        n_scored=260,
+        sum6=350.97815,
+        spot_idx=[3, 83, 163, 243],
+        spot_vals=[1.8188, 2.906, 2.5069, 2.0002],
+    )
+    assert_frozen(
+        tf["p_cs"].to_numpy(),
+        n_scored=260,
+        sum6=77.087285,
+        spot_idx=[3, 83, 163, 243],
+        spot_vals=[0.1622, 0.0547, 0.0815, 0.1353],
+    )
+    assert_frozen(
+        tf["e_conceded_pts"].to_numpy(),
+        n_scored=260,
+        sum6=-117.2961,
+        spot_idx=[3, 83, 163, 243],
+        spot_vals=[-0.666, -1.2038, -1.0051, -0.7547],
+    )
 
 
 def test_check_assumptions_dispersion_and_detectability() -> None:
@@ -113,7 +141,7 @@ def test_both_terms_satisfy_the_term_contract_and_share_the_model() -> None:
     model = TeamGoalsAgainstModel()
     cs, conc = CleanSheetTerm(model), ConcededTerm(model)
     assert isinstance(cs, Term) and isinstance(conc, Term)
-    assert cs.model is conc.model            # joint: both views ride the SAME fitted model
+    assert cs.model is conc.model  # joint: both views ride the SAME fitted model
     assert cs.name == "clean_sheet" and cs.baseline_col == "clean_sheets_roll3"
     assert conc.name == "conceded" and conc.baseline_col == "conceded_baseline"
 
@@ -167,5 +195,10 @@ def test_diagnose_returns_residuals_and_ablation() -> None:
     assert not diag.residuals.empty
     # Ablation drops each of the 6 selected features once.
     assert set(diag.ablation["dropped"]) == {
-        "ga_roll3", "ga_roll5", "xgc_roll3", "xgc_roll5", "was_home", "fdr_avg",
+        "ga_roll3",
+        "ga_roll5",
+        "xgc_roll3",
+        "xgc_roll5",
+        "was_home",
+        "fdr_avg",
     }

@@ -19,11 +19,16 @@ def _panel(n_players: int = 6, n_gw: int = 12, seed: int = 0) -> pd.DataFrame:
     for p in range(n_players):
         skill = rng.uniform(2, 8)  # persistent player level (between-player signal)
         for gw in range(1, n_gw + 1):
-            rows.append({
-                "player_id": p, "gw": gw, "position": ["DEF", "MID", "FWD", "GK"][p % 4],
-                "minutes": 90, "is_dgw": False,
-                "total_points": max(0.0, skill + rng.normal(0, 1)),
-            })
+            rows.append(
+                {
+                    "player_id": p,
+                    "gw": gw,
+                    "position": ["DEF", "MID", "FWD", "GK"][p % 4],
+                    "minutes": 90,
+                    "is_dgw": False,
+                    "total_points": max(0.0, skill + rng.normal(0, 1)),
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -44,8 +49,8 @@ def test_last_gw_baseline_equals_prior_points() -> None:
 
 def test_population_excludes_dgw_and_non_players() -> None:
     df = _panel(n_players=4, n_gw=6)
-    df.loc[df.index[:2], "minutes"] = 0          # did not play
-    df.loc[df.index[2:4], "is_dgw"] = True       # double gameweek
+    df.loc[df.index[:2], "minutes"] = 0  # did not play
+    df.loc[df.index[2:4], "is_dgw"] = True  # double gameweek
     feats = build_baseline_features(df)
     assert (feats["minutes"] > 0).all()
     assert (~feats["is_dgw"].astype(bool)).all()
@@ -69,6 +74,7 @@ def test_scoring_respects_warmup() -> None:
 def test_by_position_structure() -> None:
     from model.eval.baselines import BASELINES
     from model.eval.walkforward import walk_forward_by_position
+
     res = walk_forward_by_position(_panel(n_players=60, n_gw=16))
     assert res.index.names == ["position", "baseline"]
     assert list(res.columns) == ["spearman", "precision_at_k", "ndcg_at_k", "k", "n_gw"]

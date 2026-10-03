@@ -57,11 +57,14 @@ def reducible_regret(pool: pd.DataFrame) -> pd.DataFrame:
     """
     rows = []
     for gw, g in pool.groupby("gw"):
-        rows.append({
-            "gw": gw, "oracle": float(g["total_points"].max()),
-            "base": float(g.loc[g["base_season"].idxmax(), "total_points"]),
-            "model": float(g.loc[g["e_points"].idxmax(), "total_points"]),
-        })
+        rows.append(
+            {
+                "gw": gw,
+                "oracle": float(g["total_points"].max()),
+                "base": float(g.loc[g["base_season"].idxmax(), "total_points"]),
+                "model": float(g.loc[g["e_points"].idxmax(), "total_points"]),
+            }
+        )
     out = pd.DataFrame(rows)
     out["reducible"] = out["oracle"] - out["base"]
     red = np.sort(out["reducible"].to_numpy())[::-1]
@@ -71,8 +74,9 @@ def reducible_regret(pool: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def oracle_rank_hits(pool: pd.DataFrame, score_cols: tuple[str, ...] = (
-        "base_season", "e_points", "p90", "p_haul", "ownership_count")) -> pd.DataFrame:
+def oracle_rank_hits(
+    pool: pd.DataFrame, score_cols: tuple[str, ...] = ("base_season", "e_points", "p90", "p_haul", "ownership_count")
+) -> pd.DataFrame:
     """hit@1 / hit@3: how often each strategy ranks the eventual oracle at the top of its list."""
     gws = pool["gw"].unique()
     chance1 = float(np.mean(1.0 / pool.groupby("gw").size()))
@@ -85,8 +89,14 @@ def oracle_rank_hits(pool: pd.DataFrame, score_cols: tuple[str, ...] = (
             rank = g[s].rank(ascending=False, method="min")[g["is_oracle"] == 1].min()
             h1 += rank <= 1
             h3 += rank <= 3
-        rows.append({"strategy": s, "hit_at_1": round(h1 / len(gws), 3),
-                     "hit_at_3": round(h3 / len(gws), 3), "chance_at_1": round(chance1, 3)})
+        rows.append(
+            {
+                "strategy": s,
+                "hit_at_1": round(h1 / len(gws), 3),
+                "hit_at_3": round(h3 / len(gws), 3),
+                "chance_at_1": round(chance1, 3),
+            }
+        )
     return pd.DataFrame(rows).set_index("strategy")
 
 
@@ -97,19 +107,24 @@ def divergence_winrate(pool: pd.DataFrame) -> dict:
         bp = g.loc[g["base_season"].idxmax(), "player_id"]
         mp = g.loc[g["e_points"].idxmax(), "player_id"]
         if bp != mp:
-            diff.append(g.loc[g["e_points"].idxmax(), "total_points"]
-                        - g.loc[g["base_season"].idxmax(), "total_points"])
+            diff.append(
+                g.loc[g["e_points"].idxmax(), "total_points"] - g.loc[g["base_season"].idxmax(), "total_points"]
+            )
     diff = np.asarray(diff, dtype=float)
     n_gw = pool["gw"].nunique()
     lo, hi = _ci3((diff > 0).astype(float)) if len(diff) >= 4 else (float("nan"), float("nan"))
-    return {"n_divergent": len(diff), "n_gw": int(n_gw),
-            "winrate": round(float((diff > 0).mean()), 3) if len(diff) else float("nan"),
-            "winrate_ci": (lo, hi),
-            "mean_pts_diff": round(float(diff.mean()), 3) if len(diff) else float("nan")}
+    return {
+        "n_divergent": len(diff),
+        "n_gw": int(n_gw),
+        "winrate": round(float((diff > 0).mean()), 3) if len(diff) else float("nan"),
+        "winrate_ci": (lo, hi),
+        "mean_pts_diff": round(float(diff.mean()), 3) if len(diff) else float("nan"),
+    }
 
 
-def oracle_discrimination(pool: pd.DataFrame, features: tuple[str, ...] = tuple(DISCRIMINATION_FEATURES),
-                          n_null: int = 500, seed: int = 0) -> dict:
+def oracle_discrimination(
+    pool: pd.DataFrame, features: tuple[str, ...] = tuple(DISCRIMINATION_FEATURES), n_null: int = 500, seed: int = 0
+) -> dict:
     """Does any ex-ante signal separate the oracle from the field? (single AUCs + LOGO-CV AUC + power).
 
     Single-feature AUC for `P(is_oracle)`, plus a leave-one-GW-out logistic (out-of-sample) AUC, and a
@@ -117,8 +132,9 @@ def oracle_discrimination(pool: pd.DataFrame, features: tuple[str, ...] = tuple(
     """
     feats = [f for f in features if f in pool.columns]
     sub = pool.dropna(subset=[*feats, "is_oracle"]).copy()
-    single = {f: round(float(roc_auc_score(sub["is_oracle"], sub[f])), 3) for f in feats
-              if sub["is_oracle"].nunique() == 2}
+    single = {
+        f: round(float(roc_auc_score(sub["is_oracle"], sub[f])), 3) for f in feats if sub["is_oracle"].nunique() == 2
+    }
 
     gws = sorted(sub["gw"].unique())
     oos = np.full(len(sub), np.nan)
@@ -138,12 +154,17 @@ def oracle_discrimination(pool: pd.DataFrame, features: tuple[str, ...] = tuple(
     null = []
     for _ in range(n_null):
         perm = sub.groupby("gw")["is_oracle"].transform(
-            lambda s: s.sample(frac=1, random_state=int(rng.integers(1e9))).to_numpy())
+            lambda s: s.sample(frac=1, random_state=int(rng.integers(1e9))).to_numpy()
+        )
         null.append(roc_auc_score(perm.to_numpy()[mask], oos[mask]))
     min_detectable = round(float(np.percentile(null, 95)), 3)
-    return {"single_auc": single, "combined_logo_auc": combined,
-            "min_detectable_auc": min_detectable, "signal_detected": combined > min_detectable,
-            "n_oracle": int(sub["is_oracle"].sum())}
+    return {
+        "single_auc": single,
+        "combined_logo_auc": combined,
+        "min_detectable_auc": min_detectable,
+        "signal_detected": combined > min_detectable,
+        "n_oracle": int(sub["is_oracle"].sum()),
+    }
 
 
 def captaincy_diagnostic_report(mart: pd.DataFrame, n_sims: int = 2000, seed: int = 0) -> dict:
@@ -153,7 +174,8 @@ def captaincy_diagnostic_report(mart: pd.DataFrame, n_sims: int = 2000, seed: in
     return {
         "n_gw": int(pool["gw"].nunique()),
         "concentration": reg,
-        "top20_share": reg.attrs["top20_share"], "gini": reg.attrs["gini"],
+        "top20_share": reg.attrs["top20_share"],
+        "gini": reg.attrs["gini"],
         "oracle_hits": oracle_rank_hits(pool),
         "divergence": divergence_winrate(pool),
         "discrimination": oracle_discrimination(pool, seed=seed),

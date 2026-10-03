@@ -48,7 +48,7 @@ class AssumptionReport:
 
     term: str
     dispersion: dict[str, float | str]  # index of dispersion, family recommendation, per §count_models
-    detectable: bool                    # detectability floor cleared (enough events/rows to learn the effect)
+    detectable: bool  # detectability floor cleared (enough events/rows to learn the effect)
     n_train: int
     notes: str = ""
 
@@ -63,8 +63,8 @@ class Fitted:
     """A fitted model bundle carried from ``fit`` to ``emit`` (opaque to callers)."""
 
     name: str
-    predictions: pd.Series          # emitted prediction indexed to the scored rows (mart index)
-    features: tuple[str, ...]       # the design columns actually used
+    predictions: pd.Series  # emitted prediction indexed to the scored rows (mart index)
+    features: tuple[str, ...]  # the design columns actually used
     meta: dict = field(default_factory=dict)
 
 
@@ -82,8 +82,8 @@ class GateResult:
     """
 
     term: str
-    table: pd.DataFrame             # per-position spearman for {baseline, model} on the common eval set
-    passed: dict[str, bool]         # position -> model beats its own baseline (RANKING)
+    table: pd.DataFrame  # per-position spearman for {baseline, model} on the common eval set
+    passed: dict[str, bool]  # position -> model beats its own baseline (RANKING)
     calibration: pd.DataFrame = field(default_factory=pd.DataFrame)  # per-position bias (metrics.position_bias)
     passed_calibration: dict[str, bool] = field(default_factory=dict)  # position -> no material level bias
 
@@ -98,8 +98,8 @@ class Diagnostics:
     """Post-gate residual/error analysis + ablation (spec §4 stage 5, §7)."""
 
     term: str
-    residuals: pd.DataFrame         # which players/GWs the model misses worst
-    ablation: pd.DataFrame          # drop each feature, re-gate: measured contribution
+    residuals: pd.DataFrame  # which players/GWs the model misses worst
+    ablation: pd.DataFrame  # drop each feature, re-gate: measured contribution
 
 
 @runtime_checkable
@@ -107,8 +107,8 @@ class Model(Protocol):
     """The fittable unit (one folder). Draws a *minimal* and a *selected* model from one pool."""
 
     name: str
-    pool: FeaturePool               # the single candidate pool (minimal + selected draw from it)
-    grain: Grain                    # the grain it is fit at (drives the join/broadcast)
+    pool: FeaturePool  # the single candidate pool (minimal + selected draw from it)
+    grain: Grain  # the grain it is fit at (drives the join/broadcast)
     hypotheses: tuple[Hypothesis, ...]
 
     def check_assumptions(self, train: pd.DataFrame) -> AssumptionReport: ...
@@ -122,7 +122,7 @@ class Term(Protocol):
 
     name: str
     model: Model
-    baseline_col: str               # its OWN naive bar (spec §5, per-term level)
+    baseline_col: str  # its OWN naive bar (spec §5, per-term level)
 
     def validate(self, mart: pd.DataFrame) -> GateResult: ...
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics: ...

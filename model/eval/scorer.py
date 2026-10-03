@@ -31,9 +31,16 @@ class GateResult:
     coverage: float
 
 
-def score_gate(candidates: pd.DataFrame, pred_col: str, model: str,
-               target_col: str = "total_points", *, min_n: int = MIN_ROWS_PER_POS,
-               positions: tuple[str, ...] = POSITIONS, seed: int = 0) -> pd.DataFrame:
+def score_gate(
+    candidates: pd.DataFrame,
+    pred_col: str,
+    model: str,
+    target_col: str = "total_points",
+    *,
+    min_n: int = MIN_ROWS_PER_POS,
+    positions: tuple[str, ...] = POSITIONS,
+    seed: int = 0,
+) -> pd.DataFrame:
     """Within-position Spearman + block-bootstrap CI + coverage for one prediction column.
 
     ``candidates`` is the common evaluation set (the rows a fair comparison scores on); ``coverage`` is
@@ -50,11 +57,17 @@ def score_gate(candidates: pd.DataFrame, pred_col: str, model: str,
         if scored.empty:
             continue
         est, (lo, hi) = spearman_with_ci(scored, pred_col, target_col, ["gw"], min_n, seed=seed)
-        rows.append(GateResult(
-            position=pos, model=model, spearman=round(est, 4),
-            ci_lo=round(lo, 4), ci_hi=round(hi, 4),
-            n_gw=int(scored["gw"].nunique()), coverage=round(len(scored) / len(sub), 3),
-        ))
+        rows.append(
+            GateResult(
+                position=pos,
+                model=model,
+                spearman=round(est, 4),
+                ci_lo=round(lo, 4),
+                ci_hi=round(hi, 4),
+                n_gw=int(scored["gw"].nunique()),
+                coverage=round(len(scored) / len(sub), 3),
+            )
+        )
     out = pd.DataFrame([asdict(r) for r in rows])
     if not out.empty:
         out["position"] = pd.Categorical(out["position"], categories=positions, ordered=True)

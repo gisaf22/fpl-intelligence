@@ -28,6 +28,7 @@ random intercept against a pooled OLS null (ML refits, boundary-corrected).
 from __future__ import annotations
 
 import warnings
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -44,7 +45,7 @@ DEFAULT_CI_LEVEL = 0.95
 DEFAULT_SEED = 12345
 
 
-def _fit_mixedlm(data: pd.DataFrame, value_col: str, group_col: str, reml: bool):
+def _fit_mixedlm(data: pd.DataFrame, value_col: str, group_col: str, reml: bool) -> Any:
     """Fit y ~ 1 with a per-group random intercept. Returns the fitted result or None."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")  # convergence / boundary chatter is expected on thin groups
@@ -55,7 +56,7 @@ def _fit_mixedlm(data: pd.DataFrame, value_col: str, group_col: str, reml: bool)
             return None
 
 
-def _components(result) -> tuple[float, float]:
+def _components(result: Any) -> tuple[float, float]:
     """(sigma2_between, sigma2_within) from a fitted MixedLM result."""
     # cov_re is the random-effect covariance (1x1 here); scale is the residual variance.
     sigma2_between = float(np.asarray(result.cov_re)[0, 0])

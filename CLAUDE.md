@@ -42,3 +42,10 @@ Must-follow rules:
 - **New items:** use the `gisaf22/.github` templates, create with `--body-file`, and set
   Work Item Type, Epic, Size, Status and parent.
 - **Public board:** no account IDs, ARNs or secrets in any issue, PR or comment.
+
+---
+
+## Before pushing
+
+Run `ruff check . && ruff format --check . && mypy` before pushing — `pytest` does not catch
+lint, formatting or type errors, and CI gates on all three

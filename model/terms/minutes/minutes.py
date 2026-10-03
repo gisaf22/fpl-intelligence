@@ -32,8 +32,8 @@ class MinutesHurdleModel(BinaryPerPositionComponent):
     """Per-position logistic P(>=60' | played), with a robust-rate GK override (the fittable unit)."""
 
     name = "minutes"
-    target = "play60"                        # DERIVED binary: 1{minutes >= 60}
-    term = "p60"                             # the emitted view: P(>=60' | played)
+    target = "play60"  # DERIVED binary: 1{minutes >= 60}
+    term = "p60"  # the emitted view: P(>=60' | played)
     pool = MINUTES_POOL
     logit_positions = ("DEF", "MID", "FWD")  # GK handled by _fill_special
     hypotheses = (
@@ -55,8 +55,11 @@ class MinutesHurdleModel(BinaryPerPositionComponent):
         GK expanding-rate override then include those rows, by design); train stays ``minutes>0``. The
         ``keep_all`` universe is fixtures-only (NaN-minutes no-fixture rows excluded — not appearances).
         """
-        keep = ((~mart["is_dgw"].astype(bool)) & mart["minutes"].notna()) if keep_all \
+        keep = (
+            ((~mart["is_dgw"].astype(bool)) & mart["minutes"].notna())
+            if keep_all
             else (mart["minutes"] > 0) & (~mart["is_dgw"].astype(bool))
+        )
         df = mart[keep].copy()
         df = df.sort_values(["player_id", "gw"]).reset_index(drop=True)
         for c in ["minutes_roll3", "minutes_roll5", "minutes_roll8", "minutes", "starts"]:

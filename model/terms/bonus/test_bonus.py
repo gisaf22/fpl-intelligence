@@ -34,11 +34,21 @@ def _panel(seed: int = 0, n_per_pos: int = 40, n_gw: int = 16) -> pd.DataFrame:
                 # realized bonus loosely rises with returns (top-3 BPS) + noise, clipped to 0..3
                 base = goals * 2 + assists + cs + (saves // 3)
                 bonus = int(np.clip(round(base * 0.4 + rng.normal(0, 0.5)), 0, 3))
-                rows.append({
-                    "player_id": pid, "gw": gw, "position": pos, "minutes": 90, "is_dgw": False,
-                    "goals_scored": goals, "assists": assists, "clean_sheets": cs, "saves": saves,
-                    "bonus": bonus, "total_points": 2.0,
-                })
+                rows.append(
+                    {
+                        "player_id": pid,
+                        "gw": gw,
+                        "position": pos,
+                        "minutes": 90,
+                        "is_dgw": False,
+                        "goals_scored": goals,
+                        "assists": assists,
+                        "clean_sheets": cs,
+                        "saves": saves,
+                        "bonus": bonus,
+                        "total_points": 2.0,
+                    }
+                )
             pid += 1
     return pd.DataFrame(rows)
 
@@ -48,16 +58,20 @@ def test_satisfies_contracts_and_shape() -> None:
     term = BonusTerm(model)
     assert isinstance(model, Model) and isinstance(term, Term)
     assert model.name == "bonus" and model.target == "bonus_actual"
-    assert term.baseline_col == "returns_pts"   # a contemporaneous composite, not a lagged feature
+    assert term.baseline_col == "returns_pts"  # a contemporaneous composite, not a lagged feature
     assert model.pool.candidates[0].known_future is True
 
 
 def test_selected_emit_reproduces_walk_forward_bonus_frozen() -> None:
     """Frozen: e_bonus ≡ the (deleted) points_model.walk_forward_bonus."""
     got = BonusModel().fit(_panel()).predictions.to_numpy()
-    assert_frozen(got, n_scored=2080, sum6=946.056084,
-                  spot_idx=[3, 515, 1027, 1539, 2051],
-                  spot_vals=[0.1553, 0.1553, 0.7359, 0.1027, 0.1859])
+    assert_frozen(
+        got,
+        n_scored=2080,
+        sum6=946.056084,
+        spot_idx=[3, 515, 1027, 1539, 2051],
+        spot_vals=[0.1553, 0.1553, 0.7359, 0.1027, 0.1859],
+    )
 
 
 def test_gate_reproduces_bonus_validation_frozen() -> None:
@@ -74,7 +88,7 @@ def test_emit_is_clipped_and_exposes_calibration_coefficients() -> None:
     assert set(out) == {"bonus"}
     vals = out["bonus"]
     defined = ~np.isnan(vals)
-    assert ((vals[defined] >= 0.0) & (vals[defined] <= 3.0)).all()   # bonus in [0, 3]
+    assert ((vals[defined] >= 0.0) & (vals[defined] <= 3.0)).all()  # bonus in [0, 3]
     coeffs = fitted.meta["coefficients"]
     assert {"position", "gw", "intercept", "slope"} <= set(coeffs.columns)  # simulator co-movement inputs
     assert not coeffs.empty

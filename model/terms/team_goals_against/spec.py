@@ -28,36 +28,63 @@ GRAIN = "team_gw"
 
 def _ga(window: int) -> FeatureSpec:
     return FeatureSpec(
-        name=f"ga_roll{window}", source="team_ga", grain="team_gw", transform="roll", window=window,
-        lag_safe=True, rationale="lagged team goals-against — a team concedes like its recent form",
+        name=f"ga_roll{window}",
+        source="team_ga",
+        grain="team_gw",
+        transform="roll",
+        window=window,
+        lag_safe=True,
+        rationale="lagged team goals-against — a team concedes like its recent form",
         prior="phase3 team-GA layer (D-D)",
     )
 
 
 def _xgc(window: int) -> FeatureSpec:
     return FeatureSpec(
-        name=f"xgc_roll{window}", source="team_xgc", grain="team_gw", transform="roll", window=window,
-        lag_safe=True, rationale="lagged team xGC — expected goals conceded regresses to a truer rate than GA",
+        name=f"xgc_roll{window}",
+        source="team_xgc",
+        grain="team_gw",
+        transform="roll",
+        window=window,
+        lag_safe=True,
+        rationale="lagged team xGC — expected goals conceded regresses to a truer rate than GA",
         prior="phase3 team-GA layer",
     )
 
 
 # was_home + fdr_avg are known before kickoff (the upcoming fixture), so legitimate predictors.
 _WAS_HOME = FeatureSpec(
-    name="was_home", source="was_home", grain="team_gw", transform="identity", window=None,
-    lag_safe=True, known_future=True, rationale="home teams concede less; venue is known pre-kickoff",
+    name="was_home",
+    source="was_home",
+    grain="team_gw",
+    transform="identity",
+    window=None,
+    lag_safe=True,
+    known_future=True,
+    rationale="home teams concede less; venue is known pre-kickoff",
 )
 _FDR = FeatureSpec(
-    name="fdr_avg", source="fdr_avg", grain="team_gw", transform="identity", window=None,
-    lag_safe=True, known_future=True, rationale="fixture difficulty of the specific upcoming opponent",
+    name="fdr_avg",
+    source="fdr_avg",
+    grain="team_gw",
+    transform="identity",
+    window=None,
+    lag_safe=True,
+    known_future=True,
+    rationale="fixture difficulty of the specific upcoming opponent",
     prior="families: opponent strength",
 )
 
 # Declared-but-unmaterialized §3 forward agenda: a minutes-aware team xGC construction the selected
 # model will regularize over once features/build.py builds it (materialize raises until then).
 _TEAM_XGC_MINUTES_AWARE = FeatureSpec(
-    name="team_xgc_minutes_aware", source="xgc", grain="team_gw", transform="roll", window=3,
-    lag_safe=True, rationale="team xGC weighted by minutes, decoupling exposure from the mean-over-appeared proxy",
+    name="team_xgc_minutes_aware",
+    source="xgc",
+    grain="team_gw",
+    transform="roll",
+    window=3,
+    lag_safe=True,
+    rationale="team xGC weighted by minutes, decoupling exposure from the mean-over-appeared proxy",
     prior="§3 axis 5: team defensive context (minutes-aware aggregation)",
 )
 

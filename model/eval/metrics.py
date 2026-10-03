@@ -35,8 +35,7 @@ def cell_spearman(pred: np.ndarray, actual: np.ndarray) -> float:
     return float(spearmanr(pred, actual).statistic)
 
 
-def grouped_spearman_series(df: pd.DataFrame, pred_col: str, target_col: str,
-                            by: list[str], min_n: int) -> np.ndarray:
+def grouped_spearman_series(df: pd.DataFrame, pred_col: str, target_col: str, by: list[str], min_n: int) -> np.ndarray:
     """Per-cell within-group rank correlations over cells of ``by`` (>= min_n rows, non-constant)."""
     rhos = []
     for _, g in df.groupby(by):
@@ -45,15 +44,15 @@ def grouped_spearman_series(df: pd.DataFrame, pred_col: str, target_col: str,
     return np.asarray(rhos, dtype=float)
 
 
-def grouped_spearman(df: pd.DataFrame, pred_col: str, target_col: str,
-                     by: list[str], min_n: int) -> float:
+def grouped_spearman(df: pd.DataFrame, pred_col: str, target_col: str, by: list[str], min_n: int) -> float:
     """Mean rank correlation over cells of ``by`` (the within-position ranking benchmark)."""
     rhos = grouped_spearman_series(df, pred_col, target_col, by, min_n)
     return float(np.mean(rhos)) if len(rhos) else np.nan
 
 
-def block_bootstrap_ci(values: np.ndarray, block: int = BLOCK_GWS, n: int = N_BOOTSTRAP,
-                       ci_level: float = CI_LEVEL, seed: int = 0) -> tuple[float, float]:
+def block_bootstrap_ci(
+    values: np.ndarray, block: int = BLOCK_GWS, n: int = N_BOOTSTRAP, ci_level: float = CI_LEVEL, seed: int = 0
+) -> tuple[float, float]:
     """Percentile CI of the mean of a per-gameweek series, resampling blocks of consecutive GWs.
 
     Consecutive gameweeks autocorrelate (form runs), so resampling *blocks* (not individual GWs) gives
@@ -68,14 +67,15 @@ def block_bootstrap_ci(values: np.ndarray, block: int = BLOCK_GWS, n: int = N_BO
     draws = np.empty(n)
     for i in range(n):
         starts = rng.integers(0, len(values) - block + 1, size=k)
-        idx = np.concatenate([np.arange(s, s + block) for s in starts])[:len(values)]
+        idx = np.concatenate([np.arange(s, s + block) for s in starts])[: len(values)]
         draws[i] = values[idx].mean()
     a = (1.0 - ci_level) / 2.0
     return (float(np.percentile(draws, 100 * a)), float(np.percentile(draws, 100 * (1 - a))))
 
 
-def spearman_with_ci(df: pd.DataFrame, pred_col: str, target_col: str, by: list[str],
-                     min_n: int, seed: int = 0) -> tuple[float, tuple[float, float]]:
+def spearman_with_ci(
+    df: pd.DataFrame, pred_col: str, target_col: str, by: list[str], min_n: int, seed: int = 0
+) -> tuple[float, tuple[float, float]]:
     """Grouped Spearman point estimate + a block-bootstrap CI over its per-gameweek series.
 
     ``by`` should include ``gw`` (the bootstrap unit). Returns ``(estimate, (lo, hi))``.
@@ -89,8 +89,8 @@ def precision_at_k(pred: np.ndarray, actual: np.ndarray, k: int) -> float:
     """Share of the predicted top-K that fall in the (tie-inclusive) actual top-K.
 
     Question: *how many* of my top-K picks were real hits? (count/membership — order within K and
-    magnitude are ignored; contrast :func:`ndcg_at_k`.) 
-    
+    magnitude are ignored; contrast :func:`ndcg_at_k`.)
+
     Tie-aware on the actual side: the target is
     heavily tied, so the actual top-K is everyone at or above the k-th largest actual value (else
     which tied player counts is an argsort artifact).
@@ -111,7 +111,7 @@ def ndcg_at_k(pred: np.ndarray, actual: np.ndarray, k: int) -> float:
     k = min(k, len(pred))
     gains = np.clip(actual, 0, None)
     disc = 1.0 / np.log2(np.arange(2, k + 2))
-    
+
     # Prediction ties broken arbitrarily by argsort (deterministic, not tie-averaged) — adds slight
     # noise for integer-valued baselines like base_last; negligible once averaged over gameweeks.
     dcg = (gains[np.argsort(-pred)][:k] * disc).sum()
@@ -132,8 +132,9 @@ def ndcg_at_k(pred: np.ndarray, actual: np.ndarray, k: int) -> float:
 MATERIAL_BIAS_FRAC = 0.10
 
 
-def clustered_mean_ci(values: np.ndarray, clusters: np.ndarray,
-                      ci_level: float = CI_LEVEL) -> tuple[float, float, float]:
+def clustered_mean_ci(
+    values: np.ndarray, clusters: np.ndarray, ci_level: float = CI_LEVEL
+) -> tuple[float, float, float]:
     """Cluster-robust CI for a mean: ``(mean, lo, hi)``.
 
     Prediction errors correlate **within a player** across gameweeks (a player the model
@@ -154,15 +155,20 @@ def clustered_mean_ci(values: np.ndarray, clusters: np.ndarray,
     cluster_sums = np.bincount(inv, weights=resid, minlength=g)
     if g < 2:
         return (mean, np.nan, np.nan)
-    var = (g / (g - 1)) * (cluster_sums ** 2).sum() / (n ** 2)
+    var = (g / (g - 1)) * (cluster_sums**2).sum() / (n**2)
     z = float(norm.ppf(0.5 + ci_level / 2))
     half = z * float(np.sqrt(max(var, 0.0)))
     return (mean, mean - half, mean + half)
 
 
-def position_bias(df: pd.DataFrame, pred_col: str, target_col: str,
-                  position_col: str = "position", cluster_col: str = "player_id",
-                  material_frac: float = MATERIAL_BIAS_FRAC) -> pd.DataFrame:
+def position_bias(
+    df: pd.DataFrame,
+    pred_col: str,
+    target_col: str,
+    position_col: str = "position",
+    cluster_col: str = "player_id",
+    material_frac: float = MATERIAL_BIAS_FRAC,
+) -> pd.DataFrame:
     """Per-position mean level error ``E[pred] - E[target]``, with a player-clustered interval.
 
     One row per position: ``n``, ``n_players``, ``mean_pred``, ``mean_target``, ``bias``,
@@ -185,21 +191,26 @@ def position_bias(df: pd.DataFrame, pred_col: str, target_col: str,
         mean_target = float(s[target_col].mean())
         detectable = bool(np.isfinite(lo) and (lo > 0 or hi < 0))
         material = abs(bias) > material_frac * abs(mean_target) if mean_target != 0 else bias != 0
-        rows.append({
-            "position": pos, "n": len(s), "n_players": int(pd.Series(clusters).nunique()),
-            "mean_pred": round(float(s[pred_col].mean()), 4),
-            "mean_target": round(mean_target, 4),
-            "bias": round(bias, 4),
-            "rel_bias": round(bias / mean_target, 4) if mean_target != 0 else np.nan,
-            "ci_lo": round(lo, 4), "ci_hi": round(hi, 4),
-            "detectable": detectable, "material": bool(material),
-            "ok": not (detectable and material),
-        })
+        rows.append(
+            {
+                "position": pos,
+                "n": len(s),
+                "n_players": int(pd.Series(clusters).nunique()),
+                "mean_pred": round(float(s[pred_col].mean()), 4),
+                "mean_target": round(mean_target, 4),
+                "bias": round(bias, 4),
+                "rel_bias": round(bias / mean_target, 4) if mean_target != 0 else np.nan,
+                "ci_lo": round(lo, 4),
+                "ci_hi": round(hi, 4),
+                "detectable": detectable,
+                "material": bool(material),
+                "ok": not (detectable and material),
+            }
+        )
     return pd.DataFrame(rows)
 
 
-def level_gate(df: pd.DataFrame, pred_col: str, target_col: str,
-               **kwargs) -> tuple[pd.DataFrame, dict[str, bool]]:
+def level_gate(df: pd.DataFrame, pred_col: str, target_col: str, **kwargs) -> tuple[pd.DataFrame, dict[str, bool]]:
     """The per-position LEVEL gate: :func:`position_bias` plus the position -> pass mapping.
 
     Every term's ``validate`` pairs its ranking table with this level check (spec §5): ranking is

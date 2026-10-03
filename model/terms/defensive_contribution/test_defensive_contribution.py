@@ -30,12 +30,20 @@ def _panel(seed: int = 0, n_per_pos: int = 50, n_gw: int = 16) -> pd.DataFrame:
         for _ in range(n_per_pos):
             lam = rng.uniform(5.0, 15.0)  # some players clear DEF>=10 / MID-FWD>=12, some don't
             for gw in range(1, n_gw + 1):
-                rows.append({
-                    "player_id": pid, "gw": gw, "position": pos, "minutes": 90, "is_dgw": False,
-                    "defensive_contribution": int(rng.poisson(lam)), "minutes_roll3": 90.0,
-                    "fdr_avg": float(rng.integers(2, 6)), "was_home": int(rng.random() < 0.5),
-                    "total_points": 2.0,
-                })
+                rows.append(
+                    {
+                        "player_id": pid,
+                        "gw": gw,
+                        "position": pos,
+                        "minutes": 90,
+                        "is_dgw": False,
+                        "defensive_contribution": int(rng.poisson(lam)),
+                        "minutes_roll3": 90.0,
+                        "fdr_avg": float(rng.integers(2, 6)),
+                        "was_home": int(rng.random() < 0.5),
+                        "total_points": 2.0,
+                    }
+                )
             pid += 1
     return pd.DataFrame(rows)
 
@@ -51,9 +59,9 @@ def test_satisfies_contracts_and_shape() -> None:
 
 def test_population_builds_the_derived_binary_target() -> None:
     pop = DefensiveContributionModel.population(_panel())
-    assert set(pop["position"].unique()) <= {"DEF", "MID", "FWD"}   # GK exempt
-    assert set(pop["dc_hit"].dropna().unique()) <= {0.0, 1.0}       # binary
-    assert pop["dc_hit"].nunique() == 2                             # both classes present
+    assert set(pop["position"].unique()) <= {"DEF", "MID", "FWD"}  # GK exempt
+    assert set(pop["dc_hit"].dropna().unique()) <= {0.0, 1.0}  # binary
+    assert pop["dc_hit"].nunique() == 2  # both classes present
     # threshold is position-specific: DEF at 10, MID/FWD at 12
     assert (pop.loc[pop["position"] == "DEF", "dc_threshold"] == 10).all()
     assert (pop.loc[pop["position"] == "MID", "dc_threshold"] == 12).all()
@@ -62,9 +70,13 @@ def test_population_builds_the_derived_binary_target() -> None:
 def test_selected_emit_reproduces_walk_forward_dc_frozen() -> None:
     """Frozen: selected P(DC hit) ≡ the (deleted) points_model.walk_forward_dc."""
     got = DefensiveContributionModel(variant="selected").fit(_panel()).predictions.to_numpy()
-    assert_frozen(got, n_scored=1950, sum6=787.988723,
-                  spot_idx=[3, 483, 963, 1443, 1923],
-                  spot_vals=[0.6186, 0.4382, 0.4667, 0.3909, 0.3811])
+    assert_frozen(
+        got,
+        n_scored=1950,
+        sum6=787.988723,
+        spot_idx=[3, 483, 963, 1443, 1923],
+        spot_vals=[0.6186, 0.4382, 0.4667, 0.3909, 0.3811],
+    )
 
 
 def test_gate_reproduces_dc_validation_frozen() -> None:

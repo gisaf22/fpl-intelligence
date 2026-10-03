@@ -22,10 +22,16 @@ def _panel(n_players: int = 60, n_gw: int = 15, seed: int = 0) -> pd.DataFrame:
     for p in range(n_players):
         skill = rng.uniform(2, 8)
         for gw in range(1, n_gw + 1):
-            rows.append({
-                "player_id": p, "gw": gw, "position": ["GK", "DEF", "MID", "FWD"][p % 4],
-                "minutes": 90, "is_dgw": False, "total_points": max(0.0, skill + rng.normal(0, 1.5)),
-            })
+            rows.append(
+                {
+                    "player_id": p,
+                    "gw": gw,
+                    "position": ["GK", "DEF", "MID", "FWD"][p % 4],
+                    "minutes": 90,
+                    "is_dgw": False,
+                    "total_points": max(0.0, skill + rng.normal(0, 1.5)),
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -55,6 +61,13 @@ def test_score_structure_and_all_estimators_present() -> None:
     res = score_levels_by_position(_panel(n_players=80, n_gw=16))
     assert res.index.names == ["position", "estimator"]
     assert list(res.columns) == [
-        "spearman", "ci_lo", "ci_hi", "precision_at_k", "ndcg_at_k", "coverage", "k", "n_gw",
+        "spearman",
+        "ci_lo",
+        "ci_hi",
+        "precision_at_k",
+        "ndcg_at_k",
+        "coverage",
+        "k",
+        "n_gw",
     ]
     assert set(res.index.get_level_values("estimator")) == set(LEVEL_ESTIMATORS.values())

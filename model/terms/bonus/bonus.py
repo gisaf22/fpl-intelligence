@@ -75,7 +75,7 @@ class BonusModel:
     term = "bonus"
     target = "bonus_actual"
     baseline_feature = "returns_pts"
-    clip_max = BPS_BONUS_FIRST               # bonus is in [0, 3]
+    clip_max = BPS_BONUS_FIRST  # bonus is in [0, 3]
     hypotheses: ClassVar[tuple[Hypothesis, ...]] = (
         Hypothesis(
             claim="returns_pts (FPL value of modelled returns) is a strong same-match BPS proxy",
@@ -136,12 +136,22 @@ class BonusModel:
                         res = sm.OLS(tr[self.target].to_numpy(float), x).fit()
                         xte = sm.add_constant(te[["returns_pts"]].to_numpy(float), has_constant="add")
                         pred.loc[te.index] = np.clip(res.predict(xte), 0.0, self.clip_max)
-                        coeffs.append({"position": pos, "gw": int(t),
-                                       "intercept": float(res.params[0]), "slope": float(res.params[1])})
+                        coeffs.append(
+                            {
+                                "position": pos,
+                                "gw": int(t),
+                                "intercept": float(res.params[0]),
+                                "slope": float(res.params[1]),
+                            }
+                        )
                     except Exception:
                         continue
-        return Fitted(name=self.name, predictions=pred, features=("returns_pts",),
-                      meta={"variant": self.variant, "coefficients": pd.DataFrame(coeffs)})
+        return Fitted(
+            name=self.name,
+            predictions=pred,
+            features=("returns_pts",),
+            meta={"variant": self.variant, "coefficients": pd.DataFrame(coeffs)},
+        )
 
     def emit(self, fitted: Fitted) -> dict[str, np.ndarray]:
         """The scored view — one term (``bonus``): calibrated E[bonus] per row."""
@@ -179,9 +189,16 @@ class BonusTerm:
                 continue
             r_model = grouped_spearman(sub, self.view_col, target, ["gw"], MIN_ROWS_PER_POS)
             r_base = grouped_spearman(sub, self.baseline_col, target, ["gw"], MIN_ROWS_PER_POS)
-            rows.append({"position": pos, "baseline": round(r_base, 4), self.view_col: round(r_model, 4),
-                         "delta": round(r_model - r_base, 4), "n_gw": int(sub["gw"].nunique())})
-            passed[pos] = r_model >= r_base   # calibration preserves ranking => parity is a pass
+            rows.append(
+                {
+                    "position": pos,
+                    "baseline": round(r_base, 4),
+                    self.view_col: round(r_model, 4),
+                    "delta": round(r_model - r_base, 4),
+                    "n_gw": int(sub["gw"].nunique()),
+                }
+            )
+            passed[pos] = r_model >= r_base  # calibration preserves ranking => parity is a pass
         table = pd.DataFrame(rows)
         if not table.empty:
             table["position"] = pd.Categorical(table["position"], categories=POSITIONS, ordered=True)
@@ -189,8 +206,7 @@ class BonusTerm:
         # level gate: is E[bonus] calibrated to realized bonus? This is a DIFFERENT quantity from the
         # scoring_conformance clip (compose vs sim); it catches over/under-statement vs realized. See ASSUMPTIONS.
         cal, passed_cal = level_gate(ev, self.view_col, target)
-        return GateResult(term=self.name, table=table, passed=passed,
-                          calibration=cal, passed_calibration=passed_cal)
+        return GateResult(term=self.name, table=table, passed=passed, calibration=cal, passed_calibration=passed_cal)
 
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
         """Residuals (worst-missed bonus rows) + the per-(position, gw) calibration coefficients."""
@@ -198,8 +214,11 @@ class BonusTerm:
         fitted = self.model.fit(mart)
         ev = self._scored_rows(mart, fitted).copy()
         ev["abs_resid"] = (ev[target] - ev[self.view_col]).abs()
-        residuals = (ev.sort_values("abs_resid", ascending=False)
-                       .loc[:, ["player_id", "gw", "position", target, self.view_col, "returns_pts", "abs_resid"]]
-                       .head(20).reset_index(drop=True))
+        residuals = (
+            ev.sort_values("abs_resid", ascending=False)
+            .loc[:, ["player_id", "gw", "position", target, self.view_col, "returns_pts", "abs_resid"]]
+            .head(20)
+            .reset_index(drop=True)
+        )
         # "ablation" here is the calibration itself — the fitted slope/intercept per position over time.
         return Diagnostics(term=self.name, residuals=residuals, ablation=fitted.meta["coefficients"])

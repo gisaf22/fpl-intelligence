@@ -66,7 +66,8 @@ class TeamGoalsAgainstModel:
     family = staticmethod(sm.families.Poisson)
 
     def __init__(
-        self, variant: Literal["minimal", "selected"] = "selected",
+        self,
+        variant: Literal["minimal", "selected"] = "selected",
         feature_override: list[str] | None = None,
     ) -> None:
         if variant not in ("minimal", "selected"):
@@ -112,8 +113,12 @@ class TeamGoalsAgainstModel:
         played = df[df["minutes"] > 0]
         team = (
             played.groupby(["team_id", "gw"])
-            .agg(team_ga=("goals_conceded", "max"), team_xgc=("xgc", "mean"),
-                 was_home=("was_home", "max"), fdr_avg=("fdr_avg", "mean"))
+            .agg(
+                team_ga=("goals_conceded", "max"),
+                team_xgc=("xgc", "mean"),
+                was_home=("was_home", "max"),
+                fdr_avg=("fdr_avg", "mean"),
+            )
             .reset_index()
             .sort_values(["team_id", "gw"])
         )
@@ -164,10 +169,14 @@ class TeamGoalsAgainstModel:
         team["p_cs"] = np.exp(-lam)
         team["e_conceded_pts"] = conceded_penalty_expectation(lam)
         return Fitted(
-            name=self.name, predictions=team["lambda_ga"], features=tuple(features),
-            meta={"variant": self.variant,
-                  # ga_roll3 rides along so the conceded Term can build its lagged-GA baseline.
-                  "team_frame": team[["team_id", "gw", "ga_roll3", "lambda_ga", "p_cs", "e_conceded_pts"]]},
+            name=self.name,
+            predictions=team["lambda_ga"],
+            features=tuple(features),
+            meta={
+                "variant": self.variant,
+                # ga_roll3 rides along so the conceded Term can build its lagged-GA baseline.
+                "team_frame": team[["team_id", "gw", "ga_roll3", "lambda_ga", "p_cs", "e_conceded_pts"]],
+            },
         )
 
     def emit(self, fitted: Fitted) -> dict[str, np.ndarray]:
@@ -207,25 +216,41 @@ class CleanSheetTerm:
             if sub.empty:
                 continue
             r_model = grouped_spearman(sub, "p_cs", "clean_sheets", ["gw"], MIN_ROWS_PER_POS)
-            r_base = grouped_spearman(sub.dropna(subset=["cs_roll"]), "cs_roll", "clean_sheets",
-                                      ["gw"], MIN_ROWS_PER_POS)
-            rows.append({"position": pos, "baseline": round(r_base, 4), "p_cs": round(r_model, 4),
-                         "delta": round(r_model - r_base, 4), "n_gw": int(sub["gw"].nunique())})
+            r_base = grouped_spearman(
+                sub.dropna(subset=["cs_roll"]), "cs_roll", "clean_sheets", ["gw"], MIN_ROWS_PER_POS
+            )
+            rows.append(
+                {
+                    "position": pos,
+                    "baseline": round(r_base, 4),
+                    "p_cs": round(r_model, 4),
+                    "delta": round(r_model - r_base, 4),
+                    "n_gw": int(sub["gw"].nunique()),
+                }
+            )
             passed[pos] = r_model > r_base
         # level gate: is the predicted CS probability calibrated to the realized clean-sheet rate?
         # (broadcast team-CS scored on the positions the term actually claims — GK/DEF/MID; FWD get no CS.)
         cal, passed_cal = level_gate(ev[ev["position"].isin(_CS_POSITIONS)], "p_cs", "clean_sheets")
-        return GateResult(term=self.name, table=_ordered(rows, _CS_POSITIONS), passed=passed,
-                          calibration=cal, passed_calibration=passed_cal)
+        return GateResult(
+            term=self.name,
+            table=_ordered(rows, _CS_POSITIONS),
+            passed=passed,
+            calibration=cal,
+            passed_calibration=passed_cal,
+        )
 
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
         """Residuals (worst-missed CS rows) + per-feature ablation on the CS ranking (post-gate)."""
         fitted = self.model.fit(mart)
         ev = self._scored_rows(mart, fitted)
         ev = ev.assign(abs_resid=(ev["clean_sheets"] - ev["p_cs"]).abs())
-        residuals = (ev.sort_values("abs_resid", ascending=False)
-                       .loc[:, ["player_id", "team_id", "gw", "position", "clean_sheets", "p_cs", "abs_resid"]]
-                       .head(20).reset_index(drop=True))
+        residuals = (
+            ev.sort_values("abs_resid", ascending=False)
+            .loc[:, ["player_id", "team_id", "gw", "position", "clean_sheets", "p_cs", "abs_resid"]]
+            .head(20)
+            .reset_index(drop=True)
+        )
         ablation = _ablation(self.model, mart, "p_cs", "clean_sheets", _CS_POSITIONS)
         return Diagnostics(term=self.name, residuals=residuals, ablation=ablation)
 
@@ -262,27 +287,46 @@ class ConcededTerm:
             if sub.empty:
                 continue
             r_model = grouped_spearman(sub, "e_conceded", "conceded_actual", ["gw"], MIN_ROWS_PER_POS)
-            r_base = grouped_spearman(sub.dropna(subset=["conceded_baseline"]), "conceded_baseline",
-                                      "conceded_actual", ["gw"], MIN_ROWS_PER_POS)
-            rows.append({"position": pos, "baseline": round(r_base, 4), "e_conceded": round(r_model, 4),
-                         "delta": round(r_model - r_base, 4), "n_gw": int(sub["gw"].nunique())})
+            r_base = grouped_spearman(
+                sub.dropna(subset=["conceded_baseline"]),
+                "conceded_baseline",
+                "conceded_actual",
+                ["gw"],
+                MIN_ROWS_PER_POS,
+            )
+            rows.append(
+                {
+                    "position": pos,
+                    "baseline": round(r_base, 4),
+                    "e_conceded": round(r_model, 4),
+                    "delta": round(r_model - r_base, 4),
+                    "n_gw": int(sub["gw"].nunique()),
+                }
+            )
             passed[pos] = r_model > r_base
         # level gate: is E[-floor(GA/2)] calibrated to the realized conceded penalty? (GK/DEF — ev is
         # already scoped to _CONCEDED_POSITIONS by _scored_rows.)
         cal, passed_cal = level_gate(ev, "e_conceded", "conceded_actual")
-        return GateResult(term=self.name, table=_ordered(rows, _CONCEDED_POSITIONS), passed=passed,
-                          calibration=cal, passed_calibration=passed_cal)
+        return GateResult(
+            term=self.name,
+            table=_ordered(rows, _CONCEDED_POSITIONS),
+            passed=passed,
+            calibration=cal,
+            passed_calibration=passed_cal,
+        )
 
     def diagnose(self, mart: pd.DataFrame) -> Diagnostics:
         """Residuals (worst-missed conceded rows) + per-feature ablation on the conceded ranking."""
         fitted = self.model.fit(mart)
         ev = self._scored_rows(mart, fitted)
         ev = ev.assign(abs_resid=(ev["conceded_actual"] - ev["e_conceded"]).abs())
-        residuals = (ev.sort_values("abs_resid", ascending=False)
-                       .loc[:, ["player_id", "team_id", "gw", "position", "conceded_actual", "e_conceded", "abs_resid"]]
-                       .head(20).reset_index(drop=True))
-        ablation = _ablation(self.model, mart, "conceded", "conceded_actual", _CONCEDED_POSITIONS,
-                             emit_key="conceded")
+        residuals = (
+            ev.sort_values("abs_resid", ascending=False)
+            .loc[:, ["player_id", "team_id", "gw", "position", "conceded_actual", "e_conceded", "abs_resid"]]
+            .head(20)
+            .reset_index(drop=True)
+        )
+        ablation = _ablation(self.model, mart, "conceded", "conceded_actual", _CONCEDED_POSITIONS, emit_key="conceded")
         return Diagnostics(term=self.name, residuals=residuals, ablation=ablation)
 
 
@@ -296,8 +340,13 @@ def _ordered(rows: list[dict], positions: tuple[str, ...]) -> pd.DataFrame:
 
 
 def _ablation(
-    model: TeamGoalsAgainstModel, mart: pd.DataFrame, pred_label: str, target: str,
-    positions: tuple[str, ...], *, emit_key: str = "clean_sheet",
+    model: TeamGoalsAgainstModel,
+    mart: pd.DataFrame,
+    pred_label: str,
+    target: str,
+    positions: tuple[str, ...],
+    *,
+    emit_key: str = "clean_sheet",
 ) -> pd.DataFrame:
     """Drop each design feature, re-fit, re-score the term's within-position ranking — measured contribution."""
     full_feats = model.features(model.population(mart))

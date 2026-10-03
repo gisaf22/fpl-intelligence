@@ -21,8 +21,8 @@ _RETURNS_PTS = FeatureSpec(
     grain="player_gw",
     transform="identity",
     window=None,
-    lag_safe=True,             # not a lagged feature at all; see known_future
-    known_future=True,         # contemporaneous scoring map: the SAME-match return, not prior history
+    lag_safe=True,  # not a lagged feature at all; see known_future
+    known_future=True,  # contemporaneous scoring map: the SAME-match return, not prior history
     rationale="FPL value of the modelled returns is a strong BPS proxy (D-B: rho 0.50-0.77); GLM/DC don't beat it",
     prior="D-B bonus-proxy study",
 )

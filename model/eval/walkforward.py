@@ -123,19 +123,23 @@ def per_gw_scores(
         if sub.empty:
             continue
         k = position_k(int(sub.groupby("gw").size().median()))
-        for gw, g in sub.groupby("gw"):                     # group ONCE per position
+        for gw, g in sub.groupby("gw"):  # group ONCE per position
             for col, label in models.items():
                 if not has_rank_signal(g, col, target_col, min_n):
                     continue
                 sp, pk, nd = _gw_cell_metrics(g, col, target_col, k)
                 recs.append((pos, label, int(gw), k, sp, pk, nd))
-    return pd.DataFrame(recs, columns=["position", "model", "gw", "k",
-                                       "spearman", "precision_at_k", "ndcg_at_k"])
+    return pd.DataFrame(recs, columns=["position", "model", "gw", "k", "spearman", "precision_at_k", "ndcg_at_k"])
 
 
 def _summarise(
-    long: pd.DataFrame, candidates: pd.DataFrame, models: dict[str, str], *,
-    positions: tuple[str, ...], seed: int, bootstrap: bool,
+    long: pd.DataFrame,
+    candidates: pd.DataFrame,
+    models: dict[str, str],
+    *,
+    positions: tuple[str, ...],
+    seed: int,
+    bootstrap: bool,
 ) -> pd.DataFrame:
     """Aggregate the per-gw long frame into the season summary (one row per position, model).
 
@@ -159,14 +163,20 @@ def _summarise(
             series = lm["spearman"].to_numpy()
             est = float(np.mean(series)) if len(series) else np.nan
             lo, hi = block_bootstrap_ci(series, seed=seed) if bootstrap else (np.nan, np.nan)
-            rows.append({
-                "position": pos, "model": label,
-                "spearman": round(est, 4), "ci_lo": round(lo, 4), "ci_hi": round(hi, 4),
-                "precision_at_k": round(float(lm["precision_at_k"].mean()), 4) if len(lm) else np.nan,
-                "ndcg_at_k": round(float(lm["ndcg_at_k"].mean()), 4) if len(lm) else np.nan,
-                "coverage": round(float(sub_all[col].notna().mean()), 3) if len(sub_all) else np.nan,
-                "k": k, "n_gw": n_gw,
-            })
+            rows.append(
+                {
+                    "position": pos,
+                    "model": label,
+                    "spearman": round(est, 4),
+                    "ci_lo": round(lo, 4),
+                    "ci_hi": round(hi, 4),
+                    "precision_at_k": round(float(lm["precision_at_k"].mean()), 4) if len(lm) else np.nan,
+                    "ndcg_at_k": round(float(lm["ndcg_at_k"].mean()), 4) if len(lm) else np.nan,
+                    "coverage": round(float(sub_all[col].notna().mean()), 3) if len(sub_all) else np.nan,
+                    "k": k,
+                    "n_gw": n_gw,
+                }
+            )
     out = pd.DataFrame(rows)
     if not out.empty:
         out["position"] = pd.Categorical(out["position"], categories=positions, ordered=True)
@@ -218,7 +228,9 @@ def walk_forward_by_position(mart: pd.DataFrame) -> pd.DataFrame:
 
 
 def score_predictions(
-    features: pd.DataFrame, pred_col: str, target_col: str = "total_points",
+    features: pd.DataFrame,
+    pred_col: str,
+    target_col: str = "total_points",
 ) -> dict:
     """Ranking + accuracy metrics for one prediction column, averaged over post-warmup GWs.
 

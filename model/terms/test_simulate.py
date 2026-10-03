@@ -41,8 +41,7 @@ def test_seed_pinned_regression_vector() -> None:
     # Re-frozen (mean-features step-1): goals + assists `selected` now draw fdr_avg (the mart carries it),
     # so this FWD row's e_goals/e_assists shifted — sim_mean/sim_sd/p_haul moved; the discrete body
     # (p10/p50/p90) is unchanged.
-    frozen = {"sim_mean": 3.8527, "sim_sd": 2.6818, "p10": 1.1975,
-              "p50": 2.1975, "p90": 6.8481, "p_haul": 0.0377}
+    frozen = {"sim_mean": 3.8527, "sim_sd": 2.6818, "p10": 1.1975, "p50": 2.1975, "p90": 6.8481, "p_haul": 0.0377}
     for col, want in frozen.items():
         assert round(float(row[col]), 4) == want, f"{col}: {row[col]!r} != {want}"
 
@@ -97,6 +96,7 @@ def test_team_ga_drawn_once_per_team_fixture() -> None:
 
 def test_warmup_rows_absent() -> None:
     from model.eval.walkforward import WARMUP_GW
+
     sim = simulate_points(compose_parameters(_mart()), n_sims=500, seed=0)
     assert (sim["gw"] > WARMUP_GW).all()
 

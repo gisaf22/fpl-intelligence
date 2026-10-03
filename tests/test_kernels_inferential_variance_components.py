@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
+from statsmodels.regression.mixed_linear_model import MixedLM
 
 from research.kernels.descriptive.variance_components import decompose_variance
 from research.kernels.inferential.variance_components import (
@@ -53,6 +54,22 @@ def test_icc_agrees_with_ss_share_on_balanced_panel() -> None:
     icc = mixed_effects_icc(df, n_bootstrap=_NB)["icc"]
     ss_share = decompose_variance(df)["pct_between"] / 100.0
     assert icc == pytest.approx(ss_share, abs=0.1)
+
+
+def test_fit_falls_back_when_lbfgs_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    real_fit = MixedLM.fit
+    tried: list[str] = []
+
+    def fit(self: MixedLM, *args: object, method: str = "lbfgs", **kwargs: object) -> object:
+        tried.append(method)
+        if method == "lbfgs":
+            raise np.linalg.LinAlgError("forced")
+        return real_fit(self, *args, method=method, **kwargs)
+
+    monkeypatch.setattr(MixedLM, "fit", fit)
+    res = mixed_effects_icc(_panel(sigma_between=4.0, sigma_within=1.0, seed=1), n_bootstrap=2)
+    assert tried[:2] == ["lbfgs", "powell"]
+    assert res["icc"] > 0.7
 
 
 def test_returns_nan_when_too_few_players() -> None:

@@ -218,7 +218,7 @@ def _two_sided_p(draws: np.ndarray) -> float:
     if arr.size == 0:
         return float("nan")
     tail = min(int(np.sum(arr <= 0.0)), int(np.sum(arr >= 0.0)))
-    return round(min(1.0, 2.0 * (1 + tail) / (1 + arr.size)), 4)
+    return float(round(min(1.0, 2.0 * (1 + tail) / (1 + arr.size)), 4))
 
 
 def cluster_bootstrap_minutes_adjusted_rho(

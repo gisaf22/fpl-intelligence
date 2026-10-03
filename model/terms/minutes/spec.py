@@ -19,22 +19,37 @@ GRAIN = "player_gw"
 
 def _minutes_roll(window: int) -> FeatureSpec:
     return FeatureSpec(
-        name=f"minutes_roll{window}", source="minutes", grain="player_gw", transform="roll", window=window,
-        lag_safe=True, rationale="lagged minutes form — recent playing time predicts a full appearance",
+        name=f"minutes_roll{window}",
+        source="minutes",
+        grain="player_gw",
+        transform="roll",
+        window=window,
+        lag_safe=True,
+        rationale="lagged minutes form — recent playing time predicts a full appearance",
         prior="phase3 minutes hurdle",
     )
 
 
 _STARTS_ROLL3 = FeatureSpec(
-    name="starts_roll3", source="starts", grain="player_gw", transform="roll", window=3,
-    lag_safe=True, rationale="lagged start rate — a nailed starter clears 60' far more often than a rotation risk",
+    name="starts_roll3",
+    source="starts",
+    grain="player_gw",
+    transform="roll",
+    window=3,
+    lag_safe=True,
+    rationale="lagged start rate — a nailed starter clears 60' far more often than a rotation risk",
     prior="phase3 minutes hurdle",
 )
 
 # Declared-but-unmaterialized §3 forward agenda: rotation / availability signals.
 _DAYS_SINCE_START = FeatureSpec(
-    name="days_since_start", source="fixture_calendar", grain="player_gw", transform="identity", window=None,
-    lag_safe=True, known_future=True,
+    name="days_since_start",
+    source="fixture_calendar",
+    grain="player_gw",
+    transform="identity",
+    window=None,
+    lag_safe=True,
+    known_future=True,
     rationale="rest since last start — congestion and rotation risk, known from the fixture calendar",
     prior="§3 axis 6: rotation / availability",
 )

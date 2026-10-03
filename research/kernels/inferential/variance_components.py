@@ -28,6 +28,7 @@ random intercept against a pooled OLS null (ML refits, boundary-corrected).
 from __future__ import annotations
 
 import warnings
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -42,20 +43,33 @@ from research.kernels.descriptive.variance_components import DEFAULT_MIN_APPEARA
 DEFAULT_N_BOOTSTRAP = 300
 DEFAULT_CI_LEVEL = 0.95
 DEFAULT_SEED = 12345
+# Optimizers tried in order by _fit_mixedlm until one gives finite variance components.
+_FIT_METHODS = ("lbfgs", "powell", "nm")
 
 
-def _fit_mixedlm(data: pd.DataFrame, value_col: str, group_col: str, reml: bool):
-    """Fit y ~ 1 with a per-group random intercept. Returns the fitted result or None."""
+def _fit_mixedlm(data: pd.DataFrame, value_col: str, group_col: str, reml: bool) -> Any:
+    """Fit y ~ 1 with a per-group random intercept. Returns the fitted result or None.
+
+    Tries lbfgs, then powell, then nm; a method is rejected when it raises or yields
+    non-finite variance components, and None is returned only when all three fail.
+    """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")  # convergence / boundary chatter is expected on thin groups
         try:
             model = smf.mixedlm(f"{value_col} ~ 1", data, groups=data[group_col])
-            return model.fit(reml=reml, method="lbfgs")
         except Exception:
             return None
+        for method in _FIT_METHODS:
+            try:
+                result = model.fit(reml=reml, method=method)
+                if np.all(np.isfinite(_components(result))):
+                    return result
+            except Exception:
+                continue
+        return None
 
 
-def _components(result) -> tuple[float, float]:
+def _components(result: Any) -> tuple[float, float]:
     """(sigma2_between, sigma2_within) from a fitted MixedLM result."""
     # cov_re is the random-effect covariance (1x1 here); scale is the residual variance.
     sigma2_between = float(np.asarray(result.cov_re)[0, 0])

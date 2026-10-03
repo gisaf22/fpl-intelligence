@@ -51,7 +51,7 @@ def build_baseline_features(mart: pd.DataFrame) -> pd.DataFrame:
     df["base_last"] = pts.transform(lambda s: s.shift(1))
     for k in ROLL_WINDOWS:
         df[f"base_roll{k}"] = pts.transform(lambda s, k=k: s.shift(1).rolling(k, min_periods=k).mean())
-    df["base_season"] = expanding_prior_mean(df)          # single source of the expanding-prior-mean stat
+    df["base_season"] = expanding_prior_mean(df)  # single source of the expanding-prior-mean stat
     return df
 
 
@@ -73,6 +73,4 @@ def expanding_prior_mean(mart: pd.DataFrame) -> pd.Series:
     from the schema-validated mart (filter/sort/merge preserve the dtype), so no
     numeric coercion is needed here.
     """
-    return mart.groupby("player_id")["total_points"].transform(
-        lambda s: s.shift(1).expanding().mean()
-    )
+    return mart.groupby("player_id")["total_points"].transform(lambda s: s.shift(1).expanding().mean())

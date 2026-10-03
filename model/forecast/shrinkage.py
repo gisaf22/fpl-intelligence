@@ -84,7 +84,8 @@ def build_shrunk_features(mart: pd.DataFrame, value_col: str = "total_points") -
     # Player-level leakage-safe prior mean (== Phase-0 ``base_season`` on the canonical
     # population) and prior appearance count.
     df["lvl_mean"] = (
-        expanding_prior_mean(df) if value_col == "total_points"
+        expanding_prior_mean(df)
+        if value_col == "total_points"
         else pts.transform(lambda s: s.shift(1).expanding().mean())
     )
     df["prior_n"] = pts.transform(lambda s: s.expanding().count().shift(1))

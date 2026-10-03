@@ -31,11 +31,18 @@ from model.eval.metrics import block_bootstrap_ci
 from model.eval.walkforward import WARMUP_GW
 from model.simulate import simulate_points
 
-AVAILABILITY_MIN_ROLL = 45.0          # pool-free gate: averaged >= 45 min over the last 3 (lagged)
+AVAILABILITY_MIN_ROLL = 45.0  # pool-free gate: averaged >= 45 min over the last 3 (lagged)
 # Raw mart signals carried onto the compose panel for the strategies (ownership/availability/realized) AND
 # the Door-1 discrimination diagnostic (fdr/home/form/price). Present-subset: a thin fixture may lack some.
-_RAW_CARRY_COLS = ["ownership_count", "total_points", "minutes_roll3",
-                   "fdr_avg", "was_home", "xgi_roll5", "purchase_price"]
+_RAW_CARRY_COLS = [
+    "ownership_count",
+    "total_points",
+    "minutes_roll3",
+    "fdr_avg",
+    "was_home",
+    "xgi_roll5",
+    "purchase_price",
+]
 _STRATEGIES = {
     "template": "ownership_count",
     "base_season": "base_season",
@@ -85,8 +92,9 @@ def _pick_series(pool: pd.DataFrame) -> tuple[dict[str, np.ndarray], np.ndarray]
     return {s: np.array(v, dtype=float) for s, v in per_gw.items()}, np.array(oracle, dtype=float)
 
 
-def captaincy_backtest(mart: pd.DataFrame, pool: str = "free", n_top: int = 50,
-                       n_sims: int = 2000, seed: int = 0) -> pd.DataFrame:
+def captaincy_backtest(
+    mart: pd.DataFrame, pool: str = "free", n_top: int = 50, n_sims: int = 2000, seed: int = 0
+) -> pd.DataFrame:
     """Captaincy strategy comparison over the chosen universe, with block-bootstrap CIs.
 
     ``pool='free'`` = lagged-minutes availability gate (model-agnostic, primary); ``pool='ownership'``
@@ -95,7 +103,8 @@ def captaincy_backtest(mart: pd.DataFrame, pool: str = "free", n_top: int = 50,
     """
     df = build_captaincy_panel(mart, n_sims=n_sims, seed=seed)
     ev = df[(df["gw"] > WARMUP_GW)].dropna(
-        subset=["e_points", "p90", "p_haul", "ownership_count", "base_season", "total_points"])
+        subset=["e_points", "p90", "p_haul", "ownership_count", "base_season", "total_points"]
+    )
     gate = ev[ev["minutes_roll3"] >= AVAILABILITY_MIN_ROLL]
     if pool == "ownership":
         gate = gate.sort_values("ownership_count", ascending=False).groupby("gw").head(n_top)
@@ -108,12 +117,16 @@ def captaincy_backtest(mart: pd.DataFrame, pool: str = "free", n_top: int = 50,
         finite = v[~np.isnan(v)]
         lo, hi = _ci3(finite)
         mean_v = round(float(finite.mean()), 3) if len(finite) else float("nan")
-        rows.append({
-            "strategy": s, "mean_pts_gw": mean_v,
-            "ci_lo": lo, "ci_hi": hi,
-            "winrate_vs_template": round(float(np.nanmean(v > templ)), 3),
-            "regret": round(oracle_mean - finite.mean(), 3) if len(finite) else float("nan"),
-        })
+        rows.append(
+            {
+                "strategy": s,
+                "mean_pts_gw": mean_v,
+                "ci_lo": lo,
+                "ci_hi": hi,
+                "winrate_vs_template": round(float(np.nanmean(v > templ)), 3),
+                "regret": round(oracle_mean - finite.mean(), 3) if len(finite) else float("nan"),
+            }
+        )
     out = pd.DataFrame(rows).set_index("strategy")
     out.attrs["oracle_mean"] = round(float(np.nanmean(oracle)), 3)
     out.attrs["n_gw"] = len(oracle)

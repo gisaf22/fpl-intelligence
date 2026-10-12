@@ -9,7 +9,7 @@ on:
 jobs:
   unit-tests:
     name: Unit tests (fixture DB)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
 
   integration-tests:
     name: Integration tests (live DB)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: false  # requires ~/.fpl/fpl.db — run manually or on self-hosted runner with DB access
 
     steps:

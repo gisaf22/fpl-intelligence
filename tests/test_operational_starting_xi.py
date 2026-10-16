@@ -14,6 +14,7 @@ small enough to run a real pilot over).
 
 from __future__ import annotations
 
+import hashlib
 import inspect
 import json
 import subprocess
@@ -24,8 +25,9 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 import pytest
+import yaml
 
-from decisions.starting_xi import rankers, results
+from decisions.starting_xi import orderings, rankers, results
 from operational import starting_xi
 from operational.starting_xi import run_study
 
@@ -100,6 +102,133 @@ def _fake_rank_fns(mart: pd.DataFrame) -> dict[str, Callable[[pd.DataFrame], _Fa
     return {name: _make(name) for name in rankers.FLOOR_RANKERS}
 
 
+def _git_repo(root, *, dirty: bool = False):
+    """A throwaway one-commit repository; `dirty` leaves an untracked file in it."""
+    root.mkdir(parents=True, exist_ok=True)
+    git = ["git", "-C", str(root), "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git, "init", "-q"], check=True)
+    (root / "a.txt").write_text("a\n")
+    subprocess.run([*git, "add", "a.txt"], check=True)
+    subprocess.run([*git, "commit", "-q", "-m", "init"], check=True)
+    if dirty:
+        (root / "b.txt").write_text("b\n")
+    return root
+
+
+def _data_source(tmp_path):
+    path = tmp_path / "fpl.db"
+    path.write_bytes(b"not really a database")
+    return path
+
+
+def _off_registration_flags(tmp_path) -> dict[str, object]:
+    """What the small-fixture runs need: they are off-registration by construction (5 squads,
+    GW2-8, seed != 0), so they run forced and land non-canonical."""
+    return dict(
+        data_source=_data_source(tmp_path),
+        repo_root=_git_repo(tmp_path / "repo"),
+        allow_off_registration=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Run hygiene: the pre-run check against PRE_REGISTRATION.yaml, and the git tree
+# ---------------------------------------------------------------------------
+
+_REGISTERED = dict(
+    bench_order=orderings.PRE_REGISTERED_ORDERINGS,
+    rank_fns=rankers.FLOOR_RANKERS,
+    gameweeks=range(2, 39),
+    n_squads=300,
+    seed=0,
+)
+
+
+def _pre_registration() -> dict[str, object]:
+    payload: dict[str, object] = yaml.safe_load(starting_xi.PRE_REGISTRATION_PATH.read_text())
+    return payload
+
+
+def test_the_registered_configuration_has_no_mismatches() -> None:
+    assert starting_xi.pre_registration_mismatches(**_REGISTERED, pre_registration=_pre_registration()) == []
+
+
+def test_every_off_registration_field_is_named() -> None:
+    by_weighted = (orderings.PRE_REGISTERED_ORDERINGS[0], ("by_weighted_score", lambda *_: None))
+    floor_minus_one = {name: fn for name, fn in rankers.FLOOR_RANKERS.items() if name != "F1_p_play"}
+    mismatches = starting_xi.pre_registration_mismatches(
+        bench_order=by_weighted,
+        rank_fns=floor_minus_one,
+        gameweeks=range(2, 9),
+        n_squads=5,
+        seed=7,
+        pre_registration=_pre_registration(),
+    )
+    assert {m.split(":")[0] for m in mismatches} == {
+        "bench_ordering",
+        "floor_rankers",
+        "build_gameweeks",
+        "squads_per_gameweek",
+        "master_seed",
+    }
+
+
+def test_preflight_on_a_clean_tree_and_registered_configuration_is_canonical(tmp_path) -> None:
+    repo = _git_repo(tmp_path / "repo")
+    data = _data_source(tmp_path)
+    provenance = starting_xi.preflight(**_REGISTERED, data_source=data, repo_root=repo)
+
+    head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
+    assert provenance.git_sha == head.stdout.strip()
+    assert provenance.clean_tree is True
+    assert provenance.canonical is True
+    assert provenance.non_canonical_reasons == ()
+    assert provenance.data_source_path == str(data.resolve())
+    assert provenance.data_source_sha256 == hashlib.sha256(data.read_bytes()).hexdigest()
+    expected_pre_registration = hashlib.sha256(starting_xi.PRE_REGISTRATION_PATH.read_bytes()).hexdigest()
+    assert provenance.pre_registration_sha256 == expected_pre_registration
+
+
+def test_preflight_refuses_a_dirty_tree_unless_allowed_and_then_marks_it_non_canonical(tmp_path) -> None:
+    repo = _git_repo(tmp_path / "repo", dirty=True)
+    data = _data_source(tmp_path)
+    with pytest.raises(starting_xi.RunRefused, match="dirty"):
+        starting_xi.preflight(**_REGISTERED, data_source=data, repo_root=repo)
+
+    provenance = starting_xi.preflight(**_REGISTERED, data_source=data, repo_root=repo, allow_dirty=True)
+    assert provenance.clean_tree is False
+    assert provenance.canonical is False
+    assert provenance.non_canonical_reasons == ("dirty_tree",)
+
+
+def test_preflight_refuses_off_registration_unless_forced_and_then_marks_it_non_canonical(tmp_path) -> None:
+    repo = _git_repo(tmp_path / "repo")
+    data = _data_source(tmp_path)
+    off = {**_REGISTERED, "n_squads": 5}
+    with pytest.raises(starting_xi.RunRefused, match="squads_per_gameweek"):
+        starting_xi.preflight(**off, data_source=data, repo_root=repo)
+
+    provenance = starting_xi.preflight(**off, data_source=data, repo_root=repo, allow_off_registration=True)
+    assert provenance.canonical is False
+    assert provenance.non_canonical_reasons == ("off_registration:squads_per_gameweek",)
+
+
+def test_run_study_refuses_before_writing_anything(tmp_path) -> None:
+    mart = _small_mart(n_gw=8)
+    with pytest.raises(starting_xi.RunRefused):
+        run_study(
+            mart,
+            rank_fns=_fake_rank_fns(mart),
+            gameweeks=range(2, 9),
+            n_squads=5,
+            seed=7,
+            results_root=tmp_path / "results",
+            data_source=_data_source(tmp_path),
+            repo_root=_git_repo(tmp_path / "repo"),
+        )
+    assert not (tmp_path / "results").exists()
+
+
 # ---------------------------------------------------------------------------
 # §5.1.2's end-to-end pass: the DB-free core, on a small fixture
 # ---------------------------------------------------------------------------
@@ -109,25 +238,37 @@ def test_run_study_end_to_end_on_a_small_fixture(tmp_path) -> None:
     mart = _small_mart(n_gw=8)
     rank_fns = _fake_rank_fns(mart)
 
-    run = run_study(mart, rank_fns=rank_fns, gameweeks=range(2, 9), n_squads=5, seed=7, results_root=tmp_path)
+    run = run_study(
+        mart,
+        rank_fns=rank_fns,
+        gameweeks=range(2, 9),
+        n_squads=5,
+        seed=7,
+        results_root=tmp_path / "results",
+        **_off_registration_flags(tmp_path),
+    )
 
     assert run.n_squad_weeks > 0
     # The module docstring's resolution: no name in `rank_fns` is outside the floor set, so there
     # is no candidate and zero comparisons -- not an omission, see `_assemble_comparisons`.
     assert run.n_comparisons == 0
-    assert run.results_dir == tmp_path / run.run_id
+    assert run.results_dir == tmp_path / "results" / run.run_id
 
-    read_back = results.read(tmp_path, run.run_id)
+    read_back = results.read(tmp_path / "results", run.run_id)
     assert len(read_back["squad_weeks"]) == run.n_squad_weeks
     assert list(read_back["comparisons"].columns) == list(results.T3_COLUMNS)
     assert read_back["comparisons"].empty
     assert set(read_back["squad_weeks"]["ranker"]) == set(rankers.FLOOR_RANKERS)
+    manifest = read_back["manifest"]
+    assert manifest["provenance"]["canonical"] is False
+    assert "off_registration:squads_per_gameweek" in manifest["provenance"]["non_canonical_reasons"]
+    assert manifest["identity"]["floor_method"]["rule"] == starting_xi.FLOOR_METHOD
 
 
 def test_same_seed_reproduces_run_id_and_squad_set_id(tmp_path) -> None:
     mart = _small_mart(n_gw=8)
     rank_fns = _fake_rank_fns(mart)
-    kwargs = dict(rank_fns=rank_fns, gameweeks=range(2, 9), n_squads=5, seed=11)
+    kwargs = dict(rank_fns=rank_fns, gameweeks=range(2, 9), n_squads=5, seed=11, **_off_registration_flags(tmp_path))
 
     first = run_study(mart, results_root=tmp_path / "a", **kwargs)
     second = run_study(mart, results_root=tmp_path / "b", **kwargs)

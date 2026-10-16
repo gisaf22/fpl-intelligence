@@ -61,13 +61,17 @@ pre-existing property of the package `__init__`, not of anything `starting_xi.py
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import math
+import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Final
 
 import pandas as pd
+import yaml
 
 from dal.config import DB_PATH
 from dal.pipeline import load
@@ -83,6 +87,24 @@ MIN_SCOREABLE_GW: Final[int] = 4
 # absent from this set is a candidate; present in it, a floor member. See the module docstring's
 # resolution of what a "comparison" is under the default (floor-only) `rank_fns`.
 _FLOOR_NAMES: Final[frozenset[str]] = frozenset(rankers.FLOOR_RANKERS)
+
+REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[1]
+PRE_REGISTRATION_PATH: Final[Path] = REPO_ROOT / "decisions" / "starting_xi" / "PRE_REGISTRATION.yaml"
+RESULTS_ROOT: Final[Path] = REPO_ROOT / "decisions" / "starting_xi" / "results"
+
+# §0.13's rule, as `_determine_floor` implements it. Recorded in the manifest; `PRE_REGISTRATION.yaml`
+# freezes the floor rankers and their windows but not the rule by name, so only the rankers are
+# checked against it.
+FLOOR_METHOD: Final[str] = "lowest_mean_regret_per_comparison"
+# §0.15's S1/S2/S3, by their T3 column names -- the same source the freeze test pins against.
+SUCCESS_CRITERIA: Final[tuple[str, ...]] = tuple(c for c in results.T3_COLUMNS if c.startswith("crit_"))
+# §0.16 and §10.3: structural properties of the sampler and of U1, not constants anywhere else.
+CONSTRUCTION: Final[str] = "weekly"
+SQUAD_INTERVAL_STRATIFIED_BY: Final[str] = "gw"
+
+
+class RunRefused(RuntimeError):
+    """The pre-run check failed and the caller did not force past it."""
 
 
 @dataclass(frozen=True)
@@ -382,6 +404,132 @@ def _sampler_diagnostics(run_record: pd.DataFrame) -> list[dict[str, object]]:
 
 
 # ---------------------------------------------------------------------------
+# Run hygiene -- the pre-run check
+# ---------------------------------------------------------------------------
+
+
+def _floor_windows(rank_fns: Mapping[str, RankFn]) -> dict[str, list[int]]:
+    return {name: list(rankers.DECLARED_WINDOWS[name]) for name in sorted(set(rank_fns) & _FLOOR_NAMES)}
+
+
+def pre_registration_mismatches(
+    *,
+    bench_order: BenchOrder,
+    rank_fns: Mapping[str, RankFn],
+    gameweeks: Sequence[int],
+    n_squads: int,
+    seed: int,
+    pre_registration: Mapping[str, object],
+) -> list[str]:
+    """Every value this run would record that `PRE_REGISTRATION.yaml` freezes, compared against it.
+
+    Returns one `"<yaml field>: run=<value> registered=<value>"` string per mismatch, empty when
+    the run is on-registration. Candidate rankers (names outside the floor set) are not checked:
+    the file registers none yet.
+    """
+    reg = pre_registration
+    population = reg["population"]
+    resampling = reg["resampling_scheme"]
+    intervals = reg["intervals"]
+    materiality = reg["materiality"]
+    assert isinstance(population, Mapping) and isinstance(resampling, Mapping)
+    assert isinstance(intervals, Mapping) and isinstance(materiality, Mapping)
+    span = population["build_gameweeks"]
+    assert isinstance(span, Mapping)
+    pairs: dict[str, tuple[object, object]] = {
+        "bench_ordering": ([name for name, _ in bench_order], list(reg["bench_ordering"])),  # type: ignore[call-overload]
+        "floor_rankers": (_floor_windows(rank_fns), {k: list(v) for k, v in reg["floor_rankers"].items()}),  # type: ignore[attr-defined]
+        "build_gameweeks": (sorted(set(gameweeks)), list(range(span["first_gw"], span["last_gw"] + 1))),
+        "squads_per_gameweek": (n_squads, population["squads_per_gameweek"]),
+        "master_seed": (seed, reg["master_seed"]),
+        "materiality": (
+            {"threshold": MATERIALITY_THRESHOLD, "relative_to": "floor_mean_regret"},
+            dict(materiality),
+        ),
+        "success_criteria": (list(SUCCESS_CRITERIA), list(reg["success_criteria"])),  # type: ignore[call-overload]
+        "construction": (CONSTRUCTION, resampling["construction"]),
+        "squad_interval_stratified_by": (SQUAD_INTERVAL_STRATIFIED_BY, resampling["squad_interval_stratified_by"]),
+        "gameweek_interval_block": (uncertainty.BLOCK_GWS, resampling["gameweek_interval_block"]),
+        "intervals": (
+            {"n": uncertainty.N_RESAMPLES, "ci_level": uncertainty.CI_LEVEL, "seed": uncertainty.SEED},
+            dict(intervals),
+        ),
+    }
+    return [
+        f"{field}: run={ran!r} registered={registered!r}"
+        for field, (ran, registered) in pairs.items()
+        if ran != registered
+    ]
+
+
+def _git_state(repo_root: Path) -> tuple[str, bool]:
+    """`(HEAD sha, clean)`. Untracked files count as dirty -- they can be imported; ignored ones don't."""
+
+    def _git(*args: str) -> str:
+        return subprocess.run(
+            ["git", "-C", str(repo_root), *args], capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+    return _git("rev-parse", "HEAD"), _git("status", "--porcelain") == ""
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def preflight(
+    *,
+    bench_order: BenchOrder,
+    rank_fns: Mapping[str, RankFn],
+    gameweeks: Sequence[int],
+    n_squads: int,
+    seed: int,
+    data_source: Path,
+    repo_root: Path = REPO_ROOT,
+    pre_registration_path: Path = PRE_REGISTRATION_PATH,
+    allow_dirty: bool = False,
+    allow_off_registration: bool = False,
+) -> results.RunProvenance:
+    """The pre-run check. Refuses a dirty tree or an off-registration run unless forced; a forced
+    run proceeds and is marked non-canonical, with the reason recorded.
+
+    Raises:
+        RunRefused: on a dirty tree without `allow_dirty`, or on any
+            `pre_registration_mismatches` without `allow_off_registration`.
+    """
+    git_sha, clean = _git_state(repo_root)
+    mismatches = pre_registration_mismatches(
+        bench_order=bench_order,
+        rank_fns=rank_fns,
+        gameweeks=gameweeks,
+        n_squads=n_squads,
+        seed=seed,
+        pre_registration=yaml.safe_load(pre_registration_path.read_text(encoding="utf-8")),
+    )
+    if not clean and not allow_dirty:
+        raise RunRefused(f"working tree at {repo_root} is dirty; commit first or pass --allow-dirty (non-canonical)")
+    if mismatches and not allow_off_registration:
+        raise RunRefused(
+            "run differs from PRE_REGISTRATION.yaml; pass --allow-off-registration (non-canonical) to force:\n  "
+            + "\n  ".join(mismatches)
+        )
+    reasons = (["dirty_tree"] if not clean else []) + [f"off_registration:{m.split(':')[0]}" for m in mismatches]
+    return results.RunProvenance(
+        git_sha=git_sha,
+        clean_tree=clean,
+        data_source_path=str(data_source.resolve()),
+        data_source_sha256=_sha256(data_source),
+        pre_registration_sha256=_sha256(pre_registration_path),
+        canonical=not reasons,
+        non_canonical_reasons=tuple(reasons),
+    )
+
+
+# ---------------------------------------------------------------------------
 # The run (§5.1.2)
 # ---------------------------------------------------------------------------
 
@@ -395,12 +543,17 @@ def run_study(
     n_squads: int,
     seed: int,
     results_root: Path,
+    data_source: Path,
+    repo_root: Path = REPO_ROOT,
+    pre_registration_path: Path = PRE_REGISTRATION_PATH,
+    allow_dirty: bool = False,
+    allow_off_registration: bool = False,
 ) -> StartingXIRun:
     """Run the `starting_xi` study against a mart already in hand -- the DB-free core.
 
-    Sequence (§5.1.2): sample squads once, replay each ranker at its own declared window
-    (§6.3.1 -- never at a comparison's intersection), assemble T3 from T2/T5, build the manifest,
-    write the artefact.
+    Sequence (§5.1.2): `preflight` (refuse, or mark non-canonical), sample squads once, replay
+    each ranker at its own declared window (§6.3.1 -- never at a comparison's intersection),
+    assemble T3 from T2/T5, build the manifest, write the artefact.
 
     Args:
         mart: the mart across every gameweek in `gameweeks`, already in hand.
@@ -413,10 +566,27 @@ def run_study(
         n_squads: squads per gameweek.
         seed: the master seed, required with no default (§2.9, §8.4).
         results_root: where `results.write` lands the run's directory (§7.4).
+        data_source: the file `mart` was read from, recorded by path and sha256.
+        repo_root, pre_registration_path, allow_dirty, allow_off_registration: see `preflight`.
 
     Returns:
         A `StartingXIRun` summary.
+
+    Raises:
+        RunRefused: from `preflight`, before anything is sampled or written.
     """
+    provenance = preflight(
+        bench_order=bench_order,
+        rank_fns=rank_fns,
+        gameweeks=gameweeks,
+        n_squads=n_squads,
+        seed=seed,
+        data_source=data_source,
+        repo_root=repo_root,
+        pre_registration_path=pre_registration_path,
+        allow_dirty=allow_dirty,
+        allow_off_registration=allow_off_registration,
+    )
     sample = sampler.sample_squads(mart, gameweeks, n_squads, seed)
 
     squad_weeks: list[pd.DataFrame] = []
@@ -447,6 +617,12 @@ def run_study(
         squad_interval=results.SquadIntervalParams(
             n=uncertainty.N_RESAMPLES, ci_level=uncertainty.CI_LEVEL, seed=uncertainty.SEED
         ),
+        floor_method={"rule": FLOOR_METHOD, "rankers": _floor_windows(rank_fns)},
+        materiality={"threshold": MATERIALITY_THRESHOLD, "relative_to": "floor_mean_regret"},
+        success_criteria=SUCCESS_CRITERIA,
+        construction=CONSTRUCTION,
+        squad_interval_stratified_by=SQUAD_INTERVAL_STRATIFIED_BY,
+        provenance=provenance,
     )
 
     identifier = results.write(t2, t5, t3, manifest, results_root)
@@ -467,6 +643,8 @@ def build_and_run(
     seed: int,
     results_root: Path,
     db_path: Path = DB_PATH,
+    allow_dirty: bool = False,
+    allow_off_registration: bool = False,
 ) -> StartingXIRun:
     """Read the mart via `dal/` and run the study against it. The one line that touches `dal/`."""
     return run_study(
@@ -477,4 +655,35 @@ def build_and_run(
         n_squads=n_squads,
         seed=seed,
         results_root=results_root,
+        data_source=db_path,
+        allow_dirty=allow_dirty,
+        allow_off_registration=allow_off_registration,
     )
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    """Run the pre-registered study. Prints the run id and its canonical status -- no regret."""
+    parser = argparse.ArgumentParser(description="Run the pre-registered starting_xi study.")
+    parser.add_argument("--allow-dirty", action="store_true", help="run on a dirty tree; marks the run non-canonical")
+    parser.add_argument(
+        "--allow-off-registration",
+        action="store_true",
+        help="run despite differing from PRE_REGISTRATION.yaml; marks the run non-canonical",
+    )
+    args = parser.parse_args(argv)
+    pre_registration = yaml.safe_load(PRE_REGISTRATION_PATH.read_text(encoding="utf-8"))
+    span = pre_registration["population"]["build_gameweeks"]
+    run = build_and_run(
+        gameweeks=range(span["first_gw"], span["last_gw"] + 1),
+        n_squads=pre_registration["population"]["squads_per_gameweek"],
+        seed=pre_registration["master_seed"],
+        results_root=RESULTS_ROOT,
+        allow_dirty=args.allow_dirty,
+        allow_off_registration=args.allow_off_registration,
+    )
+    canonical = results.read(RESULTS_ROOT, run.run_id)["manifest"]["provenance"]["canonical"]  # type: ignore[index]
+    print(f"run_id={run.run_id} canonical={canonical} squad_weeks={run.n_squad_weeks} comparisons={run.n_comparisons}")
+
+
+if __name__ == "__main__":
+    main()

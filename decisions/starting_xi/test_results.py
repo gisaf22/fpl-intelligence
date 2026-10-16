@@ -44,6 +44,7 @@ from decisions.starting_xi.results import (
     T5_FILE,
     GameweekIntervalParams,
     Manifest,
+    RunProvenance,
     SquadIntervalParams,
     T1HasNoProducer,
     identity_fields,
@@ -279,7 +280,27 @@ def _manifest() -> Manifest:
         sampler_diagnostics=[{"gw": 4, "acceptance_rate": 0.21}, {"gw": 5, "acceptance_rate": 0.19}],
         gameweek_interval=GameweekIntervalParams(n=10000, block=4, ci_level=0.95, seed=1),
         squad_interval=SquadIntervalParams(n=10000, ci_level=0.95, seed=2),
+        floor_method={"rule": "lowest_mean_regret_per_comparison", "rankers": {"F1": (4, 38), "F2": (2, 38)}},
+        materiality={"threshold": 0.10, "relative_to": "floor_mean_regret"},
+        success_criteria=("crit_direction", "crit_significance", "crit_materiality"),
+        construction="weekly",
+        squad_interval_stratified_by="gw",
+        provenance=_provenance(),
     )
+
+
+def _provenance(**overrides: object) -> RunProvenance:
+    fields: dict[str, object] = {
+        "git_sha": "d" * 40,
+        "clean_tree": True,
+        "data_source_path": "/data/fpl.db",
+        "data_source_sha256": "e" * 64,
+        "pre_registration_sha256": "f" * 64,
+        "canonical": True,
+        "non_canonical_reasons": (),
+    }
+    fields.update(overrides)
+    return RunProvenance(**fields)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -366,13 +387,18 @@ def test_run_id_is_deterministic_across_calls_and_across_processes() -> None:
     assert run_id(manifest) == run_id(_manifest())
     program = (
         "import json;"
-        "from decisions.starting_xi.results import run_id, Manifest, GameweekIntervalParams, SquadIntervalParams;"
+        "from decisions.starting_xi.results import run_id, Manifest, GameweekIntervalParams, SquadIntervalParams,"
+        " RunProvenance;"
         f"m = Manifest(mart_pin={dict(manifest.mart_pin)!r}, bench_order={tuple(manifest.bench_order)!r},"
         f" master_seed={manifest.master_seed!r}, squad_set_id={manifest.squad_set_id!r},"
         f" build_gameweeks={tuple(manifest.build_gameweeks)!r}, ranker_windows={dict(manifest.ranker_windows)!r},"
         f" sampler_diagnostics={list(manifest.sampler_diagnostics)!r},"
         " gameweek_interval=GameweekIntervalParams(n=10000, block=4, ci_level=0.95, seed=1),"
-        " squad_interval=SquadIntervalParams(n=10000, ci_level=0.95, seed=2));"
+        " squad_interval=SquadIntervalParams(n=10000, ci_level=0.95, seed=2),"
+        f" floor_method={dict(manifest.floor_method)!r}, materiality={dict(manifest.materiality)!r},"
+        f" success_criteria={tuple(manifest.success_criteria)!r}, construction={manifest.construction!r},"
+        f" squad_interval_stratified_by={manifest.squad_interval_stratified_by!r},"
+        f" provenance=RunProvenance(**{dict(vars(manifest.provenance))!r}));"
         "print(run_id(m))"
     )
     child = subprocess.run([sys.executable, "-c", program], capture_output=True, text=True, check=True)
@@ -396,6 +422,12 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
         "master_seed": replace(base, master_seed=1),
         "squad_set_id": replace(base, squad_set_id="c" * 64),
         "build_gameweeks": replace(base, build_gameweeks=(4, 5, 6)),
+        "floor_method": replace(base, floor_method={**base.floor_method, "rankers": {"F1": (2, 38)}}),
+        "materiality": replace(base, materiality={**base.materiality, "threshold": 0.05}),
+        "success_criteria": replace(base, success_criteria=("crit_direction", "crit_materiality")),
+        "construction": replace(base, construction="build_once"),
+        "squad_interval_stratified_by": replace(base, squad_interval_stratified_by="none"),
+        "canonical": replace(base, provenance=_provenance(canonical=False, non_canonical_reasons=("dirty_tree",))),
     }
     for field, perturbed in identity_perturbations.items():
         assert run_id(perturbed) != baseline, f"{field} is identity per §7.3 but did not move run_id"
@@ -405,6 +437,9 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
         "sampler_diagnostics": replace(base, sampler_diagnostics=[{"gw": 4, "acceptance_rate": 0.99}]),
         "gameweek_interval": replace(base, gameweek_interval=GameweekIntervalParams(5, 8, 0.9, 99)),
         "squad_interval": replace(base, squad_interval=SquadIntervalParams(5, 0.9, 99)),
+        "git_sha": replace(base, provenance=_provenance(git_sha="0" * 40)),
+        "data_source": replace(base, provenance=_provenance(data_source_path="/x.db", data_source_sha256="1" * 64)),
+        "pre_registration_sha256": replace(base, provenance=_provenance(pre_registration_sha256="2" * 64)),
     }
     for field, perturbed in metadata_perturbations.items():
         assert run_id(perturbed) == baseline, f"{field} is metadata per §7.3 but moved run_id"
@@ -447,9 +482,15 @@ def test_identity_fields_holds_the_identity_half_and_nothing_from_the_metadata_h
         "master_seed",
         "squad_set_id",
         "build_gameweeks",
+        "floor_method",
+        "materiality",
+        "success_criteria",
+        "construction",
+        "squad_interval_stratified_by",
+        "canonical",
     }
     flat = json.dumps(fields)
-    for absent in ("ranker_windows", "sampler_diagnostics", "ci_level", "block"):
+    for absent in ("ranker_windows", "sampler_diagnostics", "ci_level", "block", "git_sha", "data_source"):
         assert absent not in flat
 
 
@@ -463,6 +504,38 @@ def test_the_two_interval_parameter_sets_stay_apart_and_only_one_carries_a_block
     assert set(metadata["gameweek_interval"]) == {"n", "block", "ci_level", "seed"}
     assert set(metadata["squad_interval"]) == {"n", "ci_level", "seed"}
     assert "block" not in metadata["squad_interval"]
+
+
+def test_the_manifest_document_records_run_provenance_outside_the_identity_half() -> None:
+    """Run hygiene: git sha, clean-tree flag, data source path + sha256, the pre-registration's
+    sha256 and the canonical flag are written to T4 under their own key. Only `canonical` is
+    identity (so a forced run can never overwrite a canonical run's directory); the rest would make
+    identical inputs at two commits two different runs, which §7.3's determinism forbids."""
+    manifest = replace(_manifest(), provenance=_provenance(canonical=False, non_canonical_reasons=("dirty_tree",)))
+    document = manifest_document(manifest, "abc123")
+    assert document["provenance"] == {
+        "git_sha": "d" * 40,
+        "clean_tree": True,
+        "data_source_path": "/data/fpl.db",
+        "data_source_sha256": "e" * 64,
+        "pre_registration_sha256": "f" * 64,
+        "canonical": False,
+        "non_canonical_reasons": ["dirty_tree"],
+    }
+    identity = document["identity"]
+    assert isinstance(identity, dict)
+    assert identity["canonical"] is False
+    assert identity["construction"] == "weekly"
+    assert identity["squad_interval_stratified_by"] == "gw"
+    assert identity["success_criteria"] == ["crit_direction", "crit_significance", "crit_materiality"]
+    assert identity["materiality"] == {"relative_to": "floor_mean_regret", "threshold": 0.10}
+
+
+def test_a_canonical_run_cannot_carry_non_canonical_reasons() -> None:
+    with pytest.raises(ValueError, match="canonical"):
+        _provenance(canonical=True, non_canonical_reasons=("dirty_tree",))
+    with pytest.raises(ValueError, match="canonical"):
+        _provenance(canonical=False, non_canonical_reasons=())
 
 
 def test_an_empty_or_duplicated_bench_order_is_rejected() -> None:
@@ -577,7 +650,7 @@ def test_the_manifest_is_json_a_reviewer_can_diff(tmp_path: Path) -> None:
     text = (tmp_path / identifier / T4_FILE).read_text(encoding="utf-8")
     document = json.loads(text)
     assert document["run_id"] == identifier
-    assert set(document) == {"run_id", "identity", "metadata"}
+    assert set(document) == {"run_id", "identity", "provenance", "metadata"}
     assert text.endswith("\n")
     assert json.dumps(document, indent=2, sort_keys=True) + "\n" == text
 

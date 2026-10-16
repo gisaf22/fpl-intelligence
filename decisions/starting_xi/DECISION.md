@@ -1,6 +1,6 @@
 # Starting XI and Bench Order — the decision
 
-**Status:** Specified and designed. Not built.
+**Status:** Built; two dry runs (3821cc93 pre-freeze, 4b348fe0 off-registration), not canonical.
 **Scope:** the weekly XI-selection decision from the FPL Decision Framework's Starting XI /
 Bench Order entry.
 
@@ -102,8 +102,10 @@ Named here so their absence is deliberate rather than an oversight.
 
 ## 6. Status
 
-**Specified and designed. No code exists.** `METRIC.md` and `DESIGN.md` carry the metric and
-the build. What has not started is the build.
+**Built; two dry runs (3821cc93 pre-freeze, 4b348fe0 off-registration), not canonical.**
+`DESIGN.md` and `PRE_REGISTRATION.yaml` govern the harness: `DESIGN.md` makes the selections and
+states the build, and `PRE_REGISTRATION.yaml` freezes the parameters a canonical run must match.
+`METRIC.md` characterises the candidates and selects none.
 
 **This document fixes neither the metric nor the design, and nothing in it should be read as
 doing so.** Both were open when it was written; both are now addressed elsewhere.
@@ -119,10 +121,16 @@ settled. `DESIGN.md` §3 settles it.
 document once carried, with the reason it was withdrawn. None of them states this document's
 current position; §1–§6 do that.
 
+**§6 and the header — "Specified and designed. No code exists."** Retired because it stopped being
+true: the harness was built and run twice, neither run canonical (3821cc93 predates the
+`PRE_REGISTRATION.yaml` freeze; 4b348fe0 ran with a bench ordering the file does not register). The
+bench-order half of the entry below is likewise superseded: `METRIC.md` §4.3 now characterises
+five candidates, O1–O5, and `DESIGN.md` §0.10 selects O1.
+
 **§6 — the sentence disclaiming authority over the harness.** §6 previously read: "The harness
 design and the bench-order scoring rule remain open; nothing in this document should be read as
 fixing them." The harness is now closed by `DESIGN.md`; the bench-order scoring rule is not —
-`DESIGN.md` §0.10 records that no candidate set exists to select from — so the sentence is
+`DESIGN.md` §0.10 recorded at the time that no candidate set existed to select from — so the sentence is
 retired as a status claim rather than because both halves resolved. The point it carried survives
 and is restated in §6 as a standing disclaimer of authority rather than a status report: this
 document never fixed the harness design, and never contained the injected-`rank_fn` constraint

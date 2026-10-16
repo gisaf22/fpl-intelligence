@@ -3,8 +3,9 @@
 **Status:** Survey. No metric selected.
 **Scope:** this document answers one question — **how could the `starting_xi` decision be
 measured?** It characterises candidate metrics: what each measures, what it rewards and punishes,
-how it fails, and what it requires. **It selects none of them.** Which metric governs the harness,
-and why, is `DESIGN.md`'s to decide and state.
+how it fails, and what it requires. **It selects none of them.** `DESIGN.md` and
+`PRE_REGISTRATION.yaml` govern the harness: which metric is used, and why, is `DESIGN.md`'s to decide
+and state (§0), and `PRE_REGISTRATION.yaml` freezes the selected parameters.
 
 `DECISION.md` states what is being decided. `INVENTORY.md` records what exists in the repository.
 Read both first; this document restates neither.
@@ -1179,8 +1180,8 @@ GW31 universe and admitted at GW32 when a non-null row appears. **Appendix A.1 c
 case**, because its counting rule is "`minutes` is NULL and an earlier non-null row exists for that
 player", and this player has no earlier non-null row by construction. The measurement that would
 close it is a count of players whose first non-null `minutes` row falls immediately after GW31 or
-GW34 and whose club blanked in that gameweek. That measurement does not exist; taking it is
-`INVENTORY.md`'s, and this document records the requirement rather than asserting an answer.
+GW34 and whose club blanked in that gameweek. That measurement has been taken and is recorded in
+`INVENTORY.md` §2.5; this document cites it rather than restating it.
 
 **What the residual case costs depends on §7.1's construction, and differs sharply between them.**
 Under build-once at a blank build gameweek the misclassification is **permanent** — the player is
@@ -1198,9 +1199,10 @@ measurement is in **Appendix A**.
 
 ## 8. What a design selecting from this survey must decide
 
-Listed so the gap left by removing this document's verdicts is explicit rather than silent.
-`DESIGN.md` currently cites `METRIC.md` for several of these as settled; after this rewrite they
-are **not settled anywhere**, and `DESIGN.md`'s own pass must select and justify each.
+Listed so the gap left by removing this document's verdicts is explicit rather than silent. This
+document settles none of them. `DESIGN.md` §0 selects and justifies each, one subsection per row
+(§0.1–§0.16, with §0.17 recording what it leaves unselected), and `PRE_REGISTRATION.yaml` freezes
+the resulting parameters. The table records what a design had to decide, not what is open.
 
 | # | Selection required | Candidates |
 |---|---|---|
@@ -1213,7 +1215,7 @@ are **not settled anywhere**, and `DESIGN.md`'s own pass must select and justify
 | 7 | Scope and window handling | §2.6 |
 | 8 | Conditioning scheme and zero-gap handling | §3.1 |
 | 9 | The as-of denominator | §3.2 |
-| 10 | A bench-order scoring rule — **no candidate exists** | §4.1 |
+| 10 | A bench-order scoring rule | §4.1, §4.3 (O1–O5) |
 | 11 | The bench-order denominator | §4.2 |
 | 12 | Which naive rankers form the floor | §5.1 |
 | 13 | How the floor is determined | §5.3 |
@@ -1232,18 +1234,16 @@ names the occupancy profile they are selected against; §6.4.6 records that the 
 and falls out of the first run. So #17 may be selected as a rule over the profile before the run, or
 as a choice after it, and §6.4.6 states what pre-registration permits in each case.
 
-*Row #10 is stale as written: §4.3 characterises five candidates, O1–O5. It is left standing in this
-pass, which is §6's, and its correction belongs to the pass that owns §4.*
-
 ---
 
 ## Appendix A — measurements recorded only in this document
 
-**These are repository facts, and under the file-purpose charter they belong in `INVENTORY.md`.**
-They are held here rather than moved because each is load-bearing for a candidate above and
-relocating them silently would be the wrong way to do it. **Flagged for a human decision.**
+**These are repository facts, and under the file-purpose charter they belong in `INVENTORY.md`,
+which owns them.** They are held here only until an `INVENTORY.md` pass re-verifies each and records
+it there; this appendix is then replaced by citations. That pass is open. Until it runs, these are
+not authoritative: where `INVENTORY.md` carries the same fact, `INVENTORY.md` governs.
 
-All four were re-verified against `~/.fpl/fpl.mart.parquet` on 2026-08-20.
+A.1–A.3 were re-verified against `~/.fpl/fpl.mart.parquet` on 2026-08-20; A.4 was not (see A.4).
 
 **A.1 — Genuine no-fixture blanks fall at GW31 and GW34 only.** Counting rows where `minutes` is
 NULL and an earlier non-null row exists for that player: 161 rows at GW31, 248 at GW34, none in any
@@ -1282,6 +1282,13 @@ re-verified in this pass; the GW2–GW4 identity (A.3) was.*
 ---
 
 ## Provenance
+
+**Authority pass (2026-10-16) — three claims retired.** (1) §8's "after this rewrite they are not
+settled anywhere": `DESIGN.md` §0 now settles every row and `PRE_REGISTRATION.yaml` freezes the
+result. (2) §8 row #10's "no candidate exists", and the note that kept it standing: §4.3
+characterises O1–O5. (3) §7.2's "that measurement does not exist" for the blank-debut case:
+`INVENTORY.md` §2.5 carries it. Appendix A's note also stated all four measurements were re-verified,
+contradicting A.4's own disclaimer; it now says A.1–A.3. No candidate characterisation changed.
 
 **What this document was, and what changed.** It previously specified a single metric as settled —
 counterfactual regret, with fixed substitution mechanics, a fixed floor rule, a fixed 10%

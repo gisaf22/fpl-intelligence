@@ -33,8 +33,11 @@ repository already carries one document pointing at work that was never done (AD
 
 ## Current contents
 
-- `starting_xi/` — designed, not built. Contains `DECISION.md` (what is decided),
-  `METRIC.md` (how success is measured), `INVENTORY.md` (what exists in the repository) and
-  `DESIGN.md` (how the harness is built). No code yet.
+- `starting_xi/` — built; two dry runs (3821cc93 pre-freeze, 4b348fe0 off-registration), not
+  canonical. `DESIGN.md` (how the harness is built, and every selection) and
+  `PRE_REGISTRATION.yaml` (the frozen parameters) govern the harness. `DECISION.md` states what is
+  decided, `METRIC.md` characterises candidate metrics and selects none, and `INVENTORY.md`
+  records what exists in the repository. Code: `starting_xi/*.py`, wired by the composition root
+  `operational/starting_xi.py`.
 
 No other decision folder exists yet.

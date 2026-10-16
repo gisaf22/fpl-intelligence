@@ -1,8 +1,10 @@
 # Starting XI and Bench Order — capability inventory
 
 **Status:** Audit complete. Read-only pass — no code was written, moved, or refactored.
-**Governs nothing, and recommends nothing.** `DECISION.md` states what is decided; `METRIC.md`
-governs the harness; `DESIGN.md` states how it is built and what is reused. This document answers
+**Governs nothing, and recommends nothing.** `DECISION.md` states what is decided; `DESIGN.md` and
+`PRE_REGISTRATION.yaml` govern the harness — `DESIGN.md` makes the selections and states how it is
+built and what is reused, and `PRE_REGISTRATION.yaml` freezes the parameters; `METRIC.md`
+characterises candidates and selects none. This document answers
 one question only — **what data and capabilities exist in the repository today** — and states
 facts. It carries no verdicts, no reuse labels, no proposals, and no judgement about design fit.
 
@@ -48,8 +50,8 @@ squad, and that exclusion is recorded in three places (`docs/system-purpose.md:8
 
 Three of the seven that do exist carry a population cut written into the function itself:
 `build_baseline_features` (`minutes > 0` and `~is_dgw`, §2.1), `PlayModel.population` (`~is_dgw`
-and `minutes.notna()`, §2.6), and the walk-forward loop (`gw > WARMUP_GW`, §2.6). `METRIC.md` §6
-defines a different population from all three.
+and `minutes.notna()`, §2.6), and the walk-forward loop (`gw > WARMUP_GW`, §2.6). `DESIGN.md` §0.16
+selects a different population from all three (candidates: `METRIC.md` §7).
 
 ---
 
@@ -81,7 +83,7 @@ The statistic it returns is therefore determined by the frame the caller supplie
 
 **Its wrapper does carry one.** `build_baseline_features` (same module, line 31) computes the same
 statistic behind `mart[(mart["minutes"] > 0) & (~mart["is_dgw"])]`. That filter drops rows for a
-player with no fixture; `METRIC.md` §6 keeps such a player selectable at 0 points.
+player with no fixture; `DESIGN.md` §0.4 keeps such a player selectable at 0 points (`METRIC.md` §2.3).
 
 **`points_roll3` and `points_roll5`.** There is **no `points_roll3` and no `points_roll5` on the
 governed mart** — the feat layer excludes `total_points` from `_ROLL_COLS`. Verified: the mart's 64
@@ -212,7 +214,7 @@ declaration — `squad_select`, `squad_min_play`, `squad_max_play` — staged by
 | MID | 5 | 2 | 5 |
 | FWD | 3 | 1 | 3 |
 
-`squad_select` is `METRIC.md` §2's 2/5/5/3; `squad_min_play`/`squad_max_play` are the per-position
+`squad_select` is `METRIC.md` §7.1's 2/5/5/3; `squad_min_play`/`squad_max_play` are the per-position
 XI bounds, including the `≥3 DEF` minimum. **These never reach the mart** — they exist only in the
 staging contract and the staged frame, readable via `dal/staging/stg_entities.py:73
 get_staged_element_types(db_path)`, which takes a database path and returns a DataFrame.
@@ -230,10 +232,10 @@ cannot be added without that set changing.
 non-null on every row. Cheapest legal 2/5/5/3 at GW1 = **64.0** against a 100.0 cap.
 
 **One finding, since resolved: `team_id` is not stable.** 27 of 841 players carry more than one
-`team_id` across the season, so max-3-per-club is a per-gameweek predicate while `METRIC.md` §2
-builds squads once and holds them, so a squad legal at build time can become illegal later in the
-season. Raised as §3.2; `METRIC.md` §2 now assesses all four feasibility conditions once at GW2 and
-never re-checks them.
+`team_id` across the season, so max-3-per-club is a per-gameweek predicate, and a squad built once
+and held could become illegal later in the season. Raised as §3.2; answered by `DESIGN.md` §0.16,
+which draws squads afresh at every gameweek (weekly construction, frozen in
+`PRE_REGISTRATION.yaml`), so feasibility is assessed at the gameweek a squad is used.
 
 ### 2.3 Auto-substitution
 
@@ -242,7 +244,7 @@ matches for "bench" and "substitute" are unrelated: `tests/fixtures/create_test_
 (scenario SC-6, a player who *came off the bench* — a data fixture, not autosub logic) and
 `model/assemble/synth01_*.yaml` ("redundancy substitute", a SYNTH-01 signal verdict).
 
-`METRIC.md` §4 defines three mechanics of the rule: the GK slot is a separate process from the
+`METRIC.md` §2.5 states three mechanics of the rule: the GK slot is a separate process from the
 three outfield slots; a skipped player stays eligible for the next substitution in the same
 gameweek; the trigger is strictly 0 minutes. No code in the repository reads or applies any of
 the three.
@@ -305,7 +307,7 @@ gameweek). `METRIC.md` §1 is best-legal-XI minus chosen-XI, at squad-week grain
 `dal/fct/fct_player_gameweek.py` builds the spine as a **full cartesian product** of
 `player_universe × gw_range` (`_build_full_spine`, line 105). Verified exactly: 841 players ×
 38 gameweeks = 31,958 rows. A player who debuts in GW20 therefore *has* rows for GW1–19,
-synthesised as BGW with NULL performance. That is the origin of `METRIC.md` §6's prefix.
+synthesised as BGW with NULL performance. That is the origin of `METRIC.md` §7.2's prefix.
 
 **Verified against the live mart:**
 
@@ -318,24 +320,24 @@ synthesised as BGW with NULL performance. That is the origin of `METRIC.md` §6'
 | `minutes == 0` rows (featured in no minutes) | 17,977 |
 | `is_bgw` ⟺ `minutes` is NULL | exact, both directions |
 
-`METRIC.md` §6's "approximately 84%" is correct to the decimal. `is_bgw` marks the union of prefix
+`METRIC.md` §7.2's "approximately 84%" is correct to the decimal. `is_bgw` marks the union of prefix
 and blank; `minutes == 0` is a separate, well-populated state.
 
 **The one function that computes a first-appearance gameweek.**
 `dal/fct/validation/completeness.py:32 summarise_population_coverage` returns
 `first_appearances`, a `player_id → first non-null GW` Series. Four properties of it:
 
-1. It keys on `starts`, not `minutes`. `METRIC.md` §6 specifies minutes.
+1. It keys on `starts`, not `minutes`. `METRIC.md` §7.2's predicate keys on minutes.
 2. It returns a dict of EDA summary statistics, not a per-row boolean.
 3. **It is never called.** Grep across the repo: zero production callers.
 4. **It has no tests.** Grep: zero test references. (`tests/test_validation_modules.py` covers
    `validate_row_completeness`, its neighbour in the same file — not this function.)
 
-`METRIC.md` §6's own rule — a NULL row is prefix iff no non-null row exists earlier in the season
+`METRIC.md` §7.2's own rule — a NULL row is prefix iff no non-null row exists earlier in the season
 for that player — reproduces the 84.4% figure in the table above when evaluated directly.
 
 **The registration universe at every gameweek, measured.** A later pass needed the universe at each
-build gameweek rather than at one. Evaluating `METRIC.md` §6's own rule — in the universe at *g* iff a
+build gameweek rather than at one. Evaluating `METRIC.md` §7.2's own rule — in the universe at *g* iff a
 non-null `minutes` row exists at or before *g* — at every gameweek gives the following. Verified
 against the live mart on 2026-08-20.
 
@@ -491,7 +493,7 @@ of `model.eval`: `baselines`, `metrics`, `population`, `scorer`, `walkforward`. 
 and `pandas`. Nothing from `research/` or `serve/`. `model.eval.metrics` and
 `model.eval.walkforward` are reached directly from `model/terms/_binary_component.py:23-24`.
 
-**The fields `METRIC.md` §6 forbids are not on the mart.** `p_play` derives entirely from lagged
+**The fields `DESIGN.md` §6 forbids rankers to read are not on the mart.** `p_play` derives entirely from lagged
 `minutes` and `starts`. `status` and `chance_of_playing_*` are staged in the `players` table
 (`dal/staging/contracts/players.yaml`) and **do not reach the mart** — confirmed against the mart's
 full 64-column list. They are therefore unavailable to any mart consumer.
@@ -508,10 +510,10 @@ enrich_with_forecast` merges that output onto the mart.
 
 1. **DGW rows are excluded.** `PlayModel.population` filters `~mart["is_dgw"]` (line 78).
    `METRIC.md` does not exclude double gameweeks; those rows return NaN `p_play`.
-2. **No-fixture rows are excluded** (`minutes.notna()`). `METRIC.md` §6 keeps such a player legal
+2. **No-fixture rows are excluded** (`minutes.notna()`). `DESIGN.md` §0.4 keeps such a player legal
    at 0 points, so those rows carry no `p_play` value.
 3. **`WARMUP_GW = 3` means predictions begin at GW4** (`model/eval/walkforward.py:58`), while
-   `METRIC.md` §6 fixes scope at GW2–38. GW2 and GW3 have no `p_play`. `WARMUP_GW` is shared by
+   `DESIGN.md` §0.7 fixes scope at GW2–38. GW2 and GW3 have no `p_play`. `WARMUP_GW` is shared by
    every term via `_binary_component` and `_poisson_component`, so its value is not local to
    `p_play`. See §3.3.
 4. **Cost.** The fit re-estimates per position per gameweek.
@@ -563,8 +565,8 @@ in no code path. The mart's `starts` column is not that record — it marks that
 their club, not that a manager started them in an FPL XI. There is therefore no observed squad to
 replay a selection against.
 
-**Nothing in the repository samples a constrained combinatorial object.** `METRIC.md` §2 requires uniform
-sampling over the feasible set — budget, 2/5/5/3, and ≤3-per-club simultaneously. Whether
+**Nothing in the repository samples a constrained combinatorial object.** `DESIGN.md` §0.16 selects uniform
+sampling over the feasible set (`METRIC.md` §7, N1) — budget, 2/5/5/3, and ≤3-per-club simultaneously. Whether
 per-position draws with rejection are uniform over that set **depends on what is rejected**:
 discarding the whole 15 and redrawing independently conditions a uniform draw over the
 position-quota set on membership in the feasible set, which is uniform over the feasible set;
@@ -581,8 +583,8 @@ form exists in the repository.
 **Gameweek resampling.**
 `research/kernels/inferential/resampling.py:224 block_bootstrap_ci(values, block=4, n=1000,
 ci_level=0.95, seed=0)` is a moving-block bootstrap of the mean of a per-gameweek series,
-motivated in its docstring exactly as `METRIC.md` §5 motivates it ("consecutive gameweeks autocorrelate").
-This is `METRIC.md` §5's "resample gameweeks, holding squads fixed". Tested and deterministic.
+motivated in its docstring by "consecutive gameweeks autocorrelate". This is `METRIC.md` §6.2's U2,
+"resample gameweeks, squads fixed", which that section characterises as a moving-block bootstrap. Tested and deterministic.
 
 **There are two `block_bootstrap_ci` functions, and they return different numbers.**
 
@@ -606,7 +608,7 @@ to 4dp after any change)", and five `docs/studies/results/predictive-phase5-*.md
 frozen captaincy intervals.
 
 **Cluster resampling.**
-`METRIC.md` §5 forbids resampling squad-weeks as independent draws. A cluster resampler —
+`METRIC.md` §6.2 records the objection to resampling squad-weeks as independent draws (U3). A cluster resampler —
 resample clusters, take all of a drawn cluster's rows — exists at
 `research/kernels/inferential/resampling.py:252 cluster_bootstrap_minutes_adjusted_rho`, which
 resamples *players* and states in its docstring that "a row bootstrap understates the
@@ -649,7 +651,7 @@ divergence is recorded rather than incidental.
 implementations agree on `(3,12) / (13,26) / (27,38)` — `form`, `fixture`, `availability`,
 `market`. The code is consistent; that one documentation table is not.
 
-**Every block scheme in the repository starts at GW3 or later.** `METRIC.md` §6 fixes scope at
+**Every block scheme in the repository starts at GW3 or later.** `DESIGN.md` §0.7 fixes scope at
 GW2–38, so no existing scheme covers GW2.
 
 **"Block" names two different things in code.** A *season phase*
@@ -713,24 +715,24 @@ as intended behaviour.
 ## 3. Could not determine
 
 Questions this pass could not answer from the repository, and what has since answered them.
-§3.2 and §3.5 were answered by `METRIC.md` §2, which at the time assessed all four feasibility
-conditions once at the build gameweek (GW2) and never re-checked them. **That premise has since
-changed** — `DESIGN.md` §0.16 now draws squads at every gameweek — so §3.2's answer below describes a
-construction the design no longer uses; it is left as written because it records what answered the
-question when it was answered, and the current construction is `DESIGN.md`'s to state. §3.1 was answered by `METRIC.md` §3. §3.7
+§3.2 and §3.5 are answered by `DESIGN.md` §0.16: squads are drawn afresh at every gameweek (weekly
+construction, frozen in `PRE_REGISTRATION.yaml`), so every feasibility condition is assessed at the
+gameweek a squad is used. (An earlier answer, from a `METRIC.md` revision that assessed feasibility
+once at GW2, described a construction the design does not use and is withdrawn.) §3.1 is answered
+by `DESIGN.md` §0.9, selecting from `METRIC.md` §3.2. §3.7
 was answered by running it; see below. §3.3, §3.4 and §3.6 remain unanswered.
 
 **3.1 — The "as-of PPG" denominator. Answered.** `expanding_prior_mean` computes a per-gameweek
 or a per-appearance mean depending on the frame passed (§2.1), and the repository does not fix
-which. `METRIC.md` §3 now specifies gameweeks elapsed, with blanked and no-fixture weeks counted
+which. `DESIGN.md` §0.9 selects gameweeks elapsed (`METRIC.md` §3.2), with blanked and no-fixture weeks counted
 at 0 and pre-registration weeks excluded, extended to the 3-gameweek baseline.
 
 **3.2 — When max-3-per-club binds.** 27 of 841 players change `team_id` mid-season (verified,
-§2.2). §2 builds squads once and holds them all season, so a squad legal at construction can
-become illegal later. Whether legality is evaluated at build time only was not stated in the
-repository. `METRIC.md` §2 now states it.
+§2.2). A squad built once and held all season could become illegal later. Whether legality is evaluated
+at build time only was not stated in the repository. `DESIGN.md` §0.16 states it: squads are drawn
+weekly, so legality is evaluated at every gameweek.
 
-**3.3 — `p_play` over GW2–GW3.** `METRIC.md` §6 fixes scope at GW2–38; `WARMUP_GW = 3` means `p_play` exists
+**3.3 — `p_play` over GW2–GW3.** `DESIGN.md` §0.7 fixes scope at GW2–38; `WARMUP_GW = 3` means `p_play` exists
 only from GW4 (§2.6). Two gameweeks of that baseline's window are unavailable. `WARMUP_GW` is
 global to every term (§2.6), and no per-term override exists in the code.
 
@@ -739,8 +741,8 @@ which the metric does not. How many squad-weeks would contain a DGW player is no
 without a squad set, and no squad set exists yet.
 
 **3.5 — Whether the budget cap binds only at build time.** Prices move weekly for 600 of 841
-players (§2.7). `METRIC.md` §2 imposes the cap on a squad "built once"; the repository does not
-determine whether the cap is re-evaluated later.
+players (§2.7). The repository does not determine whether the cap is re-evaluated later.
+`DESIGN.md` §0.16 makes the question moot: squads are drawn weekly, at that gameweek's prices.
 
 **3.6 — The prior "`dal/` canonical vs `domain` split, physical move to `fpl-ingest` deferred".**
 I could not find this recorded anywhere in the repository. `fpl-ingest` appears in exactly three

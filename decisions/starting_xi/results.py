@@ -178,12 +178,42 @@ class SquadIntervalParams:
 
 
 @dataclass(frozen=True)
+class RunProvenance:
+    """Run hygiene: where the run came from, and whether it counts.
+
+    Recorded so a run can be traced to a commit, a data file and a pre-registration file byte for
+    byte. `canonical` is False when the run was forced past a dirty tree or off-registration
+    parameters, and `non_canonical_reasons` says which. Only `canonical` enters `run_id` (see
+    `identity_fields`); the rest is provenance rather than identity, because a commit sha in the
+    hash would give identical inputs at two commits two ids, which §7.3's determinism forbids.
+    """
+
+    git_sha: str
+    clean_tree: bool
+    data_source_path: str
+    data_source_sha256: str
+    pre_registration_sha256: str
+    canonical: bool
+    non_canonical_reasons: Sequence[str]
+
+    def __post_init__(self) -> None:
+        if self.canonical == bool(self.non_canonical_reasons):
+            raise ValueError(
+                "a canonical run carries no non_canonical_reasons and a non-canonical run carries at least one; "
+                f"got canonical={self.canonical}, reasons={list(self.non_canonical_reasons)}"
+            )
+
+
+@dataclass(frozen=True)
 class Manifest:
     """§7.3's run manifest, split into what identifies a run and what merely accompanies it.
 
     **The identity half** is what `run_id` hashes: the mart pin, the whole ordered bench-ordering
-    policy set with element 0 primary, the master seed, the squad-set id, and the build gameweek
-    set. **The metadata half** -- ranker windows, sampler diagnostics, both interval parameter sets
+    policy set with element 0 primary, the master seed, the squad-set id, the build gameweek set,
+    and the pre-registered study parameters `PRE_REGISTRATION.yaml` freezes (floor method,
+    materiality, success criteria, construction, squad-interval stratification), plus the
+    provenance's `canonical` flag. **The provenance** (`RunProvenance`) is written alongside, not
+    hashed. **The metadata half** -- ranker windows, sampler diagnostics, both interval parameter sets
     -- is carried "for completeness rather than identity" (§7.3) and is excluded from the hash.
 
     **Two of §7.3's identity rows are not fields here, and their own reasons say why.** The
@@ -206,6 +236,12 @@ class Manifest:
     sampler_diagnostics: Sequence[Mapping[str, object]]
     gameweek_interval: GameweekIntervalParams
     squad_interval: SquadIntervalParams
+    floor_method: Mapping[str, object]
+    materiality: Mapping[str, object]
+    success_criteria: Sequence[str]
+    construction: str
+    squad_interval_stratified_by: str
+    provenance: RunProvenance
 
     def __post_init__(self) -> None:
         if not self.bench_order:
@@ -235,6 +271,13 @@ def identity_fields(manifest: Manifest) -> dict[str, object]:
         "master_seed": int(manifest.master_seed),
         "squad_set_id": str(manifest.squad_set_id),
         "build_gameweeks": sorted({int(gw) for gw in manifest.build_gameweeks}),
+        "floor_method": _canonical(manifest.floor_method),
+        "materiality": _canonical(manifest.materiality),
+        "success_criteria": list(manifest.success_criteria),
+        "construction": str(manifest.construction),
+        "squad_interval_stratified_by": str(manifest.squad_interval_stratified_by),
+        # A forced run must never share a directory with -- and so overwrite -- a canonical one.
+        "canonical": bool(manifest.provenance.canonical),
     }
 
 
@@ -278,6 +321,15 @@ def manifest_document(manifest: Manifest, identifier: str) -> dict[str, object]:
     return {
         "run_id": identifier,
         "identity": identity_fields(manifest),
+        "provenance": {
+            "git_sha": manifest.provenance.git_sha,
+            "clean_tree": manifest.provenance.clean_tree,
+            "data_source_path": manifest.provenance.data_source_path,
+            "data_source_sha256": manifest.provenance.data_source_sha256,
+            "pre_registration_sha256": manifest.provenance.pre_registration_sha256,
+            "canonical": manifest.provenance.canonical,
+            "non_canonical_reasons": list(manifest.provenance.non_canonical_reasons),
+        },
         "metadata": {
             "ranker_windows": {name: list(window) for name, window in manifest.ranker_windows.items()},
             "sampler_diagnostics": [_canonical(row) for row in manifest.sampler_diagnostics],

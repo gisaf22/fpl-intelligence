@@ -6,7 +6,7 @@
 `decisions/free_hit/DECISION.md` §7 names as blocking `DESIGN.md`, and states facts only. Every
 claim below is cited to a real file/line or to a query run directly against the live mart
 (`~/.fpl/fpl.mart.parquet`) or the live raw sqlite DB (`~/.fpl/fpl.db`); nothing here is inferred
-from `decisions/starting_xi/INVENTORY.md` without being re-verified against current repo state,
+from `decisions/starting_xi/archive/INVENTORY.md` without being re-verified against current repo state,
 though that document is cited directly where it is the fact of record (e.g. registration-prefix
 semantics) and re-derivation would just repeat its own verification.
 
@@ -22,7 +22,7 @@ the choice is flagged as `DESIGN.md`'s rather than made here.
 ## 1. Gameweek population availability
 
 **The mart, verified directly (2026-08-29):** 31,958 rows, 841 unique `player_id`, `gw` ∈ {1..38}
-(38 gameweeks), 64 columns. This is the same figure `decisions/starting_xi/INVENTORY.md`'s header
+(38 gameweeks), 64 columns. This is the same figure `decisions/starting_xi/archive/INVENTORY.md`'s header
 records, re-run rather than assumed current. There is no `season` or `year` column on the mart, and
 `dal/config.py:4` resolves a single `DB_PATH` (`~/.fpl/fpl.db`, one SQLite file) with no
 season-selection parameter anywhere in `dal/pipeline.py`. `CONTEXT.md:8-9` and
@@ -46,7 +46,7 @@ same way, verified rather than assumed.
 depending on definition, and the repository does not itself pick one.**
 
 Row-level `is_bgw` is contaminated by the pre-registration prefix, not just genuine blanks.
-`decisions/starting_xi/INVENTORY.md` §2.5 (independently re-verified above: `is_bgw` ⟺ `minutes`
+`decisions/starting_xi/archive/INVENTORY.md` §2.5 (independently re-verified above: `is_bgw` ⟺ `minutes`
 NULL, exact) already established that most NULL-`minutes` rows are a player not yet having
 debuted, not a real fixture blank. Counting **any** `is_bgw=True` row in a gameweek as
 disqualifying gives:
@@ -77,7 +77,7 @@ carries the flag — gives a different, club-schedule-level count:
 **Neither definition is implemented anywhere in the repository as a reusable "is this calendar
 gameweek a DGW/BGW gameweek" classifier.** `decisions/starting_xi/sampler.py`, `harness.py`,
 `formations.py` and `orderings.py` were grepped for `is_dgw`, `is_bgw`, `fixture_context` and
-`fixture_count`: zero matches in all four. `decisions/starting_xi/INVENTORY.md`'s own citations for
+`fixture_count`: zero matches in all four. `decisions/starting_xi/archive/INVENTORY.md`'s own citations for
 these flags (§2.1, §2.6, §2.10) are all **row-level** filters inside `model/` terms
 (`PlayModel.population`, `build_baseline_features`), never a whole-gameweek classification. The
 33-gameweek figure above is therefore a fact this pass computed directly against the mart to answer
@@ -96,7 +96,7 @@ repository today — flagged for `DESIGN.md`.
 **Not on the mart.** The mart's full 64-column list (enumerated directly from the live parquet)
 contains no `bank`, `team_value`, `squad_value`, or `entry`-prefixed column of any kind. The only
 value-shaped column is `purchase_price` — a **per-player** price index (`player_histories.value ÷
-10`, per `decisions/starting_xi/INVENTORY.md` §2.7, re-verified: 600/841 players carry more than
+10`, per `decisions/starting_xi/archive/INVENTORY.md` §2.7, re-verified: 600/841 players carry more than
 one distinct price across the season) — not a team-level or manager-level aggregate.
 
 **Not in the staging contracts or `domain/`.** `grep -rln "bank\|team_value\|entry_history\|

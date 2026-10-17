@@ -1,3 +1,5 @@
+> Status and current decisions: [CARD.md](CARD.md). This document still governs the harness code.
+
 # Starting XI and Bench Order — the design
 
 **Status:** Design settled; the build is under way. `§0` makes the metric selections `METRIC.md` §8

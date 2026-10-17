@@ -1,3 +1,5 @@
+> **Superseded by [CARD.md](../CARD.md) on 2026-10-16.** Kept for provenance; not authoritative.
+
 # Starting XI and Bench Order — candidate metrics
 
 **Status:** Survey. No metric selected.

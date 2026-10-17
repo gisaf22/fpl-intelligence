@@ -1,3 +1,5 @@
+> **Superseded by [CARD.md](../CARD.md) on 2026-10-16.** Kept for provenance; not authoritative.
+
 # Starting XI and Bench Order — the decision
 
 **Status:** Built; two dry runs (3821cc93 pre-freeze, 4b348fe0 off-registration), not canonical.

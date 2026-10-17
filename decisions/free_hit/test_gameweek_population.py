@@ -2,7 +2,7 @@
 
 `mart` is built so the row-level and club-schedule-level DGW/BGW definitions disagree at GW1: a
 not-yet-debuted player's row carries the same `fixture_count == 0` shape a real blank would, the
-exact pre-registration-prefix artefact `INVENTORY.md` §1 and `decisions/starting_xi/INVENTORY.md`
+exact pre-registration-prefix artefact `INVENTORY.md` §1 and `decisions/starting_xi/archive/INVENTORY.md`
 §2.5 document. `schedule_clean_gameweeks` must side with the club-schedule-level (registered-only)
 definition, not the row-level one.
 

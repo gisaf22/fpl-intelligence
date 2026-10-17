@@ -1,3 +1,5 @@
+> **Superseded by [CARD.md](../CARD.md) on 2026-10-16.** Kept for provenance; not authoritative.
+
 # Starting XI and Bench Order — capability inventory
 
 **Status:** Audit complete. Read-only pass — no code was written, moved, or refactored.

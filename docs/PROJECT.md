@@ -1,6 +1,6 @@
 # PROJECT — what was investigated, what was found, where it stands
 
-**Type:** research record · **Written:** 2026-08-16 · **Branch:** `predictive-cleanup-and-redesign-spec`
+**Type:** research record · **Written:** 2026-08-16 · **Branch:** `main`
 (HEAD `ae90398`, plus uncommitted Phase-5 captaincy work).
 
 This is a record, not a plan. Every number below was read out of the artifact named beside it, or

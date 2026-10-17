@@ -129,15 +129,19 @@ def test_c1_and_c3_are_collinear_until_gw5_on_the_live_mart(live_mart: pd.DataFr
     for gw in (2, 3, 4):
         pool = build_candidates(live_mart, gw)
         assert pool
+        # Extras live on the concrete `_Candidate`, not the Protocol -- read them as production does.
+        pairs = [(getattr(c, "season_ppg"), getattr(c, "recent_form_ppg")) for c in pool]
         assert all(
-            c.season_ppg == c.recent_form_ppg
+            s == r
             # NaN != NaN, so an unregistered-window pair must be matched as both-NaN.
-            or (c.season_ppg != c.season_ppg and c.recent_form_ppg != c.recent_form_ppg)
-            for c in pool
+            or (s != s and r != r)
+            for s, r in pairs
         ), f"C1 and C3 signals were expected to be identical at GW{gw}"
 
     diverged = build_candidates(live_mart, RECENT_FORM_WINDOW + 2)
-    assert any(c.season_ppg != c.recent_form_ppg for c in diverged), "C1 and C3 must diverge by GW5"
+    assert any(getattr(c, "season_ppg") != getattr(c, "recent_form_ppg") for c in diverged), (
+        "C1 and C3 must diverge by GW5"
+    )
 
 
 @pytest.fixture(scope="module")

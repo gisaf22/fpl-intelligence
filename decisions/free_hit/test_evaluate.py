@@ -432,7 +432,7 @@ def test_gw1_would_be_degenerate_if_it_were_run(mart: pd.DataFrame) -> None:
     guaranteed zero rather than an observed one.
     """
     pool = build_candidates(mart, 1)
-    assert all(c.season_ppg != c.season_ppg for c in pool)  # NaN != NaN, all of them
+    assert all(getattr(c, "season_ppg") != getattr(c, "season_ppg") for c in pool)  # NaN != NaN, all of them
 
     by_ppg = greedy_by_season_ppg(pool, BUDGET_CAP_TENTHS, dict(SQUAD_SELECT))
     by_value = greedy_by_value(pool, BUDGET_CAP_TENTHS, dict(SQUAD_SELECT))

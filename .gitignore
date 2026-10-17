@@ -22,3 +22,6 @@ research/runs/
 .import_linter_cache/
 .mypy_cache/
 .ruff_cache/
+
+# starting_xi results are deterministically regeneratable from PRE_REGISTRATION.yaml + a seed.
+decisions/starting_xi/results/

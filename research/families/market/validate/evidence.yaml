@@ -1,5 +1,5 @@
 lens: market
-target: total_points
+target: total_points_next_gw
 evidence_run:
   source: LENS-MARKET-20260606_151111
   produced: '20260606_151111'

@@ -24,7 +24,9 @@ The system separates three concerns that must remain independent:
 Keeping these concerns separate prevents analytical assumptions from polluting the data
 contract, and prevents operational pressure from shortcutting research rigour.
 
-For the full conceptual model — including the Control Plane (registry and scoring configuration), Execution Plane (DAL + intelligence), and the partially-implemented Measurement Plane — see [docs/architecture/system-model.md](architecture/system-model.md).
+For the current layer structure and what each layer owns, see
+[docs/architecture/layer-boundaries.md](architecture/layer-boundaries.md) and
+[docs/PROJECT.md](PROJECT.md).
 
 ## Trusted data assumptions
 
@@ -53,7 +55,9 @@ actionable. Intelligence work lives in `intelligence/`. It consumes only signals
 that have reached `operationalized` status in the registry.
 
 Research findings do not automatically become intelligence inputs. Promotion through the
-signal governance states are the gate. See [docs/signal-promotion-states.md](signal-promotion-states.md).
+signal governance states are the gate. (The former `docs/signal-promotion-states.md` was retired at
+`ae90398`; the surviving gate definitions are in
+[docs/governance/evaluation-gate-criteria.md](governance/evaluation-gate-criteria.md).)
 
 ## Research scope
 

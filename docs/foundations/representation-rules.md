@@ -25,8 +25,10 @@ Outcome codes follow the decision matrix in `representation-governance.md §5`:
 
 All STATE columns must be registered in `dal/feat/feat_schema.py::FEATURE_REGISTRY` with
 scope, causality, approval status, and the gate reference that justifies the materialised
-column. Traversal from feature columns to analyses and findings lives in
-`signals/characterisation/signal_traceability.yaml`.
+column. Traversal from feature columns to analyses and findings runs through the owning family study under
+`research/families/*/validate/` and its `evidence.yaml`. (The former
+`signals/characterisation/signal_traceability.yaml` was retired in the 2026-06-04 `studies/`→`research/`
+migration and its `model/governance/` successor was deleted at `ae90398`.)
 
 ---
 

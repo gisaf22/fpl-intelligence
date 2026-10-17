@@ -1,5 +1,9 @@
 # govern-signal-ledger
 
+> **Historical record as of 2026-05-26.** File paths referenced below no longer exist
+> post-`ae90398` (2026-08-16) — see [docs/PROJECT.md](../PROJECT.md) for current structure.
+> Left unedited to preserve the decision trail.
+
 **Stage:** model · **Mode:** govern · **Verdict:** accepted · **Date:** 2026-05-26
 **Evidence:** [signals/governance/weight_registry.yaml](../../signals/governance/weight_registry.yaml)
 

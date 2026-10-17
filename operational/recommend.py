@@ -1,0 +1,184 @@
+"""Weekly decision recommendations — the operational composition root (ADR-012 §6).
+
+The runnable path the platform was missing: load the governed mart, compute the model forecast, merge
+it onto the mart as data, and rank every registered decision for a target gameweek — writing the
+recommendations to ``outputs/``. This is the first place ``dal``, ``model``, and ``serve`` meet; it
+lives above the layer graph precisely because ``serve`` may not import ``model``.
+
+    dal.pipeline.load  →  model.predictions.assemble_forecast  →  (merge on player_id, gw)
+                       →  serve.decision_engine.run_decision(spec, …)  →  outputs/decisions/gw{N}/
+
+The decision set is a small registry of :class:`domain.decision.DecisionSpec` values; adding a decision
+type (Triple Captain, Bench, …) is a new entry here plus its spec — no new wiring.
+"""
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+from pathlib import Path
+
+import pandas as pd
+
+from dal.config import DB_PATH
+from dal.pipeline import load
+from domain.decision import DecisionSpec
+from model.predictions import assemble_forecast
+from serve.captain import CAPTAIN
+from serve.decision_engine import run_decision
+from serve.transfers import TRANSFERS
+from serve.value import VALUE
+
+# The registered per-player decisions run each week. Slug → spec; the slug names the output file.
+DECISIONS: dict[str, DecisionSpec] = {
+    "captain": CAPTAIN,
+    "value": VALUE,
+    "transfers": TRANSFERS,
+}
+
+DEFAULT_OUTPUT_ROOT = Path("outputs/decisions")
+
+# Join grain of the forecast onto the mart.
+_FORECAST_KEYS = ["player_id", "gw"]
+
+
+@dataclass(frozen=True)
+class DecisionRecommendations:
+    """Locations and row counts from one recommendation run."""
+
+    gw: int
+    output_dir: Path
+    recommendations: dict[str, Path]  # slug → written CSV
+    row_counts: dict[str, int]  # slug → number of ranked candidates
+    summary_path: Path
+
+
+def default_output_dir(gw: int) -> Path:
+    """Default output directory for a gameweek's recommendations."""
+    return DEFAULT_OUTPUT_ROOT / f"gw{gw}"
+
+
+def enrich_with_forecast(mart: pd.DataFrame, *, n_sims: int = 2000, seed: int = 0) -> pd.DataFrame:
+    """Merge the model forecast columns onto the mart on ``(player_id, gw)``.
+
+    ``serve`` reads the forecast as *data* (it does not import ``model``); this is the boundary where
+    that data is produced and joined. Only forecast columns not already on the mart are merged, so the
+    mart's own columns always win. Left join: every mart row is preserved; forecast columns are NaN on
+    rows the simulator does not score.
+    """
+    forecast = assemble_forecast(mart, n_sims=n_sims, seed=seed)
+    forecast_only = [c for c in forecast.columns if c not in set(mart.columns)]
+    return mart.merge(forecast[[*_FORECAST_KEYS, *forecast_only]], on=_FORECAST_KEYS, how="left")
+
+
+def recommend_from_mart(
+    mart: pd.DataFrame,
+    target_gw: int,
+    output_dir: Path,
+    *,
+    n: int = 20,
+    n_sims: int = 2000,
+    seed: int = 0,
+) -> DecisionRecommendations:
+    """Enrich a mart with the forecast, rank every registered decision, and write the outputs.
+
+    The DB-free core of :func:`run` — takes a mart directly so it is testable without a database.
+    """
+    enriched = enrich_with_forecast(mart, n_sims=n_sims, seed=seed)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    recommendations: dict[str, Path] = {}
+    row_counts: dict[str, int] = {}
+    frames: dict[str, pd.DataFrame] = {}
+    for slug, spec in DECISIONS.items():
+        ranked = run_decision(spec, enriched, target_gw, n=n)
+        path = output_dir / f"{slug}.csv"
+        ranked.to_csv(path, index=False)
+        recommendations[slug] = path
+        row_counts[slug] = len(ranked)
+        frames[slug] = ranked
+
+    summary_path = _write_summary(output_dir, target_gw, frames)
+    return DecisionRecommendations(
+        gw=target_gw,
+        output_dir=output_dir,
+        recommendations=recommendations,
+        row_counts=row_counts,
+        summary_path=summary_path,
+    )
+
+
+def run(
+    target_gw: int,
+    *,
+    db_path: Path = DB_PATH,
+    output_dir: Path | None = None,
+    n: int = 20,
+    n_sims: int = 2000,
+    seed: int = 0,
+) -> DecisionRecommendations:
+    """Load the mart for ``db_path`` and write ranked recommendations for ``target_gw``.
+
+    Requires a built mart (``dal.pipeline.run`` first); raises ``MartNotBuiltError`` otherwise.
+    """
+    mart = load(db_path).mart
+    out = output_dir if output_dir is not None else default_output_dir(target_gw)
+    return recommend_from_mart(mart, target_gw, out, n=n, n_sims=n_sims, seed=seed)
+
+
+def _write_summary(output_dir: Path, target_gw: int, frames: dict[str, pd.DataFrame]) -> Path:
+    """Write a short human-readable markdown summary of the top picks per decision."""
+    lines = [
+        f"# GW{target_gw} decision recommendations",
+        "",
+        "_Generated by the operational composition root (ADR-012 §6): dal mart → model forecast → decision engine._",
+        "",
+    ]
+    for slug, spec in DECISIONS.items():
+        ranked = frames[slug]
+        lines.append(f"## {slug} — {len(ranked)} candidate(s)")
+        if ranked.empty:
+            lines.append("_No eligible candidates._")
+        else:
+            for _, r in ranked.head(5).iterrows():
+                lines.append(f"- {r['player_name']} ({spec.score_col}={float(r[spec.score_col]):.3f})")
+        lines.append("")
+    path = output_dir / "recommendations.md"
+    path.write_text("\n".join(lines))
+    return path
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the CLI parser for the recommendation runner."""
+    parser = argparse.ArgumentParser(
+        description="Rank FPL decisions for a gameweek from the model forecast (ADR-012 composition root).",
+    )
+    parser.add_argument("--target-gw", type=int, required=True, help="Gameweek to prepare recommendations for.")
+    parser.add_argument("--db-path", type=Path, default=DB_PATH, help="Source DB path (default: dal.config.DB_PATH).")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Output dir. Default: outputs/decisions/gw{gw}.")
+    parser.add_argument("--n", type=int, default=20, help="Max candidates per decision (default: 20).")
+    parser.add_argument("--n-sims", type=int, default=2000, help="Monte-Carlo draws for the simulator (default: 2000).")
+    parser.add_argument("--seed", type=int, default=0, help="Simulator seed (default: 0).")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI entry point."""
+    args = build_parser().parse_args(argv)
+    result = run(
+        target_gw=args.target_gw,
+        db_path=args.db_path,
+        output_dir=args.output_dir,
+        n=args.n,
+        n_sims=args.n_sims,
+        seed=args.seed,
+    )
+    print(f"GW{result.gw} recommendations written to {result.output_dir}")
+    for slug, path in result.recommendations.items():
+        print(f"  {slug}: {result.row_counts[slug]} candidates -> {path}")
+    print(f"  summary: {result.summary_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

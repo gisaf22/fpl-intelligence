@@ -14,12 +14,9 @@ import pytest
 
 from serve.availability import flag_availability_risk
 from serve.captain import rank_captain_candidates
-from serve.fixtures import rank_fixture_opportunities
 from serve.input_contracts import (
     IntelligenceInputError,
-    normalize_within_position,
     validate_intelligence_inputs,
-    weighted_composite,
 )
 from serve.transfers import rank_transfer_targets
 from serve.value import rank_value_players
@@ -49,8 +46,16 @@ def _base_row(
     is_dgw: bool = False,
     fixture_context: str = "SGW",
     is_warmup_gw: bool = False,
+    p_haul: float | None = None,
+    p90: float | None = None,
+    e_points_uncond: float | None = None,
 ) -> dict:
-    """Produce a single row with all required intelligence columns."""
+    """Produce a single row with all required intelligence columns.
+
+    The model forecast columns (p_haul/p90/e_points_uncond) are the enriched inputs the operational
+    runner merges on; they default to values that scale with ``points_roll3`` so a "better" row ranks
+    higher, and can be overridden per row to drive a specific ranking.
+    """
     return {
         "player_id": player_id,
         "gw": gw,
@@ -80,6 +85,10 @@ def _base_row(
         "goals_conceded_roll5": 0.4,
         "minutes_trend": minutes_trend,
         "fixture_context": fixture_context,
+        # Model forecast columns (enriched onto the mart by the runner; see model.predictions).
+        "p_haul": (0.02 + 0.01 * points_roll3) if p_haul is None else p_haul,
+        "p90": (2.0 + points_roll3) if p90 is None else p90,
+        "e_points_uncond": (0.5 * points_roll3) if e_points_uncond is None else e_points_uncond,
     }
 
 
@@ -112,47 +121,6 @@ def multi_gw_features():
 # ---------------------------------------------------------------------------
 
 
-class TestNormalizeWithinPosition:
-    def test_values_in_0_1_range(self, two_player_features):
-        result = normalize_within_position(two_player_features, "points_roll3")
-        assert result.between(0.0, 1.0).all()
-
-    def test_higher_value_gets_higher_score(self, two_player_features):
-        result = normalize_within_position(two_player_features, "points_roll3")
-        # player 1 (row 0) has higher points_roll3 → higher normalized score
-        assert result.iloc[0] > result.iloc[1]
-
-    def test_all_equal_returns_half(self):
-        df = _make_features(
-            _base_row(1, 1, points_roll3=5.0),
-            _base_row(2, 1, points_roll3=5.0),
-        )
-        result = normalize_within_position(df, "points_roll3")
-        assert (result == 0.5).all()
-
-    def test_nan_filled_with_neutral(self):
-        df = _make_features(
-            _base_row(1, 1, points_roll3=6.0),
-            _base_row(2, 1, points_roll3=float("nan")),
-        )
-        df["points_roll3"] = df["points_roll3"].astype(float)
-        result = normalize_within_position(df, "points_roll3")
-        assert not result.isna().any()
-
-
-class TestWeightedComposite:
-    def test_equal_weights_averages_components(self):
-        df = pd.DataFrame({"a": [1.0], "b": [0.0]})
-        result = weighted_composite(df, ["a", "b"], {"a": 0.5, "b": 0.5})
-        assert abs(result.iloc[0] - 0.5) < 1e-9
-
-    def test_unequal_weights_applied_correctly(self):
-        df = pd.DataFrame({"a": [1.0], "b": [0.0]})
-        result = weighted_composite(df, ["a", "b"], {"a": 0.8, "b": 0.2})
-        # 1.0 * 0.8 / 1.0 + 0.0 * 0.2 / 1.0 = 0.8
-        assert abs(result.iloc[0] - 0.8) < 1e-9
-
-
 class TestValidateIntelligenceInputs:
     def test_valid_input_passes(self, two_player_features):
         validate_intelligence_inputs(two_player_features, "test")
@@ -178,14 +146,8 @@ class TestValidateIntelligenceInputs:
 class TestRankCaptainCandidates:
     def test_returns_expected_columns(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)
-        for col in [
-            "form_score",
-            "involvement_score",
-            "fixture_score",
-            "minutes_score",
-            "captain_score",
-            "captain_rank",
-        ]:
+        # Model-driven: the ceiling/haul reads, not the retired composite components.
+        for col in ["e_points_uncond", "p90", "p_haul", "captain_score", "captain_rank"]:
             assert col in result.columns, f"missing column: {col}"
 
     def test_is_deterministic(self, two_player_features):
@@ -197,10 +159,27 @@ class TestRankCaptainCandidates:
         result = rank_captain_candidates(two_player_features, target_gw=5)
         assert result["captain_score"].is_monotonic_decreasing
 
-    def test_higher_form_player_ranks_first(self, two_player_features):
+    def test_captain_score_is_the_haul_probability(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)
-        # player 1 has better form and involvement — should be top
+        # captaincy is a ceiling bet: the score IS p_haul.
+        assert (result["captain_score"] == result["p_haul"]).all()
+
+    def test_higher_haul_prob_player_ranks_first(self):
+        # player 1 has the higher haul probability -> ranks first (tie-broken by p90).
+        features = _make_features(
+            _base_row(1, 5, p_haul=0.20, p90=9.0),
+            _base_row(2, 5, p_haul=0.05, p90=6.0),
+        )
+        result = rank_captain_candidates(features, target_gw=5)
         assert result.iloc[0]["player_id"] == 1
+
+    def test_ties_broken_by_p90_ceiling(self):
+        features = _make_features(
+            _base_row(1, 5, p_haul=0.10, p90=7.0),
+            _base_row(2, 5, p_haul=0.10, p90=11.0),  # same haul prob, higher ceiling
+        )
+        result = rank_captain_candidates(features, target_gw=5)
+        assert result.iloc[0]["player_id"] == 2
 
     def test_filters_low_minutes_players(self):
         features = _make_features(
@@ -226,15 +205,16 @@ class TestRankCaptainCandidates:
         result = rank_captain_candidates(two_player_features, target_gw=5, n=1)
         assert len(result) <= 1
 
-    def test_missing_column_raises_governance_error(self, two_player_features):
-        df = two_player_features.drop(columns=["xgi_roll3"])
-        with pytest.raises(IntelligenceInputError):
+    def test_missing_forecast_column_raises(self, two_player_features):
+        # Without the model forecast enrichment (p_haul), captain cannot rank — a clear input error.
+        df = two_player_features.drop(columns=["p_haul"])
+        with pytest.raises(IntelligenceInputError, match="forecast"):
             rank_captain_candidates(df, target_gw=5)
 
-    def test_scores_in_0_1_range(self, two_player_features):
+    def test_haul_probability_in_0_1_range(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)
-        for col in ["form_score", "involvement_score", "fixture_score", "minutes_score", "captain_score"]:
-            assert result[col].between(0.0, 1.0).all(), f"{col} out of [0,1]"
+        assert result["captain_score"].between(0.0, 1.0).all()
+        assert result["p_haul"].between(0.0, 1.0).all()
 
 
 # ---------------------------------------------------------------------------
@@ -245,15 +225,8 @@ class TestRankCaptainCandidates:
 class TestRankTransferTargets:
     def test_returns_expected_columns(self, two_player_features):
         result = rank_transfer_targets(two_player_features, target_gw=5)
-        for col in [
-            "recent_form_score",
-            "form_momentum_score",
-            "fixture_score",
-            "involvement_score",
-            "minutes_stability_score",
-            "transfer_score",
-            "transfer_rank",
-        ]:
+        # Model-driven: the expected-points read and its score, not the retired composite components.
+        for col in ["e_points_uncond", "transfer_score", "transfer_rank"]:
             assert col in result.columns
 
     def test_is_deterministic(self, two_player_features):
@@ -269,15 +242,18 @@ class TestRankTransferTargets:
         result = rank_transfer_targets(two_player_features, target_gw=5, position="GK")
         assert result.empty
 
-    def test_rising_form_player_preferred(self):
-        # Player 1: xgi_roll3 > xgi_roll5 (rising xgi momentum)
-        # Player 2: xgi_roll3 < xgi_roll5 (declining xgi momentum)
+    def test_higher_expected_points_player_preferred(self):
+        # Higher e_points_uncond ranks first — the best incoming pick for the upcoming GW.
         features = _make_features(
-            _base_row(1, 5, xgi_roll3=0.8, xgi_roll5=0.4),
-            _base_row(2, 5, xgi_roll3=0.4, xgi_roll5=0.8),
+            _base_row(1, 5, e_points_uncond=6.0),
+            _base_row(2, 5, e_points_uncond=2.0),
         )
         result = rank_transfer_targets(features, target_gw=5)
         assert result.iloc[0]["player_id"] == 1
+
+    def test_transfer_score_is_e_points_uncond(self, two_player_features):
+        result = rank_transfer_targets(two_player_features, target_gw=5)
+        assert (result["transfer_score"] == result["e_points_uncond"]).all()
 
     def test_filters_low_minutes_roll5(self):
         features = _make_features(
@@ -296,6 +272,12 @@ class TestRankTransferTargets:
         with pytest.raises(IntelligenceInputError):
             rank_transfer_targets(df, target_gw=5)
 
+    def test_missing_forecast_column_raises(self, two_player_features):
+        # Without the model forecast enrichment (e_points_uncond), transfers cannot rank.
+        df = two_player_features.drop(columns=["e_points_uncond"])
+        with pytest.raises(IntelligenceInputError, match="forecast"):
+            rank_transfer_targets(df, target_gw=5)
+
 
 # ---------------------------------------------------------------------------
 # Value players
@@ -305,7 +287,8 @@ class TestRankTransferTargets:
 class TestRankValuePlayers:
     def test_returns_expected_columns(self, two_player_features):
         result = rank_value_players(two_player_features, target_gw=5)
-        for col in ["xgi_per_cost", "efficiency_score", "form_score", "consistency_score", "value_score", "value_rank"]:
+        # Model-driven: the expected-points read and its per-cost score, not the retired composite.
+        for col in ["e_points_uncond", "value_score", "value_rank"]:
             assert col in result.columns
 
     def test_is_deterministic(self, two_player_features):
@@ -314,21 +297,35 @@ class TestRankValuePlayers:
         pd.testing.assert_frame_equal(r1, r2)
 
     def test_cheaper_player_may_rank_higher_on_value(self):
-        # Player 1: same xgi, high price → low xgi/cost
-        # Player 2: same xgi, low price → high xgi/cost
+        # Same expected points (both default points_roll3 -> same e_points_uncond), different price:
+        # the cheaper player has the higher e_points_uncond / price and ranks first.
         features = _make_features(
-            _base_row(1, 5, xgi_roll3=0.5, xgi_roll5=0.4, purchase_price=12.0),
-            _base_row(2, 5, xgi_roll3=0.5, xgi_roll5=0.4, purchase_price=5.5),
+            _base_row(1, 5, purchase_price=12.0),
+            _base_row(2, 5, purchase_price=5.5),
         )
         result = rank_value_players(features, target_gw=5)
-        # P2 xgi_per_cost = 0.4/5.5 ≈ 0.073; P1 = 0.4/12 ≈ 0.033 → P2 ranks higher
         assert result.iloc[0]["player_id"] == 2
 
-    def test_xgi_per_cost_computed_correctly(self, two_player_features):
+    def test_value_score_is_e_points_uncond_per_price(self, two_player_features):
         result = rank_value_players(two_player_features, target_gw=5)
         for _, row in result.iterrows():
-            expected_xpc = row["xgi_roll5"] / row["purchase_price"]
-            assert abs(row["xgi_per_cost"] - expected_xpc) < 1e-6
+            expected = row["e_points_uncond"] / row["purchase_price"]
+            assert abs(row["value_score"] - expected) < 1e-9
+
+    def test_higher_expected_points_ranks_higher_at_equal_price(self):
+        # Same price, different expected points -> higher e_points_uncond ranks first.
+        features = _make_features(
+            _base_row(1, 5, purchase_price=7.0, e_points_uncond=6.0),
+            _base_row(2, 5, purchase_price=7.0, e_points_uncond=2.0),
+        )
+        result = rank_value_players(features, target_gw=5)
+        assert result.iloc[0]["player_id"] == 1
+
+    def test_missing_forecast_column_raises(self, two_player_features):
+        # Without the model forecast enrichment (e_points_uncond), value cannot rank — a clear input error.
+        df = two_player_features.drop(columns=["e_points_uncond"])
+        with pytest.raises(IntelligenceInputError, match="forecast"):
+            rank_value_players(df, target_gw=5)
 
     def test_max_price_filter_works(self):
         features = _make_features(
@@ -436,78 +433,6 @@ class TestFlagAvailabilityRisk:
 
 
 # ---------------------------------------------------------------------------
-# Fixture opportunities
-# ---------------------------------------------------------------------------
-
-
-class TestRankFixtureOpportunities:
-    def test_returns_expected_columns(self, multi_gw_features):
-        result = rank_fixture_opportunities(multi_gw_features, target_gw=5)
-        # fdr_opportunity_score not in fixtures registry (fdr_avg G2-FAIL at all positions)
-        for col in [
-            "fdr_window_avg",
-            "dgw_in_window",
-            "team_goals_roll5",
-            "team_attack_score",
-            "dgw_bonus_score",
-            "fixture_opportunity_score",
-            "fixture_opportunity_rank",
-        ]:
-            assert col in result.columns
-        # Confirm fdr_opportunity_score is no longer present
-        assert "fdr_opportunity_score" not in result.columns
-
-    def test_is_deterministic(self, multi_gw_features):
-        r1 = rank_fixture_opportunities(multi_gw_features, target_gw=5)
-        r2 = rank_fixture_opportunities(multi_gw_features, target_gw=5)
-        pd.testing.assert_frame_equal(r1, r2)
-
-    def test_dgw_fixture_scores_higher(self):
-        # fixture_score uses binary DGW indicator from STATE fixture_context column
-        features = _make_features(
-            _base_row(1, 5, fixture_context="DGW"),  # double gameweek → higher score
-            _base_row(2, 5, fixture_context="SGW"),  # single gameweek
-        )
-        result = rank_fixture_opportunities(features, target_gw=5)
-        assert result.iloc[0]["player_id"] == 1
-
-    def test_dgw_bonus_applied(self):
-        # DGW detection reads STATE fixture_context, not spine is_dgw (governed column access)
-        features = _make_features(
-            _base_row(1, 5, fixture_context="DGW", fdr_avg=3.0),
-            _base_row(2, 5, fixture_context="SGW", fdr_avg=3.0),
-        )
-        result = rank_fixture_opportunities(features, target_gw=5)
-        dgw_row = result[result["player_id"] == 1].iloc[0]
-        non_dgw_row = result[result["player_id"] == 2].iloc[0]
-        assert dgw_row["dgw_bonus_score"] == 1.0
-        assert non_dgw_row["dgw_bonus_score"] == 0.0
-        # DGW player should score higher (all else equal)
-        assert dgw_row["fixture_opportunity_score"] > non_dgw_row["fixture_opportunity_score"]
-
-    def test_filters_low_minutes_players(self):
-        features = _make_features(
-            _base_row(1, 5, minutes_roll5=90.0),
-            _base_row(2, 5, minutes_roll5=5.0),  # below threshold
-        )
-        result = rank_fixture_opportunities(features, target_gw=5)
-        assert 2 not in result["player_id"].values
-
-    def test_no_data_for_gw_raises(self, multi_gw_features):
-        with pytest.raises(IntelligenceInputError, match="no data for gw=99"):
-            rank_fixture_opportunities(multi_gw_features, target_gw=99)
-
-    def test_n_limits_output_rows(self, multi_gw_features):
-        result = rank_fixture_opportunities(multi_gw_features, target_gw=5, n=1)
-        assert len(result) <= 1
-
-    def test_missing_column_raises(self, multi_gw_features):
-        df = multi_gw_features.drop(columns=["fdr_avg"])
-        with pytest.raises(IntelligenceInputError):
-            rank_fixture_opportunities(df, target_gw=5)
-
-
-# ---------------------------------------------------------------------------
 # Cross-module: governance and explainability
 # ---------------------------------------------------------------------------
 
@@ -520,7 +445,6 @@ class TestIntelligenceGovernance:
         ("rank_transfer_targets", rank_transfer_targets),
         ("rank_value_players", rank_value_players),
         ("flag_availability_risk", flag_availability_risk),
-        ("rank_fixture_opportunities", rank_fixture_opportunities),
     )
 
     @pytest.mark.parametrize("name,fn", _ALL_FUNCTIONS)
@@ -533,7 +457,6 @@ class TestIntelligenceGovernance:
         """Intelligence modules must not depend on research EDA paths."""
         import serve.availability as avail_mod
         import serve.captain as cap_mod
-        import serve.fixtures as fix_mod
         import serve.transfers as trans_mod
         import serve.value as val_mod
 
@@ -541,7 +464,7 @@ class TestIntelligenceGovernance:
         # studies/ tree is gone; the exploratory seed registry now lives under
         # research/findings/ (the lifecycle gate's exploratory prefix).
         forbidden_research_paths = ("research/foundation", "research/families", "research/findings")
-        for mod in [cap_mod, trans_mod, val_mod, avail_mod, fix_mod]:
+        for mod in [cap_mod, trans_mod, val_mod, avail_mod]:
             src = mod.__file__
             with open(src) as f:
                 content = f.read()
@@ -553,25 +476,23 @@ class TestIntelligenceGovernance:
 
     def test_captain_explainability_columns_present(self, two_player_features):
         result = rank_captain_candidates(two_player_features, target_gw=5)
-        for col in ["form_score", "involvement_score", "fixture_score", "minutes_score"]:
+        # Model-driven explainability: the ceiling/haul/expected-points reads.
+        for col in ["e_points_uncond", "p90", "p_haul"]:
             assert col in result.columns
 
     def test_transfers_explainability_columns_present(self, two_player_features):
         result = rank_transfer_targets(two_player_features, target_gw=5)
-        for col in ["recent_form_score", "form_momentum_score", "fixture_score"]:
+        # Model-driven explainability: the expected-points read and the score.
+        for col in ["e_points_uncond", "transfer_score"]:
             assert col in result.columns
 
     def test_value_explainability_columns_present(self, two_player_features):
         result = rank_value_players(two_player_features, target_gw=5)
-        for col in ["xgi_per_cost", "efficiency_score", "consistency_score"]:
+        # Model-driven explainability: the expected-points read and the per-cost score.
+        for col in ["e_points_uncond", "value_score"]:
             assert col in result.columns
 
     def test_availability_explainability_columns_present(self, two_player_features):
         result = flag_availability_risk(two_player_features, target_gw=5)
         for col in ["low_minutes_flag", "falling_trend_flag", "divergence_flag", "risk_reason"]:
-            assert col in result.columns
-
-    def test_fixtures_explainability_columns_present(self, multi_gw_features):
-        result = rank_fixture_opportunities(multi_gw_features, target_gw=5)
-        for col in ["fdr_window_avg", "dgw_in_window", "team_goals_roll5"]:
             assert col in result.columns

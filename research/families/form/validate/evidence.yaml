@@ -1,5 +1,5 @@
 lens: form
-target: total_points
+target: total_points_next_gw
 evidence_run:
   source: LENS-FORM-20260606_151034
   produced: '20260606_151034'

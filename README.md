@@ -35,9 +35,7 @@ information, and exits with a non-zero code on any failure. See [examples/quicks
 ## Architecture
 
 - [docs/system-purpose.md](docs/system-purpose.md) — mission, architectural intent, non-goals
-- [docs/architecture/runtime-execution.md](docs/architecture/runtime-execution.md) — execution sequence and operational entry points
-- [docs/signal-promotion-states.md](docs/signal-promotion-states.md) — signal lifecycle states and promotion criteria
-- [docs/registry-governance.md](docs/registry-governance.md) — exploratory vs operational registries, runtime enforcement
+- [docs/PROJECT.md](docs/PROJECT.md) — what was built, what was found, and the current entry points
 - [dal/README.md](dal/README.md) — DAL design rationale (code contracts in `dal/fct/fct_contracts.py`, `dal/feat/feat_contracts.py`)
 - [docs/architecture/layer-boundaries.md](docs/architecture/layer-boundaries.md) — component ownership and dependency rules
 - [docs/architecture/](docs/architecture/) — full architecture reference

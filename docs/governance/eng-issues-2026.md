@@ -31,10 +31,18 @@ Any contributor can push a breaking change and not know. The test suite is the p
 
 ---
 
-### ENG-02 — FWD × purchase_price reversal is live in the scorer
+### ENG-02 — FWD × purchase_price reversal is live in the scorer — ✅ SUBSTANTIALLY ADDRESSED (2026-08-01, ADR-011)
 
-**Problem**  
-Phase 9 holdout validation (GW 34–38) found `purchase_price` at FWD reverses: rho = −0.095 vs SYNTH-01 in-sample 0.155 (Δ = −0.250, p = 0.374 non-significant). The operational baseline classifies this P1 and recommends restricting to GW 1–30 or adding a phase-conditional caveat. Neither has been implemented. `purchase_price` remains active in `intelligence/transfers.py:39` and `intelligence/value.py` unconditionally across all gameweeks.
+> **Update (2026-08-01).** The serve↔model integration removes the harm. `serve/transfers.py` no longer
+> scores `purchase_price` at all (it ranks by the model forecast `e_points_uncond`; price is carried only
+> as an output-column budget aid). `serve/value.py` uses `purchase_price` solely as the *cost denominator*
+> of `e_points_uncond / purchase_price` — a price normalizer (expensive → lower value per £), not a
+> directional return predictor, so the FWD end-season *reversal* does not apply. The
+> `weight_registry.yaml` FWD composite entry cited below is deleted. Residual: whether the value
+> denominator itself should be phase-gated is a smaller open question for SYNTH-02, not a P1 reversal.
+
+**Problem (as originally filed)**  
+Phase 9 holdout validation (GW 34–38) found `purchase_price` at FWD reverses: rho = −0.095 vs SYNTH-01 in-sample 0.155 (Δ = −0.250, p = 0.374 non-significant). The operational baseline classifies this P1 and recommends restricting to GW 1–30 or adding a phase-conditional caveat. At filing, `purchase_price` was a scored signal in `intelligence/transfers.py` and `intelligence/value.py` unconditionally across all gameweeks.
 
 **Why it is a problem**  
 End-of-season market signals decay as squads rotate and managers rest players. A reversed signal produces actively wrong recommendations — it ranks FWDs in the opposite order of expected returns in the final third of the season. Any live use of the transfers or value scorer after GW 30 would be harmed, not helped.
@@ -45,11 +53,10 @@ End-of-season market signals decay as squads rotate and managers rest players. A
 - `outputs/operational-baseline.md` §P1 recommendation marked resolved with a reference to the fix
 
 **Files**  
-`intelligence/transfers.py:39`  
-`intelligence/value.py:39,78,97,109,117`  
+`serve/value.py` — `purchase_price` now the value denominator only (transfers no longer scores it)  
 `outputs/operational-baseline.md:90,134` — P1 recommendation  
-`signals/governance/weight_registry.yaml:85–90` — FWD composite signal using purchase_price  
-`docs/governance/threshold-registry.md` — new entry needed
+~~`signals/governance/weight_registry.yaml:85–90`~~ — deleted (ADR-011)  
+`docs/governance/threshold-registry.md` — new entry needed (value denominator phase-gate, SYNTH-02)
 
 ---
 
@@ -71,6 +78,10 @@ CONTEXT.md is the first document a new contributor reads to orient themselves. B
 ---
 
 ### ENG-13 — weight_registry.yaml cites a deleted source path — ✅ RESOLVED (2026-06-02, Phase 6 step 0)
+
+> **Note (2026-08-01).** Moot going forward: `serve/weight_registry.{yaml,py}` has since been **deleted**
+> entirely (serve↔model integration — every module ranks by the model forecast; ADR-011). Kept as the
+> historical record of the Phase 6 fix.
 
 **Resolution.** `synth01_composition_weights:` and its explanatory comment in
 `signals/governance/weight_registry.yaml` re-pointed `signals/evaluation/…` →
@@ -111,34 +122,32 @@ audit as the highest-urgency item that was *not* fixed in the doc-only cleanup P
 ### ENG-04 — Six unvalidated operational thresholds
 
 **Problem**  
-Six thresholds in `intelligence/` are annotated `threshold not evaluation-derived` and classified `EVALUATION-DEFERRED` in `threshold-registry.md`. They are active in the production scorer:
+Six thresholds in `serve/` are annotated `threshold not evaluation-derived` and classified `EVALUATION-DEFERRED` in `threshold-registry.md`. They are active in the production scorer (FIX-T-01 retired 2026-08-01 with `serve/fixtures.py` — ADR-011):
 
 | ID | File | Value | What it gates |
 |----|------|-------|--------------|
-| AVAIL-T-01 | `intelligence/availability.py:29` | 30.0 min | HIGH risk flag |
-| AVAIL-T-02 | `intelligence/availability.py:30` | 60.0 min | MEDIUM risk flag |
-| AVAIL-T-03 | `intelligence/availability.py:33` | 20.0 min | Divergence flag |
-| CAPT-T-01 | `intelligence/captain.py:30` | 45.0 min | Captain eligibility |
-| VAL-T-01 | `intelligence/value.py:32` | 30.0 min | Value eligibility |
-| TRANS-T-01 | `intelligence/transfers.py:31` | 30.0 min | Transfer eligibility |
-| FIX-T-01 | `intelligence/fixtures.py:31` | 30.0 min | Fixture eligibility |
+| AVAIL-T-01 | `serve/availability.py:29` | 30.0 min | HIGH risk flag |
+| AVAIL-T-02 | `serve/availability.py:30` | 60.0 min | MEDIUM risk flag |
+| AVAIL-T-03 | `serve/availability.py:33` | 20.0 min | Divergence flag |
+| CAPT-T-01 | `serve/captain.py:29` | 45.0 min | Captain eligibility |
+| VAL-T-01 | `serve/value.py:33` | 30.0 min | Value eligibility |
+| TRANS-T-01 | `serve/transfers.py:33` | 30.0 min | Transfer eligibility |
 
 **Why it is a problem**  
 These thresholds determine which players appear in captain, transfer, and value recommendations. They are round numbers chosen editorially. A player averaging 28 minutes per game is excluded from transfer recommendations by TRANS-T-01. Whether 30 is the right cutoff has never been tested. Miscalibrated eligibility thresholds produce blind spots in the ranked output — systematically excluding or including players without evidence.
 
 **Acceptance criteria**
 - POPTHRESH-01 (`studies/experiments/population_threshold_study.py`) executed and documented; AVAIL-T-02 and REG-T-01 updated to `EVALUATION-DERIVED` or `GOVERNANCE-CONVENTIONAL`
-- Remaining thresholds (AVAIL-T-01/03, CAPT-T-01, VAL-T-01, TRANS-T-01, FIX-T-01) each have a study design committed before 2026/27 season start, even if execution is deferred mid-season
-- No threshold classified `EVALUATION-DEFERRED` remains in `intelligence/` without a linked study design
+- Remaining thresholds (AVAIL-T-01/03, CAPT-T-01, VAL-T-01, TRANS-T-01) each have a study design committed before 2026/27 season start, even if execution is deferred mid-season
+- No threshold classified `EVALUATION-DEFERRED` remains in `serve/` without a linked study design
 
 **Files**  
 `docs/studies/popthresh-01-design.md` — POPTHRESH-01 design (written; study not yet executed)  
-`docs/governance/threshold-registry.md` — all seven entries  
-`intelligence/availability.py:29–33`  
-`intelligence/captain.py:30`  
-`intelligence/value.py:32`  
-`intelligence/transfers.py:31`  
-`intelligence/fixtures.py:31`
+`docs/governance/threshold-registry.md` — the six live entries (FIX-T-01 retired)  
+`serve/availability.py:29–33`  
+`serve/captain.py:29`  
+`serve/value.py:33`  
+`serve/transfers.py:33`
 
 ---
 
@@ -164,7 +173,7 @@ Pre-season data updates are the highest-pressure moment in the FPL engineering c
 ### ENG-06 — GK position is entirely unevaluated
 
 **Problem**  
-No lens study has been run for GK. There are no governed signals, no SYNTH-01 weights, and no evaluation metadata entries for the GK position. All GK scoring uses `PROVISIONAL-EDITORIAL` weights in `weight_registry.yaml`. The GK register in the source data contains ~65 players per season.
+No lens study has been run for GK. There are no governed signals, no SYNTH-01 weights, and no evaluation metadata entries for the GK position. (At filing, GK scoring used `PROVISIONAL-EDITORIAL` weights in `weight_registry.yaml`; that registry is now deleted — GK ranking flows through the model forecast like every position, so the gap is now "GK forecast terms are unevaluated" rather than "GK composite weights are editorial".) The GK register in the source data contains ~65 players per season.
 
 **Why it is a problem**  
 GK is the cheapest position and a key differential — most managers pay the minimum for a GK, so the quality of GK recommendations affects value decisions for outfield players. More importantly, the system presents GK scores as if they were meaningful, but they are editorial guesses with no evidential basis. A user acting on a GK recommendation has no way to know it is unevaluated.
@@ -256,7 +265,7 @@ The annotation system only works if UNVERIFIED constants are structurally preven
 
 **Acceptance criteria**
 - UNVERIFIED constants verified against FPL bootstrap-static for 2025/26 and reclassified, OR
-- A CI check added that fails if any UNVERIFIED constant in `domain/fpl_scoring.py` appears in an import in `intelligence/`, `signals/`, or `dal/`
+- A CI check added that fails if any UNVERIFIED constant in `domain/fpl_scoring.py` appears in an import in `serve/`, `signals/`, or `dal/`
 
 **Files**  
 `domain/fpl_scoring.py:57–58`
@@ -306,12 +315,12 @@ When a pipeline fails in production (or in a CI run), the first question is "whi
 | ID | Phase | Title | Primary file |
 |----|-------|-------|-------------|
 | ENG-01 | 1 — High | No CI/CD pipeline | `.github/workflows/` (missing) |
-| ENG-02 | 1 — High | FWD × purchase_price reversal live in scorer | `intelligence/transfers.py:39` |
+| ENG-02 | 1 — High | FWD × purchase_price reversal live in scorer | ✅ SUBSTANTIALLY ADDRESSED (ADR-011) — `serve/value.py` |
 | ENG-03 | 1 — High | CONTEXT.md stale module paths | `CONTEXT.md:97,98,116,122` |
-| ENG-13 | 1 — High | weight_registry.yaml cites deleted source path | ✅ RESOLVED — `signals/governance/weight_registry.yaml` |
-| ENG-04 | 2 — Medium | Six unvalidated operational thresholds | `intelligence/availability.py:29–33` |
+| ENG-13 | 1 — High | weight_registry.yaml cites deleted source path | ✅ RESOLVED; registry since deleted (ADR-011) |
+| ENG-04 | 2 — Medium | Six unvalidated operational thresholds | `serve/availability.py:29–33` |
 | ENG-05 | 2 — Medium | No FPL API schema guard | `dal/pipeline.py` |
-| ENG-06 | 2 — Medium | GK position entirely unevaluated | `signals/governance/weight_registry.yaml` |
+| ENG-06 | 2 — Medium | GK position entirely unevaluated | `signals/governance/evaluation_metadata.yaml` (no GK entries) |
 | ENG-07 | 2 — Medium | Single-season generalization risk | `outputs/operational-baseline.md` |
 | ENG-08 | 2 — Medium | Study code cannot run in CI | `studies/*/study.py` |
 | ENG-09 | 2 — Medium | Pandera FutureWarning pre-breakage | `dal/feat/feat_schema.py:17` |

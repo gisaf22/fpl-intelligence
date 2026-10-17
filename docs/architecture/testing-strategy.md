@@ -60,11 +60,9 @@ Comprehensive per-concern tests run against the constructed test database. These
 
 | File(s) | Concern |
 |---------|---------|
-| `test_dal_grain.py` | Grain uniqueness at staging, curated, and state layers |
 | `test_dal_completeness.py` | Row count = n_players × n_gws; BGW rows present; time continuity |
-| `test_dal_bgw.py` | BGW null semantics; fixture_count=0; team_id temporal rule |
+| `test_dal_bgw_dgw.py` | BGW/DGW null semantics; fixture_count; team_id temporal rule; NULL vs zero across SPINE_COLS |
 | `test_dal_dgw.py` | DGW aggregation; fixture_count=2; normalization convention |
-| `test_dal_nulls.py` | NULL vs zero semantics across all SPINE_COLS |
 | `test_dal_joins.py` | Join safety; no silent row loss at any merge site |
 | `test_dal_invariants.py` | Cross-cutting invariants: future data prohibition, roll window lag-1 |
 | `test_dal_prepared_dataset.py` | Prepared dataset cutoff semantics; GOVERNED_SIGNAL_COLUMNS |
@@ -72,11 +70,16 @@ Comprehensive per-concern tests run against the constructed test database. These
 | `test_validation_modules.py` | Validator unit tests (unit — no DB required) |
 | `test_curated_spine.py`, `test_curated_state_boundary.py` | Spine and state layer boundaries |
 | `test_staging.py`, `test_state.py` | Layer-level construction and output |
-| `test_state_rolling_windows.py`, `test_state_stabilization.py` | State rolling window semantics |
+| `test_state_rolling_windows.py` | State rolling window semantics |
 
-### Governance enforcement — `tests/test_downstream_governance.py`
+Grain uniqueness has no single dedicated file — it is asserted at each layer by
+`test_curated_spine.py`, `test_state.py`, `test_dal_prepared_dataset.py`, and `test_mart_schema.py`.
 
-Static analysis tests that scan all `.py` files and notebooks for forbidden import patterns. No database required. Covers:
+### Governance enforcement — `tests/test_layer_isolation.py`, `tests/test_dal_architecture.py`
+
+Static analysis tests that scan `.py` files and notebooks for forbidden import patterns. No database
+required. (`tests/test_downstream_governance.py`, which held the G-1..G-4 checks below as one file,
+was deleted at `ae90398`; layer-order enforcement now runs through `import-linter`.) Covers:
 
 | Check | What it catches |
 |-------|----------------|
@@ -91,39 +94,48 @@ These tests catch architectural regressions that `lint-imports` does not — spe
 
 | File | Covers |
 |------|--------|
-| `test_registry_lifecycle.py` | `assert_operational_safe()` path gate; `LifecycleViolationError` raises |
-| `test_registry_promotion.py` | Promotion rules and state transition logic |
-| `test_registry_semantics.py` | Registry CSV schema validation |
-| `test_registry_contract.py` | Contract enforcement: required columns, dtypes |
+| `test_registry_contract.py` | Registry CSV schema validation and contract enforcement — required columns, dtypes, eligibility rules (`domain.registry.validation.validate_registry_contract`) |
 | `test_registry_assembly.py` | Registry build assembly logic |
 | `test_registry_build_inputs.py` | Input validation for registry build pipeline |
 | `test_registry_build_parity.py` | Parity between EDA registry and built artifact |
 | `test_registry_build_runner.py` | End-to-end registry build runner |
 
-### Intelligence and scorer — `tests/test_scorer_*.py`, `tests/test_intelligence_*.py`
+The lifecycle gate that `test_registry_lifecycle.py` used to cover no longer exists:
+`domain/registry/lifecycle.py` and `domain/registry/operational.py` were deleted once
+`model/governance/promote.py` removed the only writer of `outputs/registry/`, leaving the
+path-based gate with no passing input. Registry tests now import the sole loader,
+`domain.registry.loader.load_registry`.
+
+### Serve layer — `tests/test_intelligence_outputs.py`
 
 | File | Covers |
 |------|--------|
-| `test_scorer_signals.py` | Signal selection filters; confirmed vs caveated classification |
-| `test_scorer_engine.py` | Normalisation; weighted composite; rank computation |
-| `test_intelligence_outputs.py` | Intelligence layer output functions; eligibility filters |
+| `test_intelligence_outputs.py` | `serve.{captain,value,transfers,availability}` rankers and `serve.input_contracts` eligibility filters |
 
-All scorer and intelligence tests are DB-free (unit). They use fixture DataFrames, not a live DAL build.
+These are DB-free (unit) — they use fixture DataFrames, not a live DAL build.
 
-### Evaluation helpers — `tests/test_evaluation_*.py`
+The old scorer tests (`test_scorer_signals.py`, `test_scorer_engine.py`) are **gone**: `serve/scoring/`
+and `serve/reporting/` were deleted at `ae90398` along with the weighted-composite machinery they
+covered, so there is no longer a signal-selection or normalisation surface to test. Serve now ranks
+off the model forecast through `serve.decision_engine` (ADR-011/ADR-012). Any `serve/scoring/` or
+`serve/reporting/` directory still on disk is an untracked `__pycache__` leftover.
 
-Tests for the evaluation modules now in `tests/helpers/` (moved from `signals/governance/` during S11). These helpers provide baselines, metrics, and temporal integrity checks used across evaluation studies.
+### Decision evaluation — `tests/test_evaluation_*.py`, `tests/test_decision_backtest.py`, `tests/test_operational_*.py`
+
+`tests/helpers/` is **empty** — an `__init__.py` and nothing else. ADR-012 (`c475873`) moved every
+evaluator, baseline, metric, and leakage guard it used to hold into `model/eval/decision/` and
+`research/kernels/evaluation`, and built the real runner in `operational/`. Per CLAUDE.md §9,
+`tests/` holds no production or workflow logic — do not reintroduce evaluators here.
 
 | File | Covers |
 |------|--------|
-| `test_evaluation_core.py` | Core metric computations: mean_return, hit_rate, regret |
-| `test_evaluation_captain.py` | Captain heuristic evaluation against baselines |
-| `test_evaluation_transfers.py` | Transfer target heuristic evaluation |
-| `test_evaluation_features.py` | Feature lift: rolling rho vs single-game lag rho |
+| `test_evaluation_core.py` | Baselines and metrics — `model.eval.decision.{baselines,metrics}`, `research.kernels.evaluation` |
+| `test_evaluation_features.py` | Feature lift: rolling rho vs single-game lag rho (`research.families.form.explore.feature_lift`) |
+| `test_decision_backtest.py` | `model.eval.decision.backtest` driven by the `CAPTAIN_EVAL` / `VALUE_EVAL` / `TRANSFERS_EVAL` specs |
+| `test_operational_recommend.py`, `test_operational_backtest.py` | The `operational/` composition root: live recommendations and decision backtests |
 
-### Weekly reporting — `tests/test_weekly_*.py`
-
-Tests for the weekly reporting pipeline: snapshots, signal intelligence summaries, markdown output, and runner orchestration.
+The ranker-level `test_evaluation_captain.py` and `test_evaluation_transfers.py` were deleted with
+the `tests/helpers/` modules they covered; that ground is now held by `test_decision_backtest.py`.
 
 ### Study validation — `tests/test_*_study.py`, `tests/test_*_validation.py`
 
@@ -132,12 +144,6 @@ Tests for the weekly reporting pipeline: snapshots, signal intelligence summarie
 | `test_rolling_xgi_study.py` | Rolling xGI horizon study reproducibility |
 | `test_rolling_xgi_real_validation.py` | Real-data xGI validation |
 | `test_minutes_stability_study.py` | MINSTAB-01 study reproducibility |
-
-### Signal characterisation — `tests/test_signals_*.py`
-
-| File | Covers |
-|------|--------|
-| `test_signals_stability.py` | Signal stability computation |
 
 ### Integration tests — `tests/test_integrated_*.py`
 
@@ -162,7 +168,8 @@ Tests marked `@pytest.mark.integration` require a live database (`FPL_DB_PATH` o
 - Tests that use fixture DataFrames constructed in the test itself
 - Tests that scan source code (governance checks)
 - Tests that call pure computation functions with in-memory inputs
-- Tests that load the registry CSV from `outputs/registry/gw36/` (the committed bootstrap)
+- Tests that load the registry CSV from `research/findings/records/eda_03_joint_registry.csv`
+  (`domain.registry.schema.RESEARCH_REGISTRY_PATH` — a committed research artifact, not a build output)
 
 **CI implication:** the DB-free lane (`pytest -m "not integration"`) runs in CI on every push. The full suite (`pytest`) requires a database artifact and runs on demand or in a dedicated integration stage.
 

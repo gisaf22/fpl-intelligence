@@ -74,9 +74,9 @@ fpl-intelligence/
 ├── domain/          — FPL scoring rules as typed constants (VERIFIED/UNVERIFIED)
 ├── examples/        — quickstart script for DAL end-to-end validation
 ├── serve/           — operational intelligence (serving) layer  [package renamed from intelligence/]
-│   ├── reporting/   — weekly report runner and output generators
-│   └── scoring/     — player scoring from governed registry manifest
-├── outputs/         — runtime artifacts (scorer HTML, registry CSVs, weekly reports)
+│   │                  decision specs (captain/value/transfers) + decision_engine
+│   │                  [reporting/ and scoring/ deleted at ae90398]
+├── outputs/         — runtime artifacts (gitignored)
 ├── research/        — analytical methodology layer
 │   ├── foundation/  — cross-signal system EDA by stage (complete, closed)
 │   ├── families/    — per-family explore + validate lens studies (form, market, fixture, availability)
@@ -99,10 +99,11 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 | adlc.md | `docs/architecture/adlc.md` | Authoritative analysis lifecycle (explore → validate → model → serve → monitor), mode tags, per-stage test contracts, ID-diet | Sole owner of the word "lifecycle"; how a question becomes a recommendation |
 | implementation-plan.md | `docs/implementation-plan.md` | Phased, dependency-ordered plan for the ADLC-named open work + ENG backlog; final section lists pending ADRs | Sequencing of all pre-season engineering and study work |
 | EVAL_DESIGN.md | `model/governance/EVAL_DESIGN.md` | Locked success criteria and failure conditions for 2025-26 methodology | All study findings must connect to a question defined here |
-| SIGNAL_REGISTRY.md | `model/governance/SIGNAL_REGISTRY.md` | Governance and truth layer for all signals — lifecycle status, lens outcomes, synthesis eligibility | No signal enters synthesis without a confirmed entry |
+| `evidence.yaml` / `annotations.yaml` | `research/families/*/validate/` | Per-family lens verdicts: machine `decision_class` + hand-authored judgment (replaces the `SIGNAL_REGISTRY.md` / `evaluation_metadata.yaml` pair deleted at `ae90398`) | No signal enters synthesis without a confirmed entry |
 | EDA_08_DESIGN.md | `research/foundation/gap/EDA_08_DESIGN.md` | Defines the seven system EDA layers and their gate decisions | All lens studies — no lens runs before EDA is complete |
-| CONTEXT.md | `CONTEXT.md` | Current project state, structure, and rules for new sessions | New session orientation |
-| downstream-dependency-governance.md | `docs/architecture/downstream-dependency-governance.md` | Allowed and forbidden downstream import patterns; enforced by tests/test_downstream_governance.py | Any new module that accesses signals or DAL data |
+| CLAUDE.md | `CLAUDE.md` | Standing rules ("never break these") + the session start-up read order; auto-loaded at session start | Every session — all code, study, and refactor work |
+| CONTEXT.md | `CONTEXT.md` | Current project state, structure, and document hierarchy | New session orientation |
+| downstream-dependency-governance.md | `docs/architecture/downstream-dependency-governance.md` | Allowed and forbidden downstream import patterns; enforced by tests/test_layer_isolation.py + import-linter | Any new module that accesses signals or DAL data |
 | LENS_DESIGN.md (LENS-FORM) | `research/families/form/LENS_DESIGN.md` | Study design for rolling output and attacking threat signals | LENS-FORM execution |
 | LENS_DESIGN.md (LENS-MARKET) | `research/families/market/LENS_DESIGN.md` | Study design for transfer and ownership signals | LENS-MARKET execution |
 | LENS_DESIGN.md (LENS-FIXTURE-GW) | `research/families/fixture/LENS_DESIGN.md` | Study design for single-gameweek fixture difficulty signals | LENS-FIXTURE-GW execution |
@@ -117,13 +118,13 @@ Source database: `~/.fpl/fpl.db` (managed by fpl-ingest, path configurable via `
 | DAL layer | COMPLETE | fct/feat/mart restructure complete; Pandera FEAT_SCHEMA; pipeline run/load separation; full unit suite green |
 | domain/ | COMPLETE | FPL scoring rules as typed constants with VERIFIED/UNVERIFIED annotations |
 | System EDA | COMPLETE | Governed registry is the authoritative output. Gate decisions in `research/findings/FINDINGS.md` |
-| LENS-FORM | COMPLETE | Approved: xgi_roll3 (DEF), xgi_roll5 (DEF, MID). Records in `model/governance/evaluation_metadata.yaml` |
-| LENS-MARKET | COMPLETE | Approved: transfers_in (DEF, MID), purchase_price (DEF, FWD†), ownership_count (MID). Records in `evaluation_metadata.yaml` |
-| LENS-FIXTURE-GW | COMPLETE | fdr_avg excluded (non-monotonic); reserved as binary moderator. Records in `evaluation_metadata.yaml` |
-| LENS-AVAIL | COMPLETE | Approved: minutes_roll8 (DEF), minutes_roll3/roll8 (MID). Records in `evaluation_metadata.yaml` |
+| LENS-FORM | COMPLETE | Approved: xgi_roll3 (DEF), xgi_roll5 (DEF, MID). Records in `research/families/form/validate/evidence.yaml` |
+| LENS-MARKET | COMPLETE | Approved: transfers_in (DEF, MID), purchase_price (DEF, FWD†), ownership_count (MID). Records in `research/families/market/validate/evidence.yaml` |
+| LENS-FIXTURE-GW | COMPLETE | fdr_avg excluded (non-monotonic); reserved as binary moderator. Records in `research/families/fixture/validate/evidence.yaml` |
+| LENS-AVAIL | COMPLETE | Approved: minutes_roll8 (DEF), minutes_roll3/roll8 (MID). Records in `research/families/availability/validate/evidence.yaml` |
 | LENS-GK | PENDING | No design yet. No governed GK signals. All GK scoring PROVISIONAL-EDITORIAL. Deferred to 2026/27 |
 | LENS-FIXTURE-RUN | PENDING | Future lens. Deferred to 2026/27 |
-| Signal registry | COMPLETE | SIGNAL_REGISTRY.md v2.0. evaluation_metadata.yaml v3.0 with lifecycle states and SYNTH-01 decisions |
+| Signal registry | RETIRED at `ae90398` | `SIGNAL_REGISTRY.md` + `evaluation_metadata.yaml` deleted with the governance/verdict surface; the per-family `evidence.yaml` files are now the durable verdict record |
 | SYNTH-01 | COMPLETE | Partial rho weights set; decisions in `model/assemble/synth01_decisions.yaml`. 5/7 groups stable or improved on holdout GW 34–38 |
 | Platform evaluation | COMPLETE | Changes 1–8 applied; Change 1 (domain/) implemented; Change 2 (population/ layer) later reversed — the minutes≥60 filter is a one-liner inlined in `research/registry/population_builder.py` using `domain.fpl_scoring.CLEAN_SHEET_MIN_MINUTES`; Change 3 design locked at `docs/studies/popthresh-01-design.md` |
 | EXP-FH-STACK | DEFERRED | Blocked pending FDR stratification (2026/27) |
@@ -153,9 +154,8 @@ promotion → `model/governance/`; registry contract, loaders, lifecycle gate, g
 
 The older engineering / ADLC-adoption backlog (mode tags, ID-diet, model-stage governance gap)
 lives in `docs/implementation-plan.md` and `docs/governance/eng-issues-2026.md`. The former
-`gw36` governance-compliance gotcha is resolved: `serve.scoring.signal_selector.load_manifest`
-now routes governance-excluded signals to caveated, so the `scoring_runner` CLI no longer
-hard-fails on `purchase_price@GK`.
+`gw36` governance-compliance gotcha is moot: `serve/scoring/` (and the `scoring_runner` CLI it
+hard-failed in) was deleted at `ae90398`.
 
 ---
 
@@ -224,34 +224,6 @@ Code-enforced contracts live in `dal/fct/fct_contracts.py` and `dal/feat/feat_co
 
 ---
 
-## 9. Rules — never break these
+## 9. Rules and session start-up
 
-Design before code — always design in Claude UI first, no code until design is agreed
-
-Every design document must include a capabilities table (Determinism, Observability, Contracts,
-Lineage, Idempotency, Testability, Operability, Evolvability) before the changes section —
-see `docs/architecture/platform-capabilities.md` for definitions and status symbols
-
-No SQL outside `dal/`
-
-No study runs without a LENS_DESIGN.md agreed in Claude UI first
-
-No signals enter the signal registry without a confirmed lens status
-
-No signals enter SYNTH-01 without a confirmed registry entry
-
-DAL contracts are code-enforced — `dal/fct/fct_contracts.py`, `dal/feat/feat_contracts.py`, `dal/validation/`
-
-The governed registry must have real promotion_class values before any lens study design begins — this gate is now met
-
----
-
-## 10. How to start a new session
-
-1. Read CONTEXT.md (this document)
-2. Read `docs/architecture/adlc.md` — the authoritative analysis lifecycle and test contracts
-3. Read `docs/implementation-plan.md` — the phased, dependency-ordered plan; start at Phase 0
-4. Read `dal/pipeline.py` docstring for DAL entry points; read `dal/fct/fct_contracts.py` and `dal/feat/feat_contracts.py` for contract enforcement if any DAL work is planned
-5. Read `docs/governance/eng-issues-2026.md` for active engineering issues
-6. Read the relevant design document for the current task
-7. Do not write code until the design is agreed in Claude UI
+Moved to `CLAUDE.md` at the repo root (§9 Rules, §10 How to start a new session) — it loads automatically at session start.

@@ -1,8 +1,14 @@
 # ADR-002 — Additive Weighted Composition for the Scoring Engine
 
-**Status:** Accepted  
-**Date:** 2026-05-26 (SYNTH-01 execution; weight_registry.yaml locked)  
+**Status:** Superseded by [ADR-011](011-model-forecast-supersedes-composites.md) (2026-08-01)
+**Date:** 2026-05-26 (SYNTH-01 execution; weight_registry.yaml locked)
 **Applies to:** `intelligence/scoring/scoring_runner.py`, `signals/governance/weight_registry.yaml`
+
+> **Superseded (2026-08-01).** The serve signal composites this ADR governed have been retired: the
+> recommendation modules now rank by the validated model forecast (`model.predictions.assemble_forecast`),
+> and `weight_registry.{yaml,py}` is deleted. ADR-002 remains as the record of why additive weighting was
+> the right choice *given one season and no validated model* — the constraint ADR-011 later discharged.
+> See [ADR-011](011-model-forecast-supersedes-composites.md) and `docs/serve-model-integration.md`.
 
 ---
 

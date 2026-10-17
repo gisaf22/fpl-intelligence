@@ -99,7 +99,7 @@ class TestFormEvidenceFreeze:
         self.payload = _load_evidence("form")
 
     def test_schema_valid(self):
-        _assert_schema(self.payload, "form", "total_points")
+        _assert_schema(self.payload, "form", "total_points_next_gw")
 
     def test_all_entries_have_required_fields(self):
         _assert_all_entries_have_required_fields(self.payload)
@@ -192,7 +192,7 @@ class TestMarketEvidenceFreeze:
         self.payload = _load_evidence("market")
 
     def test_schema_valid(self):
-        _assert_schema(self.payload, "market", "total_points")
+        _assert_schema(self.payload, "market", "total_points_next_gw")
 
     def test_all_entries_have_required_fields(self):
         _assert_all_entries_have_required_fields(self.payload)
@@ -216,9 +216,13 @@ class TestMarketEvidenceFreeze:
 # ---------------------------------------------------------------------------
 
 FIXTURE_EXPECTED_VERDICTS: dict[tuple[str, str], str] = {
-    ("fdr_avg", "GK"): "uninformative",
+    # fdr_avg/GK and fdr_avg/MID flipped to "informative" under LENS_DESIGN.md Amendment B
+    # (Gate 2 now cuts fdr_avg on characterization's ordinal bins, not a rank-tie-broken
+    # quintile — research/registry/CHARACTERIZE_DESIGN.md §2). DEF is not rescued (still
+    # reverses at bins 1→2); FWD still fails Gate 3 (block stability).
+    ("fdr_avg", "GK"): "informative",
     ("fdr_avg", "DEF"): "uninformative",
-    ("fdr_avg", "MID"): "uninformative",
+    ("fdr_avg", "MID"): "informative",
     ("fdr_avg", "FWD"): "uninformative",
     ("was_home", "GK"): "uninformative",
     ("was_home", "DEF"): "uninformative",

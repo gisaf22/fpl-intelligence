@@ -306,5 +306,5 @@ season artefact or a structural property of the signal.
 ## Related Documents
 
 - [system-purpose.md](../system-purpose.md) — program-level scope and research boundaries
-- [signal-promotion-states.md](../signal-promotion-states.md) — signal governance state + gate definitions
+- [governance/evaluation-gate-criteria.md](../governance/evaluation-gate-criteria.md) — gate definitions (replaces the retired `signal-promotion-states.md`)
 - [architecture/intelligence-layer.md](../architecture/intelligence-layer.md) — captain.py and transfers.py configuration

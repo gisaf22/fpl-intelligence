@@ -3,7 +3,7 @@
 **Authoritative for:** component ownership, dependency direction, cross-cutting concerns.  
 **Supersedes:** `docs/architecture-boundaries.md`, `docs/architecture/SYSTEM_CONTEXT.md`.
 
-> **Note on planes vs. layers.** This document describes the layered import hierarchy (DAL → research → model → serve, with `domain/registry/` as the shared leaf both model and serve import), which governs dependency direction and import rules. The import hierarchy is not the same as the conceptual role of each component. For the question "what is each part of the system *for*?", see [system-model.md](system-model.md). The registry, for instance, is part of the Control Plane in the conceptual model — not a pipeline step. Tests are structural validation — not the Measurement Plane.
+> **Note on planes vs. layers.** This document describes the layered import hierarchy (DAL → research → model → serve, with `domain/registry/` as the shared leaf both model and serve import), which governs dependency direction and import rules. The import hierarchy is not the same as the conceptual role of each component; for what each layer is *for*, see [docs/PROJECT.md](../PROJECT.md) §3. Tests are structural validation, not a system layer.
 
 ---
 
@@ -16,7 +16,7 @@ dal/          — deterministic (player_id, gw) spine
     ↓
 research/     — analytical methodology (foundation EDA, family lenses, kernels, findings)
     ↓
-model/        — governance decisions (validate, promote, decision-of-record) + assembly/weighting
+model/        — forecast terms + governance enrichment + assembly/weighting
     ↓
 serve/ — player scoring and weekly reporting
 ```
@@ -30,8 +30,8 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 > (see [downstream-dependency-governance.md](downstream-dependency-governance.md)), and it is
 > what this document is authoritative for. It is *not* the conceptual flow story: how a question
 > moves through the analysis *stages* (explore → validate → model → serve → monitor) is owned by
-> [adlc.md §2](adlc.md), and what each component is *for* (the Control/Execution/Measurement
-> planes) is owned by [system-model.md](system-model.md). Those three views rhyme but are
+> [adlc.md §2](adlc.md), and what each component is *for* is recorded in
+> [docs/PROJECT.md](../PROJECT.md) §3. Those views rhyme but are
 > distinct; this doc keeps only the enforceable import/ownership rules below.
 
 ---
@@ -83,14 +83,14 @@ Dependency direction is strictly one-way. No layer imports from a layer above it
 
 There is no longer a `signals/` layer. Signal governance is split along a **decide vs. consume** seam:
 
-- **Decision side — `model/governance/`** owns the decision-of-record (`evaluation_metadata.yaml`, `EVAL_DESIGN.md`), registry enrichment (`semantics.py`, `promotion.py` — signal-layer semantics, downstream status, promotion class), promotion/publication (`promote.py` — the only permitted writer to `outputs/registry/`), and the lifecycle ledger (`SIGNAL_REGISTRY.md`, `signal_traceability.yaml`). The research build assembles only the *raw evidence* finding; classifying each signal is a governance decision applied at promotion (`promote.py` enriches the raw finding, then validates against the contract, before publishing).
-- **Consume side — `domain/registry/`** (the shared leaf) owns the runtime governance primitives every consumer may import: the registry contract (`schema.py`, `validation.py`), the pure + operational loaders (`loader.py`, `operational.py`), the lifecycle gate (`lifecycle.py:assert_operational_safe()`), and the governance lookup (`governance_lookup.py:get_signal_governance()`). The split mirrors meaning vs. mechanism: `schema.py`/`validation.py`/`governance_types.py` are the contract; the loaders, gate, and lookup are consume-side runtime primitives that read decisions authored in `model/governance/` — they do not make decisions.
+- **Decision side — `model/governance/`** owns the locked evaluation design (`EVAL_DESIGN.md`), and registry enrichment (`semantics.py`, `promotion.py` — signal-layer semantics, downstream status, promotion class). The publication step (`promote.py`, the only writer to `outputs/registry/`) was deleted 2026-08-16 along with the artifact's last reader. The decision-of-record artifacts it used to own (`evaluation_metadata.yaml`, `SIGNAL_REGISTRY.md`, `signal_traceability.yaml`) were deleted at `ae90398`; the durable verdict record is now `research/families/*/validate/{evidence,annotations}.yaml`. The research build assembles only the *raw evidence* finding; classifying each signal is a governance decision, and with `promote.py` gone nothing applies it on any live path.
+- **Consume side — `domain/registry/`** (the shared leaf) owns the runtime governance primitives every consumer may import: the registry contract (`schema.py`, `validation.py`) and the pure typed loader (`loader.py`). The split mirrors meaning vs. mechanism: `schema.py`/`validation.py` are the contract; the loader is a consume-side runtime primitive that reads decisions authored in `model/governance/` — it does not make decisions. (`governance_lookup.py`, `governance_types.py` and `verdict.py` were deleted at `ae90398` along with their only consumers; `operational.py` and `lifecycle.py` followed once the promotion step was removed — see below.)
 
-**Why split:** `serve/` must consult the decision-of-record at scoring time but may not import `model/` (contract `no_serve_to_research_or_model`). Housing the runtime gate/lookup in `domain/registry/` keeps every consumer's imports legal; `model/governance/` owns the authoring/decision artifacts.
+**Why split:** `serve/` must consult the decision-of-record at scoring time but may not import `model/` (contract `no_serve_to_research_or_model`). Housing the contract and loader in `domain/registry/` keeps every consumer's imports legal; `model/governance/` owns the authoring/decision artifacts.
 
-**Contract:** `domain/registry/lifecycle.py:assert_operational_safe()` is the runtime lifecycle gate — it raises `LifecycleViolationError` if an operational runner attempts to consume a registry from an exploratory path. No signal may be scored without passing this gate.
+**Contract:** there is no longer a runtime lifecycle gate. `domain/registry/lifecycle.py` (`assert_operational_safe()`, `LifecycleViolationError`) and its wrapper `domain/registry/operational.py` were deleted once `model/governance/promote.py` went: the gate was path-based, and its "safe" side — `outputs/registry/` — no longer has a writer, so it had no passing input and would have rejected every registry the system can produce. `domain/registry/loader.py` is now the only loader.
 
-**Consumers:** `serve/` reads the governed registry artifact from `outputs/registry/gw{N}/` and consults `domain.registry` for the gate/lookup. `research/registry/build.py` builds the raw evidence finding (to `research/findings/`); `model/governance/promote.py` is the only permitted writer to `outputs/registry/` (it enriches, validates, and promotes the finding).
+**Consumers:** none on the live path. `serve/` used to read the governed registry artifact from `outputs/registry/gw{N}/`; both readers (`serve/scoring/`, `serve/reporting/`) and the artifact itself were deleted at `ae90398`, and the writer (`model/governance/promote.py`) on 2026-08-16. `research/registry/build.py` still builds the raw evidence finding to `research/findings/`; nothing publishes it.
 
 ---
 
@@ -98,16 +98,19 @@ There is no longer a `signals/` layer. Signal governance is split along a **deci
 
 **Owns:** Operational decision support outputs from trusted, governed signal data (the operational-intelligence layer; package renamed `intelligence/` → `serve/`).
 
-| Sub-directory | Concern |
+| Module | Concern |
 |---|---|
-| `serve/scoring/` | Player scoring from governed registry manifest |
-| `serve/reporting/` | Weekly signal intelligence report generation |
+| `serve/{captain,value,transfers}.py` | `DecisionSpec` declarations — ranking rules per decision |
+| `serve/decision_engine.py` | Generic ranking engine (`run_decision`) |
+| `serve/input_contracts.py` | Input validation for the serve layer |
+
+(`serve/scoring/` and `serve/reporting/` were deleted at `ae90398`.)
 
 **Does not own:** Signal characterisation (owned by lens studies), signal lifecycle decisions (owned by `model/governance/`), DAL transformations.
 
 **Contract:** The serve layer consumes DAL state features and governed registry artifacts only. It does not consume exploratory EDA registries or research-stage signal lists. Enforced by `validate_intelligence_inputs()` in `serve/input_contracts.py`. See [intelligence-layer.md](intelligence-layer.md) for full specification.
 
-**Consumers:** End users (FPL decision makers). Outputs: scored player tables, weekly HTML report.
+**Consumers:** `operational/recommend.py` (the composition root). Outputs: ranked decision frames.
 
 ---
 
@@ -125,12 +128,12 @@ There is no longer a `signals/` layer. Signal governance is split along a **deci
 | Dataset-level signal characterisation | `research/foundation/` |
 | Per-family signal methodology and results | `research/families/<f>/validate/` |
 | Domain-agnostic statistical utilities | `research/kernels/` |
-| Signal lifecycle status | `model/governance/SIGNAL_REGISTRY.md` |
-| Lifecycle gate enforcement | `domain/registry/lifecycle.py` |
+| Signal lifecycle status | `research/families/*/validate/evidence.yaml` |
+| Registry contract and typed loading | `domain/registry/{schema,validation,loader}.py` |
 | Registry artifact assembly (raw evidence) | `research/registry/build.py` |
-| Registry governance enrichment (signal_layer, downstream_status, promotion_class) | `model/governance/{semantics,promotion}.py` (applied at `promote.py`) |
-| Operational signal scoring | `serve/scoring/` |
-| Weekly reporting | `serve/reporting/` |
+| Registry governance enrichment (signal_layer, downstream_status, promotion_class) | `model/governance/{semantics,promotion}.py` (no caller since `promote.py` was deleted) |
+| Decision ranking rules | `serve/{captain,value,transfers}.py` |
+| Generic ranking execution | `serve/decision_engine.py` |
 
 No two components share ownership of any row in this table. If a proposed change would require two components to govern the same concern, the boundary must be resolved before the change proceeds.
 
@@ -144,6 +147,6 @@ No two components share ownership of any row in this table. If a proposed change
 
 **Research does not define signals.** Classification, lifecycle assignment, and signal IDs are determined by the study that produces the evidence and stored in the registry. Research writes artifacts; registry construction (`research/registry/`) ingests them in-layer.
 
-**Lifecycle gate is path-based.** A registry CSV in `outputs/registry/` is operationally safe. The same content in `research/findings/` is not — path determines safety, not content. `assert_operational_safe()` enforces this at runtime.
+**Every registry artifact is exploratory.** `research/registry/build.py` writes findings to `research/findings/registry_builds/gw{N}/`, and with `model/governance/promote.py` deleted nothing publishes to `outputs/registry/`. The path-based runtime gate that once drew this distinction is gone; treat any registry read as a research finding, not a governed operational artifact.
 
 **Design before code.** No lens study executes without a locked `LENS_DESIGN.md`. No signals enter the registry without a confirmed lens status. No signals enter synthesis without a validated registry entry.

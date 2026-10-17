@@ -1,6 +1,6 @@
 import pytest
 
-from domain.registry.operational import load_registry
+from domain.registry.loader import load_registry
 from domain.registry.validation import RegistryValidationError, validate_registry_contract
 
 pytestmark = pytest.mark.unit

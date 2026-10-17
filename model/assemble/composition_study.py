@@ -33,6 +33,7 @@ from domain.registry.finding_key import build_key
 
 # ADR-009 Phase D: statistical primitives live in research.kernels (model/assemble is
 # permitted to import kernels). This study owns weight derivation; the methodology is shared.
+from research.kernels.descriptive.binning import select_bucketing_scheme
 from research.kernels.inferential.resampling import bootstrap_partial_rho, estimate_chance_correlation, partial_spearman
 
 OUT_PATH = Path(__file__).resolve().parents[2] / "model" / "assemble" / "synth01_recommendations.yaml"
@@ -188,9 +189,13 @@ def _fdr_moderation_check(pop: pd.DataFrame, retained: list[tuple[str, str, str]
     if valid_fdr.empty:
         return {"material": False, "verdict": "SKIPPED — fdr_avg not available", "detail": []}
 
-    pop["fdr_quartile"] = pd.qcut(
-        pop["fdr_avg"].rank(method="first", na_option="keep"), 4, labels=["Q1", "Q2", "Q3", "Q4"]
-    )
+    # Ordinal FDR bins (research/registry/CHARACTERIZE_DESIGN.md §2), not a rank-tie-broken
+    # quartile cut — fdr_avg is heavily tied (e.g. 59% of DEF rows == 3.0) and a rank tie-break
+    # manufactures boundaries inside a single value.
+    scheme_type, param = select_bucketing_scheme(pop["fdr_avg"].dropna(), signal_name="fdr_avg")
+    assert scheme_type == "ordinal", f"expected ordinal FDR scheme, got {scheme_type}"
+    bins, labels = param
+    pop["fdr_quartile"] = pd.cut(pop["fdr_avg"], bins=bins, labels=labels, include_lowest=True)
 
     groups: dict[tuple[str, str], list[str]] = {}
     for sig, pos, tgt in retained:
@@ -205,7 +210,7 @@ def _fdr_moderation_check(pop: pd.DataFrame, retained: list[tuple[str, str, str]
         pos_data = pop[pop["position_label"] == pos]
 
         quartile_orders: list[list[str]] = []
-        for q in ["Q1", "Q2", "Q3", "Q4"]:
+        for q in labels:
             q_data = pos_data[pos_data["fdr_quartile"] == q]
             rhos: dict[str, float] = {}
             for sig in signals:

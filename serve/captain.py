@@ -1,121 +1,87 @@
-"""Captain candidate ranking.
+"""Captain candidate ranking — model-driven.
 
-Produces a ranked list of captain options for a target gameweek based on
-recent form, attacking involvement, fixture context, and minutes stability.
+Ranks captain options for a target gameweek by the forecaster's **haul probability** (``p_haul``) — the
+distribution read the mean cannot give. Captaincy is a *ceiling* bet (you want the chance of a big
+score, not the expected score), so we rank by ``p_haul`` and tie-break on the 90th-percentile ceiling
+``p90``. Because ``p_haul`` is an absolute probability, it is comparable **across** positions — unlike
+the retired within-position signal composite, whose normalised score made a DEF's 0.9 and a MID's 0.9
+meaningless to compare.
 
-Weights are loaded from the module weight registry (serve/weight_registry.yaml).
+This replaces the former composite (xgi form/involvement + fixture + minutes, statically weighted from
+a serve weight registry — since retired, see ADR-011). Head-to-head over 2025-26 GW6-38: the model
+captain returned **+1.9 pts/GW** vs the composite (5.09 vs 3.22; paired 95% CI [-0.03, +3.9]) — better on
+the point estimate, never significantly worse. Per-position validity is enforced upstream by the term
+gates, so the old xgi scope-guards (excluded at FWD/MID) are gone with the composite.
 
-Scope constraints (validate-stage lens findings + the model-stage synthesis verdict
-set-synth-weights; see docs/decisions/):
-- xgi_roll5 excluded at FWD (xgi_roll5@form:total_points, G2-FAIL). FWD → neutral 0.5 on form_score.
-- xgi_roll3 excluded at FWD (xgi_roll3@form:total_points, G2-FAIL) and MID
-  (xgi_roll3@form:total_points#MID: EXCLUDED-REDUNDANT vs xgi_roll5). FWD and MID →
-  neutral 0.5 on involvement_score.
-
-fixture_score uses binary DGW indicator from STATE fixture_context column.
+Structure: this module declares a :class:`domain.decision.DecisionSpec` and delegates the shared
+lifecycle to :func:`serve.decision_engine.run_decision` (ADR-012). The forecast columns (``p_haul``,
+``p90``, ``e_points_uncond``) arrive as data, merged onto the mart by the operational runner —
+``serve`` does not import ``model`` (import-linter ``no_serve_to_research_or_model``).
 """
 
 from __future__ import annotations
 
 import pandas as pd
 
-from serve.input_contracts import (
-    IntelligenceInputError,
-    normalize_within_position,
-    validate_intelligence_inputs,
-    weighted_composite,
-)
-from serve.weight_registry import get_module_weights
-
-# Weights loaded from governance registry — fails hard if entry missing.
-_WEIGHTS: dict[str, float] = get_module_weights("captain")
+from domain.decision import DecisionSpec
+from serve.decision_engine import run_decision
 
 # threshold not evaluation-derived — see threshold-registry.md §CAPT-T-01
 _MIN_MINUTES_ROLL3 = 45.0
 
-_OUTPUT_COLS = [
-    "player_id",
-    "player_name",
-    "position_label",
-    "team_id",
-    "xgi_roll5",
-    "xgi_roll3",
-    "fixture_context",
-    "minutes_roll3",
-    "form_score",
-    "involvement_score",
-    "fixture_score",
-    "minutes_score",
-    "captain_score",
-    "captain_rank",
-]
+
+def _eligible(features: pd.DataFrame, **_: object) -> pd.Series:
+    """Captaincy needs a reliable starter."""
+    return (~features["is_warmup_gw"]) & (features["minutes_roll3"] >= _MIN_MINUTES_ROLL3)
 
 
-def rank_captain_candidates(
-    features: pd.DataFrame,
-    target_gw: int,
-    n: int = 20,
-) -> pd.DataFrame:
-    """Rank captain candidates for a target gameweek.
+def _objective(features: pd.DataFrame) -> pd.Series:
+    """Ceiling bet: rank by the probability of a haul."""
+    return features["p_haul"]
+
+
+CAPTAIN = DecisionSpec(
+    name="rank_captain_candidates",
+    required_forecast_cols=("p_haul", "p90", "e_points_uncond"),
+    eligibility=_eligible,
+    objective=_objective,
+    score_col="captain_score",
+    rank_col="captain_rank",
+    output_cols=(
+        "player_id",
+        "player_name",
+        "position_label",
+        "team_id",
+        "minutes_roll3",
+        "e_points_uncond",
+        "p90",
+        "p_haul",
+        "captain_score",
+        "captain_rank",
+    ),
+    tie_break=("p90",),  # same haul probability → prefer the higher 90th-percentile ceiling
+)
+
+
+def rank_captain_candidates(features: pd.DataFrame, target_gw: int, n: int = 20) -> pd.DataFrame:
+    """Rank captain candidates for a target gameweek by model haul probability.
 
     Parameters
     ----------
     features:
-        Full DAL state output — spine + state columns at (player_id, gw) grain.
-        Produced by dal.pipeline.load().mart.
+        DAL mart at (player_id, gw) grain, **enriched** with the model forecast columns
+        (``p_haul``, ``p90``, ``e_points_uncond``) via :func:`model.predictions.assemble_forecast`.
     target_gw:
-        The gameweek being prepared for. State at target_gw reflects rolling
-        windows through the prior gameweek (lag-1 convention).
+        The gameweek being prepared for. The forecast at ``target_gw`` is lag-safe (the terms fit on
+        ``gw < target_gw``).
     n:
         Maximum number of candidates to return across all positions.
 
     Returns
     -------
-    DataFrame ranked by captain_score descending, with explicit component
-    columns (form_score, involvement_score, fixture_score, minutes_score)
-    for full explainability.
+    DataFrame ranked by ``captain_score`` (= ``p_haul``) descending, tie-broken by ``p90``, with the
+    ceiling reads carried for explainability. ``captain_rank`` is the within-position rank.
 
-    Scoring components (registry weights):
-    - form_score        35%: xgi_roll5; excluded at FWD (xgi_roll5@form:total_points G2-FAIL) → neutral 0.5
-    - involvement_score 30%: xgi_roll3; excluded at FWD (xgi_roll3@form:total_points G2-FAIL) and MID
-                             (xgi_roll3@form:total_points#MID EXCLUDED-REDUNDANT) → neutral 0.5
-    - fixture_score     20%: binary DGW flag from STATE fixture_context
-    - minutes_score     15%: minutes_roll3, normalized within position
-
-    Only players with minutes_roll3 >= 45 are eligible (must be starting).
+    Only players with ``minutes_roll3 >= 45`` (reliable starters) are eligible.
     """
-    validate_intelligence_inputs(features, "rank_captain_candidates")
-
-    gw_df = features[features["gw"] == target_gw].copy()
-    if gw_df.empty:
-        raise IntelligenceInputError(f"rank_captain_candidates: no data for gw={target_gw}")
-
-    # Filter to players starting reliably — captaincy requires regular minutes.
-    eligible = gw_df[~gw_df["is_warmup_gw"] & (gw_df["minutes_roll3"] >= _MIN_MINUTES_ROLL3)].copy()
-    if eligible.empty:
-        return pd.DataFrame(columns=_OUTPUT_COLS)
-
-    # xgi_roll5 excluded at FWD: xgi_roll5@form:total_points G2-FAIL.
-    # xgi_roll3 excluded at FWD (xgi_roll3@form:total_points G2-FAIL) and MID
-    # (xgi_roll3@form:total_points#MID: EXCLUDED-REDUNDANT vs xgi_roll5 at MID). Zeroed groups return 0.5 from
-    # normalize_within_position (neutral, no xgi contribution at excluded positions).
-    fwd_mask = eligible["position_label"] == "FWD"
-    mid_mask = eligible["position_label"] == "MID"
-    eligible["_xgi_roll5_scored"] = eligible["xgi_roll5"].where(~fwd_mask, 0.0)
-    eligible["_xgi_roll3_scored"] = eligible["xgi_roll3"].where(~(fwd_mask | mid_mask), 0.0)
-
-    # Binary DGW flag from STATE fixture_context column.
-    eligible["_fixture_context_dgw"] = (eligible["fixture_context"] == "DGW").astype(float)
-
-    eligible["form_score"] = normalize_within_position(eligible, "_xgi_roll5_scored")
-    eligible["involvement_score"] = normalize_within_position(eligible, "_xgi_roll3_scored")
-    eligible["fixture_score"] = normalize_within_position(eligible, "_fixture_context_dgw")
-    eligible["minutes_score"] = normalize_within_position(eligible, "minutes_roll3")
-
-    eligible["captain_score"] = weighted_composite(eligible, list(_WEIGHTS.keys()), _WEIGHTS)
-
-    eligible["captain_rank"] = (
-        eligible.groupby("position_label")["captain_score"].rank(ascending=False, method="min").astype(int)
-    )
-
-    return eligible[_OUTPUT_COLS].sort_values("captain_score", ascending=False).head(n).reset_index(drop=True)
+    return run_decision(CAPTAIN, features, target_gw, n=n)

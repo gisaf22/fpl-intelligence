@@ -173,7 +173,7 @@ def _bootstrap_two_sided_p(values: list[float]) -> float:
     if arr.size == 0:
         return np.nan
     tail = min(int(np.sum(arr <= 0.0)), int(np.sum(arr >= 0.0)))
-    return float(round(min(1.0, 2.0 * (1 + tail) / (1 + arr.size)), 4))
+    return round(float(min(1.0, 2.0 * (1 + tail) / (1 + arr.size))), 4)
 
 
 def _excludes_zero(ci: tuple[float, float]) -> bool:

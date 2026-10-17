@@ -18,7 +18,7 @@ Outputs:
   stdout summary table
 
 Usage:
-  python studies/operational/phase9_backtest.py
+  python archive/monitor/phase9_backtest.py
 """
 
 from __future__ import annotations

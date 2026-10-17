@@ -297,14 +297,16 @@ cost optimization, product/UX. All N/A or trivial for a solo, single-season, loc
 
 `adlc.md` is the authority for the **analysis lifecycle and its test contracts**, and the sole owner of
 the word **"lifecycle"** in the repo. It does not replace the other architecture docs — each owns a
-different axis, mapped in [analytical-architecture.md](analytical-architecture.md). The reconciliations:
+different axis. The reconciliations:
 
-- The **3-plane runtime model** (`system-model.md`) is an orthogonal peer, not a competing vocabulary —
-  the split is settled in [ADR-005](../decisions/005-system-model-vocabulary-reconciliation.md).
-- `decision-lifecycle.md` + `operational-flow.md` were merged into
-  [runtime-execution.md](runtime-execution.md) — failure-mode tables and the run sequence kept, the
-  "lifecycle" framing dropped.
-- [`EVAL_DESIGN.md`](../../signals/governance/EVAL_DESIGN.md) remains the detailed spec for the
+- The **3-plane runtime model** (`system-model.md`) was an orthogonal peer, settled in
+  [ADR-005](../decisions/005-system-model-vocabulary-reconciliation.md); that doc was deleted on
+  2026-08-16 as superseded by [docs/PROJECT.md](../PROJECT.md). ADR-005 stands as the record.
+- `decision-lifecycle.md` + `operational-flow.md` were merged into `runtime-execution.md` — failure-mode
+  tables and the run sequence kept, the "lifecycle" framing dropped. That doc was itself deleted on
+  2026-08-16: the runtime it documented (registry build → scorer → weekly report) was removed at
+  `ae90398`. The live run sequence is in [docs/PROJECT.md](../PROJECT.md) §3.
+- [`EVAL_DESIGN.md`](../../model/governance/EVAL_DESIGN.md) remains the detailed spec for the
   `monitor` stage, which is still design-only; ADLC names the stage, EVAL_DESIGN specifies it.
 
 ---

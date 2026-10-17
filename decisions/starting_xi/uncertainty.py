@@ -11,7 +11,7 @@ call §0.14 rejects as U3.
 * `gameweek_block_ci` -- U2. A **reuse**, not a build: §8.2 fixes the call site as
   `model/eval/metrics.py:79` and requires every argument passed explicitly. This module adds §10.6's
   length assertion and nothing else.
-* `squad_stratified_ci` -- U1. A **build**: `INVENTORY.md` §2.9 records no gameweek-stratified
+* `squad_stratified_ci` -- U1. A **build**: `archive/INVENTORY.md` §2.9 records no gameweek-stratified
   bootstrap of a mean in the repository, and §10.3 derives the one this slice needs.
 * `bench_order_ci` -- **raises**. See `BenchOrderTreatmentUnselected`.
 
@@ -62,7 +62,7 @@ PANEL_COLUMNS: Final[tuple[str, ...]] = ("gw", "squad_id", "value")
 
 # §10.8's pre-registered parameters, as signature defaults. They are defaults *and* passed
 # explicitly at the call site: §0.14 requires `n = 10,000` be "passed explicitly at every call site
-# in the slice", and `METRIC.md` §6.2's reason -- a count acquired by import path is acquired by
+# in the slice", and `archive/METRIC.md` §6.2's reason -- a count acquired by import path is acquired by
 # accident -- applies to the block length and the coverage too (§8.2). The defaults exist so the
 # pre-registered value is readable here and a test can assert it, not so a caller may omit it.
 N_RESAMPLES: Final[int] = 10_000
@@ -79,7 +79,7 @@ class BenchOrderTreatmentUnselected(NotImplementedError):
     entry points, and the ordering sample gets its own entry point rather than the guards becoming
     caller-supplied parameters. It explicitly does **not** select the **treatment**.
 
-    `METRIC.md` §8's row #17 is unselected. §6.4.4 there characterises three candidates on the squad
+    `archive/METRIC.md` §8's row #17 is unselected. §6.4.4 there characterises three candidates on the squad
     margin -- W1 stratify unchanged and report the occupancy profile beside the interval, W2 pool
     adjacent gameweeks to a minimum occupancy, W3 abandon the stratification -- and §6.4.5 three on
     the gameweek margin, V1 compact the series, V2 keep the season index carrying empties as
@@ -89,7 +89,7 @@ class BenchOrderTreatmentUnselected(NotImplementedError):
 
     So the body cannot be written yet, and §4.11 states this document's own standard for writing it
     anyway: a rule written before the thing it quantifies has been characterised is a guess in the
-    shape of a decision. `METRIC.md` §6.4.6 records that the two occupancy numbers the selection
+    shape of a decision. `archive/METRIC.md` §6.4.6 records that the two occupancy numbers the selection
     turns on are unmeasured and fall out of the first run.
 
     §10.10.6 records the entry point as "owed once #17 lands". It is present and raising rather than
@@ -120,7 +120,7 @@ def _stratified_resample(
     draw over the flat panel it would be U3, which §0.14 rejects and §10.3 is written around.
 
     **No rounding.** §10.5 requires raw floats: §8.2 rejected the `research/kernels` implementation
-    partly because `INVENTORY.md` §2.9 records `_percentile_ci` rounding endpoints to 4 dp, and
+    partly because `archive/INVENTORY.md` §2.9 records `_percentile_ci` rounding endpoints to 4 dp, and
     §0.15's S2 is a boundary test on whether the interval excludes zero.
 
     **The draw follows §10.5's pseudocode literally** -- per replicate, per stratum -- rather than
@@ -211,7 +211,7 @@ def squad_stratified_ci(
     comparison window does (§10.7 supplies both)". A caller who passed a constant `gw` would get a
     flat bootstrap that runs cleanly and returns a wrongly narrow interval, which G2's presence
     check cannot see. The guard does **not** transfer to a B2-filtered sample: its reference
-    quantity is the *window*, and `METRIC.md` §6.4.3's A1 and A3 make a single-occupied-gameweek
+    quantity is the *window*, and `archive/METRIC.md` §6.4.3's A1 and A3 make a single-occupied-gameweek
     ordering sample on a 35-gameweek window an expected occupancy rather than a pathology.
 
     **The condition is ">1 when the window has >1", not equality, and the weaker form is
@@ -250,7 +250,7 @@ def gameweek_block_ci(
     """U2 for the **primary comparison** -- §0.14, §8.2, §10.6.
 
     A thin call site over `model.eval.metrics.block_bootstrap_ci`, which §8.2 selects on the import
-    contract and confirms on merit: `INVENTORY.md` §2.9 records the `research/kernels` alternative
+    contract and confirms on merit: `archive/INVENTORY.md` §2.9 records the `research/kernels` alternative
     rounding both endpoints to 4 dp through `_percentile_ci`, and §0.15's S2 is a boundary test on
     whether the interval excludes zero. This module adds G4 and passes every argument explicitly.
 
@@ -260,7 +260,7 @@ def gameweek_block_ci(
         n_scoreable_gw: the comparison's scoreable-gameweek count, from §7.2's T3. Required with no
             default -- it is G4's reference quantity.
         n: §0.14's resample count, 10,000.
-        block: §0.14's block length, 4. `INVENTORY.md` §2.9 records both implementations already
+        block: §0.14's block length, 4. `archive/INVENTORY.md` §2.9 records both implementations already
             using it, so passing it records the value rather than fixing anything new (§8.2).
         ci_level: §8.4's coverage, 0.95.
         seed: §8.4's seed, 0.
@@ -279,7 +279,7 @@ def gameweek_block_ci(
     number." §10.10.3 turns on this being the sole check, which is why §10.10.5 keeps it here rather
     than making it a caller-supplied parameter.
 
-    It does **not** transfer to a B2-filtered sample: `METRIC.md` §6.4.3's A2 records that a
+    It does **not** transfer to a B2-filtered sample: `archive/METRIC.md` §6.4.3's A2 records that a
     gameweek with no surviving row has no per-gameweek mean at all, so an ordering sample's series
     is *punctured* rather than merely shorter and fails this assertion even where the treatment is
     well defined.
@@ -291,7 +291,7 @@ def gameweek_block_ci(
     values than `n_scoreable_gw` -- G4 would have checked a length the estimator does not use.
     Rejecting non-finite entries here closes that gap. The stripping behaviour is a repository fact
     this slice's documents do not carry; it is reported rather than asserted into `DESIGN.md`, and
-    it bears on `METRIC.md` §6.4.5's V1-against-V2 choice, since silently stripping empties is V1.
+    it bears on `archive/METRIC.md` §6.4.5's V1-against-V2 choice, since silently stripping empties is V1.
     """
     values = np.asarray(series, dtype=float)
 

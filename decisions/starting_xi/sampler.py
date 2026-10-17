@@ -19,7 +19,7 @@ The construction, and where each part is decided:
   never repairs one).
 * **Registration** (§2.1). A player is in U_g iff he has a non-null `minutes` row at gameweek *g*
   or any earlier one. It is applied by building U_g before drawing, never as a rejection test:
-  pre-registration rows carry a **forward-filled price** (`INVENTORY.md` §2.7), so a leaked
+  pre-registration rows carry a **forward-filled price** (`archive/INVENTORY.md` §2.7), so a leaked
   prefix row would not fail a null check — it would silently price a phantom against the cap
   using a value from later in the season.
 * **Weekly resampling** (§0.16). Each gameweek in scope draws its own squads from its own
@@ -233,7 +233,7 @@ def _price_tenths(price: np.ndarray) -> np.ndarray:
 
     The budget test is exact in tenths and only approximate in floats: fifteen float prices can
     sum to 100.00000000000001 and reject a squad that costs exactly 100.0. `purchase_price` is
-    `player_histories.value ÷ 10` (`INVENTORY.md` §2.7), so the conversion is lossless — and it is
+    `player_histories.value ÷ 10` (`archive/INVENTORY.md` §2.7), so the conversion is lossless — and it is
     asserted rather than assumed, because a change of unit upstream would otherwise turn the
     budget predicate into a silently different one.
     """
@@ -406,7 +406,7 @@ def _diversity(squads: np.ndarray, cost_tenths: np.ndarray, universe: _Universe,
 
     **They gate nothing** (§2.9). No threshold is attached to any of them, §0 selects no diversity
     criterion, and a number invented here would be a criterion smuggled in as reporting. A value
-    that looks wrong is a finding to route through `DECISION.md` and `METRIC.md`.
+    that looks wrong is a finding to route through `archive/DECISION.md` and `archive/METRIC.md`.
     """
     selected, counts = np.unique(squads, return_counts=True)
     most_selected = int(np.argmax(counts))  # ties resolve to the lowest player_id — np.unique sorts

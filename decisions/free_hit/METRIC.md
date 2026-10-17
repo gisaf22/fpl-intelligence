@@ -15,7 +15,7 @@ what each is relied on for, not a substitute for reading them.
 
 ### 0.1 This document is not a survey, on one point
 
-`decisions/starting_xi/METRIC.md` is written as a survey that recommends nothing (its own §0.1).
+`decisions/starting_xi/archive/METRIC.md` is written as a survey that recommends nothing (its own §0.1).
 This document follows that convention everywhere **except §2**: `DECISION.md` §4 names the
 naive-baseline verdict rule as the one item it deliberately leaves for METRIC.md to decide, not
 merely characterise. §2 therefore contains an actual decision, argued and justified, in a document
@@ -31,7 +31,7 @@ than an open unknown:
   mart by a cited existing repository pattern, or confirmed to be an existing, already-proven
   routine (`DECISION.md` §4's "unchanged... reused identically" selection+bench layer). Code that
   must still be written does not move an item out of this tier, following
-  `decisions/starting_xi/METRIC.md` §0.2's reading: tier on inputs, not on whether the code exists.
+  `decisions/starting_xi/archive/METRIC.md` §0.2's reading: tier on inputs, not on whether the code exists.
 - **Open / DESIGN.md's call** — `INVENTORY.md` confirms the fact is currently undetermined by the
   repository (e.g. which DGW/BGW definition governs the evaluation set) and says so itself. Not a
   defect in either document; a question neither is positioned to close.

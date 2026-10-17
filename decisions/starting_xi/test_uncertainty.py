@@ -16,7 +16,7 @@ Four of this suite's obligations come from the design rather than from the code:
 * **The §10.5 correction is asserted as arithmetic.** §10.5 claimed a thin stratum "contributes
   proportionate weight to the grand mean and proportionate noise to the replicate". At `n_g = 1`
   the second half is false -- the stratum redraws identically and contributes none -- which is
-  `METRIC.md` §6.4.3's A1 and which `DESIGN.md`'s Provenance records as a real prior error in the
+  `archive/METRIC.md` §6.4.3's A1 and which `DESIGN.md`'s Provenance records as a real prior error in the
   document. It is pinned here so it cannot be reintroduced as an assumption.
 * **Tier B's import closure is checked in a child interpreter**, on `test_results.py`'s precedent:
   the session has already imported everything, so an in-process assertion cannot make the claim.
@@ -175,7 +175,7 @@ def test_g3_does_not_fire_when_exclusions_leave_fewer_gameweeks_than_the_window(
 def test_g3_does_not_live_in_the_core_which_is_10_10s_selection_made_structural() -> None:
     """The single most load-bearing test of §10.10.5.
 
-    A single-occupied-gameweek panel on a wide window is what `METRIC.md` §6.4.3's A1 and A3 make
+    A single-occupied-gameweek panel on a wide window is what `archive/METRIC.md` §6.4.3's A1 and A3 make
     the **expected** occupancy for a B2-filtered ordering sample. §10.10 decides that G3 stays in
     the primary entry point rather than becoming a caller-supplied parameter, which is only
     meaningful if the shared core admits the call. If G3 ever migrated into the core, the
@@ -200,7 +200,7 @@ def test_g4_fires_on_a_flattened_squad_week_panel() -> None:
 
 
 def test_g4_fires_on_a_punctured_series() -> None:
-    """`METRIC.md` §6.4.3's A2: a gameweek with no surviving row has no per-gameweek mean, so an
+    """`archive/METRIC.md` §6.4.3's A2: a gameweek with no surviving row has no per-gameweek mean, so an
     ordering sample's series is shorter than the window. §10.10 keeps the assertion and gives that
     sample its own entry point rather than relaxing it."""
     with pytest.raises(ValueError, match="G4"):
@@ -229,7 +229,7 @@ def test_g4_does_not_apply_to_the_squad_path() -> None:
 
 
 def test_a_singleton_stratum_contributes_exactly_zero_variance() -> None:
-    """`METRIC.md` §6.4.3's A1, and the correction `DESIGN.md`'s Provenance records: a stratum of
+    """`archive/METRIC.md` §6.4.3's A1, and the correction `DESIGN.md`'s Provenance records: a stratum of
     one row "is redrawn identically in every replicate. It carries its full weight into the mean and
     **zero** variance into the interval."
 
@@ -340,7 +340,7 @@ def test_each_stratums_row_count_is_held_fixed() -> None:
 
 def test_the_endpoints_are_not_rounded() -> None:
     """§10.5 requires raw floats. §8.2 rejected the `research/kernels` implementation partly because
-    `INVENTORY.md` §2.9 records `_percentile_ci` rounding endpoints to 4 dp, and §0.15's S2 is a
+    `archive/INVENTORY.md` §2.9 records `_percentile_ci` rounding endpoints to 4 dp, and §0.15's S2 is a
     boundary test on whether the interval excludes zero -- rounding can move a genuinely non-zero
     bound onto exactly 0."""
     panel = _balanced_panel(offset=1.0)
@@ -450,7 +450,7 @@ def test_a_non_finite_value_is_rejected_rather_than_returning_nan() -> None:
 
 
 def test_the_bench_order_entry_point_raises_rather_than_faking_a_result() -> None:
-    """`METRIC.md` §8's row #17 is unselected, so no treatment can be computed. §10.10.6 records the
+    """`archive/METRIC.md` §8's row #17 is unselected, so no treatment can be computed. §10.10.6 records the
     entry point as owed; `results.py`'s `T1HasNoProducer` is the precedent for naming it in code."""
     with pytest.raises(BenchOrderTreatmentUnselected):
         bench_order_ci()

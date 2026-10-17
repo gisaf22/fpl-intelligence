@@ -51,7 +51,7 @@ SEED_SWEEP_ENV = "FPL_SEED_SWEEP"
 # ---------------------------------------------------------------------------
 # Synthetic marts. Small enough to run a real pilot over, shaped like the real one:
 # a full cartesian (player_id, gw) spine, NULL minutes before a player's debut, and a
-# forward-filled price on those pre-registration rows (INVENTORY.md §2.5, §2.7).
+# forward-filled price on those pre-registration rows (archive/INVENTORY.md §2.5, §2.7).
 # ---------------------------------------------------------------------------
 
 

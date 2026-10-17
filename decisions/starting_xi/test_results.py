@@ -801,7 +801,7 @@ def test_that_closure_check_can_actually_fail() -> None:
 
 def test_the_package_init_still_re_exports_nothing() -> None:
     """§5.6's rule, re-asserted from this module's side: a re-export in the package `__init__.py`
-    would give every importer of any slice module this one's dependencies, and `INVENTORY.md`
+    would give every importer of any slice module this one's dependencies, and `archive/INVENTORY.md`
     §2.11 records that import-linter cannot catch it."""
     source = Path(__file__).with_name("__init__.py").read_text(encoding="utf-8")
     body = [line for line in source.splitlines() if line.strip() and not line.lstrip().startswith("#")]

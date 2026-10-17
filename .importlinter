@@ -77,7 +77,7 @@ forbidden_modules =
 #
 # What still cannot be a `forbidden` contract, and stays enforced by a subprocess test:
 #
-# * `operational` is not a root package (INVENTORY.md 2.11), so no contract can name it. Both Tier B
+# * `operational` is not a root package (archive/INVENTORY.md 2.11), so no contract can name it. Both Tier B
 #   modules' closure tests assert it is unreached.
 # * `formations` is tighter than the shared contract: DESIGN.md 5.1 forbids it `dal` and *every*
 #   sibling slice module. The `dal` half is a second contract below -- it cannot join the shared

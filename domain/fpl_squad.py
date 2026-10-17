@@ -62,11 +62,11 @@ XI_SIZE: Final[int] = 11
 
 # UNVERIFIED — FPL's squad rules cap a squad at three players from any one club. The value is
 # not staged: `element_types` does not carry it and no other table in this repository does.
-# Recorded in decisions/starting_xi/INVENTORY.md §2.2 as one of the four feasibility conditions.
+# Recorded in decisions/starting_xi/archive/INVENTORY.md §2.2 as one of the four feasibility conditions.
 MAX_PER_CLUB: Final[int] = 3
 
 # UNVERIFIED — the initial squad budget, in FPL price units (millions). Not staged for the same
-# reason as MAX_PER_CLUB. decisions/starting_xi/INVENTORY.md §2.2 measures the cheapest legal
+# reason as MAX_PER_CLUB. decisions/starting_xi/archive/INVENTORY.md §2.2 measures the cheapest legal
 # 2/5/5/3 at GW1 as 64.0 against this cap, which is the only cross-check available in-repo.
 #
 # This is the *ceiling only*. There is no floor: DESIGN.md §0.16 draws squads uniformly over the

@@ -13,7 +13,7 @@ predicate conflating them:
 **§3.2's axis.** A gameweek is schedule-clean iff no club has a real blank (`fixture_count == 0`)
 or a real double (`fixture_count == 2`) that gameweek, checked at `(team_id, gw)` grain among
 already-registered players -- not the row-level `is_bgw`/`is_dgw` flags, which are saturated by
-the pre-registration prefix (`INVENTORY.md` §1; `decisions/starting_xi/INVENTORY.md` §2.5 first
+the pre-registration prefix (`INVENTORY.md` §1; `decisions/starting_xi/archive/INVENTORY.md` §2.5 first
 characterised the same NULL-`minutes` artefact for the sibling slice). Registration mirrors
 `decisions.starting_xi.sampler`'s own predicate (first non-null `minutes` row) but is re-derived
 here rather than imported, matching this slice's in-slice, self-contained construction

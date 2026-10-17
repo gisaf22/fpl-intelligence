@@ -27,7 +27,7 @@ the stress-test pass — figures confirmed current).
 in a gameweek as disqualifying gives only 1 clean gameweek (GW38), because
 early-season rows are saturated with not-yet-debuted players whose rows
 carry the flag regardless of whether their club had a real fixture that
-week — the same registration-prefix artifact `starting_xi/INVENTORY.md`
+week — the same registration-prefix artifact `starting_xi/archive/INVENTORY.md`
 §2.5 already characterized for NULL-minutes semantics. The row-level count
 answers "does any row look flagged," not "did this gameweek have a real
 scheduling anomaly," which is the question DECISION.md §3 actually needs

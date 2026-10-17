@@ -2,7 +2,7 @@
 
 The design supplies four references this suite executes rather than describes:
 
-* **`METRIC.md` Appendix A.3's degeneracy is reproduced, not cited.** F2 and F3 are asserted
+* **`archive/METRIC.md` Appendix A.3's degeneracy is reproduced, not cited.** F2 and F3 are asserted
   identical for every player at GW2, GW3 and GW4 and asserted to diverge at GW5 -- the measurement
   §0.12 requires reported rather than designed away, and the property §8.3 explains (two windows
   over one population).
@@ -62,7 +62,7 @@ pytestmark = pytest.mark.unit
 # Fixtures
 # ---------------------------------------------------------------------------
 
-# The PPG rankers read four columns (§8.3); F1 reads eight (`INVENTORY.md` §2.6). The narrow
+# The PPG rankers read four columns (§8.3); F1 reads eight (`archive/INVENTORY.md` §2.6). The narrow
 # fixture is used wherever the wider one would only add noise.
 _PPG_COLUMNS = ["player_id", "gw", "position", "minutes", "total_points"]
 
@@ -81,7 +81,7 @@ def _p_play_mart(
     blank_at: int | None = None,
     seed: int = 7,
 ) -> pd.DataFrame:
-    """A mart wide enough for `PlayModel` to fit: the eight columns `INVENTORY.md` §2.6 measures.
+    """A mart wide enough for `PlayModel` to fit: the eight columns `archive/INVENTORY.md` §2.6 measures.
 
     Sized against the model's own guards rather than by eye -- `min_train_rows = 50` per position
     and `_fit_predict`'s `dropna` over the lagged design, which removes each player's first row. At
@@ -162,14 +162,14 @@ def test_the_declared_windows_are_the_three_6_3_states() -> None:
 def test_f1s_declared_first_gameweek_still_tracks_the_constant_it_was_derived_from() -> None:
     """§0.7 makes the window a *declaration*, so §6.3's GW4 is written as a literal rather than as
     `WARMUP_GW + 1` -- §7.4 freezes it in the pre-registration and it must not silently follow an
-    upstream constant. This is the drift test that makes the literal safe: `INVENTORY.md` §2.6
+    upstream constant. This is the drift test that makes the literal safe: `archive/INVENTORY.md` §2.6
     records `WARMUP_GW = 3` with predictions beginning at GW4, and if that moves, the declaration
     is stale rather than automatically correct."""
     assert WARMUP_GW + 1 == P_PLAY_FIRST_GW
 
 
 def test_the_recent_form_window_is_three() -> None:
-    """§0.12 selects F3 rather than F4 on `METRIC.md` §5.1's argument for the 3-gameweek length."""
+    """§0.12 selects F3 rather than F4 on `archive/METRIC.md` §5.1's argument for the 3-gameweek length."""
     assert RECENT_FORM_WINDOW == 3
 
 
@@ -227,7 +227,7 @@ def test_no_ranker_mutates_the_mart_it_is_given() -> None:
 
 def test_the_population_is_the_post_registration_spine_with_blanks_at_zero() -> None:
     """§8.3's frame, and §0.9's three sub-choices: blanked weeks at 0, no-fixture weeks at 0,
-    pre-registration weeks excluded entirely. `INVENTORY.md` §2.5 records why the last one matters
+    pre-registration weeks excluded entirely. `archive/INVENTORY.md` §2.5 records why the last one matters
     -- the DAL spine is a cartesian product, so a late entrant *has* rows before he existed."""
     mart = _mart(
         [
@@ -269,7 +269,7 @@ def test_the_no_nulls_assertion_fires_on_a_frame_that_carries_them() -> None:
 
 def test_an_appearance_denominated_statistic_would_differ() -> None:
     """§8.3 names this as the silent-wrong-answer risk, and §0.9 rejects the quantity outright:
-    `METRIC.md` §3.2 records that it orders an 8-per-appearance player who features a third of the
+    `archive/METRIC.md` §3.2 records that it orders an 8-per-appearance player who features a third of the
     time above a nailed 4-per-week one. Computed here so the tests above are known to be pinning
     the other quantity."""
     mart = _mart(
@@ -405,7 +405,7 @@ def test_f3_never_reads_the_gameweek_it_scores() -> None:
 
 def test_the_lag_safety_assertion_fires_on_a_leaking_column() -> None:
     """§6.2 asks for a leakage assertion written against the columns the ranker actually uses --
-    `assert_no_future_leakage` is not adopted, because `INVENTORY.md` §3.7 records it requiring
+    `assert_no_future_leakage` is not adopted, because `archive/INVENTORY.md` §3.7 records it requiring
     `points_roll3`, which the governed mart excludes, so it fails closed against this very mart."""
     frame = pd.DataFrame(
         {"player_id": [1, 1, 2, 2], "gw": [1, 2, 1, 2], "total_points_roll3": [np.nan, 1.0, np.nan, 3.0]}
@@ -419,12 +419,12 @@ def test_the_lag_safety_assertion_fires_on_a_leaking_column() -> None:
 
 
 # ---------------------------------------------------------------------------
-# `METRIC.md` §5.3 / Appendix A.3 -- the degeneracy §0.12 requires reported
+# `archive/METRIC.md` §5.3 / Appendix A.3 -- the degeneracy §0.12 requires reported
 # ---------------------------------------------------------------------------
 
 
 def test_f2_and_f3_are_identical_through_gw4_and_diverge_at_gw5() -> None:
-    """`METRIC.md` Appendix A.3, reproduced on a synthetic panel. §8.3 gives the reason: they are
+    """`archive/METRIC.md` Appendix A.3, reproduced on a synthetic panel. §8.3 gives the reason: they are
     two windows over one population, and while a player has three or fewer prior in-game gameweeks
     the shorter window covers all of them. §0.12 requires it representable in the artefact rather
     than a caveat in prose, because under the GW4-38 common window one of those weeks sits inside
@@ -445,12 +445,12 @@ def test_f2_and_f3_are_identical_through_gw4_and_diverge_at_gw5() -> None:
 
 
 # ---------------------------------------------------------------------------
-# F1 -- `INVENTORY.md` §2.6's population, and the holes §6.5 and §0.4 govern
+# F1 -- `archive/INVENTORY.md` §2.6's population, and the holes §6.5 and §0.4 govern
 # ---------------------------------------------------------------------------
 
 
 def test_f1_emits_a_score_panel_over_its_declared_window() -> None:
-    """`INVENTORY.md` §2.6 measures the fit as an expanding walk-forward re-estimated per position
+    """`archive/INVENTORY.md` §2.6 measures the fit as an expanding walk-forward re-estimated per position
     per gameweek, so one call covers the panel (§6.1). The probabilities it returns are the whole
     of what F1 ranks on -- §0.12: `p_play` alone, scoring rate ignored entirely."""
     output = rank_p_play(_p_play_mart())
@@ -462,7 +462,7 @@ def test_f1_emits_a_score_panel_over_its_declared_window() -> None:
 
 def test_f1_emits_no_row_before_its_declared_window_where_the_ppg_rankers_do() -> None:
     """§6.3: F1 starts at GW4 and binds any comparison containing it to GW4-38, while F2 and F3
-    declare GW2-38. `INVENTORY.md` §3.3 records the consequence -- two gameweeks of that baseline's
+    declare GW2-38. `archive/INVENTORY.md` §3.3 records the consequence -- two gameweeks of that baseline's
     window are simply unavailable."""
     mart = _p_play_mart()
     assert rank_p_play(mart).scores["gw"].min() >= 4
@@ -471,11 +471,11 @@ def test_f1_emits_no_row_before_its_declared_window_where_the_ppg_rankers_do() -
 
 
 def test_f1_leaves_double_gameweek_rows_unrankable() -> None:
-    """§6.5's rule, and the row it was not written for. `INVENTORY.md` §2.6 records
+    """§6.5's rule, and the row it was not written for. `archive/INVENTORY.md` §2.6 records
     `PlayModel.population` filtering `~is_dgw`, so F1 produces no score for a double gameweek while
     F2 and F3 do. No constant can fill the hole -- P(play) in a double gameweek is not 0 and is not
     a fixed number -- so the row stays unrankable and the harness places it below every scored
-    player. `INVENTORY.md` §3.4 records the materiality as a first-run measurement."""
+    player. `archive/INVENTORY.md` §3.4 records the materiality as a first-run measurement."""
     mart = _p_play_mart(dgw_at=6)
     scores = rank_p_play(mart).scores
     # Absent rather than null: §6.1 admits either and the harness reads them identically, so the
@@ -489,7 +489,7 @@ def test_f1_leaves_double_gameweek_rows_unrankable() -> None:
 
 
 def test_f1_leaves_no_fixture_rows_unscored_and_0_4_is_why_that_is_harmless() -> None:
-    """`INVENTORY.md` §2.6 records `PlayModel.population` dropping null-`minutes` rows, which is
+    """`archive/INVENTORY.md` §2.6 records `PlayModel.population` dropping null-`minutes` rows, which is
     the asymmetry §0.4 removes upstream: without it, the unrankable-last rule would bench every
     no-fixture player for F1 and only for F1, handing one floor ranker an implicit
     fixture-awareness the other two lack. The rows are asserted absent here; §0.4's rule lives in

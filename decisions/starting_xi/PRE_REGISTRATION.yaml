@@ -1,3 +1,4 @@
+# Status and current decisions: decisions/starting_xi/CARD.md. This file still governs the harness code.
 # decisions/starting_xi/PRE_REGISTRATION.yaml
 #
 # DESIGN.md §7.4: "the frozen file carries: the three naive rankers and their declared windows,

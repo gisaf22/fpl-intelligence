@@ -2,7 +2,7 @@
 
 **What this pins, and why a test rather than a note.** §7.4 requires the parameters fixed before the
 first harness run to live in `PRE_REGISTRATION.yaml`, pinned by a test, following the
-`evidence.yaml` + freeze-test pattern `INVENTORY.md` §2.9 identifies as the repository's only
+`evidence.yaml` + freeze-test pattern `archive/INVENTORY.md` §2.9 identifies as the repository's only
 mechanism making a pre-registration enforceable rather than aspirational. Unlike that pattern --
 which hardcodes expected values into the test itself -- most of what this file pins already has a
 canonical value somewhere in code (`rankers.DECLARED_WINDOWS`, `uncertainty.N_RESAMPLES`, ...), so

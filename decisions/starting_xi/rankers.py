@@ -11,7 +11,7 @@ built when it is run.
 
 **One signature, panel-producing, called once per run.** §6.1: `rank(mart) -> RankerOutput`, over
 the whole mart rather than once per gameweek. The shape is chosen for F1 and not for the cheap two
--- `INVENTORY.md` §2.6 measures `p_play`'s fit as an expanding walk-forward that re-estimates a GLM
+-- `archive/INVENTORY.md` §2.6 measures `p_play`'s fit as an expanding walk-forward that re-estimates a GLM
 per position per gameweek, so a per-gameweek signature would re-run the whole season's walk for
 every gameweek's predictions.
 
@@ -22,7 +22,7 @@ document derived it from cannot move without the declaration failing loudly.
 
 **What each ranker reads, and the two population shapes.**
 
-* **F1** scores the rows `PlayModel.population` keeps. `INVENTORY.md` §2.6 measures that population
+* **F1** scores the rows `PlayModel.population` keeps. `archive/INVENTORY.md` §2.6 measures that population
   dropping `is_dgw` rows and null-`minutes` rows, so those rows carry no score. That is intended:
   §6.5 governs the double-gameweek hole (unrankable, placed below every scored player) and §0.4
   removes the no-fixture one upstream by ranking such a player last for *every* ranker, so the
@@ -30,11 +30,11 @@ document derived it from cannot move without the declaration failing loudly.
 * **F2 and F3** read one frame -- §8.3's population, built here by :func:`population`: the full
   player-gameweek spine restricted to each player's post-registration window, with null
   `total_points` filled to **0**. §0.9 fixes that denominator as gameweeks elapsed rather than
-  appearances, and §8.3 is why the two are identical through GW4 (`METRIC.md` §5.3, Appendix A.3):
+  appearances, and §8.3 is why the two are identical through GW4 (`archive/METRIC.md` §5.3, Appendix A.3):
   two windows over one population.
 
 **The population is built here rather than read or borrowed, and both halves of that are forced.**
-`INVENTORY.md` §2.1 measures no `points_roll*` column on the governed mart and records the
+`archive/INVENTORY.md` §2.1 measures no `points_roll*` column on the governed mart and records the
 enforcement as being over `build_player_gameweek_state`'s output columns, so there is nothing to
 read (§6.4, §9.1). And §5.1 forbids this module every Tier A sibling, so `harness.as_of_points`'s
 copy of the same construction cannot be imported. The two constructions are therefore duplicated by
@@ -42,7 +42,7 @@ contract, and `test_rankers.py` pins them against each other rather than leaving
 the docstrings -- which is the same move `test_harness.py` makes against the sampler's registration
 predicate.
 
-**`min_periods = 1`, via `add_lagged_rolls`** (§6.4). `INVENTORY.md` §2.1 measures two coexisting
+**`min_periods = 1`, via `add_lagged_rolls`** (§6.4). `archive/INVENTORY.md` §2.1 measures two coexisting
 conventions and this is a metric-affecting choice between them: `min_periods = k` yields NaN for
 any player with fewer than *k* prior observations, which makes coverage a **per-player** property
 no declared window can express, and would leave a large share of any uniform-drawn 15 unscoreable
@@ -58,11 +58,11 @@ to it, so relocating `expanding_prior_mean` would remove a `model/` import from 
 rankers while F1 keeps the module in `model/` anyway. `test_rankers.py` asserts the closure in a
 subprocess, including §5.6's positive assertion that `model` *is* reached.
 
-**What this module must not do** (§6.2): read `status` or `chance_of_playing` (`INVENTORY.md` §2.6
+**What this module must not do** (§6.2): read `status` or `chance_of_playing` (`archive/INVENTORY.md` §2.6
 confirms they never reach the mart); read any row at gameweek >= *t* when scoring *t*; read realised
 outcomes for the gameweek being scored; read the squad table or anything the sampler produced;
 mutate the mart it is handed -- the same frame goes to every ranker in a paired comparison. It also
-does not adopt `assert_no_future_leakage`: `INVENTORY.md` §3.7 records it requiring `points_roll3`,
+does not adopt `assert_no_future_leakage`: `archive/INVENTORY.md` §3.7 records it requiring `points_roll3`,
 so it fails closed against this very mart. §6.2's instruction is to write a leakage assertion
 against the columns actually used, and :func:`_assert_lag_safe` is it.
 """
@@ -89,7 +89,7 @@ F1_P_PLAY: Final[str] = "F1_p_play"
 F2_SEASON_PPG: Final[str] = "F2_season_ppg"
 F3_FORM_ROLL3: Final[str] = "F3_form_roll3"
 
-# §6.4's selection, and the number the name above carries. §0.12 records `METRIC.md` §5.1's grounds:
+# §6.4's selection, and the number the name above carries. §0.12 records `archive/METRIC.md` §5.1's grounds:
 # short enough to track rotation, long enough that one blank does not dominate, and the window the
 # platform already uses for its lag-1 rolling signals.
 RECENT_FORM_WINDOW: Final[int] = 3
@@ -98,7 +98,7 @@ RECENT_FORM_WINDOW: Final[int] = 3
 STUDY_FIRST_GW: Final[int] = 2
 STUDY_LAST_GW: Final[int] = 38
 
-# §6.3's three declarations. F1 starts at GW4 because `INVENTORY.md` §2.6 records `WARMUP_GW = 3` at
+# §6.3's three declarations. F1 starts at GW4 because `archive/INVENTORY.md` §2.6 records `WARMUP_GW = 3` at
 # `model/eval/walkforward.py:58` with predictions beginning at GW4. The literal is written out
 # rather than derived as `WARMUP_GW + 1`: §0.7 makes the window a *declaration*, and §7.4 freezes it
 # in the pre-registration, so it must not silently follow an upstream constant. `WARMUP_GW` is
@@ -118,7 +118,7 @@ DECLARED_WINDOWS: Final[Mapping[str, tuple[int, int]]] = MappingProxyType(
 Exposed as data so the composition root can record the windows without running a comparison.
 """
 
-# The columns each population reads. F1's is the wider set: `INVENTORY.md` §2.6 records
+# The columns each population reads. F1's is the wider set: `archive/INVENTORY.md` §2.6 records
 # `PlayModel.population` filtering on `is_dgw` and `minutes`, coercing `starts`, and drawing
 # `minutes_roll{3,5}` from the mart.
 _PPG_MART_COLUMNS: Final[tuple[str, ...]] = ("player_id", "gw", "minutes", "total_points")
@@ -181,7 +181,7 @@ def registration_gw(mart: pd.DataFrame) -> pd.Series:
     is **forced by §5.1**, which forbids this module every Tier A sibling. `test_rankers.py`
     asserts all three agree on the same mart rather than trusting the three copies to stay equal.
 
-    `INVENTORY.md` §2.5 records why the predicate is needed at all: the DAL spine is a full
+    `archive/INVENTORY.md` §2.5 records why the predicate is needed at all: the DAL spine is a full
     player x gameweek cartesian product, so a GW20 debutant *has* GW1-19 rows with NULL
     performance, and counting them would score the DAL's construction rather than the player.
     """
@@ -196,7 +196,7 @@ def population(mart: pd.DataFrame) -> pd.DataFrame:
     registration onward is a row, whether he featured, blanked, or had no fixture. A rolling or
     expanding mean over these rows is therefore denominated in **gameweeks elapsed**, which is the
     quantity §0.9 selects; the same statistic over appearances is a different number, and
-    `METRIC.md` §3.2 gives the concrete failure -- it orders an 8-per-appearance player who features
+    `archive/METRIC.md` §3.2 gives the concrete failure -- it orders an 8-per-appearance player who features
     a third of the time above a nailed 4-per-week one.
 
     Args:
@@ -245,7 +245,7 @@ def _assert_lag_safe(rolled: pd.DataFrame, column: str) -> None:
     bleeding across the player boundary -- is forced to surface a non-null value there.
 
     `assert_lag_safe` itself is not called: it takes a `FeaturePool`, and this column is not a
-    governed feature and must not be given a spec that suggests it is (`INVENTORY.md` §2.1 records
+    governed feature and must not be given a spec that suggests it is (`archive/INVENTORY.md` §2.1 records
     the mart's exclusion of `points_roll*`). §6.2 asks for an assertion over the columns the ranker
     uses, which is this.
     """
@@ -278,14 +278,14 @@ def rank_p_play(mart: pd.DataFrame) -> RankerOutput:
     """F1: rank on the probability of featuring, ignoring the scoring rate entirely.
 
     `PlayModel` is used as it stands (`model/terms/p_play/p_play.py:40`, §8.1) at its default
-    variant. `INVENTORY.md` §2.6 measures the fit as an expanding walk-forward re-estimated per
+    variant. `archive/INVENTORY.md` §2.6 measures the fit as an expanding walk-forward re-estimated per
     position per gameweek from strictly prior rows, so the as-of guarantee lives inside the
-    ranker's own fit and one call covers the panel (§6.1). *`INVENTORY.md` does not record
+    ranker's own fit and one call covers the panel (§6.1). *`archive/INVENTORY.md` does not record
     `PlayModel`'s constructor surface -- §11's third gap -- so the default is taken rather than
     configured; §6.1's interface admits a configured object if a later pass wants one.*
 
     **Coverage is the model's population, and the holes are governed rather than filled.**
-    `INVENTORY.md` §2.6 measures `PlayModel.population` dropping `is_dgw` rows and null-`minutes`
+    `archive/INVENTORY.md` §2.6 measures `PlayModel.population` dropping `is_dgw` rows and null-`minutes`
     rows. Double-gameweek rows stay unrankable under §6.5 -- P(play) in a double gameweek is not 0
     and is not a fixed number, so no constant can fill the hole. No-fixture rows never reach that
     rule: §0.4 has the harness rank such a player last for *every* ranker, which is what stops F1
@@ -319,7 +319,7 @@ def rank_season_ppg(mart: pd.DataFrame) -> RankerOutput:
     """F2: mean points per gameweek elapsed since registration, strictly before the scored week.
 
     `expanding_prior_mean` (`model/eval/baselines.py:58`) is called directly on §8.3's population.
-    `INVENTORY.md` §2.1 records it as a one-argument `groupby.transform` with `shift(1)` before
+    `archive/INVENTORY.md` §2.1 records it as a one-argument `groupby.transform` with `shift(1)` before
     `expanding()` and **no population of its own** -- its meaning follows the rows passed -- which
     is exactly what makes it reusable for a denominator no wrapper in the repository supplies.
     §3.4 and §8.1 both record why its wrapper `build_baseline_features` must not be used instead:
@@ -346,12 +346,12 @@ def rank_recent_form(mart: pd.DataFrame) -> RankerOutput:
     `add_lagged_rolls` (`model/features/build.py:37`) computes it at `min_periods = 1` over §8.3's
     population -- §6.4's selection, and §9.1 records that deriving over a population the consumer
     supplies is not merely *compatible* with the governance record but the construction it
-    **requires**: `INVENTORY.md` §2.1 measures no `points_roll*` column on the governed mart and
+    **requires**: `archive/INVENTORY.md` §2.1 measures no `points_roll*` column on the governed mart and
     records the enforcement as being over `build_player_gameweek_state`'s output columns, so a
     ranker reading a mart column would have had nothing to read and one adding a column would have
     broken `tests/test_state_architecture.py`.
 
-    `INVENTORY.md` §2.1 records the helper's convention as `shift(1).rolling(N).mean()` with
+    `archive/INVENTORY.md` §2.1 records the helper's convention as `shift(1).rolling(N).mean()` with
     `min_periods=1`, which is the same convention `research/families/form/validate/study.py` uses
     for the same two statistics. *The convention is shared; the frame is not* -- §0.9 denominates
     in gameweeks elapsed where the study rolls over its own `minutes >= 60` population, and §6.4 is
@@ -359,7 +359,7 @@ def rank_recent_form(mart: pd.DataFrame) -> RankerOutput:
 
     Warmup rows are partial-window means, not nulls: at GW2 the statistic is a one-gameweek mean
     and at GW3 a two-gameweek mean. §6.4 states the cost and requires it visible in the reported
-    span rather than hidden behind a minimum-observations cut, and `METRIC.md` §5.3 records the
+    span rather than hidden behind a minimum-observations cut, and `archive/METRIC.md` §5.3 records the
     consequence -- F2 and F3 return the same number for every player at GW2, GW3 and GW4, first
     diverging at GW5.
     """
@@ -386,6 +386,6 @@ FLOOR_RANKERS: Final[Mapping[str, RankFn]] = MappingProxyType(
 
 §0.13 determines *which* of them is the floor per comparison, on the intersection of every window
 involved; that is a property of a run's results and not of this module. A set rather than one
-nominated ranker because `METRIC.md` §5.3 records that which naive ranker wins is itself a result:
+nominated ranker because `archive/METRIC.md` §5.3 records that which naive ranker wins is itself a result:
 if F1 is hard to beat, that says something about the decision no candidate's score would reveal.
 """

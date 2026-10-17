@@ -2,18 +2,18 @@
 
 # Starting XI and Bench Order — the design
 
-**Status:** Design settled; the build is under way. `§0` makes the metric selections `METRIC.md` §8
+**Status:** Design settled; the build is under way. `§0` makes the metric selections `archive/METRIC.md` §8
 leaves open; §1–§10 state how the harness is built.
 **Scope:** this document answers one question — **given the evidence, what system should we
-build?** `DECISION.md` states what is being decided, `METRIC.md` characterises candidate metrics
-without selecting among them, and `INVENTORY.md` states what exists in the repository today.
+build?** `archive/DECISION.md` states what is being decided, `archive/METRIC.md` characterises candidate metrics
+without selecting among them, and `archive/INVENTORY.md` states what exists in the repository today.
 
 This document is reasoning in prose. It carries no verdict tables, no reuse labels and no
 capabilities table of its own; where a fact about the repository is needed it is **cited to
-`INVENTORY.md`**, never restated as a first-hand finding.
+`archive/INVENTORY.md`**, never restated as a first-hand finding.
 
 Section numbers are used by all four documents in this folder. Every cross-reference here names the
-document — `METRIC.md` §6, never a bare §6. Sections §1–§10 keep the numbers other documents
+document — `archive/METRIC.md` §6, never a bare §6. Sections §1–§10 keep the numbers other documents
 already cite; the metric selections were added afterwards and are numbered **§0** so that no
 existing cross-reference moves.
 
@@ -21,48 +21,48 @@ existing cross-reference moves.
 
 ## 0. The metric selections
 
-`METRIC.md` is a survey that selects nothing, and its §8 lists sixteen selections a design must
+`archive/METRIC.md` is a survey that selects nothing, and its §8 lists sixteen selections a design must
 make before the harness can be built. This section makes them. Each selection names the
-`METRIC.md` candidate adopted, the candidates not adopted, and the reason — which is the only place
+`archive/METRIC.md` candidate adopted, the candidates not adopted, and the reason — which is the only place
 in this folder where those reasons are recorded.
 
 All sixteen are now settled. Two were gaps for a time and are worth naming, because both closed by a
 pass on the document that owned the gap rather than by a decision taken here. **#12**'s recent-form
-component was gated on a governance question outside this folder until an `INVENTORY.md` §2.1 pass
+component was gated on a governance question outside this folder until an `archive/INVENTORY.md` §2.1 pass
 read the record; §9.1 closes it and §0.12 selects F3 unconditionally. **#10**, the bench-order
-scoring rule, was a gap until `METRIC.md` §4.3 characterised a candidate set; §0.10 now selects from
+scoring rule, was a gap until `archive/METRIC.md` §4.3 characterised a candidate set; §0.10 now selects from
 it.
 
 ### 0.1 The primary scoring metric — P1, counterfactual regret (#1)
 
-**Selected: P1.** This selection is not open. `DECISION.md` §1 already fixes the cost model in
+**Selected: P1.** This selection is not open. `archive/DECISION.md` §1 already fixes the cost model in
 prose — the cost of a wrong call is the gap between what the chosen XI scored and what the best
-available XI would have scored — and `METRIC.md` §0.4 records that commitment while noting the
+available XI would have scored — and `archive/METRIC.md` §0.4 records that commitment while noting the
 tension it creates with a survey that is not permitted to select. The tension is real and stays on
-the record; it does not reopen the choice, because `DECISION.md` governs `DESIGN.md`.
+the record; it does not reopen the choice, because `archive/DECISION.md` governs `DESIGN.md`.
 
-**What P1 buys, in `METRIC.md` §1's terms.** It prices the *decision* rather than one player's
+**What P1 buys, in `archive/METRIC.md` §1's terms.** It prices the *decision* rather than one player's
 outcome, it is bounded below at 0 when the counterfactual maximises over exactly the set the chosen
 XI is drawn from, and it is a counterfactual over realised points rather than a forecast.
 
 **Not selected, and why.**
 
 - **P2, benched-player points.** It prices the outcome rather than the decision and charges a
-  ranker for an unavoidable loss identically to an avoidable one (`METRIC.md` §1, P2). That is the
+  ranker for an unavoidable loss identically to an avoidable one (`archive/METRIC.md` §1, P2). That is the
   distinction the whole slice exists to make.
-- **P5, tail-weighted regret.** `METRIC.md` §1 records that it double-counts against P1, which
+- **P5, tail-weighted regret.** `archive/METRIC.md` §1 records that it double-counts against P1, which
   already prices a benched haul by magnitude, and that no evidence available sets its coefficient.
   Every result would be conditional on an unmeasured judgement.
-- **P6 and P7** are speculative in `METRIC.md`'s sense — P6 needs a manager objective the data does
-  not record, P7 needs an objective function `DECISION.md` §5 puts out of scope.
+- **P6 and P7** are speculative in `archive/METRIC.md`'s sense — P6 needs a manager objective the data does
+  not record, P7 needs an objective function `archive/DECISION.md` §5 puts out of scope.
 
-**P3 is adopted as a companion, not as an alternative.** `METRIC.md` §1 records that P3 is a
+**P3 is adopted as a companion, not as an alternative.** `archive/METRIC.md` §1 records that P3 is a
 presentation of P1's own quantity and that it produces no single comparable number. Both properties
 are why it is reported alongside the scalar rather than instead of it: the regret *distribution* —
 the count and size of the worst weeks per ranker — is what a mean hides, and §7.1 makes it
 representable in the artefact.
 
-**P4 is named as required and left undefined, deliberately.** `METRIC.md` §1 records that "signed
+**P4 is named as required and left undefined, deliberately.** `archive/METRIC.md` §1 records that "signed
 error" cannot be regret, which is non-negative, and that nothing in this folder defines what
 quantity is signed or against what reference. This design does not invent a definition. It stores
 P4's presumed inputs — both XI totals, not their difference — so that whatever definition is
@@ -70,17 +70,17 @@ eventually fixed is derivable without re-running the harness (§7.6). Flagged at
 
 ### 0.2 Auto-substitution — the chosen side only (#2)
 
-**Selected: `METRIC.md` §2.1's asymmetric option.** The chosen XI's total is what the rules
+**Selected: `archive/METRIC.md` §2.1's asymmetric option.** The chosen XI's total is what the rules
 actually delivered; the counterfactual best legal XI is computed with **no** substitutions applied.
 
-**Why.** `METRIC.md` §2.1 states the property that decides it: applying substitutions to **both**
+**Why.** `archive/METRIC.md` §2.1 states the property that decides it: applying substitutions to **both**
 sides lets the counterfactual bank points from a twelfth player where a formation minimum forces a
 non-featuring player in, which lifts the benchmark above what any XI *selection* could realise and
-turns it into a joint XI-and-bench-order optimum — `DECISION.md` §1's explicitly secondary decision
+turns it into a joint XI-and-bench-order optimum — `archive/DECISION.md` §1's explicitly secondary decision
 smuggled into the primary one. Applying them to **neither** side charges a ranker for a blank the
 rules of the game already covered, which measures the game's mechanics rather than the ranking.
 
-**What the selection costs, stated rather than glossed.** `METRIC.md` §2.1 is explicit that the
+**What the selection costs, stated rather than glossed.** `archive/METRIC.md` §2.1 is explicit that the
 asymmetric option does **not** fully separate ranking quality from bench coverage, because the
 chosen side's realised total depends on the ordering that supplied the replacement. §4.9 and §4.13
 carry that residual coupling from the build side; the practical consequence — every primary regret
@@ -89,17 +89,17 @@ figure names the ordering that produced it — is enforced structurally at §5.4
 ### 0.3 The substitution trigger — featured at all (#3)
 
 **Selected: a starter triggers a substitution if he recorded no minutes, covering both
-`minutes = 0` and `minutes` NULL.** `METRIC.md` §2.2 names these as two structurally distinct
-states and cites `INVENTORY.md` §2.5 for their separate presence on the mart.
+`minutes = 0` and `minutes` NULL.** `archive/METRIC.md` §2.2 names these as two structurally distinct
+states and cites `archive/INVENTORY.md` §2.5 for their separate presence on the mart.
 
 **Why both states.** Reading the trigger as `0`-only leaves a blank-gameweek player standing in the
 XI scoring nothing, which lowers every ranker's realised total for a reason that has nothing to do
-with ranking. There is no partial-appearance case to tune: `METRIC.md` §2.2 records that a player
+with ranking. There is no partial-appearance case to tune: `archive/METRIC.md` §2.2 records that a player
 who comes on for one minute is an appearance under any reading.
 
-**The condition `METRIC.md` §2.2 attaches, and how it is discharged.** A NULL-inclusive trigger
+**The condition `archive/METRIC.md` §2.2 attaches, and how it is discharged.** A NULL-inclusive trigger
 requires the pre-registration population to be excluded upstream, or substitution events are
-manufactured from players who did not yet exist. `INVENTORY.md` §2.5 records that the DAL spine is
+manufactured from players who did not yet exist. `archive/INVENTORY.md` §2.5 records that the DAL spine is
 a full player × gameweek cartesian product and that ~84% of NULL-`minutes` rows are a
 pre-registration prefix rather than a blank. §2.1 discharges the condition by **constructing the
 squad universe before drawing**, so no prefix row can enter a squad at all, and §2.8 makes that a
@@ -107,52 +107,52 @@ test rather than a convention.
 
 ### 0.4 The no-fixture ranking rule — ranked last, by the harness, for every ranker (#4)
 
-**Selected: `METRIC.md` §2.3's first option.** A player whose club has no fixture is ranked last by
+**Selected: `archive/METRIC.md` §2.3's first option.** A player whose club has no fixture is ranked last by
 the harness, identically for every ranker, and remains legal to select.
 
-**Why.** `METRIC.md` §2.3 records the asymmetry this removes: `INVENTORY.md` §2.6 measures that
+**Why.** `archive/METRIC.md` §2.3 records the asymmetry this removes: `archive/INVENTORY.md` §2.6 measures that
 `PlayModel`'s population drops rows with null `minutes`, so `p_play` has no value on those rows
 while a PPG-style ranker scores them at 0. Under any per-ranker convention, one floor ranker would
 carry an implicit fixture-awareness the other two lack — as a side-effect of how its **training
-frame** was built, not of what its statistic measures. `METRIC.md` §2.3 is explicit that this is a
+frame** was built, not of what its statistic measures. `archive/METRIC.md` §2.3 is explicit that this is a
 difference in preprocessing rather than in ranking; a margin partly sourced from it would be a
 population artefact reported as a method result.
 
 **Not selected.** *Each ranker uses its own coverage* would measure fixture-awareness as a real
-capability, which `METRIC.md` §2.3 correctly notes is part of what separates methods — but it
+capability, which `archive/METRIC.md` §2.3 correctly notes is part of what separates methods — but it
 cannot be separated here from the training-frame artefact, so the capability and the artefact would
 be measured as one number. *Scoring `p_play` = 0 on those rows* is semantically correct and closes
-`p_play`'s coverage hole, but `METRIC.md` §2.3 records that it **preserves** the asymmetry:
+`p_play`'s coverage hole, but `archive/METRIC.md` §2.3 records that it **preserves** the asymmetry:
 `p_play` would consult the fixture calendar and the PPG baselines still would not.
 
-**What the selection costs, and the measurement that keeps it auditable.** `METRIC.md` §2.3 names
+**What the selection costs, and the measurement that keeps it auditable.** `archive/METRIC.md` §2.3 names
 both: nothing then measures fixture-awareness, and the rule narrows the no-fixture substitution
 path, lowering §4's substitution count *by construction*. So the harness stores, per ranker and per
 squad-week, whether the rule changed the selected XI (§7.6), and §7.7 requires that count reported
 beside any bench-order figure. That count is the size of the confound the rejected options would
 have carried.
 
-**`is_dgw` rows are not covered by this rule and are not resolved here.** `METRIC.md` §2.3 records
+**`is_dgw` rows are not covered by this rule and are not resolved here.** `archive/METRIC.md` §2.3 records
 that `p_play` also drops double-gameweek rows, where P(play) is not 0 and no constant is correct,
-and that `INVENTORY.md` §3.4 records the materiality as unmeasurable without a squad set. Those
+and that `archive/INVENTORY.md` §3.4 records the materiality as unmeasurable without a squad set. Those
 rows fall to the unrankable-last rule of §6.5 and the measurement is owed on the first run.
 
 ### 0.5 Incoming-substitute eligibility — required to have featured (#5)
 
-**Selected: `METRIC.md` §2.4's first option.** A bench player enters only if he himself recorded
+**Selected: `archive/METRIC.md` §2.4's first option.** A bench player enters only if he himself recorded
 minutes, under the same two-state predicate as the trigger (§0.3).
 
-**Why.** `METRIC.md` §2.4 states the failure of the alternative precisely: a non-appearance replaces
+**Why.** `archive/METRIC.md` §2.4 states the failure of the alternative precisely: a non-appearance replaces
 a non-appearance, scores nothing, consumes the slot, and strands behind it a bench player who *did*
 feature — so a bench-order comparison would turn on queue position rather than on ordering, which
 is the one thing §4 is trying to measure. It also matches the real game.
 
-**Cost: none against the metric's lower bound.** `METRIC.md` §2.4 records that under the asymmetric
+**Cost: none against the metric's lower bound.** `archive/METRIC.md` §2.4 records that under the asymmetric
 option selected at §0.2 the counterfactual has no substitutions applied, so no eligibility rule can
 lift the chosen side above it and regret ≥ 0 survives either choice. The selection is made on the
 bench-order argument alone.
 
-### 0.6 The three substitution mechanics — all three, as `METRIC.md` §2.5 states them (#6)
+### 0.6 The three substitution mechanics — all three, as `archive/METRIC.md` §2.5 states them (#6)
 
 **Selected.** The GK slot is a **separate process** from the three outfield slots; a substitution
 fires only if it **preserves a legal formation**; a **skipped player stays available** for a later
@@ -160,16 +160,16 @@ vacancy in the same gameweek.
 
 **Why each.**
 
-- **GK separate.** It follows from the quota rather than being a free choice: `INVENTORY.md` §2.2
+- **GK separate.** It follows from the quota rather than being a free choice: `archive/INVENTORY.md` §2.2
   records `squad_select` = 2 for GK and `squad_min_play` = `squad_max_play` = 1, so a 15 holds two
   goalkeepers and every legal XI starts exactly one. Bench order is therefore two orderings, not one
-  ranking of four (`METRIC.md` §2.5) — and the GK ordering is degenerate, which is what §4.2 builds
+  ranking of four (`archive/METRIC.md` §2.5) — and the GK ordering is degenerate, which is what §4.2 builds
   on.
-- **Legality required.** `METRIC.md` §2.5 names the consequence of not requiring it: the
+- **Legality required.** `archive/METRIC.md` §2.5 names the consequence of not requiring it: the
   post-substitution XI would leave the set the counterfactual maximises over, and the chosen side
   could out-score its own counterfactual. That would break P1's lower bound (§0.1), which is the
   property the whole metric rests on.
-- **Skipped stays available.** `METRIC.md` §2.5 records that a rule treating a skipped player as
+- **Skipped stays available.** `archive/METRIC.md` §2.5 records that a rule treating a skipped player as
   spent measures a **different** bench order. The priority-queue reading is the one that matches the
   game and the one under which an ordering is a genuine ranking rather than a consumption sequence.
   §4.3's loop implements it, and §4.3's worked example shows the case where it changes the answer.
@@ -179,13 +179,13 @@ vacancy in the same gameweek.
 **Selected: the study-level scope is GW2–38, and each ranker declares its own window with every
 comparison run on the intersection.**
 
-**The GW1 exclusion is forced, not chosen.** `METRIC.md` §2.6 records that season-long as-of PPG is
+**The GW1 exclusion is forced, not chosen.** `archive/METRIC.md` §2.6 records that season-long as-of PPG is
 null at GW1 — no prior gameweek exists — so GW1 is scoreable under no as-of candidate.
 
-**Why declared windows rather than one global window.** `METRIC.md` §2.6 states both costs. A
+**Why declared windows rather than one global window.** `archive/METRIC.md` §2.6 states both costs. A
 global window drags every ranker down to the most restricted one anyone adds and discards weeks the
 others could score; declared windows mean no single span describes the study and every result must
-carry its own. The second cost is payable and the first is not: `INVENTORY.md` §2.6 measures
+carry its own. The second cost is payable and the first is not: `archive/INVENTORY.md` §2.6 measures
 `WARMUP_GW = 3` at `model/eval/walkforward.py:58` with predictions beginning at GW4, and records
 that `WARMUP_GW` is shared by every term via `_binary_component` and `_poisson_component` — so it is
 not adjustable for one ranker. Under a global window the whole study would be pinned to GW4–38 by a
@@ -202,15 +202,15 @@ run header; §6.3 fixes how the intersection is computed and §7.2's T3 stores i
 written are settled below, because the build made both visible and each admits more than one
 reading: **which** gap C1 is, and **which** statistic it is scored on.
 
-**Why C1 over C2.** `METRIC.md` §3.1 records that C2 — the gap between the 11th and 12th player by
+**Why C1 over C2.** `archive/METRIC.md` §3.1 records that C2 — the gap between the 11th and 12th player by
 the as-of statistic — is confounded: when the three best remaining players are all defenders it
 measures the `≥3 DEF` minimum binding against the ordering, not how close the selection was, and it
 labels structurally forced weeks close and balanced weeks clear. C1 measures the margin between
 the two configurations that were actually in contention, which is the quantity the word "close"
 names.
 
-**Why not C3 (no conditioning).** C3 has the largest sample and `METRIC.md` §3.1 states the cost:
-it mixes weeks where no method could have distinguished itself into the headline figure. `METRIC.md`
+**Why not C3 (no conditioning).** C3 has the largest sample and `archive/METRIC.md` §3.1 states the cost:
+it mixes weeks where no method could have distinguished itself into the headline figure. `archive/METRIC.md`
 §1's own note on P1 — that it is not summarised by its mean, because a single average blends
 variance on close calls with method failure on clear calls — is the same objection from the metric
 side.
@@ -220,7 +220,7 @@ construction: the two leading configurations are tied on the statistic the selec
 so nothing available at selection time separates them and no method can distinguish itself.
 Retaining them pulls every candidate's mean toward the same value in proportion to how many there
 are, which makes all methods look equally good and the decision look better-measured than it is.
-The excluded count is reported for the reason `METRIC.md` §3.1 gives — a large one means a thinner
+The excluded count is reported for the reason `archive/METRIC.md` §3.1 gives — a large one means a thinner
 conditioned sample than the headline span suggests.
 
 *This paragraph previously carried a gloss of its own — "and every ranker scores 0 regret" — which
@@ -229,21 +229,21 @@ scored on realised points, where a tie at the top was taken to mean every legal 
 so no ranker could be charged anything.
 Under the as-of reading a tie bounds nothing about realised regret: a ranker can still select a
 third, worse XI and be charged for it. The exclusion does not depend on the withdrawn clause and is
-unchanged; `METRIC.md` §3.1's own sentence, which says only that no method can distinguish itself,
+unchanged; `archive/METRIC.md` §3.1's own sentence, which says only that no method can distinguish itself,
 never carried it. Recorded in Provenance.*
 
-**The property that makes the exclusion safe for the paired design.** `METRIC.md` §3.1 records that
+**The property that makes the exclusion safe for the paired design.** `archive/METRIC.md` §3.1 records that
 closeness under C1 is a property of the **squad-week**, not of the ranker, so zero-gap weeks are
 identical across rankers. The same rows therefore drop for both sides of every comparison and the
 pairing is undisturbed (§10.4).
 
 #### Which gap C1 is — the XI gap, not the formation gap
 
-**The two are different quantities, and this document had conflated them.** `INVENTORY.md` §2.4
+**The two are different quantities, and this document had conflated them.** `archive/INVENTORY.md` §2.4
 now records that the runner-up over the 8-formation enumeration is the best total achievable by a
 *different* formation, and is **not** the second-best legal XI; it pins a squad where the best XI
 totals 745, the enumeration runner-up 729, and the second-best legal XI 744. The earlier version of
-this paragraph asserted the two were the same, on the strength of `INVENTORY.md` §2.4's own
+this paragraph asserted the two were the same, on the strength of `archive/INVENTORY.md` §2.4's own
 superseded sentence. `formations.py` was built to the computation this paragraph specified and
 therefore computes the **formation** gap today, while §7.2's T2 names the column
 `second_best_xi_points` — so the artefact currently promises a quantity the code does not compute.
@@ -271,7 +271,7 @@ That is the defect this resolution closes.
    subtractions is not a search; it is not a reason to prefer a quantity on its cheapness.
 2. **The formation gap carries the defect C2 was rejected for.** It never *understates* the margin —
    the second-best legal XI is at least the best total achievable by a different formation
-   (`INVENTORY.md` §2.4) — so it errs in one direction only, calling a week clear whenever the two
+   (`archive/INVENTORY.md` §2.4) — so it errs in one direction only, calling a week clear whenever the two
    leading XIs happen to share a formation. Whether they do is a property of the squad's positional
    depth, not of how close the decision was. That is the same species of confound as C2's `≥3 DEF`
    minimum binding against the ordering: a conditioning variable selecting on squad structure while
@@ -290,26 +290,26 @@ computing the weaker of two quantities at no saving — the cheaper-looking repa
 #### Which statistic C1 is scored on — the as-of statistic, not realised points
 
 **Selected: the as-of statistic**, on §8.3's population with §0.9's denominator. This document and
-`METRIC.md` read differently on this point and `METRIC.md` is right, so the correction lands here.
+`archive/METRIC.md` read differently on this point and `archive/METRIC.md` is right, so the correction lands here.
 
-**Why.** `METRIC.md` §3.1 defines C1 as the gap "scored on an **as-of statistic before outcomes are
-known**", and §0's selections adopt each candidate as `METRIC.md` characterises it — a selection
+**Why.** `archive/METRIC.md` §3.1 defines C1 as the gap "scored on an **as-of statistic before outcomes are
+known**", and §0's selections adopt each candidate as `archive/METRIC.md` characterises it — a selection
 cannot keep the name and discard the clause. Two further readings confirm it rather than merely
 permit it. §0.9 calls §0.8's quantity "the conditioning statistic" and matches its **denominator** to
-the PPG rankers', honouring `METRIC.md` §3.2's coupling warning; realised points have no
+the PPG rankers', honouring `archive/METRIC.md` §3.2's coupling warning; realised points have no
 denominator, so under the realised reading §0.9's central argument would be about nothing. And
 conditioning on realised closeness would be conditioning on the outcome — selecting squad-weeks by
 how the results came out, which is what "before outcomes are known" exists to forbid.
 
 **What this document had that pointed the other way, and why it was not evidence.** The previous
-version of this paragraph cited `INVENTORY.md` §2.4's "position-sorted **realised** points". That
-phrase described the enumeration `INVENTORY.md` was documenting for P1's counterfactual, which is
-scored on realised points (§0.1); it was never a statement about C1's inputs. `METRIC.md` §3.1's
+version of this paragraph cited `archive/INVENTORY.md` §2.4's "position-sorted **realised** points". That
+phrase described the enumeration `archive/INVENTORY.md` was documenting for P1's counterfactual, which is
+scored on realised points (§0.1); it was never a statement about C1's inputs. `archive/METRIC.md` §3.1's
 "the same enumeration P1 needs" means the same 8-combination machinery, not the same numbers through
-it. `INVENTORY.md` §2.4 no longer says "realised" at that site, because the enumeration is
+it. `archive/INVENTORY.md` §2.4 no longer says "realised" at that site, because the enumeration is
 indifferent to which scalar is sorted.
 
-**Which as-of statistic, precisely.** §0.9 selects `METRIC.md` §3.2's first option, whose definition
+**Which as-of statistic, precisely.** §0.9 selects `archive/METRIC.md` §3.2's first option, whose definition
 is complete rather than parameterised: total points before *t* over gameweeks before *t* in which the
 player was in the game, blanked and no-fixture weeks at 0, pre-registration weeks excluded. There is
 no window left to choose — it is the season-to-date rate — and §8.3 fixes the population it is
@@ -348,43 +348,43 @@ tie-break it depends on.
 
 ### 0.9 The as-of denominator — gameweeks elapsed, blanks and no-fixture weeks at 0, pre-registration weeks excluded (#9)
 
-**Selected: `METRIC.md` §3.2's first option**, with its three sub-choices resolved as: blanked weeks
+**Selected: `archive/METRIC.md` §3.2's first option**, with its three sub-choices resolved as: blanked weeks
 count at **0**, no-fixture weeks count at **0**, and pre-registration weeks **do not count at all**.
 
-**Why gameweeks rather than appearances.** `METRIC.md` §3.2 states the property that decides it: a
+**Why gameweeks rather than appearances.** `archive/METRIC.md` §3.2 states the property that decides it: a
 gameweek-denominated rate folds the probability of playing into the statistic implicitly, which
 keeps it on the same footing as a metric scored in realised points, where a non-featuring player
 contributes 0. Appearance-denominated PPG is a different quantity — comparable only after
-multiplying by P(play) — and `METRIC.md` §3.2 gives the concrete failure: it orders an
+multiplying by P(play) — and `archive/METRIC.md` §3.2 gives the concrete failure: it orders an
 8-per-appearance player who features a third of the time above a nailed 4-per-week one. That
 ordering is wrong for a decision scored in points actually banked.
 
-**Blanks and no-fixture weeks at 0.** `METRIC.md` §3.2 gives the reason for the first — a manager
+**Blanks and no-fixture weeks at 0.** `archive/METRIC.md` §3.2 gives the reason for the first — a manager
 selecting that week faced that 0 — and the second follows identically: a player whose club had no
 fixture scored 0 for anyone who started him.
 
-**Pre-registration weeks excluded.** `METRIC.md` §3.2 frames the alternative as charging a GW20
+**Pre-registration weeks excluded.** `archive/METRIC.md` §3.2 frames the alternative as charging a GW20
 entrant with nineteen zeros he had no opportunity to avoid. That is not a property of the player;
-it is an artefact of the spine. `INVENTORY.md` §2.5 records that those rows exist only because
+it is an artefact of the spine. `archive/INVENTORY.md` §2.5 records that those rows exist only because
 `dal/fct/fct_player_gameweek.py` builds a full cartesian product, and that a player who debuts in
 GW20 therefore *has* GW1–19 rows synthesised as BGW with NULL performance. Counting them would score
 the DAL's construction.
 
-**The coupling `METRIC.md` §3.2 names is honoured.** It warns that if the conditioning statistic and
+**The coupling `archive/METRIC.md` §3.2 names is honoured.** It warns that if the conditioning statistic and
 the baseline ranker use different denominators, "close calls" label weeks that were close under a
 measure no ranker uses. Here the conditioning statistic (§0.8) and both PPG floor rankers read the
 **same** population — one construction, two windows over it — which is what §8.3 fixes and asserts.
 
-**The separation `METRIC.md` §3.2 leaves open is carried by the ranker, not the denominator.**
-`DECISION.md` §1 separates "will this player play" from "what does he score when he does";
-`METRIC.md` §3.2 records that either the denominator or a standalone `p_play` ranker can carry it.
+**The separation `archive/METRIC.md` §3.2 leaves open is carried by the ranker, not the denominator.**
+`archive/DECISION.md` §1 separates "will this player play" from "what does he score when he does";
+`archive/METRIC.md` §3.2 records that either the denominator or a standalone `p_play` ranker can carry it.
 This design carries it with the ranker (F1, §0.12), and keeps the denominator on the
 points-actually-banked footing above. Doing both would fold P(play) into the statistic *and* score
 it separately, and the two floor rankers would no longer be measuring different things.
 
 ### 0.10 The bench-order scoring rule — O1, ordering regret, on an absolute counterfactual (#10)
 
-**Selected: `METRIC.md` §4.3's O1, ordering regret, scored on realised points — with one change to
+**Selected: `archive/METRIC.md` §4.3's O1, ordering regret, scored on realised points — with one change to
 the form §4.4 previously built. The counterfactual σ\* is the best of all 6 permutations of the
 outfield bench, not the best of the policies being compared.**
 
@@ -393,39 +393,39 @@ ordering_regret(gw, squad, ranker, σ) = realised_total(σ*) − realised_total(
        σ* = argmax over all 3! = 6 orderings of the outfield bench
 ```
 
-**This section previously stated that no selection was possible**, because `METRIC.md` §4.1
+**This section previously stated that no selection was possible**, because `archive/METRIC.md` §4.1
 characterised no candidate to select from and this document declined to manufacture one in order to
-appear to have selected. That pass has since run: `METRIC.md` §4.3 characterises five candidates,
+appear to have selected. That pass has since run: `archive/METRIC.md` §4.3 characterises five candidates,
 O1 through O5, with tiers, and §4.4 there records a framing question it deliberately left open. The
 statement is superseded and the selection is made here.
 
-**The mechanic the survey needed fixed is fixed, and was already.** `METRIC.md` §4.1 notes that
+**The mechanic the survey needed fixed is fixed, and was already.** `archive/METRIC.md` §4.1 notes that
 every candidate has to be characterised against §2.5's GK mechanic, and that the bench ordering is
 over **3** outfield players if the GK slot is a separate process and over four if it is not. §0.6
 selects the separate process, and §4.2 works the consequence: the bench holds exactly one
 goalkeeper, an ordering over one element carries no information, and the decision is an ordering
 over 3 outfield players, 6 in all. **That is settled, it is settled here, and every figure below is
-stated for it.** The Provenance section records why this resolves the inversion `METRIC.md` flagged
+stated for it.** The Provenance section records why this resolves the inversion `archive/METRIC.md` flagged
 rather than merely restating one side of it.
 
 #### Realised, not as-of — and the C1 precedent does not transfer
 
-`METRIC.md` §4.4 sets out the tension and refuses to resolve it, correctly: it is a selection. The
+`archive/METRIC.md` §4.4 sets out the tension and refuses to resolve it, correctly: it is a selection. The
 selection is **realised**, and it is made on the metric's own terms rather than by analogy.
 
 - **The C1 correction was about a conditioning statistic, and its argument does not reach a scoring
   rule.** §0.8 and §0.9 moved C1 to an as-of statistic because conditioning on realised points
   selects the *sample* on the very quantity being measured — a bias with a name. A scoring rule does
-  no selecting. `METRIC.md` §4.4 makes exactly this distinction, and it is right.
+  no selecting. `archive/METRIC.md` §4.4 makes exactly this distinction, and it is right.
 - **The decision being scored is already as-of, so realised scoring leaks nothing into it.** An
   ordering policy consumes a ranker's scores, and a ranker scores on prior data only. The policy
   therefore cannot see the outcome no matter how the metric is written. Scoring it on realised
   points asks "what did this as-of-constrained rule cost", which is precisely the question §0.1's
-  P1 asks of the primary decision, and `METRIC.md` §1 records the posture as a property rather than
+  P1 asks of the primary decision, and `archive/METRIC.md` §1 records the posture as a property rather than
   a defect: the benchmark is what was achievable, not what was predictable.
-- **The unit has to survive.** `DECISION.md` §1 states the cost model in points, and the secondary
+- **The unit has to survive.** `archive/DECISION.md` §1 states the cost model in points, and the secondary
   figure is reported beside the primary one (§4.9). An as-of rule stops being expressible in points
-  — `METRIC.md` §4.4 says so — and two figures in different units, presented together as the primary
+  — `archive/METRIC.md` §4.4 says so — and two figures in different units, presented together as the primary
   and secondary readings of one decision, would not be comparable to each other or to the cost model
   they are both supposed to price.
 
@@ -437,7 +437,7 @@ alternative prices a forecast rather than a decision.
 #### Why O1, and why not each of the others
 
 - **O5 — as-of expected-value ordering regret. Not selected**, and the paragraphs above are the
-  first reason. The second is independent of them: `METRIC.md` tiers it **speculative** on
+  first reason. The second is independent of them: `archive/METRIC.md` tiers it **speculative** on
   definitional grounds — there is no defined as-of counterfactual for an *ordering* — and §0.2's
   reading makes an undefined form disqualifying whatever data exists. Its cheap form, correlating
   the policy's order against an as-of statistic, is close to vacuous, since a policy ordering on a
@@ -447,14 +447,14 @@ alternative prices a forecast rather than a decision.
   rejected P2 for pricing the outcome and then adopted O2 would be applying two standards to one
   question. It also has no cross-week normalisation — a two-substitution week scores roughly twice a
   one-substitution week for reasons that are a property of how many starters blanked — and
-  `METRIC.md` records that none of the available normalisations is obviously right.
+  `archive/METRIC.md` records that none of the available normalisations is obviously right.
 - **O3 — realised-order rank correlation. Not selected, and it is the closest call.** Two properties
   genuinely recommend it: it is independent of §4.3.1's vacancy-order rule, and it is measurable
   over every squad-week rather than only over B2, which is the one candidate response to §4.10's
   power problem. Three properties decide against it. It is **magnitude-free**, so like an as-of rule
   it cannot be expressed in points and cannot sit beside the primary figure in one unit. It
   **credits a policy for ordering correctly players who could not lawfully have entered** — the gap
-  `METRIC.md` §4.1 opens between "worth having" and "able to enter" — so part of what it measures is
+  `archive/METRIC.md` §4.1 opens between "worth having" and "able to enter" — so part of what it measures is
   not the decision. And its per-week resolution over three elements is roughly two bits, which makes
   it a quantity to aggregate and never to read at the grain the artefact stores.
 - **O4 — reachable-set rank correlation. Not selected.** It closes O3's legality gap, which is the
@@ -464,8 +464,8 @@ alternative prices a forecast rather than a decision.
   through its definition of "reachable", **and** O3's magnitude-freedom and tie exposure, while
   having neither's compensating property.
 
-**None of these rejections rests on an unmeasured fact.** `METRIC.md` §4.3.2 flags three
-`INVENTORY.md` gaps — bench-internal tie frequency, rank-correlation tooling and its tie convention,
+**None of these rejections rests on an unmeasured fact.** `archive/METRIC.md` §4.3.2 flags three
+`archive/INVENTORY.md` gaps — bench-internal tie frequency, rank-correlation tooling and its tie convention,
 and whether an as-of expected-points forecast exists. **This selection waits on none of them.** O3
 and O4 are declined on unit and construct grounds that hold whatever the tie frequency turns out to
 be; O5 is declined on a definitional gap that its input question does not affect. The gaps do bind
@@ -473,11 +473,11 @@ one thing, and it is named rather than decided around: see the closing paragraph
 
 #### The relative-counterfactual defect, removed rather than tolerated
 
-`METRIC.md` records O1's own flagged defect: σ\* is the best ordering *among those compared*, so it
+`archive/METRIC.md` records O1's own flagged defect: σ\* is the best ordering *among those compared*, so it
 is a fact about the study rather than about the squad-week, adding a policy to a comparison changes
 every other policy's already-computed score, and two studies comparing different policy sets produce
 values that are not on one scale. **The defect is real, and it is not accepted. σ\* is taken over all
-6 permutations instead, which is the absolute form `METRIC.md` records as the alternative reading.**
+6 permutations instead, which is the absolute form `archive/METRIC.md` records as the alternative reading.**
 
 - **The mirror to P1 requires it.** §4.4's whole justification for O1's shape is that it mirrors P1.
   P1's counterfactual is the **best legal XI over the squad** — absolute, and emphatically not "the
@@ -507,7 +507,7 @@ values that are not on one scale. **The defect is real, and it is not accepted. 
   rather than reported beside it.
 
 **The dependence on §4.3.1 is accepted, with its consequence named.** O1 reads the replay, so its
-values are defined relative to the vacancy-order rule §4.3.1 fixes, and `METRIC.md` §4.3.1 is right
+values are defined relative to the vacancy-order rule §4.3.1 fixes, and `archive/METRIC.md` §4.3.1 is right
 that they are not comparable across a change to it. This is accepted because the alternative — O3 —
 buys independence by not measuring the consequence, and because the primary metric already carries
 the same class of dependence: §4.9 establishes that primary regret is not independent of bench order
@@ -530,19 +530,19 @@ here recorded the item as unresolved and is withdrawn.
 **Selected: B2** for every bench-order claim. **B1**, the substitution count, is reported alongside
 it but denominates a different claim.
 
-**Why B2 for bench-order claims.** `METRIC.md` §4.2 records that B1 counts weeks where every
+**Why B2 for bench-order claims.** `archive/METRIC.md` §4.2 records that B1 counts weeks where every
 candidate ordering brings on the same player and no ordering could have done better. Using B1 as
 the denominator for a bench-order figure credits a method with evidence from weeks where it was
-never distinguished from its rival. B2 counts only weeks that could discriminate — `METRIC.md` §4.2
+never distinguished from its rival. B2 counts only weeks that could discriminate — `archive/METRIC.md` §4.2
 notes this is the same reasoning C1's zero-gap exclusion applies on the primary side (§0.8), which
 is the consistency argument as well as the correctness one.
 
 **B1 is not discarded.** It sizes the headline regret figure under the asymmetric option selected at
 §0.2, because those are exactly the weeks the chosen total departs from the eleven as selected
-(`METRIC.md` §4.2). §4.7 fixes which count denominates which claim, and §4.6 adds a third quantity —
+(`archive/METRIC.md` §4.2). §4.7 fixes which count denominates which claim, and §4.6 adds a third quantity —
 the uncovered-blank count — that falls out of the replay and belongs beside them.
 
-**The caveat `METRIC.md` §4.2 attaches is carried, not dropped.** Neither count is purely empirical:
+**The caveat `archive/METRIC.md` §4.2 attaches is carried, not dropped.** Neither count is purely empirical:
 the rank-last rule selected at §0.4 bounds B1 below by construction, so a low count is partly a
 consequence of that choice rather than a fact about the season. §7.7 requires the artefact to store
 both counts alongside the no-fixture rule count so a reader can see how much of the narrowing was
@@ -560,20 +560,20 @@ diagnostic of the decision's headroom and may be reported as one; it is not the 
 **Selected: F1 (`p_play` alone), F2 (season-long PPG-to-date) and F3 (3-gameweek recent form)
 as the pre-registered floor set. F3 is no longer conditional — the gate below is closed (§9.1).**
 
-**Why a set rather than one ranker.** `METRIC.md` §5.3 records that which naive ranker wins is
+**Why a set rather than one ranker.** `archive/METRIC.md` §5.3 records that which naive ranker wins is
 itself a result — if F1 is hard to beat, that says something about the decision no candidate
 ranker's score would reveal. A single nominated floor forecloses that finding.
 
-**F4 is not pre-registered.** `METRIC.md` §5.1 records that whether F3 and F4 are both baselines or
+**F4 is not pre-registered.** `archive/METRIC.md` §5.1 records that whether F3 and F4 are both baselines or
 one is a sensitivity check is a design choice rather than a property of either. F4 is a window-length
 variant of F3 and adds a second copy of the same statistic to the floor set; it is kept available as
 a sensitivity check and excluded from the pre-registered set, so that the floor is not
-half-populated by one family. `METRIC.md` §5.1's argument for the 3-gameweek length — short enough
+half-populated by one family. `archive/METRIC.md` §5.1's argument for the 3-gameweek length — short enough
 to track rotation, long enough that one blank does not dominate, and matching the window the
 platform already uses for lag-1 rolling signals — is the reason F3 rather than F4 is the member.
 
 **F3 was gated on a question outside this folder. The gate is closed: the exclusion does not
-bind F3.** `METRIC.md` §5.2 records that `INVENTORY.md` §2.1 measures **no `points_roll3` and no
+bind F3.** `archive/METRIC.md` §5.2 records that `archive/INVENTORY.md` §2.1 measures **no `points_roll3` and no
 `points_roll5` on the governed mart**, and that what was unsettled was not the absence but its
 **scope** — whether that exclusion binds a *baseline ranker* as well as a governed signal. It does
 not. §9.1 states the reading in full and is where the reasoning lives; the two facts that carry it
@@ -584,7 +584,7 @@ not merely permitted but **mandatory** under `research/families/form/LENS_DESIGN
 `points_roll3` as FORM-004 on exactly that basis. A floor ranker is a bar-to-beat in an evaluation
 comparison. That is the sanctioned role, not the excluded one.
 
-**What the exclusion does impose, and §6.4 already satisfies it.** `INVENTORY.md` §2.1 measures that
+**What the exclusion does impose, and §6.4 already satisfies it.** `archive/INVENTORY.md` §2.1 measures that
 no mart column exists to read and that the enforcement is over `build_player_gameweek_state`'s output
 columns. So F3 must **derive** its statistic over a population it supplies rather than read one — the
 same thing the form study does at `study.py:342–350` and ADR-010 ratifies. §6.4 selected that
@@ -598,37 +598,37 @@ description of what **every** naive baseline is, and it would exclude the naive 
 document makes mandatory. The distinction the record actually draws is not whether the statistic is
 circular — it is, and openly so — but whether the circular thing is being **advanced as a
 representation of the target** or **held up as the floor a representation must clear**. F3 is the
-second. `METRIC.md` §5.3 makes the point independently from the metric side: which naive ranker wins
+second. `archive/METRIC.md` §5.3 makes the point independently from the metric side: which naive ranker wins
 is a *result about the decision*, not a candidate for adoption.
 
-**A degeneracy that must be reported, not designed away.** `METRIC.md` §5.3 records that F2 and F3
+**A degeneracy that must be reported, not designed away.** `archive/METRIC.md` §5.3 records that F2 and F3
 return the same number for every player at GW2, GW3 and GW4, first diverging at GW5, with the
-measurement in `METRIC.md` Appendix A.3. Under the common window that includes F1 — GW4–38 (§6.3) —
+measurement in `archive/METRIC.md` Appendix A.3. Under the common window that includes F1 — GW4–38 (§6.3) —
 one of those weeks sits inside the study and cannot discriminate between two floor rankers. §7.1
 makes the degeneracy representable in the artefact rather than a caveat in prose.
 
 ### 0.13 How the floor is determined — best-performing on the common window (#13)
 
-**Selected: `METRIC.md` §5.3's first option.** The floor is whichever naive ranker carries the
+**Selected: `archive/METRIC.md` §5.3's first option.** The floor is whichever naive ranker carries the
 lowest mean regret, re-determined **per comparison** on the intersection of every window involved,
 candidate included.
 
-**Why not the maximal-window option.** `METRIC.md` §5.3 states the defect: it compares means taken
+**Why not the maximal-window option.** `archive/METRIC.md` §5.3 states the defect: it compares means taken
 over different spans, and the earliest gameweeks are the thinnest-history weeks of the season, so a
 mean over GW2–38 and one over GW4–38 estimate different quantities. The comparison would partly
 measure which weeks each ranker was allowed to count.
 
-**Why not a nominated floor.** It is stable and simple, and `METRIC.md` §5.3 notes a candidate can
+**Why not a nominated floor.** It is stable and simple, and `archive/METRIC.md` §5.3 notes a candidate can
 clear it while losing to another naive ranker — which is exactly the result that would be reported
 as a pass. Against the strongest naive ranker on the shared window, a pass means something.
 
-**The consequence, which is why §7 stores it per comparison.** `METRIC.md` §5.3 records that this
+**The consequence, which is why §7 stores it per comparison.** `archive/METRIC.md` §5.3 records that this
 option makes the floor **window-relative** — which ranker wins may differ on a narrower window — so
 the floor's identity has to be reported with every result. §7.2's T3 carries `floor_ranker` and the
 window as comparison-level columns for that reason, and §7.3 records why neither is run-level
 identity.
 
-**The coupling to the success bar is honoured.** `METRIC.md` §5.3 states that a "reduction of X%
+**The coupling to the success bar is honoured.** `archive/METRIC.md` §5.3 states that a "reduction of X%
 against the floor's own regret" is not interpretable if numerator and denominator were computed
 over different gameweek sets, so the floor option and the bar are coupled choices. Under the option
 selected here both are computed on the same intersection by construction, which is what makes
@@ -636,21 +636,21 @@ selected here both are computed on the same intersection by construction, which 
 
 ### 0.14 Design, resampling schemes and the resample count — paired at the squad-week, U1 and U2 as two intervals, U1 gameweek-stratified, n = 10,000 (#14)
 
-**Paired.** `METRIC.md` §6.1 states the reason: squad-level variation — some squads are simply
+**Paired.** `archive/METRIC.md` §6.1 states the reason: squad-level variation — some squads are simply
 deeper and have less to gain from any method — is common to all rankers and cancels in the
 difference, so what is measured is the method difference rather than the absolute regret level.
 The unpaired alternative admits that variation as noise for nothing in return. The requirement
-`METRIC.md` §6.1 attaches — that §2.6's common-window handling be exact — is discharged by §6.3.
+`archive/METRIC.md` §6.1 attaches — that §2.6's common-window handling be exact — is discharged by §6.3.
 
 **Pairing is a property of the squad-week, not of the season-long squad.** This is worth stating
-explicitly, because the selection §0.16 previously made rested on the contrary reading. `METRIC.md`
+explicitly, because the selection §0.16 previously made rested on the contrary reading. `archive/METRIC.md`
 §6.1 requires every ranker to face the same squads in the same gameweeks. Under §0.16's weekly
 resampling every ranker faces the identical 300 squads within each gameweek, so the pairing holds
 exactly, at the grain the difference is taken at. §10.4 makes it structural rather than
 disciplinary: the estimator consumes an already-differenced panel and never sees two rankers, so an
 unpaired draw is unrepresentable regardless of how the squads were built.
 
-**Two intervals, U1 and U2, reported as two.** `METRIC.md` §6.2 records that they answer different
+**Two intervals, U1 and U2, reported as two.** `archive/METRIC.md` §6.2 records that they answer different
 questions: U1 (resample squads, gameweek set fixed) measures sensitivity to which squads were
 drawn, U2 (resample gameweeks, squads fixed) measures sensitivity to which weeks the season
 contained. Under the synthetic population selected at §0.16 both are live sources of variability —
@@ -658,7 +658,7 @@ the squads are drawn by this design and the season is one realisation — so col
 number would suppress whichever question the chosen scheme did not answer. §7.2's T3 stores two
 column pairs.
 
-**U3 is rejected, and the reason is now one of its two halves rather than both.** `METRIC.md` §6.2
+**U3 is rejected, and the reason is now one of its two halves rather than both.** `archive/METRIC.md` §6.2
 states the objection in two parts: the same squad recurs across every gameweek, **and** the same
 gameweek recurs across every squad, so treating squad-week rows as independent draws inflates the
 effective sample by roughly two orders of magnitude and manufactures precision the data does not
@@ -671,22 +671,22 @@ as a **bootstrap stratified by gameweek** — the gameweek margin held fixed, sq
 within a week. §10.3 derives this and §10.5 states the estimator.
 
 **U4's cluster structure no longer applies, because the panel no longer has clusters.**
-`METRIC.md` §6.2 describes the cluster bootstrap as the structurally correct treatment of a panel
+`archive/METRIC.md` §6.2 describes the cluster bootstrap as the structurally correct treatment of a panel
 where one unit contributes many dependent rows — resample clusters, take all of a drawn cluster's
 rows. That was the right structure under a held squad, which contributed one row per gameweek. Under
 weekly resampling **each squad contributes exactly one row**, so "take all of a drawn cluster's rows"
 and "draw one row" are the same operation, and U4 collapses into the within-stratum draw above. This
 is not a relaxation of U4's requirement; it is that requirement evaluated on a panel whose dependence
-structure the construction has removed. `INVENTORY.md` §2.9's finding that there is **no generic
+structure the construction has removed. `archive/INVENTORY.md` §2.9's finding that there is **no generic
 cluster-bootstrap-of-a-mean** is unchanged in its consequence — U1 is still a build, since no
 gameweek-stratified bootstrap of a mean exists in the repository either. §10 designs it.
 
-**U2 is a reuse.** `INVENTORY.md` §2.9 records a moving-block bootstrap of the mean of a
+**U2 is a reuse.** `archive/INVENTORY.md` §2.9 records a moving-block bootstrap of the mean of a
 per-gameweek series, motivated by consecutive-gameweek autocorrelation, tested and deterministic —
 in two implementations. §8.2 chooses between them.
 
-**The resample count: n = 10,000.** `METRIC.md` §6.2 records that a count acquired by import path is
-acquired by accident, since `INVENTORY.md` §2.9 measures two same-named implementations at
+**The resample count: n = 10,000.** `archive/METRIC.md` §6.2 records that a count acquired by import path is
+acquired by accident, since `archive/INVENTORY.md` §2.9 measures two same-named implementations at
 `n = 1000` and `n = 3000`. It also states the argument that fixes the level: where a verdict turns
 on whether an interval excludes zero — which §0.15's S2 does — a 2.5% endpoint at `n = 1000` rests
 on the 25 most extreme draws and Monte Carlo jitter can flip it for a difference not itself near
@@ -694,56 +694,56 @@ zero, while at 10,000 it rests on 250, with percentile convergence ~1/√n putti
 below plausible effect sizes. The cost is negligible: the statistic resampled is a mean over dozens
 of gameweeks or hundreds of squads, not a model fit.
 
-**The count governs both intervals and every implementation.** `METRIC.md` §6.2 records that the
+**The count governs both intervals and every implementation.** `archive/METRIC.md` §6.2 records that the
 published-output constraint on the existing implementations does not require a *new* measurement to
 inherit their count. So `n = 10,000` is passed explicitly at every call site in the slice, including
 the one built at §10, and is frozen in the pre-registration (§7.4).
 
-**`block = 4` for the gameweek interval, and no block for the squad interval.** `INVENTORY.md` §2.9
+**`block = 4` for the gameweek interval, and no block for the squad interval.** `archive/INVENTORY.md` §2.9
 records that both existing implementations use `block = 4`, the `model/eval` one taking it from the
 named `BLOCK_GWS`. Passing it explicitly records the value rather than fixing anything new. The
 squad interval takes no block: blocking exists to preserve autocorrelation between consecutive
 gameweeks, and squads have no order (§10.1).
 
-**The estimand, which `METRIC.md` does not disambiguate.** "Mean regret" admits two readings that
+**The estimand, which `archive/METRIC.md` does not disambiguate.** "Mean regret" admits two readings that
 differ here — the grand mean over surviving squad-weeks, and the unweighted mean of per-**gameweek**
 means. (Under §0.16 a per-*squad* mean is not the live alternative: a squad has exactly one week, so
 that reading collapses into the grand mean. §10.2 works this through.) They coincide only under
 balance, and the zero-gap exclusions of §0.8 remove squad-weeks unevenly across weeks. **The grand mean over surviving squad-weeks is selected**, because §0.15's materiality
 threshold is a fraction of the floor's own mean regret reported alongside an absolute magnitude in
-points — a per-squad-week cost, which is what the grand mean estimates — and because `DECISION.md`
+points — a per-squad-week cost, which is what the grand mean estimates — and because `archive/DECISION.md`
 §1 frames regret the same way, as the cost of a weekly decision. §10.2 works the difference through.
 
 ### 0.15 The success bar — all three conditions, with S3 relative to the floor at 10% (#15)
 
 **Selected: S1 and S2 and S3, all three. Any two is a fail.**
 
-**Why all three.** `METRIC.md` §6.3 gives each condition's blind spot and they are not overlapping.
+**Why all three.** `archive/METRIC.md` §6.3 gives each condition's blind spot and they are not overlapping.
 S1 alone (direction) says nothing about whether an improvement is distinguishable from noise. S2
-alone (significance) is the one that bites hardest here: `METRIC.md` §6.3 records that under a
+alone (significance) is the one that bites hardest here: `archive/METRIC.md` §6.3 records that under a
 paired design over hundreds of squads an interval can exclude zero for a difference of a few
 hundredths of a point per gameweek — real and worth nothing — and §0.16 selects exactly such a
 design. S3 alone (materiality) can be met by noise of the right size. A bar dropping any of the
 three admits a result the other two would have caught.
 
-**S3's form: relative to the floor, at 10%.** `METRIC.md` §6.3 states the argument for the relative
+**S3's form: relative to the floor, at 10%.** `archive/METRIC.md` §6.3 states the argument for the relative
 form — it can be fixed honestly before the first run because it scales with whatever the floor turns
 out to be, and the headroom in this decision is **unmeasured**, since nobody has computed how much
 regret the floor carries. A fixed points threshold is more directly interpretable but, fixed before
 the headroom is known, risks pre-registering a target no ranker can reach so that a real improvement
-reads as a failure. On the level, `METRIC.md` §6.3 frames the trade directly: 10% guards against an
+reads as a failure. On the level, `archive/METRIC.md` §6.3 frames the trade directly: 10% guards against an
 unreachable target set on unmeasured headroom, while a stricter bar guards against crediting an
 improvement too small to justify its complexity and reintroduces the first risk. **10% is selected**
 because the first risk is the one actually present — the headroom is unmeasured and this is the
 first run — and because a bar that fails a genuine improvement teaches nothing, whereas a bar that
 passes a marginal one is caught by the absolute figure reported beside it.
 
-**The absolute magnitude is reported alongside the relative, always.** `METRIC.md` §6.3 records the
+**The absolute magnitude is reported alongside the relative, always.** `archive/METRIC.md` §6.3 records the
 reporting property independent of the bar: a given percentage reduction on a large floor regret and
 on a small one are different results, and only the absolute points figure says which is on the
 table. §7.2's T3 stores both reductions for that reason.
 
-**Which interval S2 turns on: both.** `METRIC.md` §6.3 states S2 in the singular — "the paired
+**Which interval S2 turns on: both.** `archive/METRIC.md` §6.3 states S2 in the singular — "the paired
 resampled interval on the difference excludes zero" — while §6.2 supplies two intervals answering
 different questions. **S2 is satisfied only if both the squad-resampled and the gameweek-resampled
 intervals exclude zero.** The reason is that the two failure modes are not substitutes: an effect
@@ -751,12 +751,12 @@ that survives one season's weeks but not the squad draw is an artefact of the co
 design chose (§0.16), and one that survives the squad draw but not the weeks is an artefact of the
 season. A claim that a ranker beats the floor should survive both. **The cost is stated rather than
 hidden:** requiring both is the stricter reading and will lose some real effects, which is the
-direction of error this slice should prefer on its first run. `METRIC.md` §6.3's own S2 note — that
+direction of error this slice should prefer on its first run. `archive/METRIC.md` §6.3's own S2 note — that
 significance is cheap under a paired design over hundreds of squads — is the reason strictness is
 affordable here.
 
-**Pre-registration.** `METRIC.md` §6.3 records that pre-registration is a property of *when* a bar
-is fixed, not of which, and that the `evidence.yaml` + freeze-test pattern `INVENTORY.md` §2.9
+**Pre-registration.** `archive/METRIC.md` §6.3 records that pre-registration is a property of *when* a bar
+is fixed, not of which, and that the `evidence.yaml` + freeze-test pattern `archive/INVENTORY.md` §2.9
 identifies is the only mechanism in the repository making such a fixing enforceable rather than
 aspirational. §7.4 adopts it: the thresholds, counts, windows, seed and ordering selected in this
 section are written to `PRE_REGISTRATION.yaml` and pinned by a test before the first run.
@@ -765,33 +765,33 @@ section are written to `PRE_REGISTRATION.yaml` and pinned by a test before the f
 
 **Selected: N1**, synthetic squads drawn uniformly over the feasible set.
 
-**Why N1.** `METRIC.md` §7 names the load-bearing property: independence from every ranker under
+**Why N1.** `archive/METRIC.md` §7 names the load-bearing property: independence from every ranker under
 test. Its counter-example is exact — a squad built by sorting on PPG would hand a PPG ranker a squad
 selected on its own criterion and measure the circularity rather than the method. §2.2 sharpens what
 that independence has to mean here and why uniformity, not merely ranker-blindness, is what secures
 it.
 
-**Why not N2.** `METRIC.md` §7 records that plausibility weighting answers the narrower and more
+**Why not N2.** `archive/METRIC.md` §7 records that plausibility weighting answers the narrower and more
 relevant question — regret over squads a human would build — at the cost of the weighting's
 assumptions, and that **whether it is worth them is measurable from an N1 run**: if method rankings
 are insensitive to squad composition, the weighting buys nothing. So N1 is not merely the simpler
 option; it is the one that produces the evidence for deciding whether N2 is needed. N2 is deferred
 until that measurement exists, and §2 adds nothing toward it.
 
-**N3 is unavailable.** `METRIC.md` §7 records that no squad, picks or bench-order history exists in
-the data (`DECISION.md` §3) and that nothing samples a constrained squad either (`INVENTORY.md`
+**N3 is unavailable.** `archive/METRIC.md` §7 records that no squad, picks or bench-order history exists in
+the data (`archive/DECISION.md` §3) and that nothing samples a constrained squad either (`archive/INVENTORY.md`
 §2.8). It is not rejected on merit; it has no inputs.
 
-**The choices inside the population, from `METRIC.md` §7.1.**
+**The choices inside the population, from `archive/METRIC.md` §7.1.**
 
 - **Feasibility conditions: budget cap, 2/5/5/3, ≤3 per club, registration.** All four.
-  `INVENTORY.md` §2.2 records the quota and the XI bounds in `dal/staging/contracts/element_types.yaml`
+  `archive/INVENTORY.md` §2.2 records the quota and the XI bounds in `dal/staging/contracts/element_types.yaml`
   — `squad_select` 2/5/5/3 — and that no code validates any of them; §2.2 also records 20 teams and
   a non-null `purchase_price` on every mart row, with the cheapest legal 2/5/5/3 at GW1 costing 64.0
   against the 100.0 cap.
-- **Feasibility assessed once per squad, at that squad's own gameweek.** `METRIC.md` §7.1 records
-  that once-versus-per-gameweek genuinely differ, citing `INVENTORY.md` §2.2 for 27 of 841 players
-  changing club and §2.7 for 600 of 841 changing price across the season. `METRIC.md` §7.1's own
+- **Feasibility assessed once per squad, at that squad's own gameweek.** `archive/METRIC.md` §7.1 records
+  that once-versus-per-gameweek genuinely differ, citing `archive/INVENTORY.md` §2.2 for 27 of 841 players
+  changing club and §2.7 for 600 of 841 changing price across the season. `archive/METRIC.md` §7.1's own
   condition for assessing once is that it matches how the game works — a manager buying at the prices
   of the day, with the ≤3-per-club limit binding when a squad *changes* — **provided the squad
   genuinely never changes**. Weekly resampling satisfies that proviso more exactly than build-once
@@ -801,9 +801,9 @@ the data (`DECISION.md` §3) and that nothing samples a constrained squad either
   week in which it was assessed.
 - **Resample per gameweek, rather than build once and hold.** Each gameweek in scope draws its own
   300 squads, from the universe registered as of that gameweek, at that gameweek's prices and clubs.
-  `METRIC.md` §7.1's objection — that resampling per gameweek breaks the pairing — is **refuted**;
+  `archive/METRIC.md` §7.1's objection — that resampling per gameweek breaks the pairing — is **refuted**;
   the superseded record below states why and §10.4 carries the argument. What weekly resampling buys
-  is what `METRIC.md` §7.1 itself names as its benefit: it admits later entrants. Every player
+  is what `archive/METRIC.md` §7.1 itself names as its benefit: it admits later entrants. Every player
   registered by gameweek *g* can appear in a gameweek-*g* squad, so the entrants build-once excluded
   are in scope from the week they arrive. The cost is real and is carried: the sampler runs once per
   gameweek rather than once, and §2.6's acceptance measurement becomes a per-week measurement with a
@@ -811,20 +811,20 @@ the data (`DECISION.md` §3) and that nothing samples a constrained squad either
 - **The build gameweeks: every gameweek in scope, GW2–GW38.** There is no longer a single build week.
   GW2 remains the earliest, for the reason it was chosen before — it is the earliest gameweek in
   scope (§0.7) and the earliest at which the registration predicate is evaluable at all — and
-  `METRIC.md` Appendix A.2's measurement of the universe there, 705 of 841 players (82 GK, 233 DEF,
+  `archive/METRIC.md` Appendix A.2's measurement of the universe there, 705 of 841 players (82 GK, 233 DEF,
   315 MID, 75 FWD, across all 20 clubs), now characterises the **smallest** of the 37 universes
   rather than the only one. Each later gameweek's universe is a superset of it, and all 38 are now
-  measured at `INVENTORY.md` §2.5 — monotone nondecreasing to 841 by GW38, all 20 clubs represented
+  measured at `archive/INVENTORY.md` §2.5 — monotone nondecreasing to 841 by GW38, all 20 clubs represented
   throughout. §2.1 states the series where the target is defined.
 - **Registration as a feasibility condition, implemented as a restriction of the universe.**
-  `METRIC.md` §7.1 records that registration is the only one of the four that removes a player from
+  `archive/METRIC.md` §7.1 records that registration is the only one of the four that removes a player from
   the study **outright** rather than constraining which combinations may be drawn, and gives the
-  reason it must not be a rejection criterion: `INVENTORY.md` §2.5 records pre-registration rows
+  reason it must not be a rejection criterion: `archive/INVENTORY.md` §2.5 records pre-registration rows
   existing only because the DAL spine is a cartesian product, and §2.7 records that they carry a
   **forward-filled price** — the player's eventual debut price — so admitting one prices a phantom
   against the cap using a value from later in the season. §2.1 builds the universe first for exactly
   this reason and §2.8 asserts it.
-- **The squad count: 300 per gameweek.** `METRIC.md` §7.1 records that precision is bound by
+- **The squad count: 300 per gameweek.** `archive/METRIC.md` §7.1 records that precision is bound by
   whichever dimension is scarcer, that the gameweek dimension is window-dependent and is the scarce
   one at any count in the low hundreds, and that added squads therefore buy little while replay cost
   grows linearly. 300 sits at the top of that range. **Under weekly resampling 300 is read per
@@ -839,14 +839,14 @@ the data (`DECISION.md` §3) and that nothing samples a constrained squad either
 **Superseded: build once and hold, and the two reasons that matter.** Build-once was selected in an
 earlier pass and is recorded here as superseded rather than deleted, so it is not re-proposed.
 
-*The reason it was selected does not hold.* `METRIC.md` §7.1 states that resampling per gameweek
+*The reason it was selected does not hold.* `archive/METRIC.md` §7.1 states that resampling per gameweek
 breaks the pairing of §6.1, and that objection is what build-once rested on — §0.14 depends on the
 pairing, so an option said to break it was not really in contention. The objection is **refuted** by
 §10.4. Pairing requires every ranker to face the same squads in the same gameweeks, and under weekly
 resampling every ranker faces the identical 300 squads within each gameweek, which is the grain the
 difference `d(s, gw)` is taken at. The estimator consumes an already-differenced panel and never sees
 two rankers, so there is no second draw that could break the pairing. Weekly resampling satisfies
-`METRIC.md` §6.1's pairing requirement **exactly**, not approximately.
+`archive/METRIC.md` §6.1's pairing requirement **exactly**, not approximately.
 
 *The genuine objection was never written down.* There **was** a real cost to weekly resampling, and
 it is the one this pass had to work through: build-once gave the panel a cluster structure — one
@@ -858,7 +858,7 @@ the second is the one a later reader would otherwise rediscover as an objection 
 
 *What build-once cost, sized — and corrected against the measurement.* It freezes the universe at
 GW2, so a player first appearing at GW10 can never enter any squad in any week — not a reduced
-chance, none. `METRIC.md` Appendix A.2 sizes the exclusion at **136 of 841 players (16.2%)**, all of
+chance, none. `archive/METRIC.md` Appendix A.2 sizes the exclusion at **136 of 841 players (16.2%)**, all of
 whom appear later in the season. That much is measured and stands.
 
 **An earlier version of this paragraph went further and was wrong.** It asserted that the excluded
@@ -866,7 +866,7 @@ set skews toward **currently-active** players — reasoning that a player enters
 has arrived and is being picked — and concluded that the frozen pool is tilted along
 minutes-certainty, §2.2's forbidden axis, so that build-once would have had the harness measuring its
 own frozen universe and reporting it as a method result. That claim was never measured. It has since
-been measured, and **the direction is the reverse of what was asserted.** `INVENTORY.md` §2.5 records
+been measured, and **the direction is the reverse of what was asserted.** `archive/INVENTORY.md` §2.5 records
 the comparison: the 136 late entrants have a **median of 0 season minutes** against 565 for the GW2
 universe, **52.2%** of them never played a minute against 33.0%, and **31.6%** ever recorded 60
 minutes against 59.1% — with the rates computed over each player's own available weeks, so a shorter
@@ -894,8 +894,8 @@ minutes-certainty within a drawn squad, and this document does not assert that i
 **What this does and does not do to the selection.** The minutes-certainty argument was **one of
 several** reasons recorded for weekly resampling, and it is the weakest of them now rather than the
 strongest. It does not by itself revisit the decision, and this pass does not reopen it. The
-load-bearing justification is unchanged and untouched: `METRIC.md` §7.1's pairing objection — the
-reason build-once was selected in the first place — is refuted at §10.4, and `METRIC.md` §7.1 now
+load-bearing justification is unchanged and untouched: `archive/METRIC.md` §7.1's pairing objection — the
+reason build-once was selected in the first place — is refuted at §10.4, and `archive/METRIC.md` §7.1 now
 records that both constructions satisfy §6.1's paired design. Weekly resampling also still admits
 later entrants at all, still assesses feasibility at the gameweek a squad exists in, and still
 carries the cluster-structure consequence §10.3 derives. What changes here is one supporting
@@ -903,25 +903,25 @@ argument's strength, not the selection it supported.
 
 Weekly resampling removes the exclusion regardless of its direction: the universe at gameweek *g* is
 every player registered by *g*, so no entrant is structurally absent from any week after his arrival.
-`INVENTORY.md` §2.5 measures those universes at all 38 gameweeks. §2.2 records the consequence.
+`archive/INVENTORY.md` §2.5 measures those universes at all 38 gameweeks. §2.2 records the consequence.
 
-**A season-specific validity condition, inherited — and now in conflict.** `METRIC.md` §7.2 states
+**A season-specific validity condition, inherited — and now in conflict.** `archive/METRIC.md` §7.2 states
 that the composed registration predicate — in the universe iff a non-null `minutes` row exists at or
 before the build gameweek — is unambiguous **only because** the early gameweeks of this season
-contain no genuine no-fixture blanks, with the measurement at `METRIC.md` Appendix A.1 placing them
+contain no genuine no-fixture blanks, with the measurement at `archive/METRIC.md` Appendix A.1 placing them
 at GW31 and GW34 only. That condition was stated for a **single** build week inside the early
 gameweeks. Under weekly resampling **every gameweek is a build week, including GW31 and GW34**, so
 the condition as written is violated by construction. Whether the predicate is actually ambiguous at
 those weeks is a different question — the prefix test at GW31 spans thirty prior gameweeks, so a
 player registered earlier has a non-null row long before the blank — but resolving it means restating
-`METRIC.md` §7.2's condition for a set of build weeks, and this document may not write to
-`METRIC.md`. **This is recorded as a conflict requiring a `METRIC.md` pass** (Provenance) and is not
+`archive/METRIC.md` §7.2's condition for a set of build weeks, and this document may not write to
+`archive/METRIC.md`. **This is recorded as a conflict requiring a `archive/METRIC.md` pass** (Provenance) and is not
 resolved here. The standing requirement is unchanged in kind: it is a property of the 2025-26
 calendar and must be re-checked against any other season.
 
 ### 0.17 What §0 does not select
 
-- **P4's form** — §0.1; `METRIC.md` §1 records that nothing in this folder defines it. Its inputs
+- **P4's form** — §0.1; `archive/METRIC.md` §1 records that nothing in this folder defines it. Its inputs
   are stored (§7.6) so it needs no re-run once defined.
 - ~~**Whether F3 may be built at all**~~ — **no longer open.** §9.1 closes it: the exclusion does
   not bind a baseline ranker, and §0.12 selects F3 unconditionally. Retained as a struck row so the
@@ -940,11 +940,11 @@ It points; it does not summarise.*
 ### 1.1 What this document decides, and what it does not
 
 **`DESIGN.md` answers one question: given the evidence, what system should we build?** It makes the
-metric selections `METRIC.md` §8 leaves open (§0) and fixes how the harness is built (§1–§10).
+metric selections `archive/METRIC.md` §8 leaves open (§0) and fixes how the harness is built (§1–§10).
 
-**It gathers no first-hand evidence.** Every repository fact used here is cited to `INVENTORY.md`.
-Where a fact is needed that `INVENTORY.md` does not carry, that is a gap requiring an
-`INVENTORY.md` pass, and it is flagged rather than asserted locally — §11 lists the open instances.
+**It gathers no first-hand evidence.** Every repository fact used here is cited to `archive/INVENTORY.md`.
+Where a fact is needed that `archive/INVENTORY.md` does not carry, that is a gap requiring an
+`archive/INVENTORY.md` pass, and it is flagged rather than asserted locally — §11 lists the open instances.
 
 **On precedence:** where this document and an upstream one appear to conflict, the upstream one
 governs and the conflict is a defect here. Such conflicts are recorded rather than silently
@@ -956,23 +956,23 @@ Not restated here — each is used in place, in the section that depends on it.
 
 | Constraint | Source | Used at |
 |---|---|---|
-| The 8 legal formations, and that the best-XI search is 8 prefix-sum combinations | `INVENTORY.md` §2.4, derived from `squad_min_play`/`squad_max_play` in the staging contract (`INVENTORY.md` §2.2) | §3.5, §5.1 |
-| The auto-substitution asymmetry — chosen side scored after subs, counterfactual with none | Selected at §0.2 from `METRIC.md` §2.1 | §4.3, §4.9 |
+| The 8 legal formations, and that the best-XI search is 8 prefix-sum combinations | `archive/INVENTORY.md` §2.4, derived from `squad_min_play`/`squad_max_play` in the staging contract (`archive/INVENTORY.md` §2.2) | §3.5, §5.1 |
+| The auto-substitution asymmetry — chosen side scored after subs, counterfactual with none | Selected at §0.2 from `archive/METRIC.md` §2.1 | §4.3, §4.9 |
 | Regret ≥ 0, preserved by the formation-legality condition on every substitution | §0.1 and §0.6 | §4.3, §4.4 |
-| Synthetic-squad conditionality — no real squad exists in the data, so every result is conditional on the construction | `DECISION.md` §3; `METRIC.md` §7 | §2 throughout, especially §2.2 |
-| The success bar — direction, both paired intervals excluding zero, ≥10% materiality | Selected at §0.15 from `METRIC.md` §6.3 | §6.3, §7.2, §8.2, §10 |
+| Synthetic-squad conditionality — no real squad exists in the data, so every result is conditional on the construction | `archive/DECISION.md` §3; `archive/METRIC.md` §7 | §2 throughout, especially §2.2 |
+| The success bar — direction, both paired intervals excluding zero, ≥10% materiality | Selected at §0.15 from `archive/METRIC.md` §6.3 | §6.3, §7.2, §8.2, §10 |
 
 ### 1.3 One constraint that is this document's own, and is easy to mis-trace
 
 **`harness.py` takes a ranking function as an argument and imports only from `dal/`.** This was
-carried into this document as "already fixed by `DECISION.md`". **It is not in `DECISION.md`**, which at
+carried into this document as "already fixed by `archive/DECISION.md`". **It is not in `archive/DECISION.md`**, which at
 §6 says the opposite about its own authority — "This document fixes neither the metric nor the
 design, and nothing in it should be read as doing so" — and the phrase "ranking function" appears
 nowhere in it.
 
 The constraint was adopted because it is correct: it is what makes §3.6's transitive closure hold.
 But it is recorded as **§3.2, a decision made there for the first time**. A reader tracing
-it to `DECISION.md` will not find it, and §1 says so here because that is the trace a reader is most
+it to `archive/DECISION.md` will not find it, and §1 says so here because that is the trace a reader is most
 likely to attempt.
 
 **A correction to how its arity is usually stated.** §4.9 establishes that primary regret depends on
@@ -986,7 +986,7 @@ entry point.
 
 | Section | What it fixes |
 |---|---|
-| **§0 Metric selections** | The sixteen selections `METRIC.md` §8 leaves open, with the two that cannot be made stated as gaps |
+| **§0 Metric selections** | The sixteen selections `archive/METRIC.md` §8 leaves open, with the two that cannot be made stated as gaps |
 | §2 Squad sampler | Uniform over the feasible set by whole-draw rejection; a measured acceptance-rate trigger with a numbered ladder; MCMC held as the fallback |
 | §3 Import-graph home | `decisions/starting_xi/` becomes a package under a **two-tier** contract — a model-free core and a single ranker edge |
 | §4 Bench-order scoring rule | Ordering regret; the replay algorithm and its multi-substitution semantics; the counts and which denominates what |
@@ -995,14 +995,14 @@ entry point.
 | §7 Results shape and location | Five tables across four grains, so analysis never re-runs the harness; the pre-registration freeze, separate from the results |
 | §8 Reuse and call-site specifics | What is reused and on what terms; the gameweek interval's call site, and why `research/kernels` is unreachable |
 | §9 Open items | What is genuinely unresolved and what each blocks |
-| §10 The squad-level interval | The build §0.14's U1 requires, which `INVENTORY.md` §2.9 records has no generic implementation |
-| §11 Facts this document needs and `INVENTORY.md` does not carry | The gaps an `INVENTORY.md` pass owes, listed rather than asserted here |
+| §10 The squad-level interval | The build §0.14's U1 requires, which `archive/INVENTORY.md` §2.9 records has no generic implementation |
+| §11 Facts this document needs and `archive/INVENTORY.md` does not carry | The gaps an `archive/INVENTORY.md` pass owes, listed rather than asserted here |
 
 ### 1.5 What is open
 
 **One thing changed since the previous pass and is recorded here rather than only where it landed.**
 §0.16 now selects **weekly resampling** in place of build-once-and-hold. It changes §0.14's selection
-#14, §2 throughout, §7.2–§7.4, and §10.3/§10.5, and it opens two conflicts against `METRIC.md`
+#14, §2 throughout, §7.2–§7.4, and §10.3/§10.5, and it opens two conflicts against `archive/METRIC.md`
 (Provenance). It does not change what the build needs.
 
 **Nothing blocks the build.** The one item that did — where the harness can legally live — is decided
@@ -1016,16 +1016,16 @@ document is two file edits, `pyproject.toml` and `.importlinter` (§3.9), and th
 
 | Open item | Where | What it blocks |
 |---|---|---|
-| ~~The `points_roll3` governance verdict~~ — **closed** | §0.12, §9.1 | **Nothing.** §9.1 reads the record through `INVENTORY.md` §2.1 and finds the exclusion is a mart-membership and governed-signal rule that leaves the naive-baseline role mandatory; F3 is selected unconditionally at §0.12 and §6.4's construction stands. Retained as a closed row so the routing stays legible |
-| ~~No candidate bench-order scoring rule has been characterised~~ — **closed** | §0.10, §9.2 | **Nothing.** `METRIC.md` §4.3 now characterises O1–O5 and §0.10 selects O1 on an absolute counterfactual. Retained as a closed row so the routing stays legible. The storage consequence it opened is a live item in its own right — see the row below |
+| ~~The `points_roll3` governance verdict~~ — **closed** | §0.12, §9.1 | **Nothing.** §9.1 reads the record through `archive/INVENTORY.md` §2.1 and finds the exclusion is a mart-membership and governed-signal rule that leaves the naive-baseline role mandatory; F3 is selected unconditionally at §0.12 and §6.4's construction stands. Retained as a closed row so the routing stays legible |
+| ~~No candidate bench-order scoring rule has been characterised~~ — **closed** | §0.10, §9.2 | **Nothing.** `archive/METRIC.md` §4.3 now characterises O1–O5 and §0.10 selects O1 on an absolute counterfactual. Retained as a closed row so the routing stays legible. The storage consequence it opened is a live item in its own right — see the row below |
 | ~~The absolute counterfactual needs replay coverage T5 does not carry~~ — **closed** | §0.10, §7.2.1, §9.2 | **Nothing.** §7.2.1 selects a `best_permutation_total` column on T2 over the alternative of six permutation rows on T5, and `harness.py` emits it, so the ordering-regret *level* is now derivable. §4.5's paired difference was never blocked and is unchanged. Retained as a closed row so the routing stays legible |
-| `METRIC.md` §1's P4, "mean signed directional error", is named but undefined | §7.9 | **The results document.** Its inputs are stored, so no re-run is needed once it is defined |
+| `archive/METRIC.md` §1's P4, "mean signed directional error", is named but undefined | §7.9 | **The results document.** Its inputs are stored, so no re-run is needed once it is defined |
 | ~~Which ordering policies form the comparison set~~ — **closed, as measured-and-negligible** | §5.4.1, §5.4.2 | **Nothing.** `by_rank` (§4.12/§6.7/§6.8) and `order_by_weighted_score` (§5.4.2 — declined only as a Markov extension, built as the second naive policy) were run and compared: B2 headroom ≈0.0004 pts/squad-week, with divergence in 1–5 of 32,700 squad-weeks — run ids `3821cc931fabc610` and `4b348fe01573bd1e`. §0.10's `best_permutation_total` gate, which §5.4.1 named as the thing to read before growing the set, is at floor: there is effectively no headroom left for a third policy to claim. No further ordering-policy work is planned unless new evidence changes this. §4.11's uncertainty item below is unaffected — it is about the sampling distribution of the measured figure, not about whether more policies are worth building |
 | ~~Floor-ranker quality — is there room for a fourth candidate (F4 or otherwise)?~~ — **closed, as measured-and-negligible** | §0.12, §0.13 | **Nothing.** F1, F2 and F3 each land within ~1% of the hindsight-optimal legal XI on the common window (§0.10's `best_permutation_total` counterfactual). The one differentiator anyone has proposed — minutes-certainty, via the AVAIL lens study already on record (`research/families/availability/`) — is weak signal. §0.12's F4 (5-GW window variant) remains unregistered on the same grounds it already carried: no evidence has been offered that a fourth ranker would close a gap that exists. No F4 or other additional floor ranker is planned unless a specific signal is proposed with evidence |
 | Uncertainty on the bench-ordering sample | §4.11 | **The bench-order claim**, not the harness |
-| Facts §11 needs that `INVENTORY.md` does not carry | §11 | **Nothing structural**; each is a claim this document declines to make first-hand |
+| Facts §11 needs that `archive/INVENTORY.md` does not carry | §11 | **Nothing structural**; each is a claim this document declines to make first-hand |
 | ~~`formations.py`'s second total is the formation gap, and §0.8 selects the XI gap~~ — **closed** | §0.8 | **Nothing.** `formations.py` now computes the XI gap by §0.8's four-subtraction rule, and `harness.py` calls the routine twice per squad-week — once on realised points for §0.1's regret, once on §0.9's as-of statistic for C1 — so §7.2's T2 carries both pairs. Both changes §0.8 flagged as unbuilt are built. Retained as a closed row rather than deleted, so the routing stays legible |
-| Whether the residual minutes-certainty tilt in a frozen GW2 pool is material to a ranker comparison | §0.16, §2.2 | **Nothing** — build-once is superseded, so the question is now about a construction this design does not use. Recorded because §2.2's argument would need it if build-once were ever revisited. *(The unsourced claim previously listed here is withdrawn; the two `METRIC.md` conflicts are closed. See Provenance.)* |
+| Whether the residual minutes-certainty tilt in a frozen GW2 pool is material to a ranker comparison | §0.16, §2.2 | **Nothing** — build-once is superseded, so the question is now about a construction this design does not use. Recorded because §2.2's argument would need it if build-once were ever revisited. *(The unsourced claim previously listed here is withdrawn; the two `archive/METRIC.md` conflicts are closed. See Provenance.)* |
 
 **What the two closures above do not touch.** P4 (mean signed directional error — the row above,
 §7.9) is still undefined: the closures say nothing about whether ordering or floor-ranker regret is
@@ -1034,12 +1034,12 @@ it has not been computed. Goal-conditional scoring — whether a ranker should b
 differently depending on whether it is protecting a lead or chasing rank — is not evaluated anywhere
 in this document; nothing above bears on it. §4.11/#17 (`bench_order_ci`, the confidence-interval
 treatment on the bench-order sample) is unresolved and stays a stub, per the row above and
-`METRIC.md` §8's row #17.
+`archive/METRIC.md` §8's row #17.
 
 **Measurements owed on the first run, which are outputs rather than blockers:** the sampler's
 acceptance rate against §2.6's trigger; the per-ranker
 count of squad-weeks the no-fixture rule changed (§0.4); and the materiality of `p_play`'s DGW
-exclusion, which `INVENTORY.md` §3.4 records as unmeasurable without a squad set. *(The
+exclusion, which `archive/INVENTORY.md` §3.4 records as unmeasurable without a squad set. *(The
 vacancy-order invariance test this list previously owed has been run ahead of the first run. It
 failed; §4.3.1 carries the finding, the cost measured over all 11,100 squad-weeks, and the rule
 change it forced.)*
@@ -1067,9 +1067,9 @@ target (§2.4). There is no single target distribution across the season and non
 gameweek's 300 squads are the population for that gameweek's comparison, and §10.3 resamples them
 within the week for exactly that reason.
 
-**Every U_g is measured.** `INVENTORY.md` §2.5 records |U_g| and its position and club composition at
+**Every U_g is measured.** `archive/INVENTORY.md` §2.5 records |U_g| and its position and club composition at
 all 38 gameweeks. U_2 is 705 of 841 — 82 GK, 233 DEF, 315 MID and 75 FWD across all 20 clubs,
-reproducing `METRIC.md` Appendix A.2 — and it is the smallest universe in scope. The series is
+reproducing `archive/METRIC.md` Appendix A.2 — and it is the smallest universe in scope. The series is
 monotone nondecreasing, reaching 841 by GW38, with all 20 clubs represented at every gameweek and the
 largest later intakes at GW4 (28), GW17 (10) and GW20 (10). Nothing in §2 depends on the particular
 numbers — the method is defined on U_g whatever it contains, and §2.3's expectations are a priori
@@ -1081,7 +1081,7 @@ makes a low rate at some later gameweek auditable.
 constructing U_g first, so every member of Q_g is registration-legal by construction and no draw can
 ever contain a player not yet registered **at that gameweek**. Under weekly resampling this is
 enforced 37 times rather than once, at 37 different cut-offs, which is what makes later entrants
-available without ever making a phantom available. This matters more than it looks: `INVENTORY.md` §2.7
+available without ever making a phantom available. This matters more than it looks: `archive/INVENTORY.md` §2.7
 records that prefix rows carry a **non-null, forward-filled price** — a not-yet-registered player's
 GW1 price is his eventual debut price — so a prefix leak would not crash on a missing value, it
 would silently price a phantom player against the cap using future information. Building U up front
@@ -1099,7 +1099,7 @@ something the scale has to rescue.
 
 ### 2.2 What a departure from uniformity would, and would not, invalidate
 
-`METRIC.md` §7 already states that every result is conditional on the construction. §2 owes a
+`archive/METRIC.md` §7 already states that every result is conditional on the construction. §2 owes a
 sharper statement than that, because "conditional on the construction" is compatible with both a
 harmless departure and a fatal one, and they are not the same risk.
 
@@ -1115,7 +1115,7 @@ ranker A beats the floor by X% — survives, with a narrower stated scope.
 is a different matter, and it is the realistic failure here. The plausible construction biases all
 run along **price**: repair and constructive schemes shed expensive players to satisfy the cap, so
 they over-sample cheap squads. Price correlates with quality, which correlates with both baseline
-scoring rate and minutes-certainty — the two quantities `DECISION.md` §1 names as what the decision
+scoring rate and minutes-certainty — the two quantities `archive/DECISION.md` §1 names as what the decision
 selects on. A squad skewed toward cheap rotation players makes minutes-certainty systematically more
 valuable than it is in a representative squad, which **differentially advantages F1 over F2 and
 F3**. That is not a scope limitation; it is the harness measuring its own construction and reporting
@@ -1124,12 +1124,12 @@ it as a method result.
 **The universe is the other place this axis can be tilted, and §0.16 closes it — though by less than
 an earlier version of this paragraph claimed.** The argument above is about the *sampler*; the same
 failure is available one level up, in the set the sampler draws from. Freezing the universe at GW2 —
-the build-once construction §0.16 supersedes — excluded 136 of 841 players (16.2%, `METRIC.md`
+the build-once construction §0.16 supersedes — excluded 136 of 841 players (16.2%, `archive/METRIC.md`
 Appendix A.2). The retained pool is therefore unrepresentative along **minutes-certainty**, this
 section's forbidden axis, reached without any sampler bias at all.
 
 **The direction is the opposite of what was previously written here, and the correction matters
-because it changes which of this section's two categories the bias falls into.** `INVENTORY.md` §2.5
+because it changes which of this section's two categories the bias falls into.** `archive/INVENTORY.md` §2.5
 measures the excluded 136 as the **less**-played group — median 0 season minutes against 565, 52.2%
 never playing against 33.0% — so freezing at GW2 removes disproportionately non-playing players and
 leaves the pool over-representing those who play, rather than under-representing them. Since more
@@ -1142,10 +1142,10 @@ regardless: U_g is every player registered by *g*, so no entrant is structurally
 after his arrival.
 
 **So uniformity is load-bearing for a specific reason, and it is worth being precise about which.**
-`METRIC.md` §7 names independence-from-the-ranker as N1's load-bearing property, and that is right —
+`archive/METRIC.md` §7 names independence-from-the-ranker as N1's load-bearing property, and that is right —
 but independence-from-the-ranker and uniformity-over-F are two different properties, and a scheme
 can satisfy the first while violating the second. A price-biased sampler never consults a ranker and
-is fully independent of one in the sense `METRIC.md` §7 means; it still tilts the comparison,
+is fully independent of one in the sense `archive/METRIC.md` §7 means; it still tilts the comparison,
 because the bias runs along an axis the rankers are separated by. **Uniformity is what closes that
 residual gap**, and that is the argument for paying for it rather than settling for "random enough".
 
@@ -1155,14 +1155,14 @@ Before comparing methods it is worth knowing which of the two rejectable constra
 because that determines whether a rejection scheme is cheap or hopeless. Two arguments, both
 **a priori and neither a substitute for the measurement §2.6 requires**:
 
-**The club limit is slack.** 15 players over 20 clubs (`INVENTORY.md` §2.2) is a mean of 0.75 per
+**The club limit is slack.** 15 players over 20 clubs (`archive/INVENTORY.md` §2.2) is a mean of 0.75 per
 club. A violation needs 4 or more from one club. Under a rough Poisson(0.75) approximation the
 per-club violation probability is ~0.7%, and across 20 clubs the probability that *some* club
 exceeds 3 is on the order of 10–15%. That is a mild rejection rate, not a binding one.
 
 **The budget cap is probably slack too, for a reason specific to how FPL prices are distributed.**
-`INVENTORY.md` §2.2 records the cheapest legal 2/5/5/3 at 64.0 against the 100.0 cap — the cap sits
-56% above the floor, which is a lot of headroom. More to the point, `INVENTORY.md` §2.7 records the
+`archive/INVENTORY.md` §2.2 records the cheapest legal 2/5/5/3 at 64.0 against the 100.0 cap — the cap sits
+56% above the floor, which is a lot of headroom. More to the point, `archive/INVENTORY.md` §2.7 records the
 price range as 3.7–15.1 across the season, and the distribution is strongly right-skewed: most of
 the 705 are cheap squad players, so a *uniformly drawn* 15 is mostly cheap players and lands well
 under the cap. The squads that violate the budget are the ones concentrating several premium
@@ -1200,7 +1200,7 @@ rejection sampling and it needs no mixing argument, no diagnostics, and no asymp
 
 **Cost:** an unknown number of wasted proposals. **Forecloses:** nothing.
 
-**Condition 3 is the whole of the hazard `INVENTORY.md` §2.8 records.** `INVENTORY.md` §2.8 states
+**Condition 3 is the whole of the hazard `archive/INVENTORY.md` §2.8 records.** `archive/INVENTORY.md` §2.8 states
 that whether per-position draws with rejection are uniform **depends on what is rejected** —
 discarding the whole 15 and redrawing independently is uniform over the feasible set; redrawing only
 the offending position while holding the rest is not. The difference is one line of implementation
@@ -1281,7 +1281,7 @@ The acceptance rate p_g = |F_g|/|Q_g| is **unknown at every gameweek**. §2.3's 
 high is an argument, not a measurement, and the recommendation does not rest on it.
 
 **The rate is now per gameweek, and so is everything below.** p is a property of F_g against Q_g,
-and §0.16 changes both every week: the universe grows as entrants arrive and `INVENTORY.md` §2.7
+and §0.16 changes both every week: the universe grows as entrants arrive and `archive/INVENTORY.md` §2.7
 records 600 of 841 players changing price across the season, which moves the budget constraint
 directly. There is no single acceptance rate for the run and none is reported. p̂_g is measured,
 laddered and recorded **once per build gameweek**, 37 times.
@@ -1316,7 +1316,7 @@ how low p goes. The red line is a **falsification threshold for §2.3**. A rate 
 contradict the slack-budget and slack-club arguments by orders of magnitude, and the most probable
 explanation for that contradiction is **a bug in the feasibility predicate**, not a surprising
 feasible set — a price column read at the wrong gameweek, prefix rows leaking into U
-(`INVENTORY.md` §2.7's trap), or the club limit applied per position instead of per squad. So
+(`archive/INVENTORY.md` §2.7's trap), or the club limit applied per position instead of per squad. So
 p̂ < 10⁻⁴ triggers an audit of the predicate first. **The fallback fires only if the predicate is
 confirmed correct and the rate still stands.**
 
@@ -1393,7 +1393,7 @@ lights, and silently reintroduces the dependence §0.14's U3 rejection is about.
 gameweeks — and, because §2.9 derives per-week streams from one master seed, the additional property
 that **building a subset of the gameweeks reproduces those gameweeks' squads exactly**. That second
 property is what makes a partial re-run auditable and it is a consequence of the seed derivation
-being independent of build order, so it is worth asserting rather than assuming. `INVENTORY.md` §2.8
+being independent of build order, so it is worth asserting rather than assuming. `archive/INVENTORY.md` §2.8
 records that determinism is already tested as a property elsewhere in the repository
 (`tests/test_kernels_inferential_resampling.py`, `model/terms/p_play/test_p_play.py`, and the whole
 of `tests/stabilization/test_wave3_determinism.py`) rather than assumed, and this follows that
@@ -1573,7 +1573,7 @@ Exact names and signatures are §5's to fix.
 - **the gameweek list**, explicitly, rather than inferred from the mart's span — the scope is §0.7's
   and the sampler must not silently widen or narrow it by taking whatever the mart happens to hold;
 - the squad quota (2/5/5/3) and the budget cap — from `domain/`, per §3.5's new `domain/fpl_squad.py`,
-  so the quota traces to FPL's own `element_types` declaration (`INVENTORY.md` §2.2) rather than to a
+  so the quota traces to FPL's own `element_types` declaration (`archive/INVENTORY.md` §2.2) rather than to a
   hardcode in the slice;
 - the number of squads **per gameweek** (300 per §0.16);
 - **a master seed, as a required argument with no default.**
@@ -1632,8 +1632,8 @@ Like the other three it **gates nothing**: no threshold is attached, §0 selects
 and a number invented here would be a criterion smuggled in as reporting. **Fixing the denominator
 does not change that** — settling what a number *means* is not the same as settling a value it must
 exceed, and no threshold is introduced here or anywhere else for any of the four. It is read by a
-person alongside the squads, and if it looks wrong that is a finding to route through `DECISION.md`
-and `METRIC.md`.
+person alongside the squads, and if it looks wrong that is a finding to route through `archive/DECISION.md`
+and `archive/METRIC.md`.
 
 **Why the diversity diagnostics are in the record, given §2.1.** The first four fields describe the
 *sampler*; they say nothing about the *set*. §2.1 disposes of exact duplicates — at |Q| ≈ 10^28 the
@@ -1652,14 +1652,14 @@ selects no diversity criterion, there is no evidence base fixing what value woul
 number invented here would be a criterion smuggled in as reporting. Unlike §2.6's acceptance ladder —
 which has a stated falsification argument behind its 10⁻⁴ red line — these are read by a person
 alongside the squads. If a run makes one of them look wrong, that is a finding to take back through
-`DECISION.md` and `METRIC.md`, not a condition this section may impose. Adding them changes no
+`archive/DECISION.md` and `archive/METRIC.md`, not a condition this section may impose. Adding them changes no
 method, no acceptance criterion, and no selection in §0. Whether they are persisted with the frozen
 set or only returned is §7's, per §2.10.
 
 **Holds:** no state. Pure function of its arguments.
 
 **The seed, and the per-week streams it derives.** `np.random.default_rng(seed)`, matching the
-convention `INVENTORY.md` §2.8 records as uniform across the repository — no `np.random.seed`, no
+convention `archive/INVENTORY.md` §2.8 records as uniform across the repository — no `np.random.seed`, no
 global state. Weekly resampling needs 37 streams from one master seed, and **how they are derived is
 part of the contract, not an implementation detail**: each gameweek's stream is derived from the
 master seed **and the gameweek number**, so that a week's squads are a function of that week alone.
@@ -1667,7 +1667,7 @@ Running one gameweek in isolation must reproduce the same squads as running all 
 GW7 must not perturb GW8. A single sequential stream consumed across the weeks in order has neither
 property, because rejection consumes a data-dependent number of draws (§2.8), so any change at an
 early week shifts every later one. Requiring the master seed as an explicit argument with **no
-default** deliberately avoids inheriting either of the two competing seed constants `INVENTORY.md`
+default** deliberately avoids inheriting either of the two competing seed constants `archive/INVENTORY.md`
 §2.8 records (`BOOTSTRAP_SEED = 0` at
 `research/kernels/inferential/resampling.py:20–22`, and a local `42` in the four family studies).
 Which constant the *harness* passes is a global convention question, fixed at §8.4; the sampler's own
@@ -1676,12 +1676,12 @@ contract is simply that it never picks one for itself.
 **Import closure — checked against §3, not assumed.** §3.5 permits `sampler.py` to import `dal/`,
 `domain/`, and `formations.py`. Method A needs `dal/` (prices, clubs, registration), `domain/` (quota
 and cap), `numpy` and `pandas`. **It needs nothing outside that closure**, and in particular no
-solver — `INVENTORY.md` §2.2 records that no optimisation dependency is declared in `pyproject.toml`,
+solver — `archive/INVENTORY.md` §2.2 records that no optimisation dependency is declared in `pyproject.toml`,
 and Method A introduces no reason to declare one.
 
 **One permission goes unexercised, and that is worth recording.** §3.5 permits `sampler.py` to import
 `formations.py`; **Method A does not use it.** A 2/5/5/3 squad always admits at least one legal
-formation — 5 DEF ≥ 3, 5 MID ≥ 2, 3 FWD ≥ 1 against the XI bounds `INVENTORY.md` §2.2 records — so
+formation — 5 DEF ≥ 3, 5 MID ≥ 2, 3 FWD ≥ 1 against the XI bounds `archive/INVENTORY.md` §2.2 records — so
 XI-legality is implied by the quota and needs no check at sample time. The permission is left in
 place (it costs nothing), but nothing in §2 relies on it.
 
@@ -1715,8 +1715,8 @@ by §0.16's independence requirement.
 and that contract is **two-tier**: a model-free core that may never import `model/`, and a single
 ranker edge module that must.
 
-`INVENTORY.md` §2.11 records the starting point: the directory holds only markdown, no Python and no
-`__init__.py`, and nothing in the tree imports from it. `DECISION.md` §6 named the package question a
+`archive/INVENTORY.md` §2.11 records the starting point: the directory holds only markdown, no Python and no
+`__init__.py`, and nothing in the tree imports from it. `archive/DECISION.md` §6 named the package question a
 **named input to this design document**, explicitly not settled there. It is settled here.
 
 ### 3.2 The constraint this section is built around
@@ -1729,11 +1729,11 @@ contract work: a harness that receives its ranker rather than importing one is a
 set is independent of which rankers exist, now or later.
 
 **Attribution, recorded rather than smoothed over.** This constraint was supplied to this pass as
-"already fixed by `DECISION.md` and not up for revision". **`DECISION.md` does not contain it**
+"already fixed by `archive/DECISION.md` and not up for revision". **`archive/DECISION.md` does not contain it**
 (§1.3). The constraint is adopted, it is correct, and it is the right call; but it is a **design
 decision recorded here for the first time**, not an inheritance.
 
-It is also consistent with prior art: `INVENTORY.md` §2.11 records that `decisions/README.md:22`
+It is also consistent with prior art: `archive/INVENTORY.md` §2.11 records that `decisions/README.md:22`
 traces ADR-012 §4's restriction of the `DecisionSpec` family to per-player ranking, with
 `starting_xi/` named as the squad family that sits outside it. The pattern of a decision folder
 consuming the layers rather than being consumed by them is established; only its application to a
@@ -1759,7 +1759,7 @@ contract's job is to stop it propagating, not to pretend it away.
 The three floor rankers selected at §0.12 are F1 (`p_play` alone), F2 (season-long PPG-to-date) and
 F3 (3-gameweek recent form).
 
-`p_play` is a fitted GLM. `INVENTORY.md` §2.6 locates it at `model/terms/p_play/p_play.py:40`
+`p_play` is a fitted GLM. `archive/INVENTORY.md` §2.6 locates it at `model/terms/p_play/p_play.py:40`
 (`PlayModel`) and `:83` (`PlayTerm`), and **measures** its transitive import reach into `model/` by
 importing it in a clean interpreter: `model.terms._base`, `model.terms._binary_component`,
 `model.terms.p_play.spec`, `model.features.spec`, `model.features.build`, and — because
@@ -1767,7 +1767,7 @@ importing it in a clean interpreter: `model.terms._base`, `model.terms._binary_c
 `population`, `scorer`, `walkforward`), plus `statsmodels` and `pandas`. Nothing from `research/` or
 `serve/`.
 
-`INVENTORY.md` §2.6 also records a citation worth not repeating wrongly:
+`archive/INVENTORY.md` §2.6 also records a citation worth not repeating wrongly:
 `model/terms/_binary_component.py:144` is the **shared walk-forward loop of the base class**,
 inherited by `p_play`, `minutes` and `defensive_contribution` alike. It is correct evidence that the
 fit is as-of; it is **not** `p_play`'s implementation, and should not be cited as such.
@@ -1778,7 +1778,7 @@ is a fitted per-position GLM, there is no shallow path to it, and no version of 
 the three.
 
 **The move that is not proposed, and will not be re-proposed.** `expanding_prior_mean`
-(`model/eval/baselines.py:58`) is genuinely portable: `INVENTORY.md` §2.1 records it as a one-line
+(`model/eval/baselines.py:58`) is genuinely portable: `archive/INVENTORY.md` §2.1 records it as a one-line
 `groupby.transform` taking one argument, and §2.1's fan-out note confirms it imports only `pandas`.
 It is therefore a standing temptation to relocate it — into `domain/` or into the slice — so that the
 naive floor would carry no `model/` dependency.
@@ -1786,8 +1786,8 @@ naive floor would carry no `model/` dependency.
 **That argument does not survive the `p_play` finding, and §3 records the closure so it is not raised
 again.** Moving it would remove a `model/` import from *one* of three floor rankers while F1 keeps
 `rankers.py` in `model/` anyway. It would buy no structural property, would break the
-single-source-of-the-statistic invariant `INVENTORY.md` §2.1 records its docstring declaring, and
-would touch the four call sites `INVENTORY.md` §2.1 lists (`model/compose.py:225`,
+single-source-of-the-statistic invariant `archive/INVENTORY.md` §2.1 records its docstring declaring, and
+would touch the four call sites `archive/INVENTORY.md` §2.1 lists (`model/compose.py:225`,
 `model/forecast/level_estimators.py:80`, `model/forecast/shrinkage.py:87`,
 `model/eval/baselines.py:54`) in service of a slice that publishes nothing depending on them. It is
 **rejected**, because it does not achieve its own stated goal.
@@ -1795,7 +1795,7 @@ would touch the four call sites `INVENTORY.md` §2.1 lists (`model/compose.py:22
 `expanding_prior_mean` is instead reused **as-is, in place, imported from `model/eval/baselines.py`
 by `rankers.py`** — Tier B, where a `model/` import is legal by construction.
 
-**Its wrapper is not reusable and must not be imported.** `INVENTORY.md` §2.1 records that
+**Its wrapper is not reusable and must not be imported.** `archive/INVENTORY.md` §2.1 records that
 `build_baseline_features` (`model/eval/baselines.py:31`) computes the same statistic behind
 `mart[(mart["minutes"] > 0) & (~mart["is_dgw"])]`, and states directly that the filter drops rows for
 a player with no fixture. §0.4 keeps such a player selectable and ranked last at 0 points, so that
@@ -1818,12 +1818,12 @@ hold under any naming.
 | `rankers.py` — ranker implementations | **B** | `model/`, `dal/`, `domain/` | the composition root, tests — **never a Tier A module** |
 
 **The 8-formation routine is the most constrained module in the slice, deliberately.** It may import
-`domain/` and nothing else project-internal. `INVENTORY.md` §2.4 records that the search is trivial —
+`domain/` and nothing else project-internal. `archive/INVENTORY.md` §2.4 records that the search is trivial —
 sort each position's realised points descending, take the max over 8 prefix-sum combinations, no
 solver and no new dependency.
 
 **The constants go to a new `domain/fpl_squad.py`; the routine stays in the slice.** This is a design
-decision, and its basis is what `INVENTORY.md` §2.2 records: the quota, the per-position XI bounds and
+decision, and its basis is what `archive/INVENTORY.md` §2.2 records: the quota, the per-position XI bounds and
 the cap exist only in `dal/staging/contracts/element_types.yaml` and the staged frame, **never reach
 the mart**, and there is no `domain/fpl_squad.py` today; `domain/` is where sourced FPL rule constants
 live, annotated per constant; and `.importlinter`'s `no_domain_to_anything` contract forbids `domain`
@@ -1858,9 +1858,9 @@ harness.py  →  dal/            (mart, prices, registration)
             →  sampler.py      →  dal/, domain/, formations.py  ✔ closed
 ```
 
-No path reaches `model/`. `formations.py` terminates at `domain/`, which `INVENTORY.md` §2.11 records
+No path reaches `model/`. `formations.py` terminates at `domain/`, which `archive/INVENTORY.md` §2.11 records
 `.importlinter` already forbidding from importing `dal`, `research`, `model` or `serve`. `sampler.py`
-terminates at `dal/` and `domain/`; `INVENTORY.md` §2.11 records the same file's contracts forbidding
+terminates at `dal/` and `domain/`; `archive/INVENTORY.md` §2.11 records the same file's contracts forbidding
 `serve → model`, `serve → research` and `research → model`, with `dal` at the base of the declared
 root packages. **Both Tier A leaves therefore terminate in layers that are already enforced**, which
 means the guarantee does not rest on this document being obeyed — it rests on contracts already in
@@ -1874,11 +1874,11 @@ nothing in Tier A imports either. The `model/` dependency exists, is named, and 
 Making the directory a package requires `__init__.py` files. **They must stay empty of
 project-internal imports. No re-exports, no convenience surface.**
 
-The failure mode is concrete and `INVENTORY.md` §2.11 records a live instance of it:
+The failure mode is concrete and `archive/INVENTORY.md` §2.11 records a live instance of it:
 `model/eval/baselines.py` imports only `pandas`, but importing it executes `model/eval/__init__.py`,
 which eagerly imports `baselines`, `metrics`, `population`, `scorer` and `walkforward`. That fan-out
 happens to stay inside `model.eval` and reaches no forecast component, so nothing is wrong today — but
-it is wrong **by luck of what `__init__.py` omits**. `INVENTORY.md` §2.11 records which modules the
+it is wrong **by luck of what `__init__.py` omits**. `archive/INVENTORY.md` §2.11 records which modules the
 omission is doing the work for: `calibration.py`, `captaincy_backtest.py` and `scoring_conformance.py`
 reach `model.compose` / `model.simulate` **directly**, plus `captaincy_diagnostics.py` **transitively**
 via `captaincy_backtest` — three direct and one transitive, none of them named in `__init__.py`.
@@ -1888,7 +1888,7 @@ Applied here: a single `from decisions.starting_xi.rankers import ...` line in
 transitive `model/` and `statsmodels` dependency, including `harness.py`. §3.6's closure would be
 false, and it would be false at *runtime* while still looking correct in every individual file.
 
-**This will not be caught by import-linter.** `INVENTORY.md` §2.11 records why: import-linter analyses
+**This will not be caught by import-linter.** `archive/INVENTORY.md` §2.11 records why: import-linter analyses
 the static import graph, in which a module importing a sibling submodule is not an edge to the parent
 package's own imports, even though Python executes the parent's `__init__.py` at runtime. The rule
 therefore needs an **explicit test**, not a linter contract. Writing that test is §5.6's, and its
@@ -1902,7 +1902,7 @@ absence is the single highest-risk gap in this section.
 This direction matters more than the internal tiers. `decisions/` is a consumer of the layers, and an
 import in the other direction would make a decision folder a dependency of the stack that serves it —
 inverting the layering `.importlinter` exists to hold and making the folder impossible to delete or
-replace independently. `INVENTORY.md` §2.11 records that `operational/` is **not** a root package and
+replace independently. `archive/INVENTORY.md` §2.11 records that `operational/` is **not** a root package and
 so is covered by no contract, which is why it is the legal place to wire a Tier B ranker into a Tier A
 harness.
 
@@ -1912,7 +1912,7 @@ harness.
 ### 3.9 How the contract is written, and why it must be per-module
 
 **The permission Tier B needs is `model`, not a subpackage allow-list.** A contract permitting only
-`model.terms` would fail on the first ranker: `INVENTORY.md` §2.6 measures that importing
+`model.terms` would fail on the first ranker: `archive/INVENTORY.md` §2.6 measures that importing
 `model.terms.p_play.p_play` pulls the whole of `model.eval` — because `model/eval/__init__.py` imports
 eagerly (§3.7) and because `model.eval.metrics` and `model.eval.walkforward` are reached directly from
 `model/terms/_binary_component.py:23-24` — and F2 imports `model.eval.baselines.expanding_prior_mean`
@@ -1924,17 +1924,17 @@ as a whole *must* be allowed to import `model/` (for `rankers.py`) while `harnes
 contract has to be written per-module: in `.importlinter` terms, two `forbidden` contracts with
 `decisions.starting_xi.harness`, `decisions.starting_xi.sampler`, `decisions.starting_xi.formations`
 and `decisions.starting_xi.results` as `source_modules` against `model`/`research`/`serve`, plus one
-with the five existing root packages (`INVENTORY.md` §2.11: `dal, domain, research, model, serve`) as
+with the five existing root packages (`archive/INVENTORY.md` §2.11: `dal, domain, research, model, serve`) as
 sources against `decisions`. Neither is exotic.
 
 **`research/` is admitted to neither tier, and the exclusion is deliberate.** §0.14 selects `n =
 10,000` at the call site, so nothing is inherited from either bootstrap implementation's defaults, and
 §8.2 establishes that the symbol the slice would have imported from `research/kernels` has an
-equivalent in `model/eval` that Tier B already reaches. The cluster bootstrap `INVENTORY.md` §2.9
+equivalent in `model/eval` that Tier B already reaches. The cluster bootstrap `archive/INVENTORY.md` §2.9
 records is hard-wired to the rho statistic and has to be built regardless (§10.3). **Granting a
 permission nothing uses is not free:** it would widen the contract by a whole layer to serve a call
 site that does not exist, and the next module to need an interval would reach for whichever
-implementation it imported first — which is the hazard `METRIC.md` §6.2 names when it says a count
+implementation it imported first — which is the hazard `archive/METRIC.md` §6.2 names when it says a count
 acquired by import path is acquired by accident. So `research/` stays out of both tiers, and a future
 need for it is a reason to revisit this deliberately rather than a permission already lying around.
 
@@ -1946,12 +1946,12 @@ new `__init__.py` files. Nothing breaks; re-testing is an import-linter run alre
 **No. It forces no file to move, and no call site to be repointed.**
 
 - `expanding_prior_mean` stays at `model/eval/baselines.py:58`, unmoved and unmodified, imported by
-  Tier B (§3.4). `INVENTORY.md` §2.1's four call sites are untouched.
+  Tier B (§3.4). `archive/INVENTORY.md` §2.1's four call sites are untouched.
 - `p_play` stays at `model/terms/p_play/`, unmoved (§3.4).
 - Both `block_bootstrap_ci` implementations stay where they are; §0.14 fixes the resample count as a
   call-site argument and §8.2 names the chosen implementation by full module path, so neither needs to
   move for either to be used.
-- `domain/fpl_squad.py` (§3.5) is a **new** file, not a move — `INVENTORY.md` §2.2 records that the
+- `domain/fpl_squad.py` (§3.5) is a **new** file, not a move — `archive/INVENTORY.md` §2.2 records that the
   constants it carries exist today only in the staging contract and never reach the mart.
 
 The additions are: `__init__.py` files, an entry in `.importlinter`, an entry in `pyproject.toml`. No
@@ -1970,13 +1970,13 @@ existing module changes.
 
 ### 4.1 What this closes, and what it deliberately leaves open
 
-§0.10 **selects** the bench-order scoring rule: `METRIC.md` §4.3's O1, ordering regret, scored on
+§0.10 **selects** the bench-order scoring rule: `archive/METRIC.md` §4.3's O1, ordering regret, scored on
 realised points, with the counterfactual taken over all 6 permutations of the outfield bench. §4.4
 states the rule as built and §0.10 carries the reasons — including why O2, O3, O4 and O5 were not
-taken, and why the realised framing was chosen over the as-of one `METRIC.md` §4.4 left open.
+taken, and why the realised framing was chosen over the as-of one `archive/METRIC.md` §4.4 left open.
 
-*This section previously recorded the opposite: that `METRIC.md` §4.1 characterised no candidate, so
-§4 constructed a rule rather than selecting one. That was accurate when written. The `METRIC.md`
+*This section previously recorded the opposite: that `archive/METRIC.md` §4.1 characterised no candidate, so
+§4 constructed a rule rather than selecting one. That was accurate when written. The `archive/METRIC.md`
 pass §0.10 asked for has since run, and the construction has been put through the survey it was
 missing — it survives, in a corrected form. The Provenance section records what changed and what it
 cost.*
@@ -1994,7 +1994,7 @@ resolved: how uncertainty is quantified on the ordering sample (§4.11).
 two orderings rather than one ranking of four.
 
 **The GK ordering is degenerate, and this is worth stating because it halves the secondary decision's
-apparent scope.** `INVENTORY.md` §2.2 records `squad_select` = 2 for GK and
+apparent scope.** `archive/INVENTORY.md` §2.2 records `squad_select` = 2 for GK and
 `squad_min_play` = `squad_max_play` = 1, so a 15-man squad holds exactly 2 goalkeepers and every legal
 formation starts exactly 1. The bench therefore holds **exactly one** goalkeeper, and an ordering over
 one element carries no information. The GK process still fires or fails to fire, and it still moves
@@ -2041,11 +2041,11 @@ same two-state predicate as §0.3's trigger, covering both `minutes = 0` and `mi
 **The skip semantics are the priority-queue reading §0.6 selects**, and the loop structure is what
 implements them: skipping `b` advances the inner scan but does not consume `b`, so `b` is still at his
 position in `queue` when the next vacancy opens. A rule that consumed a skipped player would measure a
-different bench order, which is exactly what `METRIC.md` §2.5 says of the alternative.
+different bench order, which is exactly what `archive/METRIC.md` §2.5 says of the alternative.
 
 **The multi-substitution case, worked.** Chosen XI is 1-3-5-2; a DEF and a MID both blank; the
 outfield bench in priority order is [FWD_a, DEF_b, MID_c]. Processing the DEF vacancy: FWD_a would
-give 1-2-5-3, which fails the 3-DEF minimum `INVENTORY.md` §2.2 records, so FWD_a is **skipped and
+give 1-2-5-3, which fails the 3-DEF minimum `archive/INVENTORY.md` §2.2 records, so FWD_a is **skipped and
 retained**; DEF_b enters, restoring 1-3-5-2. Processing the MID vacancy: the queue is still
 [FWD_a, MID_c], FWD_a now gives 1-3-4-3, which is legal, so FWD_a enters. Both substitutions fire, and
 FWD_a comes on **because he was retained rather than consumed** at the first vacancy.
@@ -2174,7 +2174,7 @@ counterfactual is the best legal XI over the squad rather than the best among th
 §0.10 carries the full argument, including the fact that σ\* cancels from §4.5's paired difference, so
 the choice changes the reported level and no comparison.
 
-**This is a selection** — from `METRIC.md` §4.3's O1 through O5, with §0.10 recording why each of the
+**This is a selection** — from `archive/METRIC.md` §4.3's O1 through O5, with §0.10 recording why each of the
 other four was not taken and why the metric is scored on realised rather than as-of points. *An
 earlier version of this section recorded it as a construction rather than a selection, because at the
 time no candidate set existed to select from; that is no longer the case and the sentence is
@@ -2182,8 +2182,8 @@ withdrawn.*
 
 **The counterfactual is the best *ordering*, holding the XI fixed — not the best XI.** That is what
 makes this the secondary decision rather than a restatement of the primary one. It is also strictly
-weaker than a joint optimum, which is correct: `METRIC.md` §2.1 records that a joint
-XI-and-bench-order optimum is "a different and harder decision" than the one `DECISION.md` §1 names as
+weaker than a joint optimum, which is correct: `archive/METRIC.md` §2.1 records that a joint
+XI-and-bench-order optimum is "a different and harder decision" than the one `archive/DECISION.md` §1 names as
 primary, and §0.2 declines it on that ground.
 
 **Bench-order evaluation is conditioned on a fixed XI, and this is not optional.** The bench is the
@@ -2192,7 +2192,7 @@ bench *sets*, and comparing their orderings would compare selections wearing the
 ordering comparison. So for each squad-week the XI is held fixed and the candidate orderings are
 compared over **that** bench. The natural fixing is each ranker's own XI — hold ranker r's XI, compare
 candidate orderings of r's bench — which measures what a manager could actually change once the XI is
-settled, and matches the dependency order in `DECISION.md` §3, where the XI decision resolves before
+settled, and matches the dependency order in `archive/DECISION.md` §3, where the XI decision resolves before
 what follows it.
 
 ### 4.5 How two orderings are compared
@@ -2213,14 +2213,14 @@ not the ordering is held constant, so the difference isolates it.
 substitution fired**. Computed by running §4.3 and counting the squad-weeks with at least one executed
 swap, GK or outfield. This is primary-path: it sizes the headline regret figure, because those are
 exactly the weeks where the chosen XI's realised total departs from the sum of the eleven selected
-(`METRIC.md` §4.2).
+(`archive/METRIC.md` §4.2).
 
 **A third quantity falls out of the algorithm and should be reported with it.** A starter can record
 no minutes and **no substitution fire** — every bench player ineligible, or every swap
 formation-illegal. Those weeks are in neither count above, and the gap between "a starter blanked" and
 "a substitution fired" is itself informative: it measures how often the bench failed to cover at all.
 Call it the **uncovered-blank count**. It costs nothing to emit, since §4.3 already distinguishes the
-case. It is this document's addition; `METRIC.md` §4.2 characterises B1 and B2 only.
+case. It is this document's addition; `archive/METRIC.md` §4.2 characterises B1 and B2 only.
 
 **The ordering-relevant count (B2).** Squad-weeks in which at least one substitution fired **and the
 candidate orderings actually being compared would bring on a different set of players**. Computed by
@@ -2243,7 +2243,7 @@ and may be reported as such; it is not the denominator.
 | **Any bench-order claim** — mean ordering regret, or one ordering beating another | **Ordering-relevant count (B2)** |
 
 No bench-order figure is ever reported against the substitution count. That is the specific
-overstatement `METRIC.md` §4.2 names when it observes that B1 counts weeks where every candidate
+overstatement `archive/METRIC.md` §4.2 names when it observes that B1 counts weeks where every candidate
 ordering brings on the same player, and the table exists to make it unavailable.
 
 ### 4.8 The three squad-week cases, stated explicitly
@@ -2258,7 +2258,7 @@ denominator entirely.
 toward B1 and is **excluded from B2**. Ordering regret is genuinely 0 for every candidate — but it is
 0 *because the orderings were indistinguishable*, not because each chose well, and averaging those
 zeros in would dilute the mean toward 0 for every method equally. This is the same exclusion §0.8
-applies on the primary side to zero-gap weeks, applied for the same reason — and `METRIC.md` §4.2
+applies on the primary side to zero-gap weeks, applied for the same reason — and `archive/METRIC.md` §4.2
 draws exactly that parallel in characterising B2.
 
 **A substitution fires and the candidate orderings differ.** The week enters B2 and carries the
@@ -2267,11 +2267,11 @@ bench-order comparison. These weeks are the entire evidence base for the seconda
 ### 4.9 Separate or folded — separate, and the alternative costs more than it saves
 
 **Bench-order performance is reported as its own quantity, never folded into a single number with XI
-regret.** `DECISION.md` §1 makes bench order the secondary decision and states it is reported
-separately; `METRIC.md` §4 opens by recording that. §4 adds the design-level reason.
+regret.** `archive/DECISION.md` §1 makes bench order the secondary decision and states it is reported
+separately; `archive/METRIC.md` §4 opens by recording that. §4 adds the design-level reason.
 
 **What folding would cost.** A single combined number would average a decision live in a small subset
-of weeks against one live every week. `DECISION.md` §1 states the consequence — it "hides both" — and
+of weeks against one live every week. `archive/DECISION.md` §1 states the consequence — it "hides both" — and
 the arithmetic is unforgiving: with ordering-relevant weeks plausibly a small fraction of the sample
 (§4.10), a combined figure would be roughly the primary number plus noise, and a real bench-order
 effect would be undetectable inside it. The saving — one number instead of two — is not worth an
@@ -2282,7 +2282,7 @@ chosen XI **after** substitutions fire, and §4.3 shows the realised total depen
 the primary regret figure is **not** independent of bench order: on precisely the ordering-relevant
 weeks, changing the ordering changes the chosen side's total and therefore the primary number. The
 dependence is bounded — at most the ordering regret, on at most the ordering-relevant weeks, zero
-everywhere else — but it is real. `METRIC.md` §2.1 records the same property from the metric side and
+everywhere else — but it is real. `archive/METRIC.md` §2.1 records the same property from the metric side and
 warns that any claim of clean separation is stronger than the mechanics support. The practical
 consequence for the design: **every primary regret figure must name the bench ordering used to produce
 it**, or it is not reproducible. §5.4 makes that structural.
@@ -2301,8 +2301,8 @@ ordering genuinely bites, and those are a subset of a subset.
 
 **What follows is a reporting posture, not a design change.** If B2 comes back small, the bench-order
 comparison is reported as **underpowered** — the count, the point estimate, and the explicit statement
-that one season does not resolve it — and no significance claim is made from it. `DECISION.md`'s
-Provenance section already anticipates this, and `METRIC.md` §4.2 records that the check has not been
+that one season does not resolve it — and no significance claim is made from it. `archive/DECISION.md`'s
+Provenance section already anticipates this, and `archive/METRIC.md` §4.2 records that the check has not been
 run and no number for it is asserted anywhere in this folder.
 
 **Nothing in this design is adjusted to make the number bigger.** Widening the trigger, counting
@@ -2315,15 +2315,15 @@ back in would each inflate the apparent evidence without adding any.
 comparison, resampling squads and gameweeks separately at n = 10,000. Whether the same treatment
 transfers to a much smaller, differently-structured ordering sample — where the unit is an
 ordering-relevant squad-week rather than a squad-week — is not settled by that selection and is not
-settled here. §4.11 previously routed this to §0.10's flagged `METRIC.md` pass, on the ground that it
+settled here. §4.11 previously routed this to §0.10's flagged `archive/METRIC.md` pass, on the ground that it
 was a metric-level question about a metric that had never been surveyed. **That pass has run and did
-not close it**: `METRIC.md` §4.5 states explicitly that uncertainty treatment on the ordering sample
+not close it**: `archive/METRIC.md` §4.5 states explicitly that uncertainty treatment on the ordering sample
 is not characterised there for any of O1–O5, because §6's candidate designs are written for a
 squad-week unit and an ordering-relevant squad-week is a different and much rarer one. The metric is
 now selected (§0.10) and this remains open, so the routing was wrong rather than merely unfulfilled —
-the question needs a `METRIC.md` pass of its own, aimed at §6 rather than §4.
+the question needs a `archive/METRIC.md` pass of its own, aimed at §6 rather than §4.
 
-It is not filled with a plausible-looking rule, for the same reason `METRIC.md` §4.1 gave for leaving
+It is not filled with a plausible-looking rule, for the same reason `archive/METRIC.md` §4.1 gave for leaving
 the scoring definition open: a rule written before the thing it quantifies has been characterised is a
 guess in the shape of a decision.
 
@@ -2336,12 +2336,12 @@ guess in the shape of a decision.
   does not fix how. *§6 now does: §6.7 fixes how a score panel becomes the chosen XI, and §6.8 the
   tie-break between equally-scored players. The routing this bullet performed had no destination when
   it was written — §6 carried no selection rule — and the omission was found from the build side.*
-- **Bench Boost.** `DECISION.md` §5 puts chip interaction out of scope; under Bench Boost every bench
+- **Bench Boost.** `archive/DECISION.md` §5 puts chip interaction out of scope; under Bench Boost every bench
   player scores and the ordering decision disappears entirely rather than changing form.
 
 ### 4.13 The residual coupling, stated once so it is not mistaken for clean separation
 
-`METRIC.md` §2.1 records that the asymmetric auto-substitution option does not fully separate ranking
+`archive/METRIC.md` §2.1 records that the asymmetric auto-substitution option does not fully separate ranking
 quality from bench coverage, and points at this section from the build side. The statement of record
 is §4.9's: the chosen side is scored after substitutions and those depend on the ordering, so on the
 ordering-relevant weeks the primary number is a function of the ordering used. The coupling is
@@ -2454,7 +2454,7 @@ rule elsewhere in this document — none is a choice left to whoever assembles T
 already has.** §5.4.1 declined to put the bench-ordering policies at the composition root, and its
 reason was specific: "**a policy is where a decision is taken, not where two modules are joined**" — a
 policy being a swappable strategy behind an interface, with a real prospect of siblings (`by_rank` today,
-`METRIC.md` characterising others tomorrow). T3 assembly has no such prospect. Every one of the six
+`archive/METRIC.md` characterising others tomorrow). T3 assembly has no such prospect. Every one of the six
 pieces above is pinned to a single rule by this document already; there is no interface to satisfy, no
 second implementation anyone is expected to write, and nothing to keep swappable. §5.4.1's objection —
 that housing a decision where two modules are joined hides the decision — does not transfer to logic
@@ -2485,7 +2485,7 @@ and not a new §5.1 Tier module.
   needs no `dal/` or `model/` import, only the T2 rows for the rankers in one comparison — so a test
   imports `operational.starting_xi` directly and calls the private function with a constructed frame,
   exactly as it would if the function lived in a Tier module. Python does not gate testability on a
-  package boundary, and `operational/` being outside every import contract (`INVENTORY.md` §2.11, §3.8)
+  package boundary, and `operational/` being outside every import contract (`archive/INVENTORY.md` §2.11, §3.8)
   does not change what a test can import.
 
 **This makes `operational/starting_xi.py` a larger module than a wiring-only reading of §3.8 would
@@ -2496,7 +2496,7 @@ thin wiring, in the sentence quoted above, but that characterisation is made whi
 point (where a policy belongs), not stated anywhere as a general limit on what the root may compute. No
 section anywhere caps the root's size or complexity, and none needs to: §5.1's table and §3's contract
 already say what may not happen there (no module-worthy policy, no import a tier forbids elsewhere), and
-T3 assembly does neither. `recommend.py` and `backtest.py` being thin is an `INVENTORY.md`-side fact
+T3 assembly does neither. `recommend.py` and `backtest.py` being thin is an `archive/INVENTORY.md`-side fact
 about those two files, not a rule this document states about every composition root — asserting it as
 one would be exactly the first-hand repository claim §11 exists to flag rather than make.
 
@@ -2730,7 +2730,7 @@ asks the policy to order it.
 candidate ordering **against the same fixed XI**". With one policy per call that comparison would need
 two harness runs and a post-hoc join, and the identical-XI guarantee would again rest on
 reproducibility rather than construction. It would also refit the expensive part for nothing:
-`INVENTORY.md` §2.6 records that `p_play`'s fit re-estimates per position per gameweek, so re-running
+`archive/INVENTORY.md` §2.6 records that `p_play`'s fit re-estimates per position per gameweek, so re-running
 the harness to vary a bench ordering would refit it once per ordering while changing nothing about the
 selection. The sequence form replays only §4.3 — the cheap substitution step — per policy, against one
 XI computed once.
@@ -2745,9 +2745,9 @@ not a departure from §3: the import contract §3.2 exists to protect is about w
 §5.4 fixes `bench_order`'s **shape** and names no member of it. §7.3 makes the whole ordered policy
 set part of `run_id`; §7.4 requires "the bench ordering" written into `PRE_REGISTRATION.yaml` and
 pinned by a freeze test before the first run. Nothing in §0–§10 said what that set contains, and the
-omission is structural rather than an oversight of drafting: **`METRIC.md` §8's selection table
+omission is structural rather than an oversight of drafting: **`archive/METRIC.md` §8's selection table
 carries a row for the bench-order scoring rule (#10) and one for its denominator (#11), and no row
-for the comparison set at all.** Where §0.12 could select a floor from `METRIC.md` §5.1's survey of
+for the comparison set at all.** Where §0.12 could select a floor from `archive/METRIC.md` §5.1's survey of
 candidate naive rankers, there is no corresponding survey of candidate *orderings* to select from.
 
 **Selected: one policy, `by_rank`, pre-registered as element 0 and primary.** §4.12 is the one place
@@ -2759,16 +2759,16 @@ does not own.
 
 **No second policy is selected here, and the reason is the charter rather than caution.** A second
 candidate has to order on *something* — expected minutes, position scarcity, price, nailedness — and
-each such rule is a decision-domain claim about how a bench ought to be ordered. `METRIC.md` §5.1
-surveys candidate naive rankers for exactly that reason, and `METRIC.md` §5.3 records why a set
+each such rule is a decision-domain claim about how a bench ought to be ordered. `archive/METRIC.md` §5.1
+surveys candidate naive rankers for exactly that reason, and `archive/METRIC.md` §5.3 records why a set
 rather than a nominated single is the right shape for a floor: which naive method wins is itself a
-result. The same argument plainly transfers to orderings, and *that transfer is a `METRIC.md` pass,
+result. The same argument plainly transfers to orderings, and *that transfer is a `archive/METRIC.md` pass,
 not a `DESIGN.md` sentence.* §1.5 carries it as an open item.
 
 **The consequence is stated here rather than discovered on the first run.** §4.6 defines B2 over the
 orderings **actually compared** and §4.7 makes B2 the denominator of every bench-order claim. Under a
 one-policy set no two orderings can differ, so **B2 = 0 and no bench-order figure is reportable**.
-`DECISION.md` §1's secondary decision is therefore *unmeasured* until the set grows — which is a
+`archive/DECISION.md` §1's secondary decision is therefore *unmeasured* until the set grows — which is a
 legitimate first-run outcome, and is not the same thing as a null result. §7.5's posture applies: the
 artefact says so rather than omitting the number.
 
@@ -2796,7 +2796,7 @@ cost of the selected one is the highest of the three, so it is stated plainly.
 - **Inside the composition root. Declined.** It keeps orderings out of both tiers, which is a real
   benefit. Against it: §3.8 has the root as thin wiring — "`operational/` imports `rankers.py`,
   imports `harness.py`, and passes the first into the second" — and a policy is where a decision is
-  taken, not where two modules are joined. `INVENTORY.md` §2.11 records that `operational/` is not a
+  taken, not where two modules are joined. `archive/INVENTORY.md` §2.11 records that `operational/` is not a
   root package, so nothing written there is covered by any import contract. And it splits the frozen
   object from its definition: §7.4 freezes the ordering into `decisions/starting_xi/`, which
   `decisions/README.md` requires be self-contained.
@@ -2826,7 +2826,7 @@ satisfy it structurally without importing Tier A; §5.4's narrowing of the polic
 `BenchPlayer` sequence did not do the same. **So the comparison set §1.5 leaves open is today bounded
 to policies expressible as functions of `(player_id, position, score, no_fixture)`** — the four fields
 `BenchPlayer` carries. Widening it is a §5.4 interface change and is not made here; it is recorded so
-that the `METRIC.md` pass which characterises candidate orderings knows what the current interface
+that the `archive/METRIC.md` pass which characterises candidate orderings knows what the current interface
 admits before it proposes one it does not.
 
 **One implementation point that is a design point.** `harness.py` hands each policy the outfield
@@ -2902,12 +2902,12 @@ docstring and nothing else. **No `import` statement of any kind, no `from … im
 `__all__` naming submodules, no convenience aliases.** A caller reaches a module by its full path —
 `from decisions.starting_xi.harness import …` — always.
 
-**Why the rule is about contents.** §3.7 established the mechanism from `INVENTORY.md` §2.11's
+**Why the rule is about contents.** §3.7 established the mechanism from `archive/INVENTORY.md` §2.11's
 measured instance: one `from decisions.starting_xi.rankers import …` line in the package
 `__init__.py` gives **every** importer of **any** module in the package a transitive `model/` and
 `statsmodels` dependency, `harness.py` included, because Python executes the parent package's
 `__init__.py` before the submodule. §3.6's closure would be false at runtime while every individual
-file still read correctly, and `INVENTORY.md` §2.11 records that **import-linter cannot catch it** —
+file still read correctly, and `archive/INVENTORY.md` §2.11 records that **import-linter cannot catch it** —
 parent-package `__init__` execution is not an edge in its static graph.
 
 **The test.** A `sys.modules` isolation test, and it **must run in a subprocess**.
@@ -2919,7 +2919,7 @@ parent-package `__init__` execution is not an edge in its static graph.
 - **What it imports to do so.** `subprocess` and `sys`, from the standard library, and nothing from
   the slice. The test spawns `sys.executable` with a `-c` program that performs the import and the
   assertion inside the child, and asserts the child exited zero.
-- **Why a subprocess and not an in-process assertion.** `INVENTORY.md` §2.11 records that
+- **Why a subprocess and not an in-process assertion.** `archive/INVENTORY.md` §2.11 records that
   `pyproject.toml:34` sets `testpaths = ["tests", "model"]`, so a pytest session imports `model` — and
   through it `statsmodels` — before any test outside those paths runs, and states the consequence
   directly: an in-process `sys.modules` assertion cannot distinguish the module under test from what
@@ -2959,7 +2959,7 @@ that makes the interface work for every ranker rather than only for the easy one
 stating why rather than leaving it implicit in the type.
 
 **The stateful ranker is the one that matters, and the panel shape is what accommodates it.**
-`INVENTORY.md` §2.6 reads the fit loop directly: `model/terms/_binary_component.py:144–145` trains on
+`archive/INVENTORY.md` §2.6 reads the fit loop directly: `model/terms/_binary_component.py:144–145` trains on
 `gw < t` and predicts `gw == t`, expanding, per position, for every `t > WARMUP_GW`, re-estimating the
 model at each gameweek from strictly prior rows. The as-of guarantee therefore lives **inside** the
 ranker's own fit, and one call returns predictions for the whole panel.
@@ -2977,13 +2977,13 @@ whatever state exists is fixed before `rank` is called and is not mutated by it.
 
 ### 6.2 What a ranker is forbidden from doing
 
-- **Reading `status` or `chance_of_playing`.** `INVENTORY.md` §2.6 records that these are staged in the
+- **Reading `status` or `chance_of_playing`.** `archive/INVENTORY.md` §2.6 records that these are staged in the
   `players` table and **do not reach the mart**, confirmed against its full 64-column list, so they are
   unavailable to any mart consumer — and `p_play` derives entirely from lagged `minutes` and `starts`.
   The rule is stated anyway, because it binds every future ranker and because a ranker reaching outside
   the mart for them would be reading a post-season snapshot against every gameweek.
 - **Reading any row at gameweek ≥ t when scoring gameweek t.** Lag-1 by construction — `shift(1)`
-  before any rolling or expanding window, within player. `INVENTORY.md` §2.1 records the repository's
+  before any rolling or expanding window, within player. `archive/INVENTORY.md` §2.1 records the repository's
   existing guard of this shape, the `assert_lag_safe` property at `model/features/build.py:190`.
 - **Reading realised outcomes for the gameweek being scored**, including its own target.
 - **Reading the squad table or anything the sampler produced.** §0.16's independence property runs in
@@ -2991,7 +2991,7 @@ whatever state exists is fixed before `rank` is called and is not mutated by it.
   enforces the structural half — `rankers.py` may not import `sampler.py`.
 - **Mutating the mart it is given.** The same frame is handed to every ranker in a paired comparison;
   an in-place edit would silently change what a later ranker sees.
-- **Adopting `assert_no_future_leakage` as its leakage guard.** `INVENTORY.md` §3.7 records, verified
+- **Adopting `assert_no_future_leakage` as its leakage guard.** `archive/INVENTORY.md` §3.7 records, verified
   by execution, that this guard requires `points_roll3` — a column the governed mart deliberately
   excludes (§2.1) — so it fails closed against the very data this harness reads, and that its own
   remediation advice names the source the failing call already used. A ranker needing a leakage
@@ -3000,7 +3000,7 @@ whatever state exists is fixed before `rank` is called and is not mutated by it.
 ### 6.3 Windows, intersections, and what happens when the intersection is thin
 
 **Every ranker declares its window; the harness does not infer it** (§0.7). The three floor
-declarations: F1 GW4–38, F2 GW2–38, F3 GW2–38. F1 starts at GW4 because `INVENTORY.md` §2.6 records
+declarations: F1 GW4–38, F2 GW2–38, F3 GW2–38. F1 starts at GW4 because `archive/INVENTORY.md` §2.6 records
 `WARMUP_GW = 3` at `model/eval/walkforward.py:58` with predictions beginning at GW4.
 
 **How the intersection is computed.** For a comparison over a set of rankers R:
@@ -3029,7 +3029,7 @@ with `block = 4`, so a comparison window shorter than one block cannot support t
 S2 cannot be evaluated. Such a comparison is reported as **underpowered, with its point estimate and
 its span**, and no success claim is made from it. **The threshold is stated as four scoreable gameweeks;
 what the two existing implementations return below that length is a repository fact this document does
-not carry** — §11 flags it as an `INVENTORY.md` gap. The design does not depend on the answer: the
+not carry** — §11 flags it as an `archive/INVENTORY.md` gap. The design does not depend on the answer: the
 comparison is reported underpowered either way, and the only thing at stake is whether the harness must
 guard the call or may rely on the estimator's own behaviour.
 
@@ -3091,10 +3091,10 @@ columns before this section named who computes it or when.
 ### 6.4 F3's `min_periods` — 1, via `add_lagged_rolls`, over a harness-built population
 
 **Selected: `min_periods = 1`**, computed via `add_lagged_rolls` (`model/features/build.py:37`,
-`INVENTORY.md` §2.1) inside `rankers.py`, over a population the harness builds. No new helper module
+`archive/INVENTORY.md` §2.1) inside `rankers.py`, over a population the harness builds. No new helper module
 (§5.7).
 
-**The choice is real, and `INVENTORY.md` §2.1 measures why.** It records **two coexisting
+**The choice is real, and `archive/INVENTORY.md` §2.1 measures why.** It records **two coexisting
 conventions**: `build_baseline_features` computes its rolling points columns inline at
 `model/eval/baselines.py:53` with `min_periods=k`, so warmup rows are **NaN**, while `add_lagged_rolls`
 and every `_lag_roll` use `min_periods=1`, so warmup rows are **partial-window means**. The two yield
@@ -3120,11 +3120,11 @@ against.
 
 - **The statistic is not literally a 3-gameweek mean early on.** At GW2 it is a one-gameweek mean, at
   GW3 a two-gameweek mean. That thinness must be visible in the reported span rather than hidden behind
-  a minimum-observations cut, and it should be **stated in the results**: `METRIC.md` §5.3 records that
-  F2 and F3 are the identical statistic at GW2, GW3 and GW4, with the measurement at `METRIC.md`
+  a minimum-observations cut, and it should be **stated in the results**: `archive/METRIC.md` §5.3 records that
+  F2 and F3 are the identical statistic at GW2, GW3 and GW4, with the measurement at `archive/METRIC.md`
   Appendix A.3.
 - **A second package enters `rankers.py`'s import set** (`model.features`). This costs nothing under
-  §3: `rankers.py` is Tier B and already imports `model/` unavoidably (§3.4), and `INVENTORY.md` §2.1
+  §3: `rankers.py` is Tier B and already imports `model/` unavoidably (§3.4), and `archive/INVENTORY.md` §2.1
   measures the fan-out as two leaf modules — `build` imports only `model.features.spec` plus `pandas`,
   and `spec` imports nothing project-internal.
 - **The codebase keeps two `min_periods` conventions.** `model/eval/baselines.py` stays at `k` for the
@@ -3133,7 +3133,7 @@ against.
   re-baselining someone else's published numbers.
 
 **Why `add_lagged_rolls` rather than the two-line expression, and the honest size of that choice.**
-Both produce the same statistic. `INVENTORY.md` §2.1 records that `add_lagged_rolls` is the one helper
+Both produce the same statistic. `archive/INVENTORY.md` §2.1 records that `add_lagged_rolls` is the one helper
 in the repository that materialises a rolling window of an arbitrary mart column, that it is guarded by
 the `assert_lag_safe` property, and that the `base_roll{k}` alternative is an **expression inside**
 `build_baseline_features` rather than a separately callable helper — and §3.4 rules out importing that
@@ -3151,7 +3151,7 @@ states the assertion that protects it.
 **Why the construction stands unchanged now the gate is closed (§9.1).** This section was written
 while §0.12 still gated F3, under the standing note that if the verdict bound, the construction was
 moot rather than wrong. The verdict does not bind, and the construction is not merely still valid —
-it is the one the exclusion *requires*. `INVENTORY.md` §2.1 measures no `points_roll*` column on the
+it is the one the exclusion *requires*. `archive/INVENTORY.md` §2.1 measures no `points_roll*` column on the
 governed mart and records the enforcement as being over `build_player_gameweek_state`'s output
 columns, so a ranker reading a mart column would have had nothing to read and a ranker adding one
 would have broken `tests/test_state_architecture.py`. **Deriving over a harness-built population is
@@ -3178,14 +3178,14 @@ selection is unaffected — it rests on the two grounds above, both independent 
 emits it as **unrankable** rather than as a number. The harness places unrankable players **below every
 scored player**, ties broken by ascending `player_id`. Deterministic, and it never invents a score.
 
-**Where the rule bites: `is_dgw` rows.** `INVENTORY.md` §2.6 records that `PlayModel.population` filters
+**Where the rule bites: `is_dgw` rows.** `archive/INVENTORY.md` §2.6 records that `PlayModel.population` filters
 `~mart["is_dgw"]` at line 78, so F1 produces no score for double-gameweek rows while F2 and F3 do. No
 constant can fill the hole — P(play) in a double gameweek is not 0 and is not a fixed number — so those
-rows stay unrankable and this rule governs them. `INVENTORY.md` §3.4 records that whether the exclusion
+rows stay unrankable and this rule governs them. `archive/INVENTORY.md` §3.4 records that whether the exclusion
 is material is unmeasurable without a squad set, which makes it a first-run measurement (§1.5).
 
 **The case this rule was written for — no-fixture rows — is handled upstream instead.**
-`INVENTORY.md` §2.6 records that `PlayModel`'s population also drops rows with null `minutes`, which
+`archive/INVENTORY.md` §2.6 records that `PlayModel`'s population also drops rows with null `minutes`, which
 would have produced an asymmetry: the unrankable-last rule would bench every no-fixture player for F1
 and only for F1, handing one floor ranker an implicit fixture-awareness the other two lacked. §0.4
 selects the rule that applies **identically to every ranker** for exactly that reason, so those rows
@@ -3207,7 +3207,7 @@ is undefined without it. It is settled here.
 **Two readings were live.**
 
 - **Reading A — the score-maximising legal XI.** The legal XI maximising the sum of the ranker's
-  scores, computed by the 8-formation prefix-sum enumeration `INVENTORY.md` §2.4 measures and
+  scores, computed by the 8-formation prefix-sum enumeration `archive/INVENTORY.md` §2.4 measures and
   `formations.py` already implements for realised points.
 - **Reading B — rank-then-take.** Scan the 15 in the ranking order §0.4, §6.5 and §6.8 induce, taking
   each player if the partial selection can still be completed to a legal XI. This is what §0.4's
@@ -3269,7 +3269,7 @@ in — which is what §0.4 intends, since a no-fixture player remains legal to s
 same wherever no demotion applies, and they must not be conflated where one does. §0.4 ranks a
 no-fixture player last for every ranker and §6.5 ranks an unrankable row below every scored one; a
 raw-score maximisation could honour neither, since an unrankable row carries **no score at all** and a
-no-fixture row may carry a perfectly ordinary one — `METRIC.md` §2.3 records that a PPG-style ranker
+no-fixture row may carry a perfectly ordinary one — `archive/METRIC.md` §2.3 records that a PPG-style ranker
 scores a no-fixture player at 0, which is not last. So the quantity maximised is a value **consistent
 with the ranking**: strictly decreasing in rank position, with §0.4's and §6.5's demotions already
 applied and §6.8's tie-break already resolved. Because rank positions are distinct, the maximising XI
@@ -3282,7 +3282,7 @@ unrankable one (§6.5), and an unrankable one outranks a no-fixture one (§0.4).
 ranker-specific demotion *below* §0.4's harness-uniform one would let one ranker's own coverage hole
 decide a selection at the very margin where a formation minimum forces a demoted player in —
 reintroducing exactly the per-ranker asymmetry §0.4 exists to remove. The football agrees with the
-contract: a no-fixture player is a certain 0, while an unrankable one — `INVENTORY.md` §2.6's
+contract: a no-fixture player is a certain 0, while an unrankable one — `archive/INVENTORY.md` §2.6's
 double-gameweek rows for F1 — is not.
 
 **How membership is fixed under Reading A.** For each of the eight formations, take the top *n* at each
@@ -3309,8 +3309,8 @@ window, the lower `player_id` ranks higher.
 broken by ascending `player_id`. §6.8 orders **scored** players who tie *with each other*. Same
 ordering principle, different populations, and neither subsumes the other.
 
-**Why it needs saying at all.** It is not a corner case. `METRIC.md` §5.3 records F2 and F3 returning
-the same number for every player at GW2–GW4, and `METRIC.md` Appendix A.4 measures the two statistics
+**Why it needs saying at all.** It is not a corner case. `archive/METRIC.md` §5.3 records F2 and F3 returning
+the same number for every player at GW2–GW4, and `archive/METRIC.md` Appendix A.4 measures the two statistics
 still returning equal values on 38.6% of player-gameweek rows across GW5–38, 98.3% of those being
 players whose entire in-game history is zero points. §2.3 records that uniform squads are drawn mostly
 from cheap, rotation-prone players, which is the population that zero-points share is concentrated in.
@@ -3364,14 +3364,14 @@ that decides the schema below.
 
 Three findings this slice already knows it must report cannot be represented at comparison grain:
 
-- **The GW4 degeneracy.** `METRIC.md` §5.3 records that F2 and F3 return the same number for every
-  player at GW2–GW4, with the measurement at `METRIC.md` Appendix A.3. It is a **per-gameweek,
+- **The GW4 degeneracy.** `archive/METRIC.md` §5.3 records that F2 and F3 return the same number for every
+  player at GW2–GW4, with the measurement at `archive/METRIC.md` Appendix A.3. It is a **per-gameweek,
   per-ranker-pair** fact; a table of mean regrets and intervals cannot show it.
-- **The GW5–38 agreement rate.** `METRIC.md` Appendix A.4 records that the two statistics still return
+- **The GW5–38 agreement rate.** `archive/METRIC.md` Appendix A.4 records that the two statistics still return
   equal values on 38.6% of player-gameweek rows across GW5–38, 98.3% of those being players whose
-  entire in-game history is zero points. It is a **per-player-row** fact. *(`METRIC.md` Appendix A.4
+  entire in-game history is zero points. It is a **per-player-row** fact. *(`archive/METRIC.md` Appendix A.4
   flags itself as the one measurement in that appendix not independently re-verified in its pass.)*
-- **The regret distribution.** §0.1 adopts P3 as a companion to P1, and `METRIC.md` §1 records that P3
+- **The regret distribution.** §0.1 adopts P3 as a companion to P1, and `archive/METRIC.md` §1 records that P3
   is the count and size of the worst weeks per ranker rather than a central tendency. A distribution is
   not derivable from a mean.
 
@@ -3408,7 +3408,7 @@ rankers ≈ **630,000 rows** — single-digit megabytes in parquet.
 each other here, so the distinction is stated rather than left to be reconstructed. **37 is the build
 set** — GW2–38, every gameweek §0.16 draws squads at, which is where 11,100 distinct squads and the
 166,500-row squad table below come from. **35 is the comparison window** — GW4–38, the intersection
-§6.3 computes for the three floor rankers, with F1 binding the start at GW4 because `INVENTORY.md`
+§6.3 computes for the three floor rankers, with F1 binding the start at GW4 because `archive/INVENTORY.md`
 §2.6 records predictions beginning there. T1 and T5 hold *replayed* squad-weeks, so they are sized on
 the window; the squad table holds *drawn* squads, so it is sized on the build set. Neither number is a
 typo for the other, and the same convention holds wherever either appears — §10.3's panel is the
@@ -3609,7 +3609,7 @@ which parameters produced which of T3's two column pairs.
 results live together.
 
 **Separately: `decisions/starting_xi/PRE_REGISTRATION.yaml`, pinned by a freeze test.**
-`INVENTORY.md` §2.9 surveys the repository's five result-writing surfaces and states that none of them
+`archive/INVENTORY.md` §2.9 surveys the repository's five result-writing surfaces and states that none of them
 is a convention for "a harness result read back programmatically", while identifying the
 `evidence.yaml` + freeze-test pattern as the only one of the five whose values a test pins so that a
 later run which moves them fails. §0.15 adopts it as the mechanism that makes pre-registration
@@ -3670,7 +3670,7 @@ they must be reported, because a second copy of a defined quantity can only dive
 the cost of *not* storing them is a re-run of the harness once the definition lands — the failure §7.1
 exists to prevent.
 
-**Both XI totals, not just regret.** §0.1 adopts P4 as required and records that `METRIC.md` §1 leaves
+**Both XI totals, not just regret.** §0.1 adopts P4 as required and records that `archive/METRIC.md` §1 leaves
 its form undefined — signed error cannot be regret, which is non-negative, and nothing in this folder
 says what quantity is signed or against what reference. Rather than invent a definition, T2 stores
 `chosen_xi_points` and `best_legal_xi_points` separately so that whatever definition is eventually
@@ -3685,7 +3685,7 @@ the size of the confound the rejected options would have carried.
 ### 7.7 Bench-order liveness is bounded below by design, and the artefact says so
 
 B1 and B2 are reported in T3. **Both carry a caveat that belongs beside the number, not in a footnote
-elsewhere**, and `METRIC.md` §4.2 states it directly: neither count is purely empirical.
+elsewhere**, and `archive/METRIC.md` §4.2 states it directly: neither count is purely empirical.
 
 **Auditing either count is one hop further than T3 suggests.** B1 aggregates T2's `substitution_fired`;
 B2 is **derived from T5**, by comparing each squad-week's `entered_outfield` sets across orderings
@@ -3696,7 +3696,7 @@ Two design choices push B2 down before any football happens:
 
 1. **§0.4's no-fixture rank-last rule** reduces B1 *by construction* — no-fixture players are ranked
    last, so they are rarely started, so they rarely fire the substitution the rule describes.
-   `METRIC.md` §2.3 names this cost when characterising the option. The reduction is bounded by the
+   `archive/METRIC.md` §2.3 names this cost when characterising the option. The reduction is bounded by the
    no-fixture share: substitutions from `minutes = 0` players, who had a fixture and did not feature,
    are unaffected.
 2. **§4.6 defines B2 over the orderings *actually compared***, not over all six permutations —
@@ -3716,8 +3716,8 @@ reads no data of its own, so it needs neither `dal/` nor `model/`.
 - ~~**The `points_roll3` governance verdict**~~ — **closed at §9.1**; it does not bind, and §7's
   shape is unaffected either way.
 - **The definition of P4's signed directional error** — §7.6 stores its inputs; §0.1 records that
-  defining it is a `METRIC.md` question and `METRIC.md` §1 records the same gap from the survey side.
-- **Whether results are committed or git-ignored.** `INVENTORY.md` §2.9 records that `research/runs/`
+  defining it is a `archive/METRIC.md` question and `archive/METRIC.md` §1 records the same gap from the survey side.
+- **Whether results are committed or git-ignored.** `archive/INVENTORY.md` §2.9 records that `research/runs/`
   is git-ignored while `outputs/` and `docs/studies/results/*.md` are not. The artefact is small and
   one-off, which argues for committing it, but the repository has no single convention and this slice
   should not invent one unilaterally.
@@ -3727,18 +3727,18 @@ reads no data of its own, so it needs neither `dal/` nor `model/`.
 ## 8. Reuse and call-site specifics
 
 Consolidating what the slice reuses and on what terms, so the build does not rediscover it. Every fact
-below is `INVENTORY.md`'s; this section states what the design does with it.
+below is `archive/INVENTORY.md`'s; this section states what the design does with it.
 
 ### 8.1 What is reused, and what is deliberately not
 
 **`expanding_prior_mean` (`model/eval/baselines.py:58`) is used, called directly on the harness
-population (§8.3).** `INVENTORY.md` §2.1 records it as a one-argument `groupby.transform` importing
+population (§8.3).** `archive/INVENTORY.md` §2.1 records it as a one-argument `groupby.transform` importing
 only `pandas`, with `shift(1)` before `expanding()` and no population of its own — its meaning follows
 the rows passed. That last property is precisely what makes it reusable here, since §0.9 fixes a
 population no wrapper in the repository supplies.
 
 **`build_baseline_features` (`model/eval/baselines.py:31`) is not used, and must not be.**
-`INVENTORY.md` §2.1 records its filter, `(mart["minutes"] > 0) & (~mart["is_dgw"])`, and states
+`archive/INVENTORY.md` §2.1 records its filter, `(mart["minutes"] > 0) & (~mart["is_dgw"])`, and states
 directly that it drops rows for a player with no fixture. §0.4 keeps such a player legal to select and
 scored at 0, so the filter would silently change the feasible formation set and make the counterfactual
 easier than the real decision.
@@ -3752,28 +3752,28 @@ argument passed explicitly: `block=4, n=10000, ci_level=0.95, seed=0` (§8.2). I
 `research/kernels/inferential/resampling.py:224` is **unreachable** under §3's contract, and §8.2
 records that it would also have lost on merit.
 
-**`assert_no_future_leakage` (`research/kernels/evaluation.py:46`) is not adopted.** `INVENTORY.md`
+**`assert_no_future_leakage` (`research/kernels/evaluation.py:46`) is not adopted.** `archive/INVENTORY.md`
 §3.7 records, verified by execution, that it requires `points_roll3` — which the governed mart
 excludes — so it raises on the first evaluated gameweek, and that its own remediation message names the
 source the failing call already used. A ranker needing a leakage assertion writes one against the
 columns it actually uses (§6.2).
 
-**`regret` at `model/eval/decision/metrics.py:20` is not imported.** `INVENTORY.md` §2.4 records it as
+**`regret` at `model/eval/decision/metrics.py:20` is not imported.** `archive/INVENTORY.md` §2.4 records it as
 a **name collision**: best-scoring-player-in-the-league minus your single pick, at per-player top-1
 grain, against P1's best-legal-XI minus chosen-XI at squad-week grain within one 15. The word
 transfers; the code does not.
 
 **`PlayModel` / `PlayTerm` (`model/terms/p_play/p_play.py:40`, `:83`) are used as F1.**
-`INVENTORY.md` §2.6 records that `model/terms/_binary_component.py:144` is the shared base-class
+`archive/INVENTORY.md` §2.6 records that `model/terms/_binary_component.py:144` is the shared base-class
 walk-forward loop rather than `p_play`'s own implementation, and it should not be cited as the latter
 (§3.4).
 
 **`domain/fpl_squad.py` is a new file** (§3.5), carrying the quota, the per-position XI bounds, the 8
 legal formations and the 100.0 cap, sourced from `element_types` with a drift test rather than
-hardcoded in the slice. `INVENTORY.md` §2.2 records that no such file exists today and that these
+hardcoded in the slice. `archive/INVENTORY.md` §2.2 records that no such file exists today and that these
 constants never reach the mart.
 
-**`np.random.default_rng(seed)` is the convention**, which `INVENTORY.md` §2.8 records as uniform
+**`np.random.default_rng(seed)` is the convention**, which `archive/INVENTORY.md` §2.8 records as uniform
 across the repository. The seed is a required argument with no default (§2.9), fixed at 0 at every call
 site (§8.4).
 
@@ -3795,21 +3795,21 @@ method required widening §3's contract, that would have been a reason to recons
 contract.
 
 **On merit it lands the same way, which is worth recording so the choice does not rest on the contract
-alone.** §0.14 fixes `n = 10,000`, and `INVENTORY.md` §2.9 records both implementations taking the
+alone.** §0.14 fixes `n = 10,000`, and `archive/INVENTORY.md` §2.9 records both implementations taking the
 count as an argument (defaults 1000 and 3000), so the resample count is a call-site argument either way
-and cannot decide it. What decides it is `INVENTORY.md` §2.9's rounding row: the kernels implementation
+and cannot decide it. What decides it is `archive/INVENTORY.md` §2.9's rounding row: the kernels implementation
 returns through `_percentile_ci`, which **rounds both endpoints to 4 decimal places**, while
 `model/eval/metrics.py:79` applies **no rounding** and takes its block from the named `BLOCK_GWS`.
 §0.15's S2 is a **boundary test** — does the interval exclude zero — and rounding an endpoint can move
 a genuinely non-zero bound onto exactly 0. A rounding step that can flip the significance verdict is
 the wrong primitive for a criterion defined by whether a bound crosses zero.
 
-**Every argument is passed explicitly**, including `block=4` and `ci_level=0.95`. `METRIC.md` §6.2
+**Every argument is passed explicitly**, including `block=4` and `ci_level=0.95`. `archive/METRIC.md` §6.2
 gives the reason for `n` — a count acquired by import path is acquired by accident — and it applies
-unchanged to the block length and the coverage. Passing `block=4` records the value `INVENTORY.md` §2.9
+unchanged to the block length and the coverage. Passing `block=4` records the value `archive/INVENTORY.md` §2.9
 shows both implementations already use; it fixes nothing new.
 
-**One thing this does not settle.** `INVENTORY.md` §2.9 records that resampling **squads** needs a
+**One thing this does not settle.** `archive/INVENTORY.md` §2.9 records that resampling **squads** needs a
 *cluster* bootstrap of a mean, that the repository's one cluster resampler is hard-wired to the
 rho / partial-rho statistic, and that there is **no generic cluster-bootstrap-of-a-mean** — nor, as
 §10.3 now needs instead, any gameweek-stratified bootstrap of one. This section
@@ -3819,10 +3819,10 @@ fixes the **gameweek** interval's call site only. The squad interval is a build,
 
 Both PPG rankers read the **same** frame: the full player-gameweek spine restricted to each player's
 post-registration window, with null `total_points` filled to **0**. That is §0.9's denominator, and it
-is the harness's own construction — `INVENTORY.md` §2.1 records that `expanding_prior_mean` carries no
+is the harness's own construction — `archive/INVENTORY.md` §2.1 records that `expanding_prior_mean` carries no
 population of its own and that its meaning follows the rows passed.
 
-**This is also *why* the two are identical through GW4** (`METRIC.md` §5.3, Appendix A.3): they are two
+**This is also *why* the two are identical through GW4** (`archive/METRIC.md` §5.3, Appendix A.3): they are two
 windows over one population, and while a player has three or fewer prior in-game gameweeks the shorter
 window covers all of them.
 
@@ -3833,19 +3833,19 @@ so it is asserted at the call site: **`total_points` has no nulls across the pop
 before the call.** Without it, the reuse is a silent-wrong-answer risk rather than a saving.
 
 *One supporting detail this document does not assert first-hand: whether `add_lagged_rolls` coerces its
-source in a way that converts non-numeric entries to NaN. `INVENTORY.md` does not record it, and the
+source in a way that converts non-numeric entries to NaN. `archive/INVENTORY.md` does not record it, and the
 assertion above does not depend on it — a no-nulls precondition is required regardless. Flagged at §11.*
 
 ### 8.4 Two conventions this section fixes because they were left dangling
 
-**The seed constant: `0`.** `INVENTORY.md` §2.8 records two competing conventions —
+**The seed constant: `0`.** `archive/INVENTORY.md` §2.8 records two competing conventions —
 `BOOTSTRAP_SEED = 0` at `research/kernels/inferential/resampling.py:20–22` and a local `42` in the four
 family studies — and states that which one a caller gets depends on which module it imports from. §2.9
 required the sampler's seed be an explicit argument with no default and left the *choice of constant*
 to the call site. It is fixed here: **`seed = 0` at every call site in the slice**, recorded in the
 pre-registration (§7.4). The value matters less than that it is passed explicitly and frozen once.
 
-**The position vocabulary: `position`.** `INVENTORY.md` §2.12 records three position columns on the
+**The position vocabulary: `position`.** `archive/INVENTORY.md` §2.12 records three position columns on the
 mart — `position` (GK/DEF/MID/FWD), `position_label` (GKP/DEF/MID/FWD) and `position_code` (1–4) —
 differing only at goalkeeper, with `position_label` the canonical name in the staging contract and the
 one `serve/` and the research families key on, while `model/terms/_binary_component.py` fits per
@@ -3853,7 +3853,7 @@ one `serve/` and the research families key on, while `model/terms/_binary_compon
 fit uses and therefore the one that needs no translation at the ranker boundary; a translation there
 would be a per-row transformation on the hot path of the only expensive ranker, for no gain. Any
 `position_label` value entering from elsewhere is normalised at the harness boundary.
-`INVENTORY.md` §2.12 records that GKP→GK normalisation is already tested as intended behaviour
+`archive/INVENTORY.md` §2.12 records that GKP→GK normalisation is already tested as intended behaviour
 elsewhere in the repository, so the direction chosen here is the established one.
 
 ### 8.5 What §8 does not decide
@@ -3874,17 +3874,17 @@ the verdict was carried forward unresolved and blocked F3, and through it the fl
 determines. It is superseded in place rather than deleted, so the reasoning that closed it is on the
 record and the routing stays legible.
 
-**What was asked.** `METRIC.md` §5.2 stated what was actually unsettled — not the absence of
+**What was asked.** `archive/METRIC.md` §5.2 stated what was actually unsettled — not the absence of
 `points_roll3` from the governed mart but its **scope**, whether the exclusion binds a *baseline
 ranker* as well as a governed signal — and named the lens record behind the annotation as what settles
-it. An `INVENTORY.md` §2.1 pass read that record. This section reads §2.1.
+it. An `archive/INVENTORY.md` §2.1 pass read that record. This section reads §2.1.
 
 **The answer, in one sentence.** The exclusion is a **mart-membership and governed-signal rule** — it
 governs which columns the feat layer materialises and which signals may enter synthesis — and it is
 written throughout **with its scope attached**, leaving the naive-evaluation-baseline role not merely
 open but mandatory. F3 occupies that role.
 
-**The four facts it rests on, each cited to `INVENTORY.md` §2.1.**
+**The four facts it rests on, each cited to `archive/INVENTORY.md` §2.1.**
 
 1. **The rule is scoped in its own text, every time it is stated.**
    `docs/foundations/representation-rules.md` §8's family rule rejects the rolling mean of
@@ -3928,19 +3928,19 @@ not circular from non-circular but **advanced as a representation** from **held 
 
 **Two things this closure does not touch.**
 
-- **`INVENTORY.md` §3.7's divergence stays open, and it was never this slice's.** §3.7 records that
+- **`archive/INVENTORY.md` §3.7's divergence stays open, and it was never this slice's.** §3.7 records that
   `assert_no_future_leakage` requires `points_roll3` and that `operational/backtest.py` is therefore
   unrunnable against the governed mart. That guard sits at `model/eval/decision/backtest.py:59`
   and `:137`, and reaches this slice not at all: `harness.py` is Tier A (§3.5) with an import closure
   of `dal/`, `domain/`, `formations.py`, stdlib, numpy and pandas, and `rankers.py` is Tier B and may
   import `model/` but is not required to, and does not, adopt the guard. **This harness does not adopt
   `assert_no_future_leakage`** — already decided at §6.2 and §8.2, on the ground that the guard fails
-  closed against the very data this harness reads. *(`METRIC.md`'s Provenance lists that direction
+  closed against the very data this harness reads. *(`archive/METRIC.md`'s Provenance lists that direction
   among the implementation direction that left that document and notes it is "recorded elsewhere yet"
   — nowhere. It is recorded, twice, in the two sections just named; that Provenance note is stale,
-  and correcting it is a `METRIC.md` pass.)* The guard and the mart contract still cannot both stay as
+  and correcting it is a `archive/METRIC.md` pass.)* The guard and the mart contract still cannot both stay as
   they are; that is a fix owed on the operational path, not here.
-- **The record's own defects, which are outside this folder.** `INVENTORY.md` §2.1 records that the
+- **The record's own defects, which are outside this folder.** `archive/INVENTORY.md` §2.1 records that the
   `annotations.yaml` entry for `points_roll5` at MID asserts a gate outcome its own `evidence.yaml`
   does not carry, quoting a different signal's rho. It does not bear on this closure — the scope
   question turns on no single rho — but it is a third instance of the defect class
@@ -3958,9 +3958,9 @@ the pass that closed the gate was briefed on the contrary understanding.
 
 ### 9.2 The bench-order scoring rule — closed, and what it left open
 
-**Closed.** This section recorded that `METRIC.md` characterised no candidate bench-order rule, that
+**Closed.** This section recorded that `archive/METRIC.md` characterised no candidate bench-order rule, that
 §4.4's ordering regret was therefore a construction rather than a selection, and that resolving it was
-a `METRIC.md` pass rather than a `DESIGN.md` one. That pass has run — `METRIC.md` §4.3 characterises
+a `archive/METRIC.md` pass rather than a `DESIGN.md` one. That pass has run — `archive/METRIC.md` §4.3 characterises
 O1 through O5 — and §0.10 selects O1, on realised points, with an absolute counterfactual. The entry
 is kept rather than deleted so the routing stays legible.
 
@@ -3976,9 +3976,9 @@ is kept rather than deleted so the routing stays legible.
    structural, under the selected shape.
 2. **Uncertainty on the ordering sample — §4.11, still open, and it did not travel with the rest.**
    §4.11 routed
-   it to this section's `METRIC.md` pass. That pass ran and declined it: `METRIC.md` §4.5 records that
+   it to this section's `archive/METRIC.md` pass. That pass ran and declined it: `archive/METRIC.md` §4.5 records that
    uncertainty treatment is not characterised for any of the five, because §6's designs assume a
-   squad-week unit. It needs its own `METRIC.md` pass, aimed at §6. Selecting the metric did not
+   squad-week unit. It needs its own `archive/METRIC.md` pass, aimed at §6. Selecting the metric did not
    answer it and was never going to.
 
 ---
@@ -3986,14 +3986,14 @@ is kept rather than deleted so the routing stays legible.
 ## 10. The squad-level interval
 
 §0.14 selects U1 alongside U2, and requires U1 be computed as a bootstrap **stratified by gameweek**
-over §0.16's weekly-resampled panel. `INVENTORY.md` §2.9 records that the repository has no generic
+over §0.16's weekly-resampled panel. `archive/INVENTORY.md` §2.9 records that the repository has no generic
 cluster-bootstrap-of-a-mean; it has no gameweek-stratified bootstrap of a mean either. This section
 builds it.
 
 ### 10.1 The resample count and the absent block parameter
 
-**`n = 10,000` governs both intervals**, selected at §0.14 with `METRIC.md` §6.2's reasoning, and
-`ci_level = 0.95`, `seed = 0` follow §8.4. `METRIC.md` §6.2 also records that the published-output
+**`n = 10,000` governs both intervals**, selected at §0.14 with `archive/METRIC.md` §6.2's reasoning, and
+`ci_level = 0.95`, `seed = 0` follow §8.4. `archive/METRIC.md` §6.2 also records that the published-output
 constraint on the existing implementations does not bind a new measurement, so a newly built estimator
 inherits nothing.
 
@@ -4019,7 +4019,7 @@ per-gameweek means, and they coincide only when every gameweek has the same numb
 and the readings differ. The grand mean weights a gameweek by how many of its squads survived, which is
 the reading §0.14's argument selects: it is a per-squad-week cost, and a week that contributed fewer
 decisions should carry proportionately less of the average. That is the per-squad-week cost §0.15's
-materiality threshold and its absolute companion figure are expressed in, and it is how `DECISION.md`
+materiality threshold and its absolute companion figure are expressed in, and it is how `archive/DECISION.md`
 §1 frames regret — the cost of a weekly decision.
 
 ### 10.3 The resampling unit
@@ -4031,7 +4031,7 @@ gameweek and contributes **exactly one row**. A rule that groups rows by squad n
 groups of size one, and grouping by a key that is unique per row is not a cluster bootstrap — it is a
 row bootstrap wearing the vocabulary of one. The rule has to be rederived, not reworded.
 
-**Derive it from what was actually sampled.** `METRIC.md` §6.2 fixes U1's question: sensitivity to
+**Derive it from what was actually sampled.** `archive/METRIC.md` §6.2 fixes U1's question: sensitivity to
 which squads were drawn, with the gameweek set held fixed. So the derivation asks two things — what
 was drawn, and what was not.
 
@@ -4083,7 +4083,7 @@ U3's failure mode explicitly, because "the interval got narrower when we changed
 is the signature of exactly the error §0.14 rejects, and here the construction changed underneath it.
 
 **Nothing is patterned on the existing cluster resampler any more.**
-`INVENTORY.md` §2.9 identifies `research/kernels/inferential/resampling.py:252
+`archive/INVENTORY.md` §2.9 identifies `research/kernels/inferential/resampling.py:252
 cluster_bootstrap_minutes_adjusted_rho` as the repository's example of the cluster structure. Under
 build-once that was the pattern to copy. It is no longer relevant: this estimator has no clusters to
 resample. It remains **unreachable** in any case — §3.3 admits `research/` to neither tier (§8.2) —
@@ -4102,7 +4102,7 @@ d(s, gw) = regret_A(s, gw) − regret_B(s, gw)
 computed once by the caller from T2, before any resampling. The estimator sees a single
 `(gw, squad_id, value)` panel and never sees two rankers.
 
-**This is what refutes `METRIC.md` §7.1's objection to weekly resampling**, and it is worth stating
+**This is what refutes `archive/METRIC.md` §7.1's objection to weekly resampling**, and it is worth stating
 here because this is where the argument lives rather than in §0.16 where the selection is recorded.
 Pairing is the requirement that both rankers face the same squads in the same gameweeks. Weekly
 resampling changes *which* squads are faced at each gameweek; it does not create a second draw. At
@@ -4117,13 +4117,13 @@ guardrail that will eventually fail; one that depends on there being only one ve
 
 **What breaking the pairing would have cost.** Two independent draws would estimate `var(A) + var(B)` in
 place of `var(A − B) = var(A) + var(B) − 2·cov(A, B)`. The covariance is large and positive, because
-squad depth is common to both rankers — `METRIC.md` §6.1's own point about the paired design. Dropping
+squad depth is common to both rankers — `archive/METRIC.md` §6.1's own point about the paired design. Dropping
 the pairing puts that variation back in.
 
 **The direction of that error is worth naming, because it is the opposite of the other one.** The point
 estimate would be unchanged; only the interval would widen. So breaking the pairing is **conservative**
 on §0.15's S2 — it loses real effects rather than manufacturing false ones — whereas the flattened
-squad-week error `METRIC.md` §6.2 names under U3 manufactures precision. Two ways to get this wrong, in
+squad-week error `archive/METRIC.md` §6.2 names under U3 manufactures precision. Two ways to get this wrong, in
 opposite directions, and neither is detectable by inspecting the output interval alone.
 
 **And this is why the loss of the cluster structure costs the pairing nothing.** The two are
@@ -4131,7 +4131,7 @@ independent properties: pairing is about the *columns* of the panel — one diff
 than two — and the cluster structure was about its *rows*. §10.3 changes the rows. The differencing
 above is unaffected, which is why §0.16's change lands in §10.3 and §10.5 and nowhere else in §10.
 
-**Zero-gap exclusion does not disturb the pairing.** `METRIC.md` §3.1 records that closeness under C1 is
+**Zero-gap exclusion does not disturb the pairing.** `archive/METRIC.md` §3.1 records that closeness under C1 is
 a property of the **squad-week**, not of the ranker, so zero-gap weeks are identical across rankers. The
 same rows drop for both, `d(s, gw)` is defined on exactly the surviving set, and the panel stays
 balanced *between rankers* even while unbalanced *across gameweeks* — §0.8's exclusions remove
@@ -4165,7 +4165,7 @@ that violates it is a build bug (§2.8) whose only symptom downstream would be a
 interval, so the assertion is where it is cheapest to catch.
 
 **No rounding.** The interval is returned as raw floats. §8.2 rejected the `research/kernels`
-implementation partly because `INVENTORY.md` §2.9 records `_percentile_ci` rounding endpoints to 4 dp
+implementation partly because `archive/INVENTORY.md` §2.9 records `_percentile_ci` rounding endpoints to 4 dp
 and §0.15's S2 is a boundary test on whether the interval excludes zero; a new estimator must not
 reintroduce the defect the other one was rejected for.
 
@@ -4178,8 +4178,8 @@ weight to the grand mean and proportionate noise to the replicate, which is the 
 
 **That reasoning is scoped to the primary panel, and one sentence of it is wrong at the limit.** The
 premise is §0.16's 300 squads **per gameweek**, which does not survive an exclusion predicate strong
-enough to matter: `METRIC.md` §6.4.3's A1 records singleton strata as the **expected** case on a
-B2-filtered ordering sample (`METRIC.md` §4.2), not a curiosity. And at `n_g = 1` the claim above is
+enough to matter: `archive/METRIC.md` §6.4.3's A1 records singleton strata as the **expected** case on a
+B2-filtered ordering sample (`archive/METRIC.md` §4.2), not a curiosity. And at `n_g = 1` the claim above is
 false rather than merely improbable — a stratum of one row redraws identically in every replicate, so
 it carries its full weight into the grand mean and **zero** noise into the interval, not proportionate
 noise. On the primary panel that case is unreachable, since emptying 299 of a gameweek's 300 rows is
@@ -4228,7 +4228,7 @@ flattened panel has `n_squads × n_gw` entries and fails that assertion rather t
 number.
 
 *This assertion is primary-panel-scoped, and it is retained exactly as stated. A B2-filtered series is
-**punctured** rather than merely shorter — `METRIC.md` §6.4.3's A2 records that a gameweek with no
+**punctured** rather than merely shorter — `archive/METRIC.md` §6.4.3's A2 records that a gameweek with no
 surviving row has no per-gameweek mean at all — so it fails this assertion on every realistic ordering
 sample, including ones where the treatment is perfectly well defined. §10.10 decides that the assertion
 stays and the ordering sample gets its own entry point rather than the assertion becoming a
@@ -4245,7 +4245,7 @@ contains more than one distinct `gw` whenever the comparison window does (§10.7
 
 *Also primary-panel-scoped, and also retained. The reference quantity is the **comparison window**, so
 a legitimately single-occupied-gameweek ordering sample on a 35-gameweek window trips it —
-`METRIC.md` §6.4.3's A1 and A3 make that an expected occupancy, not a pathology. §10.10 splits this
+`archive/METRIC.md` §6.4.3's A1 and A3 make that an expected occupancy, not a pathology. §10.10 splits this
 paragraph's two requirements, which are not the same guard: the `gw` column being **present** holds on
 every caller and moves down into the shared resampling core, where it protects the ordering sample too;
 the comparison against the window stays here.*
@@ -4290,9 +4290,9 @@ this estimator from the U3 error, and it is not recoverable from the output.
 Both are required to exclude zero for §0.15's S2 to be satisfied.
 
 **No bench-order column is added, and the omission is deliberate.** A third column would have to pin a
-treatment `METRIC.md` §8's row #17 leaves unselected. §10.10 decides the **interface** a bench-order
+treatment `archive/METRIC.md` §8's row #17 leaves unselected. §10.10 decides the **interface** a bench-order
 figure would be computed through; the parameters that interface freezes are owed when the treatment is
-chosen, and `METRIC.md` §6.4.6 permits that choice to be pre-registered as a rule over the occupancy
+chosen, and `archive/METRIC.md` §6.4.6 permits that choice to be pre-registered as a rule over the occupancy
 profile rather than as a fixed value.
 
 ### 10.10 The guard boundary for a filtered subpanel — a separate bench-order entry point over one shared resampling core
@@ -4300,16 +4300,16 @@ profile rather than as a fixed value.
 *Placed after §10.8 with §10.9 held physically last, on §6's precedent — §6.6 sits after §6.7 and §6.8
 for the same reason, so downstream citations of §10.9 still land.*
 
-**What this closes, and what it does not.** `METRIC.md` §6.4 resolves that U1 and U2 transfer to the
-ordering sample **unchanged in form**: B2 (`METRIC.md` §4.2) is an exclusion predicate over the same
+**What this closes, and what it does not.** `archive/METRIC.md` §6.4 resolves that U1 and U2 transfer to the
+ordering sample **unchanged in form**: B2 (`archive/METRIC.md` §4.2) is an exclusion predicate over the same
 squad × gameweek panel, of the same kind as §3.1's zero-gap exclusion there, so it removes rows without
-changing what a row is or which margins the panel has, and no fifth scheme is required. `METRIC.md`
+changing what a row is or which margins the panel has, and no fifth scheme is required. `archive/METRIC.md`
 §6.4.7's third bullet then names the one thing that survey could not see — **whether a downstream
 estimator's contract admits a filtered subpanel at all** is a property of this module's interface — and
-`METRIC.md`'s Provenance flags the consequence in the same terms: an estimator written against the
+`archive/METRIC.md`'s Provenance flags the consequence in the same terms: an estimator written against the
 primary comparison's dimensions will reject a bench-order call even where the treatment is well
 defined. That question is §10's, and this section decides it. It does **not** select the treatment;
-`METRIC.md` §8's row #17 stays open and §10.9 records it.
+`archive/METRIC.md` §8's row #17 stays open and §10.9 records it.
 
 #### 10.10.1 The four guards, and which of them actually fails
 
@@ -4321,8 +4321,8 @@ two whole-module postures.
 |---|---|---|---|---|
 | **G1** | One row per `(gw, squad_id)` | §10.5 | A §2.8 build bug duplicating squad rows, whose only downstream symptom is a wrongly narrow interval | **Holds unchanged.** B2 removes squad-weeks and never duplicates one; §2.8's one-`gw`-per-`squad_id` guarantee is untouched by a filter |
 | **G2** | The `gw` column is required, not optional | §10.6 | A caller passing the panel without `gw` and getting a flat bootstrap that runs cleanly and returns a wrongly narrow interval — U3 under another name | **Holds unchanged** as a column-presence requirement |
-| **G3** | More than one distinct `gw` **whenever the comparison window has more than one** | §10.6 | The same U3 failure in the form G2 cannot see: the column is present and carries one value | **Fails.** Its reference quantity is the *window*, and a legitimately single-occupied-gameweek ordering sample on a 35-gameweek window trips it. `METRIC.md` §6.4.3's A1 and A3 make that expected |
-| **G4** | Input length equals the comparison's scoreable-gameweek count | §10.6, gameweek function | A flattened `n_squads × n_gw` squad-week series passed to the block bootstrap — the call §0.14 rejects as U3, which type-checks as a 1-D array and returns a confidently wrong interval | **Fails.** A B2-filtered series is punctured, not merely shorter: `METRIC.md` §6.4.3's A2 records that a gameweek with no surviving row has no per-gameweek mean at all |
+| **G3** | More than one distinct `gw` **whenever the comparison window has more than one** | §10.6 | The same U3 failure in the form G2 cannot see: the column is present and carries one value | **Fails.** Its reference quantity is the *window*, and a legitimately single-occupied-gameweek ordering sample on a 35-gameweek window trips it. `archive/METRIC.md` §6.4.3's A1 and A3 make that expected |
+| **G4** | Input length equals the comparison's scoreable-gameweek count | §10.6, gameweek function | A flattened `n_squads × n_gw` squad-week series passed to the block bootstrap — the call §0.14 rejects as U3, which type-checks as a 1-D array and returns a confidently wrong interval | **Fails.** A B2-filtered series is punctured, not merely shorter: `archive/METRIC.md` §6.4.3's A2 records that a gameweek with no surviving row has no per-gameweek mean at all |
 
 **And one item that is not a guard at all.** §10.5's "no minimum-stratum threshold, and the reason is
 upstream" is an argued **absence**, resting on §0.16 fixing 300 squads per gameweek. That premise is a
@@ -4330,7 +4330,7 @@ property of the primary panel and is false after any exclusion predicate strong 
 listed apart from G1–G4 because what a filtered panel needs there is not a guard but a **treatment**,
 and the treatment is #17's to select — W1 reports the occupancy profile beside the interval, W2 pools
 strata to a minimum occupancy, W3 abandons the stratification and is U3 under another name
-(`METRIC.md` §6.4.4). §10.5 now carries the scope, and the defect found in its wording, in place.
+(`archive/METRIC.md` §6.4.4). §10.5 now carries the scope, and the defect found in its wording, in place.
 
 #### 10.10.2 The two options
 
@@ -4350,7 +4350,7 @@ caller derived **somewhere else** — `n_scoreable_gw` from §7.2's T3, produced
 intersection, against a differenced array built from T2 — and their whole value is that the two
 derivations are independent, so a caller who got one wrong is caught by the other. Turning the
 reference quantity into an argument collapses that. A bench-order caller has no T3-equivalent to draw
-it from: `METRIC.md` §6.4.6 records that the occupancy profile does not exist and falls out of the same
+it from: `archive/METRIC.md` §6.4.6 records that the occupancy profile does not exist and falls out of the same
 run that produces the figure, so the value it passes is computed either from the panel it is passing —
 a tautology — or from the same ordering-relevance derivation over the same rows (§7.2.1), which is
 cross-source in form and same-source in substance. §10.4 states the principle this is an instance of: a
@@ -4372,7 +4372,7 @@ question this pass was set: yes, B lets a genuinely broken primary call through,
 **Third: B requires the parameter set to be designed against an unmade selection.** What has to be
 parameterised is not one shape but three different ones depending on how #17 lands. W1 needs **no**
 parameter — it needs a second return value, the occupancy profile. W2 needs a pooling width, which
-`METRIC.md` §6.4.4 records as a new parameter carrying a pre-registration obligation. V2 changes the
+`archive/METRIC.md` §6.4.4 records as a new parameter carrying a pre-registration obligation. V2 changes the
 gameweek function's **input contract** — a season-indexed series carrying empties as missing — rather
 than any threshold on it. So B cannot be specified now, only guessed, and §4.11 states this document's
 own standard for that case: a rule written before the thing it quantifies has been characterised is a
@@ -4436,7 +4436,7 @@ a smaller freeze-test problem than B's but not no problem. And the split is only
 with V3** — stratify unchanged, report the occupancy profile beside the interval, and decline the
 gameweek interval for this figure — then the bench-order call is the primary estimator with G3 relaxed
 and one extra return value, and A's second entry point wraps a core it changes nothing about. In that
-world B is the smaller module. The outcome is live rather than hypothetical: `METRIC.md` §6.4.5 records
+world B is the smaller module. The outcome is live rather than hypothetical: `archive/METRIC.md` §6.4.5 records
 V3 as what remains when A3 binds, and whether A3 binds is an occupancy question §6.4.6 there says the
 first run answers. **The asymmetry is what decides it.** B's saving is contingent on one of six
 candidate treatments landing a particular way; B's cost — a weakened G4 on the primary path, where U3
@@ -4472,49 +4472,49 @@ at the moment it matters, and the artefact §7 specifies carries no trace of it.
   unaffected either way.
 - **P4's "mean signed directional error"** — §7.9.
 - **The uncertainty *treatment* on the bench-ordering sample** — §4.11, §9.2. *Narrowed by §10.10.
-  `METRIC.md` §6.4.7's third bullet routed one half of this here — whether this module's contract
+  `archive/METRIC.md` §6.4.7's third bullet routed one half of this here — whether this module's contract
   admits a filtered subpanel at all — and §10.10 decides it. What stays open is the treatment itself:
-  `METRIC.md` §8's row #17, W1–W3 on the squad margin and V1–V3 on the gameweek margin, selected
+  `archive/METRIC.md` §8's row #17, W1–W3 on the squad margin and V1–V3 on the gameweek margin, selected
   against an occupancy profile §6.4.6 there records as unmeasured. No primary-path build waits on it.*
 
 ---
 
-## 11. Facts this document needs that `INVENTORY.md` does not carry
+## 11. Facts this document needs that `archive/INVENTORY.md` does not carry
 
-Under the charter this document reads `INVENTORY.md` and never writes to it, so a fact it needs and
-`INVENTORY.md` lacks is a gap requiring a separate `INVENTORY.md` pass — not something to assert
+Under the charter this document reads `archive/INVENTORY.md` and never writes to it, so a fact it needs and
+`archive/INVENTORY.md` lacks is a gap requiring a separate `archive/INVENTORY.md` pass — not something to assert
 locally. Three such gaps now stand, all predating the weekly-resampling change. None changes a decision above.
 
 1. **What the two `block_bootstrap_ci` implementations return for a series shorter than one block.**
    §6.3 sets the underpowered threshold at four scoreable gameweeks, which follows from `block = 4`
    regardless. Whether the estimators return `(nan, nan)`, raise, or produce a degenerate interval
-   decides only whether the harness must guard the call. `INVENTORY.md` §2.9 characterises the two
+   decides only whether the harness must guard the call. `archive/INVENTORY.md` §2.9 characterises the two
    implementations but not this behaviour.
 2. **Whether `add_lagged_rolls` coerces its source column in a way that maps non-numeric values to
    NaN.** §8.3's no-nulls assertion is required regardless — the failure it prevents is a rolling mean
-   skipping NaN, which is pandas behaviour, not the helper's. `INVENTORY.md` §2.1 records the helper's
+   skipping NaN, which is pandas behaviour, not the helper's. `archive/INVENTORY.md` §2.1 records the helper's
    `min_periods` and its `assert_lag_safe` guard but not its coercion.
 3. **`PlayModel`'s construction-time configuration surface.** §6.1 states that the ranker interface
    accommodates a configured callable object as well as a plain function. That is a property of the
-   interface, and it holds whether or not `PlayModel` takes constructor arguments; `INVENTORY.md` §2.6
+   interface, and it holds whether or not `PlayModel` takes constructor arguments; `archive/INVENTORY.md` §2.6
    records the model's features, target and population but not its constructor.
 
-A fourth item is a *documented* gap rather than a missing one: `METRIC.md` Appendix A holds four
+A fourth item is a *documented* gap rather than a missing one: `archive/METRIC.md` Appendix A holds four
 repository measurements — the no-fixture blank gameweeks, the GW2 universe composition, and the two PPG
-agreement measurements — which `METRIC.md` itself flags as belonging in `INVENTORY.md` under the
-file-purpose charter. This document cites them to `METRIC.md` Appendix A because that is where they
+agreement measurements — which `archive/METRIC.md` itself flags as belonging in `archive/INVENTORY.md` under the
+file-purpose charter. This document cites them to `archive/METRIC.md` Appendix A because that is where they
 currently live; if a later pass relocates them, §2.1, §0.16 and §7.1 are the citations to repoint.
 
-**Two gaps opened by §0.16's weekly resampling are now closed**, by an `INVENTORY.md` pass, and are
+**Two gaps opened by §0.16's weekly resampling are now closed**, by an `archive/INVENTORY.md` pass, and are
 recorded here as closed rather than removed so the routing stays legible.
 
 - **The composition of the squad universe at each gameweek after GW2 — closed.** §0.16 builds squads
   at every gameweek and §2.1 defines the target on U_g, so each U_g's composition bears on §2.3's a
   priori acceptance-rate arguments, read against §2.6's per-week ladder 37 times rather than once.
-  `INVENTORY.md` §2.5 now measures |U_g| and its position and club composition at all 38 gameweeks.
+  `archive/INVENTORY.md` §2.5 now measures |U_g| and its position and club composition at all 38 gameweeks.
   §0.16 and §2.1 cite it.
 - **What the 136 excluded players have in common beyond arriving late — closed, and it contradicted
-  what this document had asserted.** `INVENTORY.md` §2.5 measures them as the less-played group on
+  what this document had asserted.** `archive/INVENTORY.md` §2.5 measures them as the less-played group on
   every measure taken. The claim §0.16 carried has been withdrawn there and at §2.2 in this pass;
   Provenance records the withdrawal.
 
@@ -4528,49 +4528,49 @@ than kept as a separate artefact, per `decisions/README.md`'s self-containment r
 rejected-alternative writeup follows the same convention §5.4.1 already uses for declined module
 placements, not a fifth document type.
 
-**The policy this document operates under.** `DESIGN.md` **cites `INVENTORY.md` and never writes to
+**The policy this document operates under.** `DESIGN.md` **cites `archive/INVENTORY.md` and never writes to
 it** — not to add a fact, not to correct one. Where this document needs a repository fact
-`INVENTORY.md` does not carry, that requires a separate `INVENTORY.md` pass first; it is not resolved
+`archive/INVENTORY.md` does not carry, that requires a separate `archive/INVENTORY.md` pass first; it is not resolved
 by asserting the fact here. §11 lists the open instances rather than filling them.
 
-The same direction holds toward `METRIC.md` and `DECISION.md`: this document **selects from**
-`METRIC.md`'s candidates (§0) and consumes `DECISION.md`'s framing, and where either leaves a gap the
+The same direction holds toward `archive/METRIC.md` and `archive/DECISION.md`: this document **selects from**
+`archive/METRIC.md`'s candidates (§0) and consumes `archive/DECISION.md`'s framing, and where either leaves a gap the
 gap is recorded and routed rather than closed locally — §0.1 and §7.9 for P4's undefined form. **The
 bench-order scoring rule is the worked example of that policy completing a full circuit**: the gap
-was recorded at §0.10 and §9.2, routed to `METRIC.md`, characterised there as O1–O5, and selected
+was recorded at §0.10 and §9.2, routed to `archive/METRIC.md`, characterised there as O1–O5, and selected
 here. It is retained in this paragraph as the case that shows routing is not a way of shelving
 something.
 
-**Two conflicts with `METRIC.md` were opened by §0.16's weekly resampling. Both are now closed.**
-Under the charter this document selects from `METRIC.md` and never writes to it, so where this pass
-found `METRIC.md` wrong the finding was recorded and routed rather than fixed. A `METRIC.md` pass has
+**Two conflicts with `archive/METRIC.md` were opened by §0.16's weekly resampling. Both are now closed.**
+Under the charter this document selects from `archive/METRIC.md` and never writes to it, so where this pass
+found `archive/METRIC.md` wrong the finding was recorded and routed rather than fixed. A `archive/METRIC.md` pass has
 since run and resolved both on that document's own terms. The entries are kept as a record of what
 was routed and what came back, not as live items.
 
-1. **`METRIC.md` §7.1's pairing sentence — resolved; withdrawn there.** It stated that "resampling per
-   gameweek … breaks the pairing", which §10.4 refutes. `METRIC.md` §7.1 now records that **both**
+1. **`archive/METRIC.md` §7.1's pairing sentence — resolved; withdrawn there.** It stated that "resampling per
+   gameweek … breaks the pairing", which §10.4 refutes. `archive/METRIC.md` §7.1 now records that **both**
    constructions satisfy §6.1's paired design, and that what distinguishes them is the dependence
    structure of the resulting panel — a §6.2 matter, not a §6.1 one. The withdrawal is recorded in
-   `METRIC.md`'s Provenance with its reason. **The charter departure this entry previously recorded
+   `archive/METRIC.md`'s Provenance with its reason. **The charter departure this entry previously recorded
    has ended**: there is no longer an upstream sentence this document declines to treat as governing,
    and §0.16's selection now rests on an upstream characterisation that agrees with it.
 
-2. **`METRIC.md` §7.2's validity condition — resolved; restated there for a set of build weeks.** It
-   was written for one build week and did not generalise to §0.16's construction. `METRIC.md` §7.2
+2. **`archive/METRIC.md` §7.2's validity condition — resolved; restated there for a set of build weeks.** It
+   was written for one build week and did not generalise to §0.16's construction. `archive/METRIC.md` §7.2
    now states the condition per build gameweek — no registered player NULL throughout the prefix — of
    which the old form is the special case, and records that it is monotonically easier to satisfy as
    the prefix lengthens, so the earliest build weeks bind rather than GW31 and GW34. The
-   `INVENTORY.md` gap this entry named is unchanged in substance and has been given a sharper form by
+   `archive/INVENTORY.md` gap this entry named is unchanged in substance and has been given a sharper form by
    that pass; it is carried at §11 rather than here.
 
 **One claim of this document's own, withdrawn on measurement.** §0.16's superseded record and §2.2
 both asserted that the 136 players excluded by a frozen GW2 universe skew toward **currently-active**
 players, and so tilt the frozen pool along minutes-certainty in the direction that would corrupt a
 ranker comparison. The assertion was made first-hand and was never measured — which is itself the
-charter breach, since it is a repository fact and `INVENTORY.md` is its owner. `METRIC.md` Appendix
-A.2 flagged the gap; an `INVENTORY.md` pass then measured it.
+charter breach, since it is a repository fact and `archive/INVENTORY.md` is its owner. `archive/METRIC.md` Appendix
+A.2 flagged the gap; an `archive/INVENTORY.md` pass then measured it.
 
-**The measurement contradicts the claim.** `INVENTORY.md` §2.5 records the 136 as the **less**-played
+**The measurement contradicts the claim.** `archive/INVENTORY.md` §2.5 records the 136 as the **less**-played
 group: median 0 season minutes against 565 for the GW2 universe, 52.2% never playing against 33.0%,
 31.6% ever recording 60 minutes against 59.1%, on rates computed over each player's own available
 weeks. The sentence is withdrawn at both sites and replaced by what the measurement supports — that
@@ -4580,8 +4580,8 @@ Its materiality to a ranker comparison remains unmeasured and is not asserted.
 
 **What this changes in the record, stated so it is not overread.** It weakens one of several
 supporting arguments for §0.16's weekly resampling; it does not revisit the selection, and this pass
-did not reopen it. The load-bearing justification is untouched: `METRIC.md` §7.1's pairing objection,
-which is what build-once was selected on, is refuted at §10.4 and withdrawn in `METRIC.md`'s own
+did not reopen it. The load-bearing justification is untouched: `archive/METRIC.md` §7.1's pairing objection,
+which is what build-once was selected on, is refuted at §10.4 and withdrawn in `archive/METRIC.md`'s own
 Provenance. The withdrawn claim is retained above rather than deleted so it is not re-proposed, per
 the charter.
 
@@ -4668,7 +4668,7 @@ binding profile is a property of a fixture's prices and clubs rather than of its
 841-player universe (§2.3) and to nothing else.
 
 **The slice's phase vocabulary is retired.** Five numbered phases had accumulated across these
-documents — 1 for `INVENTORY.md`, 2 for this document, 3 for the build, 4 for the baselines, 5 for the
+documents — 1 for `archive/INVENTORY.md`, 2 for this document, 3 for the build, 4 for the baselines, 5 for the
 results document — with further sites in `decisions/README.md` and `docs/implementation-plan.md`. Every
 one now names the thing its number stood for. The reasoning is recorded at length because the numbers
 read as useful, and someone will propose them again.
@@ -4677,8 +4677,8 @@ read as useful, and someone will propose them again.
    a slice phase number. Everything that actually gates this slice is keyed to a thing rather than to a
    phase: the import contracts (§3), §7.4's freeze test, §5.6's `__init__.py` test, and §9.1's
    governance verdict. A vocabulary that gates nothing is a habit.
-2. **The sequence never covered its own documents.** `METRIC.md` was written before `INVENTORY.md`, yet
-   the numbering began at `INVENTORY.md`; there was no phase 0 and no phase for the metric survey, so
+2. **The sequence never covered its own documents.** `archive/METRIC.md` was written before `archive/INVENTORY.md`, yet
+   the numbering began at `archive/INVENTORY.md`; there was no phase 0 and no phase for the metric survey, so
    two of the four documents sat outside the sequence entirely. Those same two carried **state**
    instead — "Survey. No metric selected." and "Specified and designed. Not built." — and those lines
    were more informative than the numbered ones. That is the precedent the replacements follow.
@@ -4713,9 +4713,9 @@ are corrections to a previously-asserted position and are recorded here for that
 changes which candidate is selected: C1 was and remains the selection over C2 and C3.
 
 1. **§0.8 asserted that the runner-up over the 8-formation enumeration is the second-best legal XI.
-   It is not, and the assertion was inherited rather than checked.** `INVENTORY.md` §2.4 carried the
+   It is not, and the assertion was inherited rather than checked.** `archive/INVENTORY.md` §2.4 carried the
    claim and this document cited it; the citation was correct and the fact was wrong. An
-   `INVENTORY.md` pass has since withdrawn it there and pinned a counterexample — best 745,
+   `archive/INVENTORY.md` pass has since withdrawn it there and pinned a counterexample — best 745,
    enumeration runner-up 729, second-best legal XI 744 — measured by
    `decisions/starting_xi/test_formations.py`. §0.8 now **selects between** the two quantities rather
    than assuming they coincide, and takes the XI gap. The cost sentence that carried the old position
@@ -4728,16 +4728,16 @@ changes which candidate is selected: C1 was and remains the selection over C2 an
    is correct against it; the change it now needs is stated at §0.8 and registered at §1.5, and was
    not made in the pass that wrote this entry.
 
-2. **§0.8 read as scoring C1 on realised points; `METRIC.md` §3.1 says an as-of statistic, and
-   `METRIC.md` is right.** The conflict was this document's to fix, since the charter has it select
-   from `METRIC.md` and a selection may not keep a candidate's name while dropping a clause of its
+2. **§0.8 read as scoring C1 on realised points; `archive/METRIC.md` §3.1 says an as-of statistic, and
+   `archive/METRIC.md` is right.** The conflict was this document's to fix, since the charter has it select
+   from `archive/METRIC.md` and a selection may not keep a candidate's name while dropping a clause of its
    definition. §0.8 now states the as-of statistic explicitly, identifies it as §0.9's season-to-date
    rate on §8.3's population, and records that the realised reading would have made §0.9's
    denominator-coupling argument vacuous and would have conditioned the sample on the outcome. Two
    consequences are recorded rather than absorbed. **§7.2's T2 is corrected**: `second_best_xi_points`
    is superseded by an as-of pair alongside the realised pair, because the two quantities no longer
    come from one call. And **§0.8's own gloss "and every ranker scores 0 regret" is withdrawn** — it
-   held only under the realised reading, was never `METRIC.md` §3.1's claim, and the zero-gap
+   held only under the realised reading, was never `archive/METRIC.md` §3.1's claim, and the zero-gap
    exclusion does not rest on it.
 
 **One thing these two entries do not do.** Neither reopens C1 against C2 or C3, and neither touches
@@ -4747,7 +4747,7 @@ what changed is only which statistic the *conditioning* reads, and which of two 
 
 **Two selections §6 did not carry, added in this pass because the build could not proceed without
 them.** Both are recorded here as constructions with their justification, not as selections from a
-survey — `METRIC.md` characterises no candidate for either, which was the same shape of gap §0.10
+survey — `archive/METRIC.md` characterises no candidate for either, which was the same shape of gap §0.10
 recorded for the bench-order scoring rule *(that one has since been routed, surveyed and closed; these
 two have not, and the parallel is to the gap as it stood, not to its resolution)*.
 
@@ -4820,15 +4820,15 @@ unfilled — is retained in the suite as the reason a heuristic of this shape is
 `harness.py` and `test_harness.py` were changed in the same pass; the pinned counterexample is kept
 and now asserts the new rule's outcome on it.
 
-**The bench-order scoring rule, selected — and the charter inversion `METRIC.md` flagged, resolved.**
+**The bench-order scoring rule, selected — and the charter inversion `archive/METRIC.md` flagged, resolved.**
 §0.10 and §9.2 recorded for several passes that no candidate bench-order rule had been characterised,
 that §4.4's ordering regret was therefore a construction rather than a selection, and that closing it
-was a `METRIC.md` pass. That pass ran; `METRIC.md` §4.3 characterises O1–O5 with tiers and §4.4 there
+was a `archive/METRIC.md` pass. That pass ran; `archive/METRIC.md` §4.3 characterises O1–O5 with tiers and §4.4 there
 leaves a framing question open. §0.10 now selects **O1, ordering regret, on realised points, with an
 absolute counterfactual**. What follows is what was rejected and why, on the standard the C1 entries
 above set.
 
-**First, the inversion, because it gates everything after it.** `METRIC.md` §4.1 flagged that
+**First, the inversion, because it gates everything after it.** `archive/METRIC.md` §4.1 flagged that
 characterising any bench-order rule requires §2.5's GK mechanic — 3 outfield bench players if the GK
 slot is a separate process, four if not — and offered a disjunction: either the mechanics are properly
 open in the survey and its candidates rest on premises that are not fixed, or the mechanics were never
@@ -4836,17 +4836,17 @@ open and §2.5 overstates the choice available.
 
 **The first horn is correct, and it is not a defect.** A survey characterises candidates
 *conditionally* on the variants it holds open — that is what §2 of that document is for, and
-`METRIC.md` §4.1 did exactly the right thing by stating its counts under the separate-GK setting while
+`archive/METRIC.md` §4.1 did exactly the right thing by stating its counts under the separate-GK setting while
 recording that every candidate still computes over four elements under the other. Nothing in §4.3
 requires the mechanic to be **fixed**; it requires it to be **stated**, and it was. **The second horn
 is rejected**: the choice was real, and §0.6 made it — the GK slot is a separate process, on the
-ground `INVENTORY.md` §2.2 supplies, and §4.2 works the consequence to 3 outfield players and 6
+ground `archive/INVENTORY.md` §2.2 supplies, and §4.2 works the consequence to 3 outfield players and 6
 orderings. A selection existing downstream does not retroactively close the survey it selected from,
 and a survey holding a question open is not evidence that the question is unanswered. This is the
 charter operating as designed rather than an inversion of it, and §0.10 now states the setting
 explicitly so no later pass has to re-derive which reading its figures are stated under.
 
-**Second, realised rather than as-of.** `METRIC.md` §4.4 set the tension out and declined to resolve
+**Second, realised rather than as-of.** `archive/METRIC.md` §4.4 set the tension out and declined to resolve
 it, correctly — it is a selection. It also declined to treat the C1 correction as automatic precedent,
 and that judgement is upheld here on inspection rather than accepted on authority. **C1 is a
 conditioning statistic**: §0.8 and §0.9 moved it to an as-of basis because conditioning on realised
@@ -4854,7 +4854,7 @@ points selects the sample on the quantity being measured. **A scoring rule does 
 that mechanism does not operate. Two further reasons decide it. The decision being scored is
 **already as-of** — a policy consumes a ranker's scores and a ranker sees only prior data — so a
 realised metric asks what an as-of-constrained rule cost, which is exactly P1's question and P1's
-accepted posture. And `DECISION.md` §1 states the cost model in points; an as-of rule is not
+accepted posture. And `archive/DECISION.md` §1 states the cost model in points; an as-of rule is not
 expressible in points, and the secondary figure is reported beside the primary one (§4.9). **The cost
 of this choice is recorded rather than glossed**: a realised rule charges a policy for outcomes
 nothing could have foreseen. That is P1's cost too, and it is accepted for P1's reason — the
@@ -4863,7 +4863,7 @@ alternative prices a forecast instead of a decision.
 **Third, the four candidates not taken.**
 
 - **O5**, as-of expected-value ordering regret — excluded by the framing decision above, and
-  independently **speculative** in `METRIC.md`'s tiering: no defined as-of counterfactual for an
+  independently **speculative** in `archive/METRIC.md`'s tiering: no defined as-of counterfactual for an
   ordering exists, and §0.2's reading makes an undefined form disqualifying whatever inputs are
   present.
 - **O2**, entrant points — prices the outcome rather than the decision. §0.1 declined P2 on precisely
@@ -4877,19 +4877,19 @@ alternative prices a forecast instead of a decision.
   entered, so part of what it measures is not the decision; and because two bits per squad-week is not
   a quantity the artefact can store at its own grain. **§4.10's power problem is therefore not solved,
   and this selection does not claim to solve it.** If a later pass wants O3 as a companion diagnostic
-  rather than as the metric, `METRIC.md` §4.3.2's tie-frequency gap has to be measured first — that is
-  an `INVENTORY.md` pass, and it is named here rather than assumed away.
+  rather than as the metric, `archive/METRIC.md` §4.3.2's tie-frequency gap has to be measured first — that is
+  an `archive/INVENTORY.md` pass, and it is named here rather than assumed away.
 - **O4**, reachable-set rank correlation — closes O3's legality gap but returns to roughly B2's
   population, forfeiting the only advantage that motivated O3, while carrying O1's §4.3.1 dependence
   through its definition of "reachable" **and** O3's magnitude-freedom. It keeps both costs and
   neither benefit.
 
-**None of the three `INVENTORY.md` gaps `METRIC.md` §4.3.2 flags blocks this selection**, and that is
+**None of the three `archive/INVENTORY.md` gaps `archive/METRIC.md` §4.3.2 flags blocks this selection**, and that is
 stated as a finding rather than assumed: O3 and O4 are declined on unit and construct grounds that
 hold at any tie frequency, and O5 on a definitional gap its input question does not touch. The one
 place a gap does bind is O3-as-companion, named above.
 
-**Fourth, O1's own flagged defect — removed, not tolerated.** `METRIC.md` records that σ\* under §4.4's
+**Fourth, O1's own flagged defect — removed, not tolerated.** `archive/METRIC.md` records that σ\* under §4.4's
 form was the best ordering *among those compared*, so adding a policy moved every other policy's
 score and two studies were not on one scale. §0.10 takes σ\* over **all 6 permutations** instead. Three
 things decided it. The absolute form is the only one that actually mirrors P1, whose counterfactual is
@@ -4908,8 +4908,8 @@ counterfactual could not be derived from T5 as specified — §7.2.1's rule was 
 emitting the inputs to the form that had been withdrawn. **A subsequent pass closed both halves
 together, as the entry above said it would have to.** §7.2.1 selects the storage shape and §5.1's
 `run` emits it, so the gap between document and implementation is closed rather than carried.
-Separately, §4.11's uncertainty question was routed to this `METRIC.md` pass and **did not
-come back**: `METRIC.md` §4.5 records that it characterised no uncertainty treatment for any of the
+Separately, §4.11's uncertainty question was routed to this `archive/METRIC.md` pass and **did not
+come back**: `archive/METRIC.md` §4.5 records that it characterised no uncertainty treatment for any of the
 five, because §6's designs assume a squad-week unit. §4.11 and §9.2 now say so; the routing was wrong,
 not merely unfulfilled.
 
@@ -4937,7 +4937,7 @@ structural. §7.2.1 states this, and `test_harness.py` asserts it on the emitted
 leaving it as a claim in prose.
 
 **The estimator's contract on a filtered subpanel — decided at §10.10, with both failing guards kept.**
-`METRIC.md` §6.4 resolved that U1 and U2 transfer to the ordering sample unchanged in form, and flagged
+`archive/METRIC.md` §6.4 resolved that U1 and U2 transfer to the ordering sample unchanged in form, and flagged
 at §6.4.7 and in its own Provenance that an estimator written against the primary comparison's
 dimensions would reject a bench-order call even where the treatment is well defined — a property of
 this module's interface, which that document could not see and did not own. §10.10 takes it. Two
@@ -4956,14 +4956,14 @@ loss of the guard §0.14's rejection of U3 rests on.
 **One defect found in passing, corrected in scope rather than deleted.** §10.5's thin-stratum paragraph
 claimed that a small stratum "contributes proportionate weight to the grand mean and proportionate noise
 to the replicate". At `n_g = 1` the second half is false — the stratum redraws identically in every
-replicate and contributes no noise at all, which is `METRIC.md` §6.4.3's A1. The case is unreachable on
+replicate and contributes no noise at all, which is `archive/METRIC.md` §6.4.3's A1. The case is unreachable on
 the primary panel, so nothing computed is affected and no selection moves; the sentence was written
 unconditionally and read as though it were general. It is now scoped, and the correction is recorded
 here because that sentence is the one a later bench-order pass would otherwise have cited as settled.
 
 **One consequence of §10.10 not fixed in this pass.** §5.1's module table records `uncertainty.py` as
 "Two functions, not one (§10.6)". §10.10 makes that two public functions over one shared private core,
-with a third public entry point owed once `METRIC.md` §8's row #17 is selected. §5.1 restates §10
+with a third public entry point owed once `archive/METRIC.md` §8's row #17 is selected. §5.1 restates §10
 rather than deciding anything of its own, so the row is stale rather than in conflict; correcting it is
 a §5 pass, flagged at §10.10.6 and here rather than made from a pass that owns §10.
 
@@ -4981,7 +4981,7 @@ conflict is flagged for a human rather than resolved by this document.
    pass was briefed on the understanding that §9.1's knock-on was §0.15's threshold — that losing F3
    would change which ranker is the floor, which would change the bar, and that §0.15 must not be
    left "pointing at a ranker that no longer holds that role". **§0.15 points at no ranker and never
-   did.** §0.13 selects `METRIC.md` §5.3's first option, which makes the floor **whichever naive
+   did.** §0.13 selects `archive/METRIC.md` §5.3's first option, which makes the floor **whichever naive
    ranker carries the lowest mean regret, re-determined per comparison**; §0.15's S3 is 10% of *that*
    ranker's own mean regret, whichever it turns out to be; and §7.2's T3 carries `floor_ranker` as a
    comparison-level column precisely because the identity is an output rather than a constant. §9.1's
@@ -4990,25 +4990,25 @@ conflict is flagged for a human rather than resolved by this document.
    and a pass that "fixed" §0.15 to name a ranker would have destroyed it. Nothing was changed in
    §0.15 or §0.13.
 2. **A second cross-reference corrected in passing.** §8.2's `assert_no_future_leakage` paragraph
-   cited `INVENTORY.md` **§5.7**, which does not exist; the claim is §3.7's, worded identically at
+   cited `archive/INVENTORY.md` **§5.7**, which does not exist; the claim is §3.7's, worded identically at
    §6.2 four hundred lines earlier. Corrected. It is unrelated to the gate and was found only because
    the closure had to establish where that guard reaches — recorded rather than fixed silently.
-3. **A citation error corrected at source, with three copies.** `INVENTORY.md` §2.1 had the
+3. **A citation error corrected at source, with three copies.** `archive/INVENTORY.md` §2.1 had the
    annotation at `dal/feat/feat_player_gameweek.py:16–22`; it is at `:94–96`, and `:16–22` is the
-   bare `_ROLL_COLS` list with no comment on it. §9.1 here and `METRIC.md` §5.2 both carried the
-   citation, having taken it from `INVENTORY.md`. All three are now correct. Recorded because the
+   bare `_ROLL_COLS` list with no comment on it. §9.1 here and `archive/METRIC.md` §5.2 both carried the
+   citation, having taken it from `archive/INVENTORY.md`. All three are now correct. Recorded because the
    three copies were not independent evidence of the line range, and reading any two of them would
    have looked like corroboration.
 4. **A charter point this pass had to observe, and one it had to route.** The verdict is a
    *selection* and so is this document's; the record it rests on is *repository fact* and so is
-   `INVENTORY.md`'s. §9.1 accordingly cites §2.1 for all four supporting facts and asserts none of
-   them first-hand, which required an `INVENTORY.md` pass to run first. The one thing this document
+   `archive/INVENTORY.md`'s. §9.1 accordingly cites §2.1 for all four supporting facts and asserts none of
+   them first-hand, which required an `archive/INVENTORY.md` pass to run first. The one thing this document
    states first-hand is where the `assert_no_future_leakage` guard does and does not reach in the
    slice's own tier structure — a property of the design, not of the repository — and §9.1 states it
    by pointing at §6.2 and §8.2, which had already decided it, rather than deciding it afresh. **No
-   new `INVENTORY.md` gap was opened**, so §11's list is unchanged. One item is routed out:
-   `METRIC.md`'s Provenance still records "this harness must not adopt `assert_no_future_leakage`" as
-   direction with no home elsewhere, which §6.2 and §8.2 falsify. That is a `METRIC.md` correction and
+   new `archive/INVENTORY.md` gap was opened**, so §11's list is unchanged. One item is routed out:
+   `archive/METRIC.md`'s Provenance still records "this harness must not adopt `assert_no_future_leakage`" as
+   direction with no home elsewhere, which §6.2 and §8.2 falsify. That is a `archive/METRIC.md` correction and
    this document does not make it.
 
 **What the closure did not change.** No metric, no threshold, no window, no population, no module
@@ -5024,20 +5024,20 @@ the composition root had nothing to pass and `OrderingPolicy` had no implementat
 slice. Four things came out of closing it, and each is recorded because a later reader would
 otherwise re-open one of them:
 
-1. **The gap is upstream, not local.** `METRIC.md` §8's selection table carries #10 (the bench-order
+1. **The gap is upstream, not local.** `archive/METRIC.md` §8's selection table carries #10 (the bench-order
    scoring rule) and #11 (its denominator) and **no row for the comparison set**. Under the charter
-   this document selects from `METRIC.md`'s candidates and does not write them, so §5.4.1 pre-registers
+   this document selects from `archive/METRIC.md`'s candidates and does not write them, so §5.4.1 pre-registers
    the one ordering `DESIGN.md` already commits to — §4.12's induced order — and routes the rest.
    Naming a second policy here would have been this document asserting a candidate characterisation it
    does not own, which is the failure mode the ownership routing exists to prevent. **Routed, not
    shelved:** §1.5 carries it with what it blocks, on the same terms §0.10's own gap was carried
-   before `METRIC.md` §4.3 came back with O1–O5.
+   before `archive/METRIC.md` §4.3 came back with O1–O5.
 2. **A one-policy set is legal and its cost is exact.** §4.6's B2 is 0 when no two orderings can
    differ, and §4.7 then leaves every bench-order figure without a denominator. This is stated at
    §5.4.1 rather than left to the run. What survives is more than it first looks: the primary arc is
    untouched, and §0.10's `best_permutation_total` is a squad-week property, so the decision's
    *headroom* is measured on the first run even though no policy comparison is. That is the figure a
-   later `METRIC.md` pass should be reading when it decides whether the comparison is worth building.
+   later `archive/METRIC.md` pass should be reading when it decides whether the comparison is worth building.
 3. **The module home is a §5 selection with a real cost, and the cheaper options were declined on
    stated grounds rather than passed over.** §5.4.1 records all three. The decisive argument against
    putting the policies in `harness.py` is §0.10's own distinction between a runtime argument
@@ -5047,7 +5047,7 @@ otherwise re-open one of them:
    Tier A, not a `Protocol` as `RankerOutput` is, so an ordering policy needing `model/` cannot be
    written against §5.4's signature at all. That bounds the open item in (1) — the admissible set is
    today the policies expressible over `(player_id, position, score, no_fixture)` — and widening it is
-   a §5.4 interface change. §5.4.1 records it where the `METRIC.md` pass will need it, and this pass
+   a §5.4 interface change. §5.4.1 records it where the `archive/METRIC.md` pass will need it, and this pass
    does not make the change, since selecting an interface to fit an uncharacterised candidate is the
    wrong order.
 
@@ -5065,11 +5065,11 @@ without it, and the only occurrence anywhere in the repository was a placeholder
 root could not be assembled without a value — and whoever assembled it would have chosen a construction
 on this document's behalf, which is the failure §5.4.1's entry records for the bench ordering.
 
-1. **The gap is this document's, and that was checked rather than assumed.** `INVENTORY.md` and
-   `METRIC.md` were both read before the pass proceeded, on the ground that §5.4.1's comparable gap
+1. **The gap is this document's, and that was checked rather than assumed.** `archive/INVENTORY.md` and
+   `archive/METRIC.md` were both read before the pass proceeded, on the ground that §5.4.1's comparable gap
    turned out to be **upstream** and a second one might be too. It is not. Both documents use "squad
-   set" only as a noun phrase for the drawn squads — `INVENTORY.md` §3.4 and `METRIC.md` §2.3 on the
-   DGW exclusion being unmeasurable without one, `METRIC.md` §7.1 on the pairing — and neither carries
+   set" only as a noun phrase for the drawn squads — `archive/INVENTORY.md` §3.4 and `archive/METRIC.md` §2.3 on the
+   DGW exclusion being unmeasurable without one, `archive/METRIC.md` §7.1 on the pairing — and neither carries
    any notion of an *identifier* for one. Nor could either: an artefact's identity is a property of the
    design that produces the artefact, not a repository fact and not a metric candidate. **Nothing was
    routed**, and §11's list is unchanged.
@@ -5112,7 +5112,7 @@ found — a downstream section presupposing an artefact no section names a produ
 checked against both precedents rather than resolved by pattern-matching either one.
 
 1. **The gap was already answered, four times, in language rather than in a table row.** Unlike the
-   bench-ordering set and the squad-set id, no repository fact and no `METRIC.md`/`INVENTORY.md` read
+   bench-ordering set and the squad-set id, no repository fact and no `archive/METRIC.md`/`archive/INVENTORY.md` read
    was needed to close this one: §5.1.1, §7.2.1, §8.2 and §10.6 each independently locate this work "at
    the composition root" or "at assembly" while explaining something else. §5.1.2 treats that
    convergence as the answer and elimination (no §5.1 row fits, §7.8 rules `results.py` out by its own

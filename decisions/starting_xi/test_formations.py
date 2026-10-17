@@ -6,7 +6,7 @@ the sampler's tests onto reduced universes, so it is used:
 * **Legality is checked over every position multiset**, not over examples. Every non-negative
   (GK, DEF, MID, FWD) count vector summing to 0-15 is put to `is_legal_xi` and compared against
   the XI bounds read independently from `domain/fpl_squad.py`. Nothing is sampled.
-* **The maximum is checked against brute force over every legal XI.** `INVENTORY.md` §2.4's
+* **The maximum is checked against brute force over every legal XI.** `archive/INVENTORY.md` §2.4's
   prefix-sum shortcut is the claim under test, so the reference is all 1,365 11-subsets of the
   15, filtered and maximised directly. If the shortcut is wrong for any arrangement of points,
   a seeded sweep of squads finds it.
@@ -32,7 +32,7 @@ from domain.fpl_squad import POSITIONS, SQUAD_SELECT, SQUAD_SIZE, XI_MAX_PLAY, X
 pytestmark = pytest.mark.unit
 
 
-# `INVENTORY.md` §2.4's measured formation set, written out here and nowhere in the module. This
+# `archive/INVENTORY.md` §2.4's measured formation set, written out here and nowhere in the module. This
 # is the drift test for `domain/fpl_squad.py`'s XI bounds: the module derives the set from those
 # bounds, so a bound that moved without the document moving fails here rather than silently
 # changing what the counterfactual maximises over.
@@ -133,7 +133,7 @@ def _formation_gap_runner_up(positions: list[str], points: list[float]) -> float
 
 
 # ---------------------------------------------------------------------------
-# The formation set -- derived from `domain/`, pinned against `INVENTORY.md` §2.4
+# The formation set -- derived from `domain/`, pinned against `archive/INVENTORY.md` §2.4
 # ---------------------------------------------------------------------------
 
 
@@ -216,7 +216,7 @@ def _sweep_squad(seed: int) -> tuple[list[str], list[float]]:
 def test_both_totals_match_brute_force_over_every_legal_xi() -> None:
     """The whole claim, against the only reference that shares no arithmetic with it.
 
-    `INVENTORY.md` §2.4's prefix-sum shortcut supplies the maximum; §0.8's demotion rule supplies
+    `archive/INVENTORY.md` §2.4's prefix-sum shortcut supplies the maximum; §0.8's demotion rule supplies
     the second-best. `_brute_force` supplies both by enumerating every legal XI directly. Run over
     `SWEEP_SQUADS` squads, which is the validation the design's cost claim rests on -- §0.8 states
     the second-best legal XI is either another formation's best or a single demotion within the
@@ -239,7 +239,7 @@ def test_the_formation_gap_would_fail_the_sweep_above() -> None:
     order of magnitude below that -- it exists to catch a regression to the formation gap, not to
     pin a property of the point distribution these squads are drawn from.
 
-    The one-directional relation `INVENTORY.md` §2.4 records is asserted on every squad, not just
+    The one-directional relation `archive/INVENTORY.md` §2.4 records is asserted on every squad, not just
     on the ones that disagree: the formation gap never exceeds the XI gap.
     """
     disagreed = 0

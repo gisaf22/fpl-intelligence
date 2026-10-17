@@ -15,7 +15,7 @@ rather than described:
   tests assert that rule's behaviour on the case that broke the old one.
 * **§4.3's worked example is replayed**, and the priority-queue reading is separated from the
   consume-on-skip alternative by running both -- so the test knows it has something to fail
-  against, per `METRIC.md` §2.5.
+  against, per `archive/METRIC.md` §2.5.
 * **§0.10's absolute counterfactual is checked by exhaustion**, which is available because there
   are only 3! = 6 orderings of the outfield bench: `best_permutation_total` is re-derived from an
   independent enumeration on every squad-week of the fixture, and the relative form it replaced is
@@ -343,7 +343,7 @@ def rank_squad_index(records: Sequence[BenchPlayer], record: BenchPlayer) -> int
 
 
 def test_a_no_fixture_player_is_ranked_last_however_high_his_score() -> None:
-    """§0.4: the rule is the harness's and applies identically to every ranker. `METRIC.md` §2.3
+    """§0.4: the rule is the harness's and applies identically to every ranker. `archive/METRIC.md` §2.3
     records that a PPG ranker scores such a player at 0, which is not last -- so a raw-score
     ranking would not implement the rule and the demotion has to be explicit."""
     scores = [1.0] * SQUAD_SIZE
@@ -393,7 +393,7 @@ def test_the_worked_example_from_section_4_3_replays_as_the_document_states() ->
 
 
 def test_a_consume_on_skip_rule_would_replay_the_worked_example_differently() -> None:
-    """`METRIC.md` §2.5 says a rule treating a skipped player as spent measures a *different*
+    """`archive/METRIC.md` §2.5 says a rule treating a skipped player as spent measures a *different*
     bench order, and §0.6 selects the priority-queue reading over it. Both are run here, so the
     test above is known to be distinguishing them rather than passing on a case where they agree.
     """
@@ -686,7 +686,7 @@ def test_an_appearance_denominated_statistic_would_differ() -> None:
 
 def test_pre_registration_weeks_do_not_count() -> None:
     """§0.9: charging a GW20 entrant with nineteen zeros would score the DAL's cartesian spine
-    (`INVENTORY.md` §2.5), not the player. The counting version is computed and must differ."""
+    (`archive/INVENTORY.md` §2.5), not the player. The counting version is computed and must differ."""
     rows: list[tuple[int, int, str, float | None, float | None]] = [(1, gw, "MID", None, None) for gw in range(1, 5)]
     rows += [(1, gw, "MID", 90.0, 6.0) for gw in range(5, 8)]
     got = as_of_points(_mart(rows)).set_index("gw")["as_of_points"].to_dict()

@@ -5,7 +5,7 @@
 and names no policy. The only ordering `DESIGN.md` commits to is §4.12's: "the bench ordering is
 the induced order over the 4 non-selected players, GK separated", with §6.7 and §6.8 fixing how
 a score panel induces it. :data:`PRE_REGISTERED_ORDERINGS` is that ordering and nothing else.
-Which *further* policies belong in the comparison set is an open decision `METRIC.md` carries no
+Which *further* policies belong in the comparison set is an open decision `archive/METRIC.md` carries no
 candidates for -- §5.4.1 states it, and §1.5 lists it -- so no second policy is invented here.
 
 **The consequence is named rather than discovered on the first run.** §4.6 defines B2, the
@@ -15,7 +15,7 @@ denominator for every bench-order claim. Under a one-policy set no two orderings
 one-policy run explicitly, primary regret is well defined under element 0, and §0.10's absolute
 counterfactual -- `best_permutation_total`, over all 6 permutations -- is a squad-week property
 the harness emits whatever the policy count. What a one-policy run cannot do is measure
-`DECISION.md` §1's *secondary* decision.
+`archive/DECISION.md` §1's *secondary* decision.
 
 **Tier A, and the tier is forced rather than chosen.** §5.4's `OrderingPolicy` takes a
 `Sequence[BenchPlayer]` and `BenchPlayer` is defined in `harness.py`, so any module importing the
@@ -81,7 +81,7 @@ BY_WEIGHTED_SCORE: Final[str] = "by_weighted_score"
 """A second naive floor-candidate for the bench-order comparison set (§5.4.1's open item).
 
 Not pre-registered: §5.4.1 records that closing "which ordering policies form the comparison set"
-takes a `METRIC.md` pass, which has not run. Defined and tested here so that pass has a second
+takes a `archive/METRIC.md` pass, which has not run. Defined and tested here so that pass has a second
 naive candidate to characterise against `by_rank` -- `by_rank` cannot be the sole naive baseline
 for the same reason F1 alone could not stand in for §5.1's three naive rankers.
 """

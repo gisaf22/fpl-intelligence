@@ -275,7 +275,7 @@ def test_the_pre_registered_set_satisfies_section_5_4s_contract() -> None:
 
 def test_the_pre_registered_set_is_what_it_is_frozen_as() -> None:
     """§5.4.1 pre-registers exactly one policy and §7.4 freezes it. A second policy added without
-    a `METRIC.md` pass characterising the comparison set fails here, which is the point: the set
+    a `archive/METRIC.md` pass characterising the comparison set fails here, which is the point: the set
     is a pre-registration, not a convenience list."""
     assert [name for name, _ in PRE_REGISTERED_ORDERINGS] == [BY_RANK]
 

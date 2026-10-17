@@ -4,10 +4,10 @@ Two things, and nothing else:
 
 * **`best_legal_xi`** -- the best legal XI total over a 15, and the second-best. §0.1's
   counterfactual regret is the gap between the chosen XI's total and the first; §0.8's C1
-  closeness gap is the gap between the first and the second. `INVENTORY.md` §2.4 measures the
+  closeness gap is the gap between the first and the second. `archive/INVENTORY.md` §2.4 measures the
   search for the maximum: sort each position's points descending and take the best of 8
   prefix-sum combinations, no solver and no new dependency. **The second-best XI is not the
-  second-best of those 8** -- `INVENTORY.md` §2.4 records that the enumeration's runner-up is the
+  second-best of those 8** -- `archive/INVENTORY.md` §2.4 records that the enumeration's runner-up is the
   best total achievable by a *different* formation, and §0.8 selects the XI gap over that
   formation gap. It costs the same 8 combinations plus at most four subtractions; the derivation
   is on `best_legal_xi`.
@@ -17,7 +17,7 @@ Two things, and nothing else:
 
 **The formation set is derived, never listed.** `LEGAL_FORMATIONS` is enumerated at import from
 `domain/fpl_squad.py`'s `XI_MIN_PLAY`, `XI_MAX_PLAY` and `XI_SIZE` -- the bounds FPL declares and
-`dal/staging/contracts/element_types.yaml` stages (`INVENTORY.md` §2.2). Writing the eight tuples
+`dal/staging/contracts/element_types.yaml` stages (`archive/INVENTORY.md` §2.2). Writing the eight tuples
 out here would put a second copy of a staged rule in a decision slice, where nothing checks it
 against the source.
 
@@ -51,10 +51,10 @@ Formation = tuple[int, ...]
 def _enumerate_formations() -> tuple[Formation, ...]:
     """Every per-position count vector inside the XI bounds that sums to a full XI.
 
-    `INVENTORY.md` §2.4 measures this at 8 for the staged 2025/26 bounds. The count is not
+    `archive/INVENTORY.md` §2.4 measures this at 8 for the staged 2025/26 bounds. The count is not
     asserted here: it is a consequence of the bounds, and pinning it in the module would make a
     changed bound fail in the wrong place. `test_formations.py` pins it against the eight tuples
-    `INVENTORY.md` records, which is where a drift should surface.
+    `archive/INVENTORY.md` records, which is where a drift should surface.
     """
     per_position = [range(XI_MIN_PLAY[position], XI_MAX_PLAY[position] + 1) for position in POSITIONS]
     return tuple(sorted(counts for counts in product(*per_position) if sum(counts) == XI_SIZE))
@@ -122,7 +122,7 @@ def best_legal_xi(positions: Sequence[str], points: Sequence[float]) -> BestXI:
     """The best legal XI total over a 15, and the second-best legal XI total.
 
     Sorting each position's points descending makes the best XI *for a given formation* a sum of
-    per-position prefixes, so the maximum is 8 prefix-sum combinations (`INVENTORY.md` §2.4).
+    per-position prefixes, so the maximum is 8 prefix-sum combinations (`archive/INVENTORY.md` §2.4).
 
     **The second-best XI is not the second-best of those 8**, and §0.8 selects the XI gap over the
     formation gap for that reason. Any legal XI other than the best either has a different

@@ -165,7 +165,7 @@ def registration_gw(mart: pd.DataFrame) -> pd.Series:
     squad universe read one population, not two that happen to look alike. `test_harness.py`
     asserts the two agree rather than leaving the reuse to the docstring.
 
-    `INVENTORY.md` §2.5 records why the predicate is needed at all: the DAL spine is a full
+    `archive/INVENTORY.md` §2.5 records why the predicate is needed at all: the DAL spine is a full
     player x gameweek cartesian product, so a GW20 debutant *has* GW1-19 rows with NULL
     performance, and counting them would score the DAL's construction rather than the player.
     """
@@ -176,7 +176,7 @@ def registration_gw(mart: pd.DataFrame) -> pd.Series:
 def as_of_points(mart: pd.DataFrame) -> pd.DataFrame:
     """§0.9's as-of statistic: season-to-date points per gameweek elapsed, strictly before `gw`.
 
-    `METRIC.md` §3.2's first option, with §0.9's three sub-choices resolved: blanked weeks count
+    `archive/METRIC.md` §3.2's first option, with §0.9's three sub-choices resolved: blanked weeks count
     at **0**, no-fixture weeks count at **0**, and pre-registration weeks **do not count at
     all**. The denominator is gameweeks elapsed since registration, not appearances -- §0.9
     records the failure of the alternative, which orders an 8-per-appearance player who features
@@ -280,7 +280,7 @@ def select_xi(ranking: Sequence[int], positions: Mapping[int, str]) -> frozenset
 
     **What is maximised is rank position, not the raw score** (§6.7). The two agree wherever no
     demotion applies and must not be conflated where one does: an unrankable row carries no score
-    at all, and `METRIC.md` §2.3 records that a PPG-style ranker scores a no-fixture player at 0,
+    at all, and `archive/METRIC.md` §2.3 records that a PPG-style ranker scores a no-fixture player at 0,
     which is not last. Rank positions are distinct, so the maximiser is unique -- and by §6.7's
     matroid argument the same XI maximises every weighting consistent with the ranking, the
     ranker's own scores among them.
@@ -343,7 +343,7 @@ def _featured(minutes: float | None) -> bool:
     """§0.3's two-state predicate: did the player record any minutes?
 
     Covers `minutes = 0` (had a fixture, did not feature) and `minutes` NULL (no fixture) alike,
-    which `INVENTORY.md` §2.5 records as structurally distinct states on the mart. §0.5 applies
+    which `archive/INVENTORY.md` §2.5 records as structurally distinct states on the mart. §0.5 applies
     the same predicate to an incoming substitute.
     """
     return minutes is not None and not pd.isna(minutes) and minutes > 0
@@ -366,7 +366,7 @@ def replay(
     -- ties by DEF, then MID, then FWD, then ascending `player_id`.
 
     A skipped bench player **stays in the queue** for a later vacancy -- §0.6's priority-queue
-    reading. A rule that consumed him would measure a different bench order (`METRIC.md` §2.5).
+    reading. A rule that consumed him would measure a different bench order (`archive/METRIC.md` §2.5).
 
     Args:
         xi: the chosen XI's `player_id`s.
@@ -470,7 +470,7 @@ def _realised_points(value: object) -> float:
     §0.9 sets blanked and no-fixture weeks to 0 for the *conditioning* statistic and gives the
     reason -- "a player whose club had no fixture scored 0 for anyone who started him". Nothing
     states the same for realised points, and something must: `total_points` is nullable on the
-    mart (`INVENTORY.md` §2.5) and `best_legal_xi` rejects a non-finite value rather than
+    mart (`archive/INVENTORY.md` §2.5) and `best_legal_xi` rejects a non-finite value rather than
     guessing at it. The same sentence is the answer, and the alternatives are worse -- a null
     propagated into the counterfactual maximum would make regret undefined for the whole
     squad-week, and excluding the squad-week would drop rows for a reason unrelated to closeness.
@@ -573,7 +573,7 @@ def run(
         points = {player_id: fact_lookup[(player_id, gw)][2] for player_id in squad}
         # §0.4: a player whose club has no fixture is ranked last by the harness, identically for
         # every ranker. NULL `minutes` is that state on the mart, post-registration
-        # (`INVENTORY.md` §2.5) -- and the squad universe excludes pre-registration rows by
+        # (`archive/INVENTORY.md` §2.5) -- and the squad universe excludes pre-registration rows by
         # construction (§2.1), so a NULL reaching here is a blank rather than a prefix.
         no_fixture = {player_id: minutes[player_id] is None for player_id in squad}
 

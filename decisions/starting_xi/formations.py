@@ -79,6 +79,9 @@ class BestXI:
 
     best_legal_xi_points: float
     second_best_xi_points: float
+    best_xi_position_points: tuple[float, ...]
+    """The best XI's points per position, in `POSITIONS` order -- #32's position segments. Under a
+    formation tie it is the first maximising formation in `LEGAL_FORMATIONS` order, as `select_xi`."""
 
 
 def _position_counts(positions: Sequence[str]) -> Formation:
@@ -191,4 +194,8 @@ def best_legal_xi(positions: Sequence[str], points: Sequence[float]) -> BestXI:
     ]
     best_demoted = best - min(demotions)
 
-    return BestXI(best_legal_xi_points=best, second_best_xi_points=max(best_elsewhere, best_demoted))
+    return BestXI(
+        best_legal_xi_points=best,
+        second_best_xi_points=max(best_elsewhere, best_demoted),
+        best_xi_position_points=tuple(prefix[position][n] for position, n in zip(POSITIONS, winner, strict=True)),
+    )

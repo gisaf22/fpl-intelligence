@@ -221,6 +221,7 @@ def test_run_study_refuses_before_writing_anything(tmp_path) -> None:
             gameweeks=range(2, 9),
             n_squads=5,
             seed=7,
+            squad_mode="uniform",
             results_root=tmp_path / "results",
             repo_root=_git_repo(tmp_path / "repo"),
         )
@@ -241,6 +242,7 @@ def test_run_study_end_to_end_on_a_small_fixture(tmp_path) -> None:
         gameweeks=range(2, 9),
         n_squads=5,
         seed=7,
+        squad_mode="uniform",
         results_root=tmp_path / "results",
         **_off_registration_flags(tmp_path),
     )
@@ -265,7 +267,12 @@ def test_run_study_end_to_end_on_a_small_fixture(tmp_path) -> None:
 def test_same_seed_reproduces_run_id_and_squad_set_id(tmp_path) -> None:
     frames = _small_frames(n_gw=8)
     kwargs = dict(
-        rank_fns=_fake_rank_fns(11), gameweeks=range(2, 9), n_squads=5, seed=11, **_off_registration_flags(tmp_path)
+        rank_fns=_fake_rank_fns(11),
+        gameweeks=range(2, 9),
+        n_squads=5,
+        seed=11,
+        squad_mode="uniform",
+        **_off_registration_flags(tmp_path),
     )
 
     first = run_study(frames, results_root=tmp_path / "a", **kwargs)

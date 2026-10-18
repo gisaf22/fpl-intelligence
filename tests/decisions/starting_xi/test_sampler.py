@@ -129,7 +129,7 @@ def _joined(sample: SquadSample, gameweek: pd.DataFrame) -> pd.DataFrame:
 
 
 def test_position_quota_is_exact(gameweek: pd.DataFrame) -> None:
-    joined = _joined(sample_squads(_frames(gameweek), [2, 4, 6], 40, 0), gameweek)
+    joined = _joined(sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform"), gameweek)
     counts = joined.pivot_table(index="squad_id", columns="position", aggfunc="size", fill_value=0)
     for position in POSITIONS:
         assert (counts[position] == SQUAD_SELECT[position]).all()
@@ -137,13 +137,13 @@ def test_position_quota_is_exact(gameweek: pd.DataFrame) -> None:
 
 
 def test_club_limit_holds_at_each_squads_own_gameweek(gameweek: pd.DataFrame) -> None:
-    joined = _joined(sample_squads(_frames(gameweek), [2, 4, 6], 40, 0), gameweek)
+    joined = _joined(sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform"), gameweek)
     per_club = joined.groupby(["squad_id", "team_id"]).size()
     assert per_club.max() <= MAX_PER_CLUB
 
 
 def test_budget_cap_holds_at_each_squads_own_gameweek(gameweek: pd.DataFrame) -> None:
-    joined = _joined(sample_squads(_frames(gameweek), [2, 4, 6], 40, 0), gameweek)
+    joined = _joined(sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform"), gameweek)
     cost = joined.groupby("squad_id")["price"].sum()
     # In tenths: fifteen float prices can sum a hair above the cap and still be legal.
     assert (np.rint(cost * 10).astype(int) <= round(BUDGET_CAP * 10)).all()
@@ -151,8 +151,8 @@ def test_budget_cap_holds_at_each_squads_own_gameweek(gameweek: pd.DataFrame) ->
 
 def test_every_drawn_player_is_in_his_own_gameweeks_universe(gameweek: pd.DataFrame) -> None:
     """Set membership in U_g, per §2.8 — cheaper and stricter than re-deriving the prefix rule."""
-    sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0)
-    universes = _universes(gameweek, [2, 4, 6])
+    sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform")
+    universes = _universes(gameweek, [2, 4, 6], "uniform")
     for gw, drawn in sample.squads.groupby("gw"):
         assert set(drawn["player_id"]) <= set(universes[gw].player_ids.tolist())
 
@@ -163,8 +163,8 @@ def test_a_gw2_keyed_membership_test_would_be_the_wrong_test(gameweek: pd.DataFr
     U_2 is a strict subset of U_6, so asserting membership in U_2 would reject legitimate later
     entrants rather than catch phantoms. This fixture has entrants, and they are drawn.
     """
-    sample = sample_squads(_frames(gameweek), [2, 6], 40, 0)
-    u2 = set(_universes(gameweek, [2])[2].player_ids.tolist())
+    sample = sample_squads(_frames(gameweek), [2, 6], 40, 0, squad_mode="uniform")
+    u2 = set(_universes(gameweek, [2], "uniform")[2].player_ids.tolist())
     late = sample.squads.loc[(sample.squads["gw"] == 6) & ~sample.squads["player_id"].isin(u2)]
     assert not late.empty
 
@@ -175,7 +175,7 @@ def test_a_gw2_keyed_membership_test_would_be_the_wrong_test(gameweek: pd.DataFr
 
 
 def test_no_squad_contains_a_player_before_his_first_non_null_minutes_row(gameweek: pd.DataFrame) -> None:
-    sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0)
+    sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform")
     debut = gameweek.loc[gameweek["minutes"].notna()].groupby("player_id")["gw"].min()
     assert (sample.squads["gw"] >= sample.squads["player_id"].map(debut)).all()
 
@@ -185,7 +185,7 @@ def test_a_pre_registration_row_carries_a_price_and_is_still_excluded(gameweek: 
     prefix = gameweek.loc[gameweek["minutes"].isna()]
     assert not prefix.empty and prefix["price"].notna().all()
 
-    sample = sample_squads(_frames(gameweek), [2], 40, 0)
+    sample = sample_squads(_frames(gameweek), [2], 40, 0, squad_mode="uniform")
     drawn_at_gw2 = set(sample.squads["player_id"])
     not_yet_registered = set(prefix.loc[prefix["gw"] == 2, "player_id"])
     assert not (drawn_at_gw2 & not_yet_registered)
@@ -200,14 +200,14 @@ def test_each_squad_id_appears_at_exactly_one_gameweek(gameweek: pd.DataFrame) -
     """Not a tidiness check: §10.3's estimator is valid because a squad contributes one row, and
     an id reused across weeks would resample correctly by its own lights while reintroducing the
     dependence §0.14's U3 rejection is about."""
-    sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0)
+    sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform")
     assert (sample.squads.groupby("squad_id")["gw"].nunique() == 1).all()
     assert sample.squads.groupby("squad_id").size().eq(SQUAD_SIZE).all()
     assert sample.squads["squad_id"].nunique() == 40 * 3
 
 
 def test_no_player_is_drawn_twice_within_one_squad(gameweek: pd.DataFrame) -> None:
-    sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0)
+    sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform")
     assert (sample.squads.groupby("squad_id")["player_id"].nunique() == SQUAD_SIZE).all()
 
 
@@ -217,8 +217,8 @@ def test_no_player_is_drawn_twice_within_one_squad(gameweek: pd.DataFrame) -> No
 
 
 def test_same_seed_reproduces_the_squad_table_exactly(gameweek: pd.DataFrame) -> None:
-    first = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0)
-    second = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0)
+    first = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0, squad_mode="uniform")
+    second = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0, squad_mode="uniform")
     pd.testing.assert_frame_equal(first.squads, second.squads)
     pd.testing.assert_frame_equal(first.run_record, second.run_record)
     assert first.mart_pin == second.mart_pin
@@ -228,8 +228,8 @@ def test_same_seed_reproduces_the_squad_table_exactly(gameweek: pd.DataFrame) ->
 def test_building_a_subset_of_gameweeks_reproduces_those_gameweeks_exactly(gameweek: pd.DataFrame) -> None:
     """§2.9's per-week streams, asserted rather than assumed: a partial re-run is auditable only
     if the derivation is independent of build order and of what other weeks consumed."""
-    whole = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0)
-    part = sample_squads(_frames(gameweek), [5, 3], 40, 0)
+    whole = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0, squad_mode="uniform")
+    part = sample_squads(_frames(gameweek), [5, 3], 40, 0, squad_mode="uniform")
     pd.testing.assert_frame_equal(
         part.squads,
         whole.squads.loc[whole.squads["gw"].isin([3, 5])].reset_index(drop=True),
@@ -237,8 +237,8 @@ def test_building_a_subset_of_gameweeks_reproduces_those_gameweeks_exactly(gamew
 
 
 def test_a_different_master_seed_gives_different_squads(gameweek: pd.DataFrame) -> None:
-    a = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0)
-    b = sample_squads(_frames(gameweek), [2, 4, 6], 40, 1)
+    a = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform")
+    b = sample_squads(_frames(gameweek), [2, 4, 6], 40, 1, squad_mode="uniform")
     assert not a.squads.equals(b.squads)
 
 
@@ -253,14 +253,14 @@ def test_the_seed_is_required(gameweek: pd.DataFrame) -> None:
     """§2.9: no default, deliberately — so a run cannot inherit either of the repository's two
     competing seed constants by accident."""
     with pytest.raises(TypeError):
-        sample_squads(_frames(gameweek), [2], 40)  # type: ignore[call-arg]
+        sample_squads(_frames(gameweek), [2], 40, squad_mode="uniform")  # type: ignore[call-arg]
 
 
 def test_the_sampler_holds_no_state_between_calls(gameweek: pd.DataFrame) -> None:
     """§2.8: no module-level RNG, no cached index, no accumulated counters."""
-    first = sample_squads(_frames(gameweek), [2], 40, 0)
-    _ = sample_squads(_frames(gameweek), [4, 6], 40, 3)
-    again = sample_squads(_frames(gameweek), [2], 40, 0)
+    first = sample_squads(_frames(gameweek), [2], 40, 0, squad_mode="uniform")
+    _ = sample_squads(_frames(gameweek), [4, 6], 40, 3, squad_mode="uniform")
+    again = sample_squads(_frames(gameweek), [2], 40, 0, squad_mode="uniform")
     pd.testing.assert_frame_equal(first.squads, again.squads)
     pd.testing.assert_frame_equal(first.run_record, again.run_record)
 
@@ -420,7 +420,7 @@ def test_draws_are_uniform_over_the_enumerated_feasible_set(pool: _Pool) -> None
     assert low < len(feasible) < high, f"fixture is degenerate: |F| = {len(feasible)} of |Q| = {pool.q}"
 
     n_draws = DRAWS_PER_FEASIBLE_SQUAD * len(feasible)
-    sample = sample_squads(_frames(gameweek), [2], n_draws, 0)
+    sample = sample_squads(_frames(gameweek), [2], n_draws, 0, squad_mode="uniform")
     observed = _observed_counts(sample, feasible)
 
     assert chisquare(observed).pvalue > UNIFORMITY_ALPHA
@@ -462,7 +462,9 @@ def test_uniformity_p_values_are_uniform_across_seeds(pool: _Pool, n_seeds: int)
 
     p_values = np.array(
         [
-            chisquare(_observed_counts(sample_squads(_frames(gameweek), [2], n_draws, seed), feasible)).pvalue
+            chisquare(
+                _observed_counts(sample_squads(_frames(gameweek), [2], n_draws, seed, squad_mode="uniform"), feasible)
+            ).pvalue
             for seed in range(n_seeds)
         ]
     )
@@ -475,7 +477,7 @@ def test_uniformity_p_values_are_uniform_across_seeds(pool: _Pool, n_seeds: int)
 
 
 def test_the_pilot_is_recorded_for_every_gameweek(gameweek: pd.DataFrame) -> None:
-    record = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0).run_record
+    record = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform").run_record
     assert list(record["gw"]) == [2, 4, 6]
     assert (record["pilot_proposals"] == PILOT_PROPOSALS).all()
     assert (record["pilot_acceptance_rate"] == record["pilot_accepted"] / PILOT_PROPOSALS).all()
@@ -495,7 +497,7 @@ def test_a_red_line_in_one_week_stops_the_whole_build() -> None:
         debuts=lambda position, slot: 1,
     )
     with pytest.raises(AcceptanceRedLine) as raised:
-        sample_squads(_frames(tight), [2, 3], 40, 0)
+        sample_squads(_frames(tight), [2, 3], 40, 0, squad_mode="uniform")
     assert (raised.value.pilots["pilot_acceptance_rate"] < 1e-4).any()
     assert list(raised.value.pilots["gw"]) == [2, 3], "the pilot series is reported for every week"
 
@@ -503,7 +505,7 @@ def test_a_red_line_in_one_week_stops_the_whole_build() -> None:
 def test_the_per_gameweek_proposal_cap_names_the_week(gameweek: pd.DataFrame, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("decisions.starting_xi.sampler.PROPOSAL_CAP_PER_GW", PILOT_PROPOSALS)
     with pytest.raises(ProposalCapExceeded, match="gameweek 4"):
-        sample_squads(_frames(gameweek), [4], 40, 0)
+        sample_squads(_frames(gameweek), [4], 40, 0, squad_mode="uniform")
 
 
 # ---------------------------------------------------------------------------
@@ -512,7 +514,7 @@ def test_the_per_gameweek_proposal_cap_names_the_week(gameweek: pd.DataFrame, mo
 
 
 def test_the_diversity_diagnostics_describe_the_returned_squads(gameweek: pd.DataFrame) -> None:
-    sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0)
+    sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform")
     joined = _joined(sample, gameweek)
     for row in sample.run_record.to_dict("records"):
         week = sample.squads.loc[sample.squads["gw"] == row["gw"], "player_id"]
@@ -527,8 +529,8 @@ def test_the_diversity_diagnostics_describe_the_returned_squads(gameweek: pd.Dat
 
 
 def test_the_entrant_diagnostic_counts_players_outside_the_gw2_universe(gameweek: pd.DataFrame) -> None:
-    sample = sample_squads(_frames(gameweek), [2, 6], 40, 0)
-    u2 = set(_universes(gameweek, [2])[2].player_ids.tolist())
+    sample = sample_squads(_frames(gameweek), [2, 6], 40, 0, squad_mode="uniform")
+    u2 = set(_universes(gameweek, [2], "uniform")[2].player_ids.tolist())
     record = sample.run_record.set_index("gw")
     assert record.loc[2, "entrants"] == 0
     assert record.loc[6, "entrants"] > 0
@@ -540,15 +542,18 @@ def test_the_entrant_diagnostic_counts_players_outside_the_gw2_universe(gameweek
 def test_the_mart_pin_covers_every_gameweek_in_scope(gameweek: pd.DataFrame) -> None:
     """§2.8: under weekly resampling a gameweek rebuild touching *any* gameweek in scope invalidates
     the whole frozen set, so a pin keyed on one week would understate the exposure."""
-    baseline = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0).mart_pin
+    baseline = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform").mart_pin
 
     edited = gameweek.copy()
     edited.loc[edited["gw"] == 6, "price"] += 0.1
-    assert sample_squads(_frames(edited), [2, 4, 6], 40, 0).mart_pin.slice_sha256 != baseline.slice_sha256
+    assert (
+        sample_squads(_frames(edited), [2, 4, 6], 40, 0, squad_mode="uniform").mart_pin.slice_sha256
+        != baseline.slice_sha256
+    )
 
     untouched = gameweek.copy()
     untouched.loc[untouched["gw"] == 1, "price"] += 0.1
-    out_of_scope = sample_squads(_frames(untouched), [2, 4, 6], 40, 0).mart_pin
+    out_of_scope = sample_squads(_frames(untouched), [2, 4, 6], 40, 0, squad_mode="uniform").mart_pin
     assert out_of_scope.slice_sha256 == baseline.slice_sha256
     assert out_of_scope.mart_rows == baseline.mart_rows
 
@@ -566,11 +571,13 @@ def test_the_squad_set_id_is_a_content_hash_of_the_drawn_squads(gameweek: pd.Dat
     The last assertion is the check a reader of two results directories actually performs: the
     per-week digests are recomputable from the returned squad table alone.
     """
-    baseline = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0)
-    assert baseline.squad_set_id == sample_squads(_frames(gameweek), [2, 4, 6], 40, 0).squad_set_id
+    baseline = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform")
+    assert (
+        baseline.squad_set_id == sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform").squad_set_id
+    )
     assert len(baseline.squad_set_id) == 64
 
-    other = sample_squads(_frames(gameweek), [2, 4, 6], 40, 1)
+    other = sample_squads(_frames(gameweek), [2, 4, 6], 40, 1, squad_mode="uniform")
     assert not baseline.squads.equals(other.squads)
     assert other.squad_set_id != baseline.squad_set_id
 
@@ -587,8 +594,12 @@ def test_a_partial_rebuild_is_checkable_week_by_week(gameweek: pd.DataFrame) -> 
     over the set: rebuilding two weeks reproduces exactly those weeks' digests, and checking them
     needs neither the other weeks nor a re-run of them. A flat whole-set digest would satisfy the
     row's first clause and fail this one."""
-    whole = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0).run_record.set_index("gw")["squad_sha256"]
-    part = sample_squads(_frames(gameweek), [5, 3], 40, 0).run_record.set_index("gw")["squad_sha256"]
+    whole = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0, squad_mode="uniform").run_record.set_index("gw")[
+        "squad_sha256"
+    ]
+    part = sample_squads(_frames(gameweek), [5, 3], 40, 0, squad_mode="uniform").run_record.set_index("gw")[
+        "squad_sha256"
+    ]
     assert part.loc[3] == whole.loc[3]
     assert part.loc[5] == whole.loc[5]
 
@@ -598,8 +609,8 @@ def test_the_run_level_id_covers_the_whole_set_and_not_one_week(gameweek: pd.Dat
     do not make two runs the same run. §7.3 has the id cover all 37 weeks' squads, so a build over a
     different gameweek set carries a different id even where every shared week reproduces
     exactly."""
-    whole = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0)
-    part = sample_squads(_frames(gameweek), [5, 3], 40, 0)
+    whole = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0, squad_mode="uniform")
+    part = sample_squads(_frames(gameweek), [5, 3], 40, 0, squad_mode="uniform")
     assert part.squad_set_id != whole.squad_set_id
 
 
@@ -609,7 +620,7 @@ def test_the_week_digest_reads_the_key_and_not_the_emitted_row_order(gameweek: p
     raise a false alarm on a change that altered no squad. `squad_id` is the different question with
     the opposite answer — T1, T2 and T5 all key on it (§7.2), so the same squads under permuted ids
     are a different artefact."""
-    week = sample_squads(_frames(gameweek), [4], 40, 0).squads
+    week = sample_squads(_frames(gameweek), [4], 40, 0, squad_mode="uniform").squads
     shuffled = week.sample(frac=1.0, random_state=7).reset_index(drop=True)
     assert _week_digest(shuffled) == _week_digest(week)
 
@@ -638,7 +649,7 @@ def test_importing_the_sampler_pulls_in_no_downstream_layer() -> None:
 
 # ---------------------------------------------------------------------------
 # #31 — ownership-weighted squads. The weight is the frame's `ownership` column, which
-# `warehouse.served` already derives as lag-1 `selected` (its own tests pin that rule).
+# `warehouse.served` derives by DATA.md's price rule (its own tests pin that rule).
 # ---------------------------------------------------------------------------
 
 # Every player costs 4.5 and has a club of his own, so no proposal is ever rejected and an
@@ -709,27 +720,6 @@ def test_a_position_without_enough_owned_players_fails_loudly(owned_keepers: int
     )
     with pytest.raises(ValueError, match=r"gameweek 2.*GK"):
         sample_squads(_frames(gameweek), [2], 10, 0, squad_mode="ownership")
-
-
-@pytest.mark.covers("#31 AC3")
-def test_gameweek_one_draws_uniformly_in_weighted_mode() -> None:
-    gameweek = _owned_gameweek(_tiered)
-    weighted = sample_squads(_frames(gameweek), [1], 200, 0, squad_mode="ownership")
-    uniform = sample_squads(_frames(gameweek), [1], 200, 0, squad_mode="uniform")
-
-    pd.testing.assert_frame_equal(weighted.squads, uniform.squads)
-    assert weighted.squad_set_id == uniform.squad_set_id
-
-
-@pytest.mark.covers("#31 AC3")
-def test_weighted_mode_does_draw_differently_after_gameweek_one() -> None:
-    """The control for the test above: the same frame at GW2 is weighted, so equality at GW1 is the
-    GW1 rule and not a weighting that never takes effect."""
-    gameweek = _owned_gameweek(_tiered)
-    weighted = sample_squads(_frames(gameweek), [2], 200, 0, squad_mode="ownership")
-    uniform = sample_squads(_frames(gameweek), [2], 200, 0, squad_mode="uniform")
-
-    assert weighted.squad_set_id != uniform.squad_set_id
 
 
 @pytest.mark.covers("#31 AC6")

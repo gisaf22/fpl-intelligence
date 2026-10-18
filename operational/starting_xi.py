@@ -392,6 +392,19 @@ def _assemble_comparisons(t2: pd.DataFrame, t5: pd.DataFrame, rank_fns: Mapping[
     return pd.DataFrame(rows).loc[:, columns]
 
 
+def _flag_zero_information(t2: pd.DataFrame) -> pd.DataFrame:
+    """Flag every squad-week where every rule picked the same XI (CARD.md §3, #31).
+
+    Such a week carries no information about which rule is better. Its rows are kept and flagged
+    rather than dropped, so the artefact still holds every squad-week; reporting excludes them and
+    the manifest records their count. The flag sits after `is_zero_gap`, T2's own column order.
+    """
+    same_xi = t2.groupby(["squad_id", "gw"])["chosen_xi"].transform("nunique") == 1
+    flagged = t2.copy()
+    flagged.insert(flagged.columns.get_loc("is_zero_gap") + 1, "is_zero_information", same_xi.to_numpy())
+    return flagged
+
+
 def _sampler_diagnostics(run_record: pd.DataFrame) -> list[dict[str, object]]:
     """§7.3's manifest metadata: the sampler's per-gameweek run record, as plain Python values.
 
@@ -536,6 +549,7 @@ def run_study(
     gameweeks: Sequence[int],
     n_squads: int,
     seed: int,
+    squad_mode: str,
     results_root: Path,
     repo_root: Path = REPO_ROOT,
     pre_registration_path: Path = PRE_REGISTRATION_PATH,
@@ -561,6 +575,8 @@ def run_study(
         gameweeks: the build gameweeks, explicit (`sampler.sample_squads`'s own contract, §2.9).
         n_squads: squads per gameweek.
         seed: the master seed, required with no default (§2.9, §8.4).
+        squad_mode: `sampler.SQUAD_MODES`' uniform or ownership-weighted squads, required with no
+            default (CARD.md §3); one run per mode, recorded in the run's identity.
         results_root: where `results.write` lands the run's directory (§7.4).
         repo_root, pre_registration_path, allow_dirty, allow_off_registration: see `preflight`.
 
@@ -583,7 +599,7 @@ def run_study(
         allow_dirty=allow_dirty,
         allow_off_registration=allow_off_registration,
     )
-    sample = sampler.sample_squads(frames, gameweeks, n_squads, seed)
+    sample = sampler.sample_squads(frames, gameweeks, n_squads, seed, squad_mode=squad_mode)
 
     squad_weeks: list[pd.DataFrame] = []
     ordering_replays: list[pd.DataFrame] = []
@@ -595,7 +611,7 @@ def run_study(
         ordering_replays.append(result.ordering_replays)
         ranker_windows[name] = window
 
-    t2 = pd.concat(squad_weeks, ignore_index=True)
+    t2 = _flag_zero_information(pd.concat(squad_weeks, ignore_index=True))
     t5 = pd.concat(ordering_replays, ignore_index=True)
     t3 = _assemble_comparisons(t2, t5, rank_fns)
 
@@ -603,10 +619,12 @@ def run_study(
         mart_pin=asdict(sample.mart_pin),
         bench_order=[name for name, _ in bench_order],
         master_seed=seed,
+        squad_mode=squad_mode,
         squad_set_id=sample.squad_set_id,
         build_gameweeks=list(gameweeks),
         ranker_windows=ranker_windows,
         sampler_diagnostics=_sampler_diagnostics(sample.run_record),
+        zero_information_squad_weeks=int(t2.drop_duplicates(["squad_id", "gw"])["is_zero_information"].sum()),
         gameweek_interval=results.GameweekIntervalParams(
             n=uncertainty.N_RESAMPLES, block=uncertainty.BLOCK_GWS, ci_level=uncertainty.CI_LEVEL, seed=uncertainty.SEED
         ),
@@ -637,6 +655,7 @@ def build_and_run(
     gameweeks: Sequence[int],
     n_squads: int,
     seed: int,
+    squad_mode: str,
     results_root: Path,
     season: str = SEASON,
     pin: served.Pin | None = None,
@@ -652,6 +671,7 @@ def build_and_run(
         gameweeks=gameweeks,
         n_squads=n_squads,
         seed=seed,
+        squad_mode=squad_mode,
         results_root=results_root,
         allow_dirty=allow_dirty,
         allow_off_registration=allow_off_registration,
@@ -667,6 +687,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         action="store_true",
         help="run despite differing from PRE_REGISTRATION.yaml; marks the run non-canonical",
     )
+    parser.add_argument(
+        "--squad-mode", required=True, choices=sampler.SQUAD_MODES, help="uniform or ownership-weighted squads"
+    )
     args = parser.parse_args(argv)
     pre_registration = yaml.safe_load(PRE_REGISTRATION_PATH.read_text(encoding="utf-8"))
     span = pre_registration["population"]["build_gameweeks"]
@@ -674,6 +697,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         gameweeks=range(span["first_gw"], span["last_gw"] + 1),
         n_squads=pre_registration["population"]["squads_per_gameweek"],
         seed=pre_registration["master_seed"],
+        squad_mode=args.squad_mode,
         results_root=RESULTS_ROOT,
         allow_dirty=args.allow_dirty,
         allow_off_registration=args.allow_off_registration,

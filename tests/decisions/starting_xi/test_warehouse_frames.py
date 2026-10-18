@@ -144,7 +144,9 @@ def _fixed_squad(gw: int) -> pd.DataFrame:
 @pytest.mark.integration
 @pytest.mark.covers("#43 AC1")
 def test_the_sampler_draws_squads_from_the_warehouse_frames(snapshot: tuple[Path, served.Pin]) -> None:
-    sample = sampler.build_squads([4, 5], 3, SEED, season=SEASON, pin=snapshot[1], snapshot_root=snapshot[0])
+    sample = sampler.build_squads(
+        [4, 5], 3, SEED, squad_mode="uniform", season=SEASON, pin=snapshot[1], snapshot_root=snapshot[0]
+    )
 
     assert set(sample.squads["player_id"]) <= set(PLAYER_IDS)
     positions = _position_ids()
@@ -185,6 +187,7 @@ def test_build_and_run_replays_the_rule_grid_on_the_warehouse_frames(
         gameweeks=[4, 5],
         n_squads=2,
         seed=SEED,
+        squad_mode="uniform",
         results_root=tmp_path,
         allow_dirty=True,
         allow_off_registration=True,
@@ -233,7 +236,7 @@ def _agrees_with_random_at_gw4(frames: served.Frames) -> rankers.RankerOutput:
 @pytest.mark.integration
 @pytest.mark.covers("#31 AC4")
 @pytest.mark.parametrize("squad_mode", ["uniform", "ownership"])
-def test_squad_weeks_where_every_rule_picks_the_same_xi_are_excluded_and_counted(
+def test_squad_weeks_where_every_rule_picks_the_same_xi_are_flagged_and_counted(
     snapshot: tuple[Path, served.Pin], tmp_path: Path, squad_mode: str
 ) -> None:
     rank_fns = {"random": rankers.rules(SEED)["random"], "random_reseeded": _agrees_with_random_at_gw4}
@@ -255,11 +258,15 @@ def test_squad_weeks_where_every_rule_picks_the_same_xi_are_excluded_and_counted
     read_back = results.read(tmp_path, run.run_id)
     t2, manifest = read_back["squad_weeks"], read_back["manifest"]
     assert isinstance(t2, pd.DataFrame) and isinstance(manifest, dict)
-    assert 4 not in set(t2["gw"])
-    excluded = manifest["zero_information_excluded"]
-    assert manifest["squad_mode"] == squad_mode
-    assert excluded >= n_squads
-    assert excluded == n_squads * len(gameweeks) - t2[["squad_id", "gw"]].drop_duplicates().shape[0]
+    assert len(t2) == n_squads * len(gameweeks) * len(rank_fns)
+    flagged = t2.groupby(["squad_id", "gw"])["is_zero_information"].agg(["all", "any"])
+    assert (flagged["all"] == flagged["any"]).all(), "the flag is a property of the squad-week, not the rule"
+    by_gw = flagged["all"].groupby(level="gw").all()
+    assert by_gw.loc[4]
+    assert not by_gw.loc[5] and not by_gw.loc[6]
+    assert manifest["identity"]["squad_mode"] == squad_mode
+    assert manifest["metadata"]["zero_information_squad_weeks"] == int(flagged["all"].sum())
+    assert manifest["metadata"]["zero_information_squad_weeks"] >= n_squads
 
 
 @pytest.mark.integration

@@ -65,6 +65,7 @@ T2_COLUMNS: Final[tuple[str, ...]] = (
     "squad_id",
     "gw",
     "ranker",
+    "chosen_xi",
     "chosen_xi_points",
     "best_legal_xi_points",
     "best_legal_xi_asof",
@@ -72,6 +73,7 @@ T2_COLUMNS: Final[tuple[str, ...]] = (
     "regret",
     "closeness_gap",
     "is_zero_gap",
+    "is_zero_information",
     "substitution_fired",
     "uncovered_blank",
     "no_fixture_rule_changed_xi",
@@ -209,11 +211,12 @@ class Manifest:
     """§7.3's run manifest, split into what identifies a run and what merely accompanies it.
 
     **The identity half** is what `run_id` hashes: the mart pin, the whole ordered bench-ordering
-    policy set with element 0 primary, the master seed, the squad-set id, the build gameweek set,
-    and the pre-registered study parameters `PRE_REGISTRATION.yaml` freezes (floor method,
+    policy set with element 0 primary, the master seed, the squad mode (CARD.md §3), the squad-set
+    id, the build gameweek set, and the pre-registered study parameters `PRE_REGISTRATION.yaml` freezes (floor method,
     materiality, success criteria, construction, squad-interval stratification), plus the
     provenance's `canonical` flag. **The provenance** (`RunProvenance`) is written alongside, not
-    hashed. **The metadata half** -- ranker windows, sampler diagnostics, both interval parameter sets
+    hashed. **The metadata half** -- ranker windows, sampler diagnostics, the count of zero-information
+    squad-weeks (every rule picked the same XI; flagged in T2, never dropped), both interval parameter sets
     -- is carried "for completeness rather than identity" (§7.3) and is excluded from the hash.
 
     **Two of §7.3's identity rows are not fields here, and their own reasons say why.** The
@@ -230,10 +233,12 @@ class Manifest:
     mart_pin: Mapping[str, object]
     bench_order: Sequence[str]
     master_seed: int
+    squad_mode: str
     squad_set_id: str
     build_gameweeks: Sequence[int]
     ranker_windows: Mapping[str, tuple[int, int]]
     sampler_diagnostics: Sequence[Mapping[str, object]]
+    zero_information_squad_weeks: int
     gameweek_interval: GameweekIntervalParams
     squad_interval: SquadIntervalParams
     floor_method: Mapping[str, object]
@@ -269,6 +274,7 @@ def identity_fields(manifest: Manifest) -> dict[str, object]:
         "bench_order": list(manifest.bench_order),
         "primary_ordering": manifest.bench_order[0],
         "master_seed": int(manifest.master_seed),
+        "squad_mode": str(manifest.squad_mode),
         "squad_set_id": str(manifest.squad_set_id),
         "build_gameweeks": sorted({int(gw) for gw in manifest.build_gameweeks}),
         "floor_method": _canonical(manifest.floor_method),
@@ -333,6 +339,7 @@ def manifest_document(manifest: Manifest, identifier: str) -> dict[str, object]:
         "metadata": {
             "ranker_windows": {name: list(window) for name, window in manifest.ranker_windows.items()},
             "sampler_diagnostics": [_canonical(row) for row in manifest.sampler_diagnostics],
+            "zero_information_squad_weeks": int(manifest.zero_information_squad_weeks),
             "gameweek_interval": {
                 "n": manifest.gameweek_interval.n,
                 "block": manifest.gameweek_interval.block,

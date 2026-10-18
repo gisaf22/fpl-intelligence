@@ -85,6 +85,7 @@ DESIGN_T2 = (
     "squad_id",
     "gw",
     "ranker",
+    "chosen_xi",
     "chosen_xi_points",
     "best_legal_xi_points",
     "best_legal_xi_asof",
@@ -92,6 +93,7 @@ DESIGN_T2 = (
     "regret",
     "closeness_gap",
     "is_zero_gap",
+    "is_zero_information",
     "substitution_fired",
     "uncovered_blank",
     "no_fixture_rule_changed_xi",
@@ -159,6 +161,7 @@ def _t2(n_squads: int = 4, gameweeks: Sequence[int] = (4, 5)) -> pd.DataFrame:
                     "squad_id": f"gw{gw:02d}-{index:04d}",
                     "gw": gw,
                     "ranker": "F_test",
+                    "chosen_xi": ",".join(str(player_id) for player_id in range(index, index + 11)),
                     "chosen_xi_points": chosen,
                     "best_legal_xi_points": chosen + index,
                     "best_legal_xi_asof": chosen + 1.5,
@@ -166,6 +169,7 @@ def _t2(n_squads: int = 4, gameweeks: Sequence[int] = (4, 5)) -> pd.DataFrame:
                     "regret": float(index),
                     "closeness_gap": float(index % 2),
                     "is_zero_gap": index % 2 == 0,
+                    "is_zero_information": index == 2,
                     "substitution_fired": index != 0,
                     "uncovered_blank": index == 3,
                     "no_fixture_rule_changed_xi": index == 1,
@@ -271,6 +275,7 @@ def _manifest() -> Manifest:
         },
         bench_order=("by_rank", "reversed"),
         master_seed=0,
+        squad_mode="uniform",
         # §5.3.2 fixes the id as the sampler's content hash of the drawn squads, so the fixture
         # carries a digest-shaped value rather than a version label -- the earlier "squads-v1"
         # invited exactly the reading §5.3.2 rejects. This module treats it as an opaque string.
@@ -278,6 +283,7 @@ def _manifest() -> Manifest:
         build_gameweeks=(4, 5),
         ranker_windows={"F1": (4, 38), "F2": (2, 38)},
         sampler_diagnostics=[{"gw": 4, "acceptance_rate": 0.21}, {"gw": 5, "acceptance_rate": 0.19}],
+        zero_information_squad_weeks=2,
         gameweek_interval=GameweekIntervalParams(n=10000, block=4, ci_level=0.95, seed=1),
         squad_interval=SquadIntervalParams(n=10000, ci_level=0.95, seed=2),
         floor_method={"rule": "lowest_mean_regret_per_comparison", "rankers": {"F1": (4, 38), "F2": (2, 38)}},
@@ -390,9 +396,11 @@ def test_run_id_is_deterministic_across_calls_and_across_processes() -> None:
         "from decisions.starting_xi.results import run_id, Manifest, GameweekIntervalParams, SquadIntervalParams,"
         " RunProvenance;"
         f"m = Manifest(mart_pin={dict(manifest.mart_pin)!r}, bench_order={tuple(manifest.bench_order)!r},"
-        f" master_seed={manifest.master_seed!r}, squad_set_id={manifest.squad_set_id!r},"
+        f" master_seed={manifest.master_seed!r}, squad_mode={manifest.squad_mode!r},"
+        f" squad_set_id={manifest.squad_set_id!r},"
         f" build_gameweeks={tuple(manifest.build_gameweeks)!r}, ranker_windows={dict(manifest.ranker_windows)!r},"
         f" sampler_diagnostics={list(manifest.sampler_diagnostics)!r},"
+        f" zero_information_squad_weeks={manifest.zero_information_squad_weeks!r},"
         " gameweek_interval=GameweekIntervalParams(n=10000, block=4, ci_level=0.95, seed=1),"
         " squad_interval=SquadIntervalParams(n=10000, ci_level=0.95, seed=2),"
         f" floor_method={dict(manifest.floor_method)!r}, materiality={dict(manifest.materiality)!r},"
@@ -420,6 +428,7 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
         "mart_pin": replace(base, mart_pin={**base.mart_pin, "slice_rows": 4321}),
         "bench_order_membership": replace(base, bench_order=("by_rank", "other")),
         "master_seed": replace(base, master_seed=1),
+        "squad_mode": replace(base, squad_mode="ownership"),
         "squad_set_id": replace(base, squad_set_id="c" * 64),
         "build_gameweeks": replace(base, build_gameweeks=(4, 5, 6)),
         "floor_method": replace(base, floor_method={**base.floor_method, "rankers": {"F1": (2, 38)}}),
@@ -435,6 +444,7 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
     metadata_perturbations = {
         "ranker_windows": replace(base, ranker_windows={"F1": (2, 38)}),
         "sampler_diagnostics": replace(base, sampler_diagnostics=[{"gw": 4, "acceptance_rate": 0.99}]),
+        "zero_information_squad_weeks": replace(base, zero_information_squad_weeks=5),
         "gameweek_interval": replace(base, gameweek_interval=GameweekIntervalParams(5, 8, 0.9, 99)),
         "squad_interval": replace(base, squad_interval=SquadIntervalParams(5, 0.9, 99)),
         "git_sha": replace(base, provenance=_provenance(git_sha="0" * 40)),
@@ -483,6 +493,7 @@ def test_identity_fields_holds_the_identity_half_and_nothing_from_the_metadata_h
         "bench_order",
         "primary_ordering",
         "master_seed",
+        "squad_mode",
         "squad_set_id",
         "build_gameweeks",
         "floor_method",

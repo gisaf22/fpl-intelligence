@@ -61,11 +61,13 @@ _ID_BY_POSITION = {label: position_id for position_id, label in POSITION_BY_ID.i
 
 
 # `DESIGN.md` §7.2's T2 and T5 column sets, written out here and nowhere in the module. A column
-# added, removed or renamed in the module without the document moving fails here.
+# added, removed or renamed in the module without the document moving fails here. The harness's T2
+# lacks `is_zero_information`, which the composition root adds across rules (#31).
 T2_COLUMNS = (
     "squad_id",
     "gw",
     "ranker",
+    "chosen_xi",
     "chosen_xi_points",
     "best_legal_xi_points",
     "best_legal_xi_asof",

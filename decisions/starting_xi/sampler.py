@@ -1,12 +1,17 @@
 """Synthetic squad sampler — `DESIGN.md` §2, Method A (whole-draw rejection).
 
-Draws `n_squads` synthetic FPL squads **per gameweek**, uniformly over that gameweek's feasible
-set F_g, and returns them with a per-gameweek run record and a run-level mart pin. Nothing is
-written to disk and no state is held between calls (§2.8/§2.9); storage is §7's.
+Draws `n_squads` synthetic FPL squads **per gameweek** from that gameweek's feasible set F_g, in
+one of two squad modes (CARD.md §3), and returns them with a per-gameweek run record and a
+run-level mart pin. Nothing is written to disk and no state is held between calls (§2.8/§2.9); storage is §7's.
 
 The construction, and where each part is decided:
 
-* **Target** (§2.1). Uniform on F_g — the 15-player subsets of the gameweek-*g* universe U_g that
+* **Squad modes** (CARD.md §3, #31). `uniform` is the neutral view and everything below is stated
+  for it. `ownership` weights each player's proposal by his `ownership` (DATA.md: `selected` by
+  the price rule, as `warehouse.served` derives it) and keeps the same whole-draw rejection, so its
+  target is that weighted proposal distribution conditioned on F_g -- a realism assumption, read
+  only alongside the uniform view, and not uniform on anything.
+* **Target** (§2.1, uniform mode). Uniform on F_g — the 15-player subsets of the gameweek-*g* universe U_g that
   satisfy the 2/5/5/3 quota, the ≤3-per-club limit and the 100.0 budget cap *at gameweek g's
   prices and clubs*. Not uniform on U_g, not uniform per position, not uniform on Q_g.
 * **Method** (§2.4/§2.5). Propose uniformly without replacement within each position — which is
@@ -95,7 +100,20 @@ gameweek's stream is consumed. The *squads* are batch-size independent — they 
 changing this constant changes every seeded artefact. It is fixed here for that reason."""
 
 _PIN_COLUMNS: tuple[str, ...] = ("player_id", "gw", "position_id", "price", "team_id", "minutes")
-"""The gameweek-frame columns the sampler reads, and therefore the columns the pin covers (§5.3)."""
+"""The gameweek-frame columns the uniform mode reads, and therefore the columns its pin covers (§5.3)."""
+
+SQUAD_MODES: tuple[str, ...] = ("uniform", "ownership")
+"""CARD.md §3's two squad mixes. Required on every entry point, with no default: which view a run
+reads is the call site's decision, and a default would inherit one by accident."""
+
+_OWNERSHIP_COLUMN: str = "ownership"
+
+
+def _read_columns(squad_mode: str) -> tuple[str, ...]:
+    """The columns a mode reads. The weighted mode adds `ownership`, so only its pin covers it and
+    the uniform pin stays exactly what it was before squad modes existed."""
+    return (*_PIN_COLUMNS, _OWNERSHIP_COLUMN) if squad_mode == "ownership" else _PIN_COLUMNS
+
 
 _ENTRANT_REFERENCE_GW: int = 2
 """The universe the cross-week diagnostic in §2.9 is stated against: U_2, the pool a build-once
@@ -168,6 +186,8 @@ class _Pool:
     player_id: np.ndarray
     price_tenths: np.ndarray
     team_id: np.ndarray
+    weight: np.ndarray | None = None
+    """Proposal weights in ownership mode; None draws uniformly."""
 
     @property
     def size(self) -> int:
@@ -221,7 +241,22 @@ def _price_tenths(price: np.ndarray) -> np.ndarray:
     return np.rint(tenths).astype(np.int64)
 
 
-def _universes(mart: pd.DataFrame, gameweeks: Sequence[int]) -> dict[int, _Universe]:
+def _ownership_weight(at_position: pd.DataFrame, gw: int, position: str, quota: int) -> np.ndarray:
+    """A position's proposal weights: `ownership`, with a player who has none weighted 0.
+
+    Fails loudly when fewer players than the quota carry a positive weight: the weighted draw could
+    then fill the quota only from zero-weight players, picked by a tie among infinite keys.
+    """
+    weight: np.ndarray = at_position[_OWNERSHIP_COLUMN].fillna(0).to_numpy(dtype=float)
+    owned = int((weight > 0).sum())
+    if owned < quota:
+        raise ValueError(
+            f"gameweek {gw} has {owned} {position} players with positive ownership, fewer than the quota of {quota}"
+        )
+    return weight
+
+
+def _universes(mart: pd.DataFrame, gameweeks: Sequence[int], squad_mode: str) -> dict[int, _Universe]:
     """Build U_g for every gameweek in scope, priced and club-keyed at that gameweek.
 
     Registration enters **here and only here**. Every member of the returned pools is
@@ -232,7 +267,7 @@ def _universes(mart: pd.DataFrame, gameweeks: Sequence[int]) -> dict[int, _Unive
     universes: dict[int, _Universe] = {}
 
     for gw in gameweeks:
-        rows = mart.loc[mart["gw"] == gw, list(_PIN_COLUMNS)]
+        rows = mart.loc[mart["gw"] == gw, list(_read_columns(squad_mode))]
         if rows.empty:
             raise ValueError(f"gameweek {gw} has no rows on the gameweek frame")
         if rows["player_id"].duplicated().any():
@@ -254,6 +289,7 @@ def _universes(mart: pd.DataFrame, gameweeks: Sequence[int]) -> dict[int, _Unive
                 player_id=at_position["player_id"].to_numpy(dtype=np.int64),
                 price_tenths=_price_tenths(at_position["price"].to_numpy(dtype=float)),
                 team_id=at_position["team_id"].to_numpy(dtype=np.int64),
+                weight=_ownership_weight(at_position, gw, position, quota) if squad_mode == "ownership" else None,
             )
         universes[gw] = _Universe(gw=gw, pools=pools)
 
@@ -266,7 +302,7 @@ def _universes(mart: pd.DataFrame, gameweeks: Sequence[int]) -> dict[int, _Unive
 
 
 def _propose(rng: np.random.Generator, universe: _Universe, size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Draw `size` independent proposals, uniform over Q_g.
+    """Draw `size` independent proposals, uniform over Q_g -- or weighted, in ownership mode.
 
     Within each position, `size` independent uniform draws **without replacement**: a random key
     per candidate, then the `quota` smallest keys. Ties have probability zero in float64, so the
@@ -274,6 +310,10 @@ def _propose(rng: np.random.Generator, universe: _Universe, size: int) -> tuple[
 
     Positions are drawn in `POSITIONS` order, which is fixed in `domain/fpl_squad.py` because the
     order determines how the gameweek's stream is consumed.
+
+    Ownership mode draws the same keys and maps each to `-log(u) / weight` before taking the smallest
+    (Efraimidis-Spirakis weighted sampling without replacement). The stream is consumed identically
+    in both modes, and a zero weight gives an infinite key, so that player is never chosen.
 
     Returns three (size, 15) arrays — player ids, prices in tenths, and club ids — column-blocked
     by position in that same order.
@@ -283,6 +323,9 @@ def _propose(rng: np.random.Generator, universe: _Universe, size: int) -> tuple[
         pool = universe.pools[position]
         quota = SQUAD_SELECT[position]
         keys = rng.random((size, pool.size))
+        if pool.weight is not None:
+            with np.errstate(divide="ignore"):
+                keys = -np.log(keys) / pool.weight
         chosen = np.argpartition(keys, quota - 1, axis=1)[:, :quota]
         player_id.append(pool.player_id[chosen])
         price_tenths.append(pool.price_tenths[chosen])
@@ -405,7 +448,7 @@ def _diversity(squads: np.ndarray, cost_tenths: np.ndarray, universe: _Universe,
     }
 
 
-def _mart_pin(mart: pd.DataFrame, gameweeks: Sequence[int]) -> MartPin:
+def _mart_pin(mart: pd.DataFrame, gameweeks: Sequence[int], columns: tuple[str, ...]) -> MartPin:
     """Hash the slice actually read, and record what it was read from (§5.3).
 
     Emitted as data rather than noted in prose beside the artefact, so a later run can *verify*
@@ -414,7 +457,7 @@ def _mart_pin(mart: pd.DataFrame, gameweeks: Sequence[int]) -> MartPin:
     the columns the sampler reads.
     """
     read = (
-        mart.loc[mart["gw"].isin(list(gameweeks)), list(_PIN_COLUMNS)]
+        mart.loc[mart["gw"].isin(list(gameweeks)), list(columns)]
         .sort_values(["gw", "player_id"])
         .reset_index(drop=True)
     )
@@ -423,7 +466,7 @@ def _mart_pin(mart: pd.DataFrame, gameweeks: Sequence[int]) -> MartPin:
         slice_sha256=digest,
         slice_rows=len(read),
         gameweeks=tuple(int(gw) for gw in gameweeks),
-        columns=_PIN_COLUMNS,
+        columns=columns,
         mart_rows=len(mart),
         mart_gw_span=(int(mart["gw"].min()), int(mart["gw"].max())),
     )
@@ -484,8 +527,10 @@ def sample_squads(
     gameweeks: Sequence[int],
     n_squads: int,
     seed: int,
+    *,
+    squad_mode: str,
 ) -> SquadSample:
-    """Draw `n_squads` uniform feasible squads at each gameweek in `gameweeks`.
+    """Draw `n_squads` feasible squads at each gameweek in `gameweeks`, in `squad_mode`.
 
     Args:
         frames: the pinned warehouse frames — `build_squads` is the entry point that loads them.
@@ -499,6 +544,7 @@ def sample_squads(
         seed: the master seed. **Required, no default** (§2.9) — which of the repository's two
             competing seed constants a run uses is the call site's decision (§8.4), and a default
             here would inherit one by accident.
+        squad_mode: one of `SQUAD_MODES`. **Required, no default**, for the seed's reason.
 
     Returns:
         A `SquadSample`. Pure function of its arguments; holds no state and writes nothing.
@@ -509,6 +555,8 @@ def sample_squads(
             whole build with nothing half-built (§2.6).
         ProposalCapExceeded: if one gameweek's cumulative proposals reach the per-week cap.
     """
+    if squad_mode not in SQUAD_MODES:
+        raise ValueError(f"squad_mode must be one of {SQUAD_MODES}, got {squad_mode!r}")
     if n_squads < 1:
         raise ValueError(f"n_squads must be at least 1, got {n_squads}")
     weeks = [int(gw) for gw in gameweeks]
@@ -517,7 +565,8 @@ def sample_squads(
     if len(set(weeks)) != len(weeks):
         raise ValueError(f"gameweeks contains duplicates: {weeks}")
     gameweek = frames.gameweek
-    missing = [column for column in _PIN_COLUMNS if column not in gameweek.columns]
+    columns = _read_columns(squad_mode)
+    missing = [column for column in columns if column not in gameweek.columns]
     if missing:
         raise ValueError(f"gameweek frame is missing columns the sampler reads: {missing}")
     unknown = sorted(set(gameweek["position_id"].dropna().astype(int)) - set(POSITION_BY_ID))
@@ -525,8 +574,9 @@ def sample_squads(
         raise ValueError(f"gameweek frame carries position_id(s) with no label: {unknown}")
 
     weeks = sorted(weeks)
-    universes = _universes(gameweek, weeks)
-    reference = _universes(gameweek, [_ENTRANT_REFERENCE_GW])[_ENTRANT_REFERENCE_GW].player_ids
+    universes = _universes(gameweek, weeks, squad_mode)
+    # The entrant reference is a membership set, so it is built unweighted in either mode.
+    reference = _universes(gameweek, [_ENTRANT_REFERENCE_GW], "uniform")[_ENTRANT_REFERENCE_GW].player_ids
 
     # Every pilot first, then the ladder, then the builds. §2.6 stops the entire build on a red
     # line in any one week, so measuring all 37 before building any is what makes that stop clean:
@@ -591,7 +641,7 @@ def sample_squads(
     return SquadSample(
         squads=pd.concat(week_squads, ignore_index=True),
         run_record=run_record,
-        mart_pin=_mart_pin(gameweek, weeks),
+        mart_pin=_mart_pin(gameweek, weeks, columns),
         squad_set_id=_squad_set_id(run_record),
     )
 
@@ -601,6 +651,7 @@ def build_squads(
     n_squads: int,
     seed: int,
     *,
+    squad_mode: str,
     season: str,
     pin: served.Pin | None = None,
     snapshot_root: Path = served.SNAPSHOT_ROOT,
@@ -611,4 +662,5 @@ def build_squads(
     frames already in hand — which is what the §2.8 tests exercise, against universes small
     enough to enumerate F.
     """
-    return sample_squads(served.load(season, pin=pin, snapshot_root=snapshot_root), gameweeks, n_squads, seed)
+    frames = served.load(season, pin=pin, snapshot_root=snapshot_root)
+    return sample_squads(frames, gameweeks, n_squads, seed, squad_mode=squad_mode)

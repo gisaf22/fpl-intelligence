@@ -140,7 +140,9 @@ class HarnessResult:
     `squad_weeks` is §7.2's T2, one row per (squad, gameweek, ranker), carrying the **primary**
     ordering's replay and no other -- plus the two counterfactual columns, `best_legal_xi_points`
     and `best_permutation_total`, which are properties of the squad-week rather than of any
-    ordering (§7.2, §7.2.1). `ordering_replays` is T5, one row per (squad, gameweek,
+    ordering (§7.2, §7.2.1). `chosen_xi` is the XI's player ids, ascending and comma-joined. T2's
+    `is_zero_information` is not emitted: it compares XIs *across* rules, so the composition root
+    derives it at assembly, as it does ordering-relevance. `ordering_replays` is T5, one row per (squad, gameweek,
     ranker, ordering).
 
     Neither carries `run_id`: §7.3 makes that a hash of the run's identifying fields, which
@@ -676,6 +678,7 @@ def run(
                 "squad_id": squad_id,
                 "gw": gw,
                 "ranker": output.name,
+                "chosen_xi": ",".join(str(player_id) for player_id in sorted(xi)),
                 "chosen_xi_points": primary.realised_total,
                 "best_legal_xi_points": realised.best_legal_xi_points,
                 "best_legal_xi_asof": asof.best_legal_xi_points,

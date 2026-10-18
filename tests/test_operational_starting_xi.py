@@ -30,6 +30,7 @@ import yaml
 from decisions.starting_xi import orderings, rankers, results
 from operational import starting_xi
 from operational.starting_xi import run_study
+from warehouse import served
 
 pytestmark = pytest.mark.unit
 
@@ -115,17 +116,15 @@ def _git_repo(root, *, dirty: bool = False):
     return root
 
 
-def _data_source(tmp_path):
-    path = tmp_path / "fpl.db"
-    path.write_bytes(b"not really a database")
-    return path
+def _warehouse_pin() -> served.Pin:
+    return served.Pin(run_id="39064033745", sha256={"fct_player_fixture.parquet": "e" * 64})
 
 
 def _off_registration_flags(tmp_path) -> dict[str, object]:
     """What the small-fixture runs need: they are off-registration by construction (5 squads,
     GW2-8, seed != 0), so they run forced and land non-canonical."""
     return dict(
-        data_source=_data_source(tmp_path),
+        warehouse_pin=_warehouse_pin(),
         repo_root=_git_repo(tmp_path / "repo"),
         allow_off_registration=True,
     )
@@ -175,27 +174,27 @@ def test_every_off_registration_field_is_named() -> None:
 
 def test_preflight_on_a_clean_tree_and_registered_configuration_is_canonical(tmp_path) -> None:
     repo = _git_repo(tmp_path / "repo")
-    data = _data_source(tmp_path)
-    provenance = starting_xi.preflight(**_REGISTERED, data_source=data, repo_root=repo)
+    data = _warehouse_pin()
+    provenance = starting_xi.preflight(**_REGISTERED, warehouse_pin=data, repo_root=repo)
 
     head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
     assert provenance.git_sha == head.stdout.strip()
     assert provenance.clean_tree is True
     assert provenance.canonical is True
     assert provenance.non_canonical_reasons == ()
-    assert provenance.data_source_path == str(data.resolve())
-    assert provenance.data_source_sha256 == hashlib.sha256(data.read_bytes()).hexdigest()
+    assert provenance.warehouse_run_id == data.run_id
+    assert provenance.warehouse_sha256 == data.sha256
     expected_pre_registration = hashlib.sha256(starting_xi.PRE_REGISTRATION_PATH.read_bytes()).hexdigest()
     assert provenance.pre_registration_sha256 == expected_pre_registration
 
 
 def test_preflight_refuses_a_dirty_tree_unless_allowed_and_then_marks_it_non_canonical(tmp_path) -> None:
     repo = _git_repo(tmp_path / "repo", dirty=True)
-    data = _data_source(tmp_path)
+    data = _warehouse_pin()
     with pytest.raises(starting_xi.RunRefused, match="dirty"):
-        starting_xi.preflight(**_REGISTERED, data_source=data, repo_root=repo)
+        starting_xi.preflight(**_REGISTERED, warehouse_pin=data, repo_root=repo)
 
-    provenance = starting_xi.preflight(**_REGISTERED, data_source=data, repo_root=repo, allow_dirty=True)
+    provenance = starting_xi.preflight(**_REGISTERED, warehouse_pin=data, repo_root=repo, allow_dirty=True)
     assert provenance.clean_tree is False
     assert provenance.canonical is False
     assert provenance.non_canonical_reasons == ("dirty_tree",)
@@ -203,12 +202,12 @@ def test_preflight_refuses_a_dirty_tree_unless_allowed_and_then_marks_it_non_can
 
 def test_preflight_refuses_off_registration_unless_forced_and_then_marks_it_non_canonical(tmp_path) -> None:
     repo = _git_repo(tmp_path / "repo")
-    data = _data_source(tmp_path)
+    data = _warehouse_pin()
     off = {**_REGISTERED, "n_squads": 5}
     with pytest.raises(starting_xi.RunRefused, match="squads_per_gameweek"):
-        starting_xi.preflight(**off, data_source=data, repo_root=repo)
+        starting_xi.preflight(**off, warehouse_pin=data, repo_root=repo)
 
-    provenance = starting_xi.preflight(**off, data_source=data, repo_root=repo, allow_off_registration=True)
+    provenance = starting_xi.preflight(**off, warehouse_pin=data, repo_root=repo, allow_off_registration=True)
     assert provenance.canonical is False
     assert provenance.non_canonical_reasons == ("off_registration:squads_per_gameweek",)
 
@@ -223,7 +222,7 @@ def test_run_study_refuses_before_writing_anything(tmp_path) -> None:
             n_squads=5,
             seed=7,
             results_root=tmp_path / "results",
-            data_source=_data_source(tmp_path),
+            warehouse_pin=_warehouse_pin(),
             repo_root=_git_repo(tmp_path / "repo"),
         )
     assert not (tmp_path / "results").exists()

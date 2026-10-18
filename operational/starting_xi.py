@@ -62,7 +62,6 @@ pre-existing property of the package `__init__`, not of anything `starting_xi.py
 from __future__ import annotations
 
 import argparse
-import hashlib
 import math
 import subprocess
 from collections.abc import Mapping, Sequence
@@ -78,6 +77,7 @@ from dal.pipeline import load
 from decisions.starting_xi import orderings, rankers, results, sampler, uncertainty
 from decisions.starting_xi.harness import BenchOrder, HarnessResult, RankFn
 from decisions.starting_xi.harness import run as harness_run
+from warehouse import served
 
 # §0.15's materiality bar and §6.3's underpowered floor -- one bootstrap block (§0.14's `block = 4`).
 MATERIALITY_THRESHOLD: Final[float] = 0.10
@@ -473,14 +473,6 @@ def _git_state(repo_root: Path) -> tuple[str, bool]:
     return _git("rev-parse", "HEAD"), _git("status", "--porcelain") == ""
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1 << 20), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def preflight(
     *,
     bench_order: BenchOrder,
@@ -488,7 +480,7 @@ def preflight(
     gameweeks: Sequence[int],
     n_squads: int,
     seed: int,
-    data_source: Path,
+    warehouse_pin: served.Pin,
     repo_root: Path = REPO_ROOT,
     pre_registration_path: Path = PRE_REGISTRATION_PATH,
     allow_dirty: bool = False,
@@ -521,9 +513,9 @@ def preflight(
     return results.RunProvenance(
         git_sha=git_sha,
         clean_tree=clean,
-        data_source_path=str(data_source.resolve()),
-        data_source_sha256=_sha256(data_source),
-        pre_registration_sha256=_sha256(pre_registration_path),
+        warehouse_run_id=warehouse_pin.run_id,
+        warehouse_sha256=warehouse_pin.sha256,
+        pre_registration_sha256=served.sha256_of(pre_registration_path),
         canonical=not reasons,
         non_canonical_reasons=tuple(reasons),
     )
@@ -543,7 +535,7 @@ def run_study(
     n_squads: int,
     seed: int,
     results_root: Path,
-    data_source: Path,
+    warehouse_pin: served.Pin,
     repo_root: Path = REPO_ROOT,
     pre_registration_path: Path = PRE_REGISTRATION_PATH,
     allow_dirty: bool = False,
@@ -566,7 +558,7 @@ def run_study(
         n_squads: squads per gameweek.
         seed: the master seed, required with no default (§2.9, §8.4).
         results_root: where `results.write` lands the run's directory (§7.4).
-        data_source: the file `mart` was read from, recorded by path and sha256.
+        warehouse_pin: the fpl-warehouse publish the run is recorded against, by run_id and sha256s.
         repo_root, pre_registration_path, allow_dirty, allow_off_registration: see `preflight`.
 
     Returns:
@@ -581,7 +573,7 @@ def run_study(
         gameweeks=gameweeks,
         n_squads=n_squads,
         seed=seed,
-        data_source=data_source,
+        warehouse_pin=warehouse_pin,
         repo_root=repo_root,
         pre_registration_path=pre_registration_path,
         allow_dirty=allow_dirty,
@@ -655,7 +647,7 @@ def build_and_run(
         n_squads=n_squads,
         seed=seed,
         results_root=results_root,
-        data_source=db_path,
+        warehouse_pin=served.read_pin(),
         allow_dirty=allow_dirty,
         allow_off_registration=allow_off_registration,
     )

@@ -98,7 +98,7 @@ python_version = "3.12"
 # `decisions` carries harness code and its COLOCATED tests, so both are gated here; `tests/` is not in
 # scope, so a decision folder's tests are the only tests mypy checks. That asymmetry is deliberate —
 # the slice's tests are its specification (decisions/README.md), not coverage around it.
-files = ["dal", "serve", "domain", "examples", "research", "operational", "decisions"]
+files = ["dal", "serve", "domain", "examples", "research", "operational", "decisions", "warehouse"]
 explicit_package_bases = true
 ignore_missing_imports = true
 disallow_untyped_defs = true

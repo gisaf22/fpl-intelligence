@@ -165,7 +165,7 @@ def test_a_season_absent_from_the_publish_is_refused(pin: served.Pin) -> None:
         served.load("2024-25", pin=pin, snapshot_root=FIXTURE_ROOT)
 
 
-# --- AC5: lag-1 price and ownership ---
+# --- AC5: price and ownership are the last non-null values strictly before the gameweek ---
 
 
 @pytest.mark.unit
@@ -175,6 +175,15 @@ def test_price_and_ownership_are_the_previous_gameweeks_value_and_selected(frame
     row = _gameweek_row(frames, LOAN_AND_RETURN, 33)
     assert row["price"] == pytest.approx(4.5)
     assert row["ownership"] == 10623
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#29 AC5")
+def test_after_a_blank_price_and_ownership_carry_the_last_known_values(frames: served.Frames) -> None:
+    # 149 blanks in GW34 (null value/selected); GW33 has value 45, selected 12561.
+    row = _gameweek_row(frames, LOAN_AND_RETURN, 35)
+    assert row["price"] == pytest.approx(4.5)
+    assert row["ownership"] == 12561
 
 
 # --- AC6: blank carries club forward ---

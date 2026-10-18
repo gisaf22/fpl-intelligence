@@ -14,16 +14,15 @@ evaluation wiring. Three concrete gaps had to be closed to run anything end to e
 1. **Shape.** `harness.run` takes a `squads` frame of (`squad_id`, `gw`, `player_id`), 15 rows per
    squad (`harness.py`'s own docstring, §2.9). A `ConstructionPolicy` returns
    `list[ConstructionCandidate]`. `build_squads` below is that projection and nothing more.
-2. **Ranker.** `harness.run` requires a `rank_fn` to pick the XI. Every existing ranker lives in
-   `decisions.starting_xi.rankers`, which imports `model.eval.baselines`, `model.features.build`
-   and `model.terms.p_play.p_play` at module scope -- importing *any* name from it pulls in 16
-   `model/` modules and silently destroys this slice's Tier A property (`DESIGN.md` §4), which
+2. **Ranker.** `harness.run` requires a `rank_fn` to pick the XI. Every existing rule lives in
+   `decisions.starting_xi.rankers`, which imports `model.eval.baselines` at module scope --
+   importing *any* name from it pulls in `model/` and silently destroys this slice's Tier A
+   property (`DESIGN.md` §4), which
    `.importlinter` cannot currently catch because no contract names `decisions.free_hit.*` yet
    (deferred by `DESIGN.md` §4 to its own falsify-then-revert commit). `rank_season_ppg` below is
    therefore re-derived locally, by the same `shift(1).expanding().mean()` pattern and for the same
    stated reason `candidates.py` re-derives its own signals.
-3. **Window.** `rankers.DECLARED_WINDOWS` starts every existing ranker at GW2 or GW4, and
-   `harness.run` raises on a window its ranker does not cover. The local ranker declares
+3. **Window.** `harness.run` raises on a window its ranker does not cover. The local ranker declares
    `(2, 38)`: GW1 was in `DESIGN.md` §2's qualifying set when this module was written, but
    `gameweek_population.WARM_UP_EXCLUDED` has since removed it on `METRIC.md` §3.3's resolved
    warm-up axis -- see `STUDY_WINDOW` and `rank_season_ppg`'s own note.
@@ -106,10 +105,9 @@ selection is made where `verdict.verdict` is called.
 """
 
 LOCAL_SEASON_PPG: Final[str] = "local_season_ppg"
-"""Name the local ranker reports to the harness -- deliberately *not* `rankers.F2_SEASON_PPG`
-(`"F2_season_ppg"`). The two compute the same statistic, but that name is frozen in
-`decisions/starting_xi/PRE_REGISTRATION.yaml` against a specific module; reusing it here would let
-this slice's results be mistaken for that pre-registered ranker's."""
+"""Name the local ranker reports to the harness -- distinct from every name in
+`decisions/starting_xi/PRE_REGISTRATION.yaml`, so this slice's results cannot be mistaken for a
+pre-registered starting_xi rule's."""
 
 STUDY_WINDOW: Final[tuple[int, int]] = (2, 38)
 """The local ranker's declared window (`harness.py` §0.7's declaration, not an inference).
@@ -169,8 +167,9 @@ def mart_frames(mart: pd.DataFrame) -> served.Frames:
     """The mart as the harness's gameweek frame -- the #46 bridge.
 
     `position` becomes `position_id`, a null-`minutes` row becomes a blank (`fixture_count` 0),
-    and `minutes`/`total_points` are kept as they are. The harness reads nothing else, so the
-    fixture frame is empty and the pin names the local mart rather than a publish.
+    `entry_gw` is the player's first gameweek with minutes, and `minutes`/`total_points` are kept
+    as they are. The harness reads nothing else, so the fixture frame is empty and the pin names
+    the local mart rather than a publish.
     """
     unknown = sorted(set(mart["position"].dropna()) - set(_ID_BY_POSITION))
     if unknown:
@@ -178,14 +177,14 @@ def mart_frames(mart: pd.DataFrame) -> served.Frames:
     gameweek = mart.loc[:, ["player_id", "gw", "minutes", "total_points"]].copy()
     gameweek["position_id"] = mart["position"].map(_ID_BY_POSITION)
     gameweek["fixture_count"] = mart["minutes"].notna().astype(int)
+    gameweek["entry_gw"] = mart["player_id"].map(mart.loc[mart["minutes"].notna()].groupby("player_id")["gw"].min())
     return served.Frames(fixture=pd.DataFrame(), gameweek=gameweek, pin=_MART_PIN)
 
 
 def rank_season_ppg(frames: served.Frames) -> _RankerOutput:
     """As-of season PPG, re-derived locally -- the `rank_fn` the harness selects its XI with.
 
-    Identical statistic to `decisions.starting_xi.rankers.rank_season_ppg` (F2) and identical
-    derivation to `candidates.py`'s own `season_ppg` column: `shift(1).expanding().mean()` over the
+    Identical derivation to `candidates.py`'s own `season_ppg` column: `shift(1).expanding().mean()` over the
     gameweek frame's `total_points`, lag-1 so no gameweek's own outcome can inform its own selection. Written
     here rather than imported for the `model/` reason in this module's docstring.
 

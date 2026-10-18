@@ -163,41 +163,23 @@ class HarnessResult:
 # ---------------------------------------------------------------------------
 
 
-def registration_gw(gameweek: pd.DataFrame) -> pd.Series:
-    """Per player, the first gameweek carrying a non-null `minutes` row.
-
-    §8.3's population is "the full player-gameweek spine restricted to each player's
-    post-registration window", and does not operationalise *registration*. The predicate used is
-    the sampler's own (§2.1): a player is registered from his first non-null `minutes` row.
-    Reusing it is what makes §8.3's coupling claim true -- the conditioning statistic and the
-    squad universe read one population, not two that happen to look alike. `test_harness.py`
-    asserts the two agree rather than leaving the reuse to the docstring.
-
-    `archive/INVENTORY.md` §2.5 records why the predicate is needed at all: the DAL spine is a full
-    player x gameweek cartesian product, so a GW20 debutant *has* GW1-19 rows with NULL
-    performance, and counting them would score the DAL's construction rather than the player.
-    """
-    played = gameweek.loc[gameweek["minutes"].notna(), ["player_id", "gw"]]
-    return played.groupby("player_id")["gw"].min()
-
-
 def as_of_points(gameweek: pd.DataFrame) -> pd.DataFrame:
     """§0.9's as-of statistic: season-to-date points per gameweek elapsed, strictly before `gw`.
 
     `archive/METRIC.md` §3.2's first option, with §0.9's three sub-choices resolved: blanked weeks count
-    at **0**, no-fixture weeks count at **0**, and pre-registration weeks **do not count at
-    all**. The denominator is gameweeks elapsed since registration, not appearances -- §0.9
+    at **0**, no-fixture weeks count at **0**, and pre-entry weeks **do not count at
+    all**. The denominator is gameweeks elapsed since entry, not appearances -- §0.9
     records the failure of the alternative, which orders an 8-per-appearance player who features
     a third of the time above a nailed 4-per-week one.
 
     Returns:
-        A frame of (`player_id`, `gw`, `as_of_points`), one row per post-registration
+        A frame of (`player_id`, `gw`, `as_of_points`), one row per post-entry
         player-gameweek. `gw` is the gameweek the statistic is used *at*; the window is
-        `[registration_gw, gw)`, so the row at a player's own registration gameweek has an empty
+        `[entry_gw, gw)`, so the row at a player's own entry gameweek has an empty
         window.
 
     **The empty-denominator case is resolved here and is not settled upstream.** A player whose
-    registration gameweek *is* the squad-week has no prior gameweek and no rate. §0.9 does not
+    entry gameweek *is* the squad-week has no prior gameweek and no rate. §0.9 does not
     reach the case: it fixes what the denominator counts, not what happens when it counts
     nothing. The value used is **0**, on two grounds. It is the value §0.9 already assigns to
     every elapsed week that produced nothing, so a player with no history and one with an
@@ -206,14 +188,11 @@ def as_of_points(gameweek: pd.DataFrame) -> pd.DataFrame:
     §0.8 rejects C2 for. Flagged rather than buried: it is a `DESIGN.md` §0.9 question this
     module answers locally because the build cannot proceed without an answer.
     """
-    missing = [column for column in ("player_id", "gw", "minutes", "total_points") if column not in gameweek.columns]
+    missing = [column for column in ("player_id", "gw", "entry_gw", "total_points") if column not in gameweek.columns]
     if missing:
         raise ValueError(f"gameweek frame is missing columns the as-of statistic reads: {missing}")
 
-    first = registration_gw(gameweek)
-    panel = gameweek.loc[:, ["player_id", "gw", "total_points"]].copy()
-    panel["_first"] = panel["player_id"].map(first)
-    panel = panel.loc[panel["_first"].notna() & (panel["gw"] >= panel["_first"])]
+    panel = gameweek.loc[gameweek["gw"] >= gameweek["entry_gw"], ["player_id", "gw", "total_points"]]
     panel = panel.sort_values(["player_id", "gw"], kind="stable")
 
     # §8.3's precondition, asserted at the call site because it is invisible there: a null left
@@ -513,7 +492,7 @@ def run(
             the gameweek frame is read here: realised points are its per-gameweek totals, a
             no-fixture week is `fixture_count == 0`, and the position is `position_id`'s label.
             The whole season is needed, not the window's slice: the as-of statistic's
-            denominator runs from each player's registration gameweek (§0.9).
+            denominator runs from each player's entry gameweek (§0.9).
         window: the comparison window, inclusive. §6.3 computes it from the declared windows of
             the rankers in a comparison; the harness consumes it and never infers it (§0.7).
 

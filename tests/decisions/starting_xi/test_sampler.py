@@ -86,6 +86,7 @@ def _gameweek(
                         "price": prices(position, slot),
                         "team_id": teams(position, slot, player_id),
                         "minutes": None if gw < debut else 90,
+                        "entry_gw": debut,
                     }
                 )
     gameweek = pd.DataFrame(rows)
@@ -170,25 +171,25 @@ def test_a_gw2_keyed_membership_test_would_be_the_wrong_test(gameweek: pd.DataFr
 
 
 # ---------------------------------------------------------------------------
-# §2.1/§2.8 — registration restricts the pool, it never rejects a draw
+# §2.1/§2.8 — entry restricts the pool, it never rejects a draw
 # ---------------------------------------------------------------------------
 
 
-def test_no_squad_contains_a_player_before_his_first_non_null_minutes_row(gameweek: pd.DataFrame) -> None:
+def test_no_squad_contains_a_player_before_his_entry_gameweek(gameweek: pd.DataFrame) -> None:
     sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform")
     debut = gameweek.loc[gameweek["minutes"].notna()].groupby("player_id")["gw"].min()
     assert (sample.squads["gw"] >= sample.squads["player_id"].map(debut)).all()
 
 
-def test_a_pre_registration_row_carries_a_price_and_is_still_excluded(gameweek: pd.DataFrame) -> None:
+def test_a_pre_entry_row_carries_a_price_and_is_still_excluded(gameweek: pd.DataFrame) -> None:
     """The trap §2.1 names: a prefix row fails no null check on price, so a leak would be silent."""
     prefix = gameweek.loc[gameweek["minutes"].isna()]
     assert not prefix.empty and prefix["price"].notna().all()
 
     sample = sample_squads(_frames(gameweek), [2], 40, 0, squad_mode="uniform")
     drawn_at_gw2 = set(sample.squads["player_id"])
-    not_yet_registered = set(prefix.loc[prefix["gw"] == 2, "player_id"])
-    assert not (drawn_at_gw2 & not_yet_registered)
+    not_yet_entered = set(prefix.loc[prefix["gw"] == 2, "player_id"])
+    assert not (drawn_at_gw2 & not_yet_entered)
 
 
 # ---------------------------------------------------------------------------

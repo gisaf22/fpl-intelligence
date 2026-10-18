@@ -142,8 +142,8 @@ rejection)"* — propose a complete 15-player candidate, accept or discard the e
 never repair or resample a subset of it. Three functions carry this:
 
 - **`_universes(mart, gameweeks)` (lines 246-282).** Builds `U_g`, the registration-legal,
-  gameweek-priced, position-split player pool, once per gameweek. Registration
-  (`_registration_gw`, lines 220-228: first non-null-`minutes` gw per player) is enforced **here
+  gameweek-priced, position-split player pool, once per gameweek. Entry
+  (each player's `entry_gw` from the loader, since #33) is enforced **here
   only** — by restricting the pool before any draw, not by rejecting an ineligible draw. Returns a
   `_Universe` (lines 177-190), a `dict[position, _Pool]`, where each `_Pool` (lines 164-173) is
   parallel arrays of `player_id`, `price_tenths`, `team_id` for one position's eligible players.

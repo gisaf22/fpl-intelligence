@@ -76,9 +76,8 @@ reading the C1-vs-C3 series rather than applied to the population."""
 def _registration_gw(mart: pd.DataFrame) -> pd.Series:
     """Per player, the first gameweek carrying a non-null `minutes` row.
 
-    Duplicated from `decisions.starting_xi.sampler._registration_gw` rather than imported -- this
-    slice stays self-contained (`DESIGN.md` §3/§4) rather than reaching into a sibling decision
-    slice's private internals for a five-line predicate.
+    The mart's spine holds a row for every player-gameweek, so a debutant has earlier rows with
+    NULL `minutes`; this predicate keeps them out.
     """
     played = mart.loc[mart["minutes"].notna(), ["player_id", "gw"]]
     return played.groupby("player_id")["gw"].min()

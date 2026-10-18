@@ -27,7 +27,7 @@ Superseded docs: [`archive/`](archive/).
 - **Source and mapping:** fpl-warehouse served parquet, season 2025-26 — see [`DATA.md`](DATA.md).
 - **Known-when:** each rule sees only data from gameweeks before the one being scored.
 - **Population:** exploration uses 2025-26; confirmation uses 2026-27, which is unseen because it comes later in time.
-- The two existing runs (3821cc93, 4b348fe0) are **dry runs, not results**.
+- No Stage 3 run yet: the two dry runs on the old design were deleted ([#33](https://github.com/gisaf22/fpl-intelligence/issues/33)).
 
 ## 3 Explore (current) — test design, frozen 2026-10-17
 
@@ -38,7 +38,7 @@ Superseded docs: [`archive/`](archive/).
   - Decomposition: starts rate (last 3 gameweeks with a fixture) × season points per appearance × the coming `fixture_count`; NULL if either half is.
   - Floor: a random legal XI (a seeded random score per player, `master_seed` via `seeding.week_seed`).
   - Decisions and reasons: [#30](https://github.com/gisaf22/fpl-intelligence/issues/30).
-- **Ranking:** unscored players (no score yet — not enough history) rank below all scored players; no-fixture players rank last; ties go to lowest `player_id` ([`harness.py:234`](harness.py#L234)); formation limits then apply.
+- **Ranking:** unscored players (no score yet — not enough history) rank below all scored players; no-fixture players rank last; ties go to lowest `player_id` ([`harness.rank_squad`](harness.py#L221)); formation limits then apply.
 - **Metric:** XI regret primary; bench-order regret secondary; no-subs regret as sensitivity (§1).
 - **Report per rule:** mean, median, 95% paired block-bootstrap range and P90 of regret; position on a random (0%) → hindsight-ideal (100%) scale. Segments: position (ideal-XI minus chosen-XI points at that position; may be negative; positions sum to total regret), and season phase GW 4–12 / 13–26 / 27–38 (the lens scheme, starting at the first scored gameweek; the characterisation scheme ≤14/≤24 is not used here). DGWs not segmented.
 - **Scored gameweeks:** GW4–38. At GW3 every last-3 rule is NULL for everyone ([#30](https://github.com/gisaf22/fpl-intelligence/issues/30)). A zero-information squad-week (every rule picks the same XI) is flagged `is_zero_information`, excluded from reporting and counted in the manifest ([#31](https://github.com/gisaf22/fpl-intelligence/issues/31)).

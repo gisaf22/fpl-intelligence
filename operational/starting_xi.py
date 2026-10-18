@@ -1,90 +1,31 @@
-"""The `starting_xi` composition root -- `DESIGN.md` §3.8, §5.1.2, §6.3.1, §7.3, §8.2.
+"""The `starting_xi` composition root: the one place the rules, the sampler, the harness and the
+results writer meet.
 
-**The one place Tier A and Tier B meet.** `INVENTORY.md` §2.11 records that `operational/` is not a
-root package and carries no `.importlinter` contract, which is what §3.8 relies on to make this the
-legal place to wire a Tier B ranker (`rankers.py`) into a Tier A harness (`harness.py`). §8.2 states
-the same wiring from the interval side: "the composition root imports `harness.py`, `rankers.py` and
-`uncertainty.py` and wires them together." `sampler.py`, `results.py` and `orderings.py` join that
-list because §5.1.2's assembly needs all three directly -- squads to replay, an artefact to write,
-and the sole pre-registered ordering to default `bench_order` to. Verified against the text rather
-than assumed: nothing in §3.8 or `INVENTORY.md` §2.11 narrows what `operational/` may import, and
-nothing else in the slice is a candidate caller of these six modules together.
+`run_study` checks the run against `PRE_REGISTRATION.yaml` and the git tree, samples squads once,
+replays each rule in `rankers.rules(seed)` through the harness at `rankers.RULE_WINDOW`, flags
+zero-information squad-weeks, and writes the artefact. Reporting is `decisions.starting_xi.report`'s.
 
-**T3 assembly lives here, as named private functions, per §5.1.2.** Six pieces of logic, all fully
-specified elsewhere in `DESIGN.md` and none a choice left to this module: §0.13's floor
-determination, §10.7's differencing, §7.2.1's `ordering_relevant_count` derivation, §0.15's S1/S2/S3
-bar, and §7.5's per-status row shape. §5.1.2 rejects both inlining them into `run_study` and giving
-them a new Tier module of their own -- they are named private functions taking and returning frames,
-testable without `dal/` or `model/`.
-
-**The window per ranker, per §6.3.1.** `harness.run` is called once per ranker, at that ranker's own
-declared window -- never at a comparison's intersection, which is computed post-hoc from T2 instead
-(§6.3.1: "replay wide, restrict at assembly"). Every rule in `rankers.rules` declares
-`rankers.RULE_WINDOW`, so that constant is the window each is replayed at -- read as data rather
-than by calling `rank_fn` a second time just to read `.window`.
-
-**`bench_order` defaults to the sole pre-registered ordering, and nothing else.** §5.4 makes
-`bench_order` a required argument with no default at `harness.run`'s own boundary, because a
-defaulted ordering would emit a regret figure that could not be reconstructed from its stated
-inputs; that contract is unchanged here; `harness.run` still receives it explicitly on every call
-this module makes. What this module adds is a *convenience* default at its own boundary, and the
-only value that could occupy it without inventing one: `orderings.PRE_REGISTERED_ORDERINGS`, §5.4.1's
-single committed policy. `rank_fns` defaults to `rankers.rules(seed)`, CARD.md §3's rule grid
-(#43). The floor rankers read the mart and cannot run on the warehouse frames; #33 retires them and
-re-pins `PRE_REGISTRATION.yaml`, and until then every run is off-registration.
-
-**A T3 gap this pass resolves and flags rather than hides.** §0.13 determines the floor as
-"whichever naive ranker carries the lowest mean regret" *within a comparison*, and every occurrence
-of "comparison" in `DESIGN.md` presupposes a candidate ranker distinct from the naive floor set --
-`METRIC.md` and `DECISION.md` both record that no candidate ranker has been characterised yet
-(`DESIGN.md` §1.5). Nowhere does `DESIGN.md` say what a "comparison" is among *only* the three
-pre-registered floor rankers, and applying §0.13's rule to that set literally is incoherent: the
-floor is defined as whichever of the compared rankers has the lowest regret, so calling the other
-member of the pair a "candidate" being reduced *against* the floor it lost to inverts the sign of
-every S1/S3 check. Resolved here as the narrowest reading that needs no invented floor-vs-floor
-semantics: **a comparison is one non-floor ranker in `rank_fns` (a name absent from
-`rankers.FLOOR_RANKERS`) against the floor rankers present in `rank_fns`.** Under the default
-`rank_fns` -- the floor set alone -- there is no such name, so `run_study` legitimately writes T3
-with **zero rows**. That is not an omission: §1.5's own list of "measurements owed on the first run"
-(the sampler's acceptance rate, the no-fixture-rule count, the DGW-exclusion materiality) needs only
-T2 and the manifest, and none of them is a comparison. Flagged for a `DESIGN.md` pass rather than
-silently generalised further.
-
-**Import closure: `warehouse/`, `decisions.starting_xi.{harness,rankers,orderings,uncertainty,results,
-sampler}`, and -- transitively, through `rankers.py` -- `model/`.** Nothing here is forbidden:
-`operational/` is covered by no `.importlinter` contract in either direction (§3.8), and this is the
-one call site `rankers.py`'s Tier B permission and `harness.py`/`sampler.py`'s Tier A `warehouse/` edge are
-both meant to be exercised from. (`serve` also loads whenever this module does, because
-`operational/__init__.py` eagerly re-exports `operational.recommend`, which imports it -- a
-pre-existing property of the package `__init__`, not of anything `starting_xi.py` itself imports.)
+`operational/` is covered by no `.importlinter` contract, which is what makes it the legal place to
+wire the rules (which import `model/`) into the harness. (`serve` also loads whenever this module
+does, because `operational/__init__.py` eagerly re-exports `operational.recommend`.)
 """
 
 from __future__ import annotations
 
 import argparse
-import math
 import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Final
+from typing import Any, Final
 
 import pandas as pd
 import yaml
 
-from decisions.starting_xi import orderings, rankers, results, sampler, uncertainty
+from decisions.starting_xi import orderings, rankers, report, results, sampler, uncertainty
 from decisions.starting_xi.harness import BenchOrder, HarnessResult, RankFn
 from decisions.starting_xi.harness import run as harness_run
 from warehouse import served
-
-# §0.15's materiality bar and §6.3's underpowered floor -- one bootstrap block (§0.14's `block = 4`).
-MATERIALITY_THRESHOLD: Final[float] = 0.10
-MIN_SCOREABLE_GW: Final[int] = 4
-
-# §0.13's naive floor set -- every name `rankers.FLOOR_RANKERS` pre-registers. A `rank_fns` name
-# absent from this set is a candidate; present in it, a floor member. See the module docstring's
-# resolution of what a "comparison" is under the default (floor-only) `rank_fns`.
-_FLOOR_NAMES: Final[frozenset[str]] = frozenset(rankers.FLOOR_RANKERS)
 
 # The season every run reads (`decisions/starting_xi/DATA.md`).
 SEASON: Final[str] = "2025-26"
@@ -93,15 +34,8 @@ REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[1]
 PRE_REGISTRATION_PATH: Final[Path] = REPO_ROOT / "decisions" / "starting_xi" / "PRE_REGISTRATION.yaml"
 RESULTS_ROOT: Final[Path] = REPO_ROOT / "decisions" / "starting_xi" / "results"
 
-# §0.13's rule, as `_determine_floor` implements it. Recorded in the manifest; `PRE_REGISTRATION.yaml`
-# freezes the floor rankers and their windows but not the rule by name, so only the rankers are
-# checked against it.
-FLOOR_METHOD: Final[str] = "lowest_mean_regret_per_comparison"
-# §0.15's S1/S2/S3, by their T3 column names -- the same source the freeze test pins against.
-SUCCESS_CRITERIA: Final[tuple[str, ...]] = tuple(c for c in results.T3_COLUMNS if c.startswith("crit_"))
-# §0.16 and §10.3: structural properties of the sampler and of U1, not constants anywhere else.
+# A structural property of the sampler: each gameweek draws its own squads.
 CONSTRUCTION: Final[str] = "weekly"
-SQUAD_INTERVAL_STRATIFIED_BY: Final[str] = "gw"
 
 
 class RunRefused(RuntimeError):
@@ -110,286 +44,16 @@ class RunRefused(RuntimeError):
 
 @dataclass(frozen=True)
 class StartingXIRun:
-    """One run's summary -- `run_id`, where it landed, and the two counts a caller checks first."""
+    """One run's summary -- `run_id`, where it landed, and its squad-week count."""
 
     run_id: str
     results_dir: Path
     n_squad_weeks: int
-    n_comparisons: int
 
 
 # ---------------------------------------------------------------------------
-# T3 assembly -- §5.1.2's named private functions
+# Assembly
 # ---------------------------------------------------------------------------
-
-
-def _ranker_window(t2: pd.DataFrame, ranker: str) -> tuple[int, int]:
-    """A ranker's replayed span, read off its own T2 rows rather than `rankers.DECLARED_WINDOWS`.
-
-    `harness.run` is called at exactly that ranker's declared window (§6.3.1), so T2's own `gw`
-    range for that ranker already *is* the declared window -- reading it back keeps T3 assembly a
-    pure function of T2/T5, independent of `rankers.py`'s naming, and testable against a
-    constructed frame with no fixed set of ranker names (§5.1.2's testability argument).
-    """
-    rows = t2.loc[t2["ranker"] == ranker, "gw"]
-    if rows.empty:
-        raise ValueError(f"T2 carries no rows for ranker {ranker!r}")
-    return int(rows.min()), int(rows.max())
-
-
-def _determine_floor(t2: pd.DataFrame, floor_names: Sequence[str], window: tuple[int, int]) -> tuple[str, float]:
-    """§0.13: the floor is whichever naive ranker has the lowest mean regret on the comparison's
-    window, after §0.8's zero-gap exclusion -- re-determined per comparison, never nominated."""
-    first, last = window
-    means: dict[str, float] = {}
-    for name in floor_names:
-        rows = t2.loc[(t2["ranker"] == name) & (t2["gw"] >= first) & (t2["gw"] <= last) & (~t2["is_zero_gap"])]
-        means[name] = float(rows["regret"].mean()) if not rows.empty else math.nan
-    finite = {name: mean for name, mean in means.items() if not math.isnan(mean)}
-    if not finite:
-        raise ValueError(f"no floor ranker among {list(floor_names)} has a scoreable row on window {window}")
-    floor_ranker = min(finite, key=lambda name: finite[name])
-    return floor_ranker, finite[floor_ranker]
-
-
-def _difference_and_restrict(
-    t2: pd.DataFrame, candidate: str, floor_ranker: str, window: tuple[int, int]
-) -> pd.DataFrame:
-    """§10.7: "the differencing is the caller's step" -- pivot T2 on `ranker`, subtract, drop
-    zero-gap rows, restrict to the window. `value = floor's regret - candidate's regret`, so a
-    positive value is the candidate reducing regret relative to the floor (§10.2's estimand).
-
-    Returns a `(gw, squad_id, value)` panel -- `uncertainty.py`'s `PANEL_COLUMNS` shape (§5.1).
-    """
-    first, last = window
-    subset = t2.loc[
-        t2["ranker"].isin([candidate, floor_ranker]) & (t2["gw"] >= first) & (t2["gw"] <= last),
-        ["squad_id", "gw", "ranker", "regret", "is_zero_gap"],
-    ]
-    pivoted = subset.pivot(index=["squad_id", "gw"], columns="ranker", values="regret")
-    # is_zero_gap is a property of the squad-week, not the ranker (§10.4), so both rows in a pair
-    # agree; `.any()` is a defensive OR rather than a claim that they could disagree.
-    zero_gap = subset.groupby(["squad_id", "gw"])["is_zero_gap"].any()
-    panel = pivoted.assign(value=pivoted[floor_ranker] - pivoted[candidate], is_zero_gap=zero_gap)
-    panel = panel.loc[~panel["is_zero_gap"]].reset_index()
-    return panel.loc[:, ["gw", "squad_id", "value"]]
-
-
-def _derive_ordering_relevant_count(t5: pd.DataFrame, candidate: str, window: tuple[int, int]) -> int:
-    """§7.2.1: a squad-week is ordering-relevant when a substitution fired **and** the compared
-    orderings' `entered_outfield` sets are not all identical. Derived over the candidate's own T5
-    rows -- the candidate is the ranker the comparison is evaluating, and §4.4 conditions the bench
-    on that ranker's own XI. Always 0 under `orderings.PRE_REGISTERED_ORDERINGS` (one policy, so no
-    two orderings can differ -- §5.4.1), and computed genuinely anyway so a second policy needs no
-    change here.
-    """
-    first, last = window
-    subset = t5.loc[(t5["ranker"] == candidate) & (t5["gw"] >= first) & (t5["gw"] <= last)]
-    if subset.empty:
-        return 0
-
-    def _relevant(group: pd.DataFrame) -> bool:
-        return bool(group["substitution_fired"].all()) and group["entered_outfield"].nunique() > 1
-
-    relevant = subset.groupby(["squad_id", "gw"]).apply(_relevant, include_groups=False)
-    return int(relevant.sum())
-
-
-def _evaluate_bar(
-    floor_mean_regret: float,
-    candidate_mean_regret: float,
-    ci_squads: tuple[float, float],
-    ci_gw: tuple[float, float],
-) -> tuple[float, float, bool, bool, bool, bool]:
-    """§0.15: S1 (direction), S2 (significance -- both intervals exclude zero), S3 (materiality,
-    10% of the floor's own mean regret). All three required; any two is a fail.
-
-    Returns `(abs_reduction, rel_reduction, crit_direction, crit_significance, crit_materiality,
-    passed)`.
-    """
-    abs_reduction = floor_mean_regret - candidate_mean_regret
-    rel_reduction = abs_reduction / floor_mean_regret if floor_mean_regret != 0 else math.nan
-    crit_direction = abs_reduction > 0
-    crit_significance = (ci_squads[0] > 0 or ci_squads[1] < 0) and (ci_gw[0] > 0 or ci_gw[1] < 0)
-    crit_materiality = not math.isnan(rel_reduction) and rel_reduction >= MATERIALITY_THRESHOLD
-    passed = crit_direction and crit_significance and crit_materiality
-    return abs_reduction, rel_reduction, crit_direction, crit_significance, crit_materiality, passed
-
-
-def _base_row(candidate: str, floor_names: Sequence[str], window: tuple[int, int]) -> dict[str, object]:
-    """§7.2's T3 columns (minus `run_id`), defaulted to `None` and filled in by identity fields
-    every status carries (§7.5: "Identity, rankers and window populated" even when not evaluable).
-    """
-    row: dict[str, object] = dict.fromkeys(results.T3_COLUMNS[1:])
-    row.update(
-        comparison_id=candidate,
-        rankers=[candidate, *floor_names],
-        window_first_gw=window[0],
-        window_last_gw=window[1],
-    )
-    return row
-
-
-def _not_evaluable_row(candidate: str, floor_names: Sequence[str], window: tuple[int, int]) -> dict[str, object]:
-    """§7.5: empty window intersection. Identity, rankers and window populated; every estimate null."""
-    row = _base_row(candidate, floor_names, window)
-    row["status"] = "not_evaluable"
-    row["status_reason"] = f"empty window intersection {window} (DESIGN.md §6.3, §7.5)"
-    return row
-
-
-def _underpowered_row(
-    candidate: str,
-    floor_names: Sequence[str],
-    window: tuple[int, int],
-    floor_ranker: str,
-    floor_mean_regret: float,
-    candidate_mean_regret: float,
-    n_scoreable_gw: int,
-    counts: Mapping[str, int],
-) -> dict[str, object]:
-    """§7.5: fewer than `MIN_SCOREABLE_GW` scoreable gameweeks -- below one bootstrap block, so
-    S2 cannot be evaluated. Point estimates and counts are populated because they need no interval;
-    `crit_significance` and `passed` are null rather than false (§7.5's "Null is not false")."""
-    abs_reduction = floor_mean_regret - candidate_mean_regret
-    rel_reduction = abs_reduction / floor_mean_regret if floor_mean_regret != 0 else math.nan
-    row = _base_row(candidate, floor_names, window)
-    row.update(
-        n_scoreable_gw=n_scoreable_gw,
-        floor_ranker=floor_ranker,
-        floor_mean_regret=floor_mean_regret,
-        candidate_mean_regret=candidate_mean_regret,
-        abs_reduction=abs_reduction,
-        rel_reduction=None if math.isnan(rel_reduction) else rel_reduction,
-        crit_direction=abs_reduction > 0,
-        crit_materiality=(not math.isnan(rel_reduction)) and rel_reduction >= MATERIALITY_THRESHOLD,
-        status="underpowered",
-        status_reason=(
-            f"{n_scoreable_gw} scoreable gameweek(s), below one bootstrap block of "
-            f"{MIN_SCOREABLE_GW} (DESIGN.md §6.3, §0.14)"
-        ),
-        **counts,
-    )
-    return row
-
-
-def _evaluated_row(
-    candidate: str,
-    floor_names: Sequence[str],
-    window: tuple[int, int],
-    floor_ranker: str,
-    floor_mean_regret: float,
-    candidate_mean_regret: float,
-    n_scoreable_gw: int,
-    ci_squads: tuple[float, float],
-    ci_gw: tuple[float, float],
-    counts: Mapping[str, int],
-) -> dict[str, object]:
-    """§7.5: the normal case. All fields populated, including both intervals and §0.15's bar."""
-    abs_reduction, rel_reduction, crit_direction, crit_significance, crit_materiality, passed = _evaluate_bar(
-        floor_mean_regret, candidate_mean_regret, ci_squads, ci_gw
-    )
-    row = _base_row(candidate, floor_names, window)
-    row.update(
-        n_scoreable_gw=n_scoreable_gw,
-        floor_ranker=floor_ranker,
-        floor_mean_regret=floor_mean_regret,
-        candidate_mean_regret=candidate_mean_regret,
-        abs_reduction=abs_reduction,
-        rel_reduction=None if math.isnan(rel_reduction) else rel_reduction,
-        ci_squads_lo=ci_squads[0],
-        ci_squads_hi=ci_squads[1],
-        ci_gw_lo=ci_gw[0],
-        ci_gw_hi=ci_gw[1],
-        crit_direction=crit_direction,
-        crit_significance=crit_significance,
-        crit_materiality=crit_materiality,
-        passed=passed,
-        status="evaluated",
-        status_reason=None,
-        **counts,
-    )
-    return row
-
-
-def _assemble_comparison(
-    candidate: str, floor_names: Sequence[str], t2: pd.DataFrame, t5: pd.DataFrame
-) -> dict[str, object]:
-    """One T3 row: §6.3's window intersection, §0.13's floor, §10.7's panel, §0.15's bar -- and the
-    right §7.5 status for what the window and the panel actually support.
-    """
-    candidate_window = _ranker_window(t2, candidate)
-    floor_windows = [_ranker_window(t2, name) for name in floor_names]
-    first = max(candidate_window[0], *(w[0] for w in floor_windows))
-    last = min(candidate_window[1], *(w[1] for w in floor_windows))
-    window = (first, last)
-    if first > last:
-        return _not_evaluable_row(candidate, floor_names, window)
-
-    floor_ranker, floor_mean_regret = _determine_floor(t2, floor_names, window)
-    candidate_rows = t2.loc[
-        (t2["ranker"] == candidate) & (t2["gw"] >= first) & (t2["gw"] <= last) & (~t2["is_zero_gap"])
-    ]
-    if candidate_rows.empty:
-        return _not_evaluable_row(candidate, floor_names, window)
-    candidate_mean_regret = float(candidate_rows["regret"].mean())
-
-    window_rows = t2.loc[(t2["ranker"] == candidate) & (t2["gw"] >= first) & (t2["gw"] <= last)]
-    counts = {
-        "n_zero_gap_excluded": int(window_rows["is_zero_gap"].sum()),
-        "substitution_count": int(candidate_rows["substitution_fired"].sum()),
-        "uncovered_blank_count": int(candidate_rows["uncovered_blank"].sum()),
-        "ordering_relevant_count": _derive_ordering_relevant_count(t5, candidate, window),
-        "no_fixture_rule_count": int(candidate_rows["no_fixture_rule_changed_xi"].sum()),
-    }
-
-    panel = _difference_and_restrict(t2, candidate, floor_ranker, window)
-    n_scoreable_gw = int(panel["gw"].nunique())
-
-    if n_scoreable_gw < MIN_SCOREABLE_GW:
-        return _underpowered_row(
-            candidate,
-            floor_names,
-            window,
-            floor_ranker,
-            floor_mean_regret,
-            candidate_mean_regret,
-            n_scoreable_gw,
-            counts,
-        )
-
-    gw_series = panel.groupby("gw")["value"].mean().sort_index().to_numpy()
-    ci_squads = uncertainty.squad_stratified_ci(panel, n_scoreable_gw=n_scoreable_gw)
-    ci_gw = uncertainty.gameweek_block_ci(gw_series, n_scoreable_gw=n_scoreable_gw)
-
-    return _evaluated_row(
-        candidate,
-        floor_names,
-        window,
-        floor_ranker,
-        floor_mean_regret,
-        candidate_mean_regret,
-        n_scoreable_gw,
-        ci_squads,
-        ci_gw,
-        counts,
-    )
-
-
-def _assemble_comparisons(t2: pd.DataFrame, t5: pd.DataFrame, rank_fns: Mapping[str, RankFn]) -> pd.DataFrame:
-    """§7.2's T3, one row per candidate in `rank_fns` that is not a member of the floor set.
-
-    A comparison needs a candidate and a floor. With either side absent -- the floor set alone, or
-    the rule grid, which holds no floor ranker (#43; #33 retires the floor machinery) -- this
-    returns a correctly-schematised, zero-row frame.
-    """
-    floor_names = sorted(set(rank_fns) & _FLOOR_NAMES)
-    candidate_names = sorted(set(rank_fns) - _FLOOR_NAMES)
-    columns = list(results.T3_COLUMNS[1:])
-    if not candidate_names or not floor_names:
-        return pd.DataFrame(columns=columns)
-    rows = [_assemble_comparison(candidate, floor_names, t2, t5) for candidate in candidate_names]
-    return pd.DataFrame(rows).loc[:, columns]
 
 
 def _flag_zero_information(t2: pd.DataFrame) -> pd.DataFrame:
@@ -423,10 +87,6 @@ def _sampler_diagnostics(run_record: pd.DataFrame) -> list[dict[str, object]]:
 # ---------------------------------------------------------------------------
 
 
-def _floor_windows(rank_fns: Mapping[str, RankFn]) -> dict[str, list[int]]:
-    return {name: list(rankers.DECLARED_WINDOWS[name]) for name in sorted(set(rank_fns) & _FLOOR_NAMES)}
-
-
 def pre_registration_mismatches(
     *,
     bench_order: BenchOrder,
@@ -434,40 +94,38 @@ def pre_registration_mismatches(
     gameweeks: Sequence[int],
     n_squads: int,
     seed: int,
-    pre_registration: Mapping[str, object],
+    pre_registration: Mapping[str, Any],
 ) -> list[str]:
-    """Every value this run would record that `PRE_REGISTRATION.yaml` freezes, compared against it.
+    """Every value `PRE_REGISTRATION.yaml` freezes, compared against this run and the code that owns it.
 
-    Returns one `"<yaml field>: run=<value> registered=<value>"` string per mismatch, empty when
-    the run is on-registration. Candidate rankers (names outside the floor set) are not checked:
-    the file registers none yet.
+    Returns one `"<yaml field>: run=<value> registered=<value>"` string per mismatch, in the file's
+    field order; empty when the run and the code are on-registration.
     """
     reg = pre_registration
-    population = reg["population"]
-    resampling = reg["resampling_scheme"]
-    intervals = reg["intervals"]
-    materiality = reg["materiality"]
-    assert isinstance(population, Mapping) and isinstance(resampling, Mapping)
-    assert isinstance(intervals, Mapping) and isinstance(materiality, Mapping)
-    span = population["build_gameweeks"]
-    assert isinstance(span, Mapping)
+    span = reg["scored_gameweeks"]
+    registered_gameweeks = list(range(span["first_gw"], span["last_gw"] + 1))
+    rule_gameweeks = list(range(rankers.RULE_WINDOW[0], rankers.RULE_WINDOW[1] + 1))
     pairs: dict[str, tuple[object, object]] = {
-        "bench_ordering": ([name for name, _ in bench_order], list(reg["bench_ordering"])),  # type: ignore[call-overload]
-        "floor_rankers": (_floor_windows(rank_fns), {k: list(v) for k, v in reg["floor_rankers"].items()}),  # type: ignore[attr-defined]
-        "build_gameweeks": (sorted(set(gameweeks)), list(range(span["first_gw"], span["last_gw"] + 1))),
-        "squads_per_gameweek": (n_squads, population["squads_per_gameweek"]),
-        "master_seed": (seed, reg["master_seed"]),
-        "materiality": (
-            {"threshold": MATERIALITY_THRESHOLD, "relative_to": "floor_mean_regret"},
-            dict(materiality),
+        "rules": (sorted(rank_fns), sorted(reg["rules"])),
+        # The run builds exactly the gameweeks the rules score.
+        "scored_gameweeks": (
+            {"run": sorted(set(gameweeks)), "rules": rule_gameweeks},
+            {"run": registered_gameweeks, "rules": registered_gameweeks},
         ),
-        "success_criteria": (list(SUCCESS_CRITERIA), list(reg["success_criteria"])),  # type: ignore[call-overload]
-        "construction": (CONSTRUCTION, resampling["construction"]),
-        "squad_interval_stratified_by": (SQUAD_INTERVAL_STRATIFIED_BY, resampling["squad_interval_stratified_by"]),
-        "gameweek_interval_block": (uncertainty.BLOCK_GWS, resampling["gameweek_interval_block"]),
-        "intervals": (
-            {"n": uncertainty.N_RESAMPLES, "ci_level": uncertainty.CI_LEVEL, "seed": uncertainty.SEED},
-            dict(intervals),
+        "phases": ({name: [first, last] for name, first, last in report.PHASES}, dict(reg["phases"])),
+        "squad_modes": (list(sampler.SQUAD_MODES), list(reg["squad_modes"])),
+        "squads_per_gameweek": (n_squads, reg["squads_per_gameweek"]),
+        "construction": (CONSTRUCTION, reg["construction"]),
+        "master_seed": (seed, reg["master_seed"]),
+        "bench_ordering": ([name for name, _ in bench_order], list(reg["bench_ordering"])),
+        "gameweek_interval": (
+            {
+                "n": uncertainty.N_RESAMPLES,
+                "block": uncertainty.BLOCK_GWS,
+                "ci_level": uncertainty.CI_LEVEL,
+                "seed": uncertainty.SEED,
+            },
+            dict(reg["gameweek_interval"]),
         ),
     }
     return [
@@ -558,21 +216,18 @@ def run_study(
 ) -> StartingXIRun:
     """Run the `starting_xi` study against warehouse frames already in hand -- the load-free core.
 
-    Sequence (§5.1.2): `preflight` (refuse, or mark non-canonical), sample squads once, replay
-    each ranker at its own declared window (§6.3.1 -- never at a comparison's intersection),
-    assemble T3 from T2/T5, build the manifest, write the artefact.
+    Sequence: `preflight` (refuse, or mark non-canonical), sample squads once, replay each rule
+    at `rankers.RULE_WINDOW`, flag zero-information squad-weeks, build the manifest, write the
+    artefact.
 
     Args:
         frames: the pinned warehouse frames, already in hand. The run is recorded against
             their pin (run_id and sha256s).
-        bench_order: §5.4's required-shape argument, defaulted to §5.4.1's sole pre-registered
-            policy set. `harness.run` itself still receives it as an explicit, non-defaulted
-            argument on every call this function makes.
+        bench_order: defaulted to the sole pre-registered policy set; `harness.run` still
+            receives it explicitly on every call.
         rank_fns: name -> `rank(frames) -> RankerOutput`. Defaults to `rankers.rules(seed)`,
-            CARD.md §3's rule grid, each replayed at `rankers.RULE_WINDOW`. Until #33 re-pins
-            `PRE_REGISTRATION.yaml` to that grid, its `floor_rankers` never match, so a run
-            needs `allow_off_registration` and is non-canonical.
-        gameweeks: the build gameweeks, explicit (`sampler.sample_squads`'s own contract, §2.9).
+            CARD.md §3's rule grid, each replayed at `rankers.RULE_WINDOW`.
+        gameweeks: the build gameweeks, explicit; the canonical run builds GW4-38.
         n_squads: squads per gameweek.
         seed: the master seed, required with no default (§2.9, §8.4).
         squad_mode: `sampler.SQUAD_MODES`' uniform or ownership-weighted squads, required with no
@@ -613,7 +268,6 @@ def run_study(
 
     t2 = _flag_zero_information(pd.concat(squad_weeks, ignore_index=True))
     t5 = pd.concat(ordering_replays, ignore_index=True)
-    t3 = _assemble_comparisons(t2, t5, rank_fns)
 
     manifest = results.Manifest(
         mart_pin=asdict(sample.mart_pin),
@@ -628,24 +282,12 @@ def run_study(
         gameweek_interval=results.GameweekIntervalParams(
             n=uncertainty.N_RESAMPLES, block=uncertainty.BLOCK_GWS, ci_level=uncertainty.CI_LEVEL, seed=uncertainty.SEED
         ),
-        squad_interval=results.SquadIntervalParams(
-            n=uncertainty.N_RESAMPLES, ci_level=uncertainty.CI_LEVEL, seed=uncertainty.SEED
-        ),
-        floor_method={"rule": FLOOR_METHOD, "rankers": _floor_windows(rank_fns)},
-        materiality={"threshold": MATERIALITY_THRESHOLD, "relative_to": "floor_mean_regret"},
-        success_criteria=SUCCESS_CRITERIA,
         construction=CONSTRUCTION,
-        squad_interval_stratified_by=SQUAD_INTERVAL_STRATIFIED_BY,
         provenance=provenance,
     )
 
-    identifier = results.write(t2, t5, t3, manifest, results_root)
-    return StartingXIRun(
-        run_id=identifier,
-        results_dir=results_root / identifier,
-        n_squad_weeks=len(t2),
-        n_comparisons=len(t3),
-    )
+    identifier = results.write(t2, t5, manifest, results_root)
+    return StartingXIRun(run_id=identifier, results_dir=results_root / identifier, n_squad_weeks=len(t2))
 
 
 def build_and_run(
@@ -692,10 +334,10 @@ def main(argv: Sequence[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
     pre_registration = yaml.safe_load(PRE_REGISTRATION_PATH.read_text(encoding="utf-8"))
-    span = pre_registration["population"]["build_gameweeks"]
+    span = pre_registration["scored_gameweeks"]
     run = build_and_run(
         gameweeks=range(span["first_gw"], span["last_gw"] + 1),
-        n_squads=pre_registration["population"]["squads_per_gameweek"],
+        n_squads=pre_registration["squads_per_gameweek"],
         seed=pre_registration["master_seed"],
         squad_mode=args.squad_mode,
         results_root=RESULTS_ROOT,
@@ -703,7 +345,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         allow_off_registration=args.allow_off_registration,
     )
     canonical = results.read(RESULTS_ROOT, run.run_id)["manifest"]["provenance"]["canonical"]  # type: ignore[index]
-    print(f"run_id={run.run_id} canonical={canonical} squad_weeks={run.n_squad_weeks} comparisons={run.n_comparisons}")
+    print(f"run_id={run.run_id} canonical={canonical} squad_weeks={run.n_squad_weeks}")
 
 
 if __name__ == "__main__":

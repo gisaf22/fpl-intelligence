@@ -46,12 +46,10 @@ from decisions.starting_xi.harness import (
     as_of_points,
     build,
     rank_squad,
-    registration_gw,
     replay,
     run,
     select_xi,
 )
-from decisions.starting_xi.sampler import _registration_gw
 from domain.fpl_squad import POSITION_BY_ID, POSITIONS, SQUAD_SELECT, SQUAD_SIZE, XI_MAX_PLAY, XI_MIN_PLAY, XI_SIZE
 from warehouse import served
 
@@ -644,12 +642,14 @@ def test_a_replay_never_lets_the_chosen_side_out_score_its_own_counterfactual() 
 
 def _gameweek(rows: Sequence[tuple[int, int, str, float | None, float | None]]) -> pd.DataFrame:
     """A gameweek frame in `served.Frames` shape from (player_id, gw, position, minutes, points)
-    rows. A null `minutes` row is a blank: `fixture_count` 0."""
+    rows. A null `minutes` row is a blank: `fixture_count` 0. `entry_gw` is the player's first
+    gameweek with minutes; rows before it are pre-entry."""
     frame = pd.DataFrame(rows, columns=["player_id", "gw", "position", "minutes", "total_points"]).astype(
         {"minutes": "Float64", "total_points": "Float64"}
     )
     frame["position_id"] = frame.pop("position").map(_ID_BY_POSITION)
     frame["fixture_count"] = frame["minutes"].notna().astype(int)
+    frame["entry_gw"] = frame["player_id"].map(frame.loc[frame["minutes"].notna()].groupby("player_id")["gw"].min())
     return frame
 
 
@@ -669,8 +669,7 @@ def test_the_as_of_statistic_matches_an_independent_per_player_reference() -> No
                 rows.append((player_id, gw, "MID", 90.0, float(rng.integers(0, 12))))
     gameweek = _gameweek(rows)
 
-    # `registration_gw` is the module's; the reference below re-derives the window from the raw
-    # rows so the two are not the same computation twice.
+    # The reference re-derives the window from the raw rows, not from `entry_gw`.
     got = as_of_points(gameweek).set_index(["player_id", "gw"])["as_of_points"].to_dict()
     for player_id in range(6):
         own = gameweek.loc[gameweek["player_id"] == player_id].sort_values("gw")
@@ -719,21 +718,6 @@ def test_a_player_registering_at_the_squad_week_itself_scores_zero_not_a_nan() -
     assert np.isfinite(got["as_of_points"]).all()
 
 
-def test_the_registration_predicate_is_the_samplers() -> None:
-    """§8.3's coupling claim -- the conditioning statistic and the squad universe read **one**
-    population -- is only true if the two predicates agree. Asserted against the sampler's own
-    private helper rather than restated, so a drift in either fails here."""
-    rng = np.random.default_rng(9)
-    rows: list[tuple[int, int, str, float | None, float | None]] = []
-    for player_id in range(12):
-        debut = int(rng.integers(1, 9))
-        for gw in range(1, 12):
-            featured = gw >= debut and rng.random() < 0.8
-            rows.append((player_id, gw, "MID", 90.0 if featured else None, 4.0 if featured else None))
-    gameweek = _gameweek(rows)
-    pd.testing.assert_series_equal(registration_gw(gameweek), _registration_gw(gameweek))
-
-
 # ---------------------------------------------------------------------------
 # §5.1 / §7.2 -- the run, and the two calls it must not conflate
 # ---------------------------------------------------------------------------
@@ -776,10 +760,8 @@ def _fixture(
                 rows.append((player_id, gw, positions[player_id], 90.0, float(rng.integers(0, 16))))
     gameweek = _gameweek(rows)
 
-    # §2.1's registration predicate, applied when drawing: the sampler builds the universe before
-    # drawing, so a squad never names a player who has not yet registered. The harness rejects one
-    # that does, and a fixture ignoring it would be testing an input the slice cannot produce.
-    registered = registration_gw(gameweek)
+    # The sampler draws only entered players, so a squad never names one before his entry.
+    registered = gameweek.groupby("player_id")["entry_gw"].first().dropna()
     squad_rows = []
     for gw in gameweeks:
         eligible = {int(p) for p in registered.index if registered[p] <= gw}

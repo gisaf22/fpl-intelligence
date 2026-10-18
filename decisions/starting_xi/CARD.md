@@ -34,12 +34,14 @@ Superseded docs: [`archive/`](archive/).
 - **Rules** (unfitted, one idea each), each × windows {season, last 3}. Inputs per [`DATA.md`](DATA.md).
   - D1: plain points per gameweek elapsed since entry (blanks count as 0, a double counts once); prediction = the rate, unscaled.
   - D2–D4: per-fixture points rates over {team fixtures, appearances (minutes > 0), starts}; prediction = rate × the coming gameweek's `fixture_count`.
-  - Decomposition: starts rate (last 3 team fixtures) × season points per appearance.
-  - Floor: a random legal XI.
+  - Last 3: D1 over the last 3 gameweeks elapsed; D2–D4 over the last 3 past gameweeks holding the unit (a double is one gameweek, 2 in the denominator). Fewer than 3: NULL.
+  - Decomposition: starts rate (last 3 gameweeks with a fixture) × season points per appearance × the coming `fixture_count`; NULL if either half is.
+  - Floor: a random legal XI (a seeded random score per player, `master_seed` via `seeding.week_seed`).
+  - Decisions and reasons: [#30](https://github.com/gisaf22/fpl-intelligence/issues/30).
 - **Ranking:** unscored players (no score yet — not enough history) rank below all scored players; no-fixture players rank last; ties go to lowest `player_id` ([`harness.py:234`](harness.py#L234)); formation limits then apply.
 - **Metric:** XI regret primary; bench-order regret secondary; no-subs regret as sensitivity (§1).
-- **Report per rule:** mean, median, 95% paired block-bootstrap range and P90 of regret; position on a random (0%) → hindsight-ideal (100%) scale. Segments: position (ideal-XI minus chosen-XI points at that position; may be negative; positions sum to total regret), and season phase GW 3–12 / 13–26 / 27–38 (the lens scheme; the characterisation scheme ≤14/≤24 is not used here). DGWs not segmented.
-- **Scored gameweeks:** GW3–38. A zero-information week (every rule picks the same XI) is excluded and counted.
+- **Report per rule:** mean, median, 95% paired block-bootstrap range and P90 of regret; position on a random (0%) → hindsight-ideal (100%) scale. Segments: position (ideal-XI minus chosen-XI points at that position; may be negative; positions sum to total regret), and season phase GW 4–12 / 13–26 / 27–38 (the lens scheme, starting at the first scored gameweek; the characterisation scheme ≤14/≤24 is not used here). DGWs not segmented.
+- **Scored gameweeks:** GW4–38. At GW3 every last-3 rule is NULL for everyone ([#30](https://github.com/gisaf22/fpl-intelligence/issues/30)). A zero-information week (every rule picks the same XI) is excluded and counted.
 - **Squads:** synthetic 2025-26, uniform and ownership-weighted. Ownership weights use the previous gameweek's `fct_player_gameweek.selected` (lag 1), since no pre-deadline snapshot exists for 2025-26; GW1 falls back to uniform. This is a realism assumption, read only alongside the uniform view.
 - Real managers' squads and the human baseline are **not** used here (Stage 5 only), so that data stays unseen.
 - Claims at this stage are descriptive only. `p_play` is its own exercise, later.

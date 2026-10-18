@@ -49,6 +49,9 @@ RELIED_ON: Mapping[str, Mapping[str, str]] = {
         "fpl_id": "int32",
         "gameweek": "int32",
         "fixture_count": "int32",
+        "total_points": "int32",
+        "minutes": "int32",
+        "starts": "int32",
         "value": "int32",
         "selected": "int32",
     },
@@ -80,7 +83,8 @@ class Frames:
     `fixture`: one row per (player_id, fixture_id) — season, player_id, gw, fixture_id, team_id,
     minutes, starts, total_points.
     `gameweek`: one row per (player_id, gw) from the player's entry gameweek on — season,
-    player_id, gw, fixture_count, team_id, position_id, price, ownership, entry_gw.
+    player_id, gw, fixture_count, total_points, minutes, starts (the gameweek's sums, null on a
+    blank), team_id, position_id, price, ownership, entry_gw.
     """
 
     fixture: pd.DataFrame
@@ -212,6 +216,19 @@ def load(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_
     gameweek = gameweek.join(positions, on="player_id")
 
     gameweek = gameweek[
-        ["season", "player_id", "gw", "fixture_count", "team_id", "position_id", "price", "ownership", "entry_gw"]
+        [
+            "season",
+            "player_id",
+            "gw",
+            "fixture_count",
+            "total_points",
+            "minutes",
+            "starts",
+            "team_id",
+            "position_id",
+            "price",
+            "ownership",
+            "entry_gw",
+        ]
     ]
     return Frames(fixture=fixture, gameweek=gameweek, pin=pin)

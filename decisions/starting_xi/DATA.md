@@ -17,7 +17,8 @@ manifest records both. A run whose input hashes differ from its pin is refused.
 
 | Need | Warehouse source | Rule |
 |---|---|---|
-| Points, minutes, starts per match | `fct_player_fixture` (`total_points`, `minutes`, `starts`) | Per-fixture rows; gameweek totals are their sum (aggregation audited on [fpl-warehouse#164](https://github.com/gisaf22/fpl-warehouse/issues/164)). |
+| Points, minutes, starts per gameweek | `fct_player_gameweek` (`total_points`, `minutes`, `starts`) | The gameweek's sums over its fixtures (aggregation audited on [fpl-warehouse#164](https://github.com/gisaf22/fpl-warehouse/issues/164)); null on a blank, read as 0. |
+| Appearances per gameweek | `fct_player_fixture` (`minutes`) | Fixtures with minutes > 0. Read only for this count, which summed minutes cannot give in a double; dropped when [fpl-warehouse#215](https://github.com/gisaf22/fpl-warehouse/issues/215) adds it to `fct_player_gameweek`. |
 | Fixtures in the coming gameweek | `fct_player_gameweek.fixture_count` | 0 = blank, 2 = double. |
 | Entry gameweek | `fct_player_fixture` | The player's first gameweek with a fixture row. Earlier `fct_player_gameweek` rows are pre-entry (null, `fixture_count` 0), not blanks, and are dropped. |
 | Position | `dim_player.position_id` | |

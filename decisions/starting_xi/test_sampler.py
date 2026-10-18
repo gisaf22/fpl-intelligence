@@ -39,8 +39,8 @@ from decisions.starting_xi.sampler import (
     _universes,
     _week_digest,
     sample_squads,
-    week_seed,
 )
+from decisions.starting_xi.seeding import week_seed
 from domain.fpl_squad import BUDGET_CAP, MAX_PER_CLUB, POSITIONS, SQUAD_SELECT, SQUAD_SIZE
 
 pytestmark = pytest.mark.unit

@@ -128,6 +128,20 @@ def test_a_missing_relied_on_column_is_refused(tmp_path: Path, table: str, colum
 
 
 @pytest.mark.unit
+@pytest.mark.covers("#30 AC7")
+@pytest.mark.parametrize("column", ["total_points", "minutes", "starts"])
+def test_the_gameweek_frame_carries_gameweek_outcomes_and_refuses_a_publish_without_them(
+    tmp_path: Path, frames: served.Frames, column: str
+) -> None:
+    # 691's GW33 double: two fixtures summed by the warehouse (8 points, 180 minutes, 2 starts).
+    assert {"total_points": 8, "minutes": 180, "starts": 2}[column] == _gameweek_row(frames, LATE_ENTRANT, 33)[column]
+    snapshot = _copy_snapshot(tmp_path)
+    _rewrite(snapshot / "fct_player_gameweek.parquet", lambda t: t.drop_columns([column]))
+    with pytest.raises(served.ServedContractError, match=rf"fct_player_gameweek.*{column}"):
+        served.load(SEASON, pin=served.pin_of(snapshot), snapshot_root=tmp_path)
+
+
+@pytest.mark.unit
 @pytest.mark.covers("#29 AC3")
 @pytest.mark.parametrize(
     ("table", "column"),

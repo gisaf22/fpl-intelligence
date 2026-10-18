@@ -27,6 +27,7 @@ Superseded docs: [`archive/`](archive/).
 - **Source:** warehouse served v2 is the primary source. The mapping is pending: minutes NULL semantics, price ÷ 10, club as-of the gameweek, season filter, and naming.
 - **Known-when:** each rule sees only data from gameweeks before the one being scored.
 - **Population:** exploration uses 2025-26; confirmation uses 2026-27, which is unseen because it comes later in time.
+- **Data notes** (move to DATA.md later): club per gameweek for 2025-26 = `team_fpl_id` from that gameweek's own `fct_player_fixture` rows (club membership is fixed before the deadline; no outcome leakage); carry the last known club forward only when the player has no fixture that gameweek. The 2025-26 status history cannot be backfilled (end-of-season snapshot only). Verified: 1,025 mover rows correct, 0 mismatches.
 - The two existing runs (3821cc93, 4b348fe0) are **dry runs, not results**.
 - `archive/METRIC.md` Appendix A.4 (38.6% season/3-GW PPG ties across GW5–38) is **unverified**.
 
@@ -36,7 +37,7 @@ Superseded docs: [`archive/`](archive/).
   - D1–D4: points ÷ {gameweeks elapsed since entry, team fixtures, appearances (minutes > 0), starts} × windows {season, last 3}.
   - Decomposition: starts rate (last 3 team fixtures) × season points per appearance.
   - Floor: a random legal XI.
-- **Missing history:** NULL, ranked last within position. **Ties:** the harness's ascending `player_id` tie-break, `rank_squad` in [`harness.py:234`](harness.py#L234) (key at line 257).
+- **Ranking:** unscored players (no score yet — not enough history) rank below all scored players; no-fixture players rank last; ties go to lowest `player_id` ([`harness.py:234`](harness.py#L234)); formation limits then apply.
 - **Metric:** XI regret primary; bench-order regret secondary; no-subs regret as sensitivity (§1).
 - **Report per rule:** mean, median, 95% paired block-bootstrap range and P90 of regret; position on a random (0%) → hindsight-ideal (100%) scale. Segments: position, and season phase GW 3–12 / 13–26 / 27–38 (the lens scheme; the characterisation scheme ≤14/≤24 is not used here). DGWs not segmented.
 - **Squads:** synthetic 2025-26, uniform and ownership-weighted. Zero-information weeks are excluded and counted. Ownership weights use the previous gameweek's `fct_player_gameweek.selected` (lag 1), since no pre-deadline snapshot exists for 2025-26; GW1 falls back to uniform. This is a realism assumption, read only alongside the uniform view.

@@ -24,6 +24,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from decisions.starting_xi import harness, orderings, rankers, results, sampler
+from domain.fpl_squad import BUDGET_CAP, MAX_PER_CLUB
 from operational import starting_xi
 from warehouse import served
 
@@ -290,6 +291,35 @@ def test_only_gameweeks_4_to_38_are_scored(snapshot: tuple[Path, served.Pin], tm
         frame = read_back[table]
         assert isinstance(frame, pd.DataFrame)
         assert set(frame["gw"]) == {4, 5}, table
+
+
+REAL_RUN_ID = "39064033745"
+
+
+@pytest.mark.integration
+@pytest.mark.live_db
+@pytest.mark.covers("#31 AC2")
+@pytest.mark.skipif(
+    not (served.SNAPSHOT_ROOT / REAL_RUN_ID).exists(), reason="needs the pinned real snapshot under data/warehouse"
+)
+def test_weighted_squads_stay_feasible_where_the_budget_binds_on_the_real_snapshot() -> None:
+    """Weighting and rejection together, on the real 2025-26 publish: ownership-weighted proposals
+    run near the cap, so the budget rejects a large share of them, and every kept squad must still
+    be legal at its own gameweek."""
+    frames = served.load(SEASON, pin=served.read_pin())
+    assert frames.pin.run_id == REAL_RUN_ID
+    gameweeks = [4, 20, 38]
+    sample = sampler.sample_squads(frames, gameweeks, 300, SEED, squad_mode="ownership")
+
+    record = sample.run_record.set_index("gw")
+    assert (record["pilot_acceptance_rate"] < 0.6).all(), "the budget no longer binds; this test no longer probes it"
+    joined = sample.squads.merge(frames.gameweek, on=["player_id", "gw"], how="left", validate="many_to_one")
+    per_squad = joined.groupby("squad_id")
+    assert (per_squad["price"].sum() <= BUDGET_CAP + 1e-9).all()
+    assert (joined.groupby(["squad_id", "team_id"]).size() <= MAX_PER_CLUB).all()
+    quota = joined.groupby(["squad_id", "position_id"]).size().unstack()
+    assert (quota[[1, 2, 3, 4]] == [2, 5, 5, 3]).all().all()
+    assert (record["cost_max"] > BUDGET_CAP - 1.0).all(), "kept squads should reach the cap where it binds"
 
 
 def _imports_dal_pipeline(path: Path) -> bool:

@@ -137,8 +137,8 @@ def _off_registration_flags(tmp_path) -> dict[str, object]:
 
 _REGISTERED = dict(
     bench_order=orderings.PRE_REGISTERED_ORDERINGS,
-    rank_fns=rankers.FLOOR_RANKERS,
-    gameweeks=range(2, 39),
+    rank_fns=rankers.rules(0),
+    gameweeks=range(4, 39),
     n_squads=300,
     seed=0,
 )
@@ -149,16 +149,17 @@ def _pre_registration() -> dict[str, object]:
     return payload
 
 
+@pytest.mark.covers("#33 AC3 (proposed)")
 def test_the_registered_configuration_has_no_mismatches() -> None:
     assert starting_xi.pre_registration_mismatches(**_REGISTERED, pre_registration=_pre_registration()) == []
 
 
 def test_every_off_registration_field_is_named() -> None:
     by_weighted = (orderings.PRE_REGISTERED_ORDERINGS[0], ("by_weighted_score", lambda *_: None))
-    floor_minus_one = {name: fn for name, fn in rankers.FLOOR_RANKERS.items() if name != "F1_p_play"}
+    rules_minus_one = {name: fn for name, fn in rankers.rules(0).items() if name != "random"}
     mismatches = starting_xi.pre_registration_mismatches(
         bench_order=by_weighted,
-        rank_fns=floor_minus_one,
+        rank_fns=rules_minus_one,
         gameweeks=range(2, 9),
         n_squads=5,
         seed=7,
@@ -166,13 +167,14 @@ def test_every_off_registration_field_is_named() -> None:
     )
     assert {m.split(":")[0] for m in mismatches} == {
         "bench_ordering",
-        "floor_rankers",
-        "build_gameweeks",
+        "rules",
+        "scored_gameweeks",
         "squads_per_gameweek",
         "master_seed",
     }
 
 
+@pytest.mark.covers("#33 AC3 (proposed)")
 def test_preflight_on_a_clean_tree_and_registered_configuration_is_canonical(tmp_path) -> None:
     repo = _git_repo(tmp_path / "repo")
     data = _warehouse_pin()

@@ -57,8 +57,8 @@ from decisions.free_hit.candidates import build_candidates
 from decisions.free_hit.feasibility import _Pool
 from decisions.free_hit.feasibility import can_complete as real_can_complete
 from decisions.free_hit.gameweek_population import schedule_clean_gameweeks
-from decisions.free_hit.test_candidates import POLICIES
 from domain.fpl_squad import BUDGET_CAP_TENTHS, MAX_PER_CLUB, POSITIONS, SQUAD_SELECT
+from tests.decisions.free_hit.test_candidates import POLICIES
 
 pytestmark = pytest.mark.integration
 

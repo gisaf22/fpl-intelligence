@@ -3,7 +3,7 @@
 Definitions: `CARD.md` §3 and #30's Design decisions. Every rule is called as
 `rankers.rules(seed)[name](frames)` on the pinned warehouse frames (`warehouse.served.Frames`).
 
-Real sample: `warehouse/fixtures/39064033745`, season 2025-26 (described in `warehouse/test_served.py`).
+Real sample: `warehouse/fixtures/39064033745`, season 2025-26 (described in `tests/warehouse/test_served.py`).
 
 - `fpl_id` 691, MID, enters GW2. Doubles in GW33 (8 points, 2 appearances, 2 starts) and blanks in GW34.
   No appearance in GW2 or GW26.
@@ -27,7 +27,7 @@ from warehouse import served
 
 pytestmark = pytest.mark.unit
 
-FIXTURE_ROOT = Path(__file__).resolve().parents[2] / "warehouse" / "fixtures"
+FIXTURE_ROOT = Path(__file__).resolve().parents[3] / "warehouse" / "fixtures"
 RUN_ID = "39064033745"
 SEASON = "2025-26"
 SEED = 20261017

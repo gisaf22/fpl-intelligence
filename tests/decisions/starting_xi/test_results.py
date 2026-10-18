@@ -808,7 +808,8 @@ def test_the_package_init_still_re_exports_nothing() -> None:
     """§5.6's rule, re-asserted from this module's side: a re-export in the package `__init__.py`
     would give every importer of any slice module this one's dependencies, and `archive/INVENTORY.md`
     §2.11 records that import-linter cannot catch it."""
-    source = Path(__file__).with_name("__init__.py").read_text(encoding="utf-8")
+    init = Path(__file__).resolve().parents[3] / "decisions" / "starting_xi" / "__init__.py"
+    source = init.read_text(encoding="utf-8")
     body = [line for line in source.splitlines() if line.strip() and not line.lstrip().startswith("#")]
     assert not any(line.startswith(("import ", "from ")) for line in body)
     assert not any("__all__" in line and "=" in line for line in body)

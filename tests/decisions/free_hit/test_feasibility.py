@@ -1,6 +1,6 @@
 """Tests for the incremental feasibility primitive -- `DESIGN.md` §3.
 
-Falsification probes mirroring `decisions/starting_xi/test_formations.py`'s legality tests:
+Falsification probes mirroring `tests/decisions/starting_xi/test_formations.py`'s legality tests:
 adversarial pools built so `can_complete` must land on a specific, known verdict (budget too
 tight, a position exhausted, a club cap already hit) rather than sampled and hoped to disagree.
 """

@@ -68,7 +68,8 @@ from decisions.free_hit.candidates import (
 from decisions.free_hit.gameweek_population import qualifying_gameweeks
 from decisions.starting_xi.harness import HarnessResult, run
 from decisions.starting_xi.orderings import PRE_REGISTERED_ORDERINGS
-from domain.fpl_squad import BUDGET_CAP_TENTHS, SQUAD_SELECT
+from domain.fpl_squad import BUDGET_CAP_TENTHS, POSITION_BY_ID, SQUAD_SELECT
+from warehouse import served
 
 C1_SEASON_PPG: Final[str] = "C1_season_ppg"
 C2_VALUE: Final[str] = "C2_value"
@@ -158,12 +159,34 @@ class EvaluationResult:
     squads: pd.DataFrame
 
 
-def rank_season_ppg(mart: pd.DataFrame) -> _RankerOutput:
+# Bridge: `harness.run` reads `served.Frames` (#43) while this slice still reads the local mart.
+# Removed when free_hit reads the warehouse frames directly -- #46.
+_ID_BY_POSITION: Final[Mapping[str, int]] = {label: position_id for position_id, label in POSITION_BY_ID.items()}
+_MART_PIN: Final[served.Pin] = served.Pin(run_id="local-mart", sha256={})
+
+
+def mart_frames(mart: pd.DataFrame) -> served.Frames:
+    """The mart as the harness's gameweek frame -- the #46 bridge.
+
+    `position` becomes `position_id`, a null-`minutes` row becomes a blank (`fixture_count` 0),
+    and `minutes`/`total_points` are kept as they are. The harness reads nothing else, so the
+    fixture frame is empty and the pin names the local mart rather than a publish.
+    """
+    unknown = sorted(set(mart["position"].dropna()) - set(_ID_BY_POSITION))
+    if unknown:
+        raise ValueError(f"mart carries position(s) with no position_id: {unknown}")
+    gameweek = mart.loc[:, ["player_id", "gw", "minutes", "total_points"]].copy()
+    gameweek["position_id"] = mart["position"].map(_ID_BY_POSITION)
+    gameweek["fixture_count"] = mart["minutes"].notna().astype(int)
+    return served.Frames(fixture=pd.DataFrame(), gameweek=gameweek, pin=_MART_PIN)
+
+
+def rank_season_ppg(frames: served.Frames) -> _RankerOutput:
     """As-of season PPG, re-derived locally -- the `rank_fn` the harness selects its XI with.
 
     Identical statistic to `decisions.starting_xi.rankers.rank_season_ppg` (F2) and identical
     derivation to `candidates.py`'s own `season_ppg` column: `shift(1).expanding().mean()` over the
-    mart's `total_points`, lag-1 so no gameweek's own outcome can inform its own selection. Written
+    gameweek frame's `total_points`, lag-1 so no gameweek's own outcome can inform its own selection. Written
     here rather than imported for the `model/` reason in this module's docstring.
 
     **Why the window starts at GW2.** `shift(1)` has no prior row at GW1, so every score is NaN
@@ -176,7 +199,7 @@ def rank_season_ppg(mart: pd.DataFrame) -> _RankerOutput:
     now carries the exclusion. Scores are still emitted for GW1 -- the frame is not truncated --
     but `STUDY_WINDOW` no longer claims to cover it.
     """
-    ordered = mart.sort_values(["player_id", "gw"]).copy()
+    ordered = frames.gameweek.sort_values(["player_id", "gw"]).copy()
     ordered["score"] = ordered.groupby("player_id")["total_points"].transform(lambda s: s.shift(1).expanding().mean())
     return _RankerOutput(
         name=LOCAL_SEASON_PPG,
@@ -287,7 +310,7 @@ def evaluate(
     """
     gameweeks = sorted(qualifying_gameweeks(mart))
     squads = build_squads(mart, gameweeks, policies)
-    result: HarnessResult = run(squads, rank_season_ppg, PRE_REGISTERED_ORDERINGS, mart, STUDY_WINDOW)
+    result: HarnessResult = run(squads, rank_season_ppg, PRE_REGISTERED_ORDERINGS, mart_frames(mart), STUDY_WINDOW)
     return EvaluationResult(
         squad_weeks=result.squad_weeks,
         selection_regret=selection_regret(result.squad_weeks),

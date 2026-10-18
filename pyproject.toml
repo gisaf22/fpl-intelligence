@@ -29,7 +29,8 @@ dev-mode-dirs = ["."]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "integration: marks tests that require a live database (deselect with '-m not integration')",
+    "integration: marks tests that read several components or built output (fixtures or the live DB)",
+    "live_db: marks integration tests that need the local fpl.db; CI runs every integration test without it",
     "unit: marks tests that run without any external dependencies",
     'covers: the acceptance criterion a test proves — covers("#<issue> AC<n>"); repeat for several',
 ]

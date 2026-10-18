@@ -19,10 +19,9 @@ testable without `dal/` or `model/`.
 
 **The window per ranker, per §6.3.1.** `harness.run` is called once per ranker, at that ranker's own
 declared window -- never at a comparison's intersection, which is computed post-hoc from T2 instead
-(§6.3.1: "replay wide, restrict at assembly"). This module reads each ranker's declared window from
-`rankers.DECLARED_WINDOWS`, which that module exposes "so the composition root can record the
-windows without running a comparison" -- calling `rank_fn` a second time just to read `.window`
-would refit `p_play`'s expanding walk-forward for nothing.
+(§6.3.1: "replay wide, restrict at assembly"). Every rule in `rankers.rules` declares
+`rankers.RULE_WINDOW`, so that constant is the window each is replayed at -- read as data rather
+than by calling `rank_fn` a second time just to read `.window`.
 
 **`bench_order` defaults to the sole pre-registered ordering, and nothing else.** §5.4 makes
 `bench_order` a required argument with no default at `harness.run`'s own boundary, because a
@@ -30,8 +29,9 @@ defaulted ordering would emit a regret figure that could not be reconstructed fr
 inputs; that contract is unchanged here; `harness.run` still receives it explicitly on every call
 this module makes. What this module adds is a *convenience* default at its own boundary, and the
 only value that could occupy it without inventing one: `orderings.PRE_REGISTERED_ORDERINGS`, §5.4.1's
-single committed policy. `rank_fns` is symmetric: it defaults to `rankers.FLOOR_RANKERS`, §0.12's
-whole pre-registered, unconditional set.
+single committed policy. `rank_fns` defaults to `rankers.rules(seed)`, CARD.md §3's rule grid
+(#43). The floor rankers read the mart and cannot run on the warehouse frames; #33 retires them and
+re-pins `PRE_REGISTRATION.yaml`, and until then every run is off-registration.
 
 **A T3 gap this pass resolves and flags rather than hides.** §0.13 determines the floor as
 "whichever naive ranker carries the lowest mean regret" *within a comparison*, and every occurrence
@@ -50,10 +50,10 @@ with **zero rows**. That is not an omission: §1.5's own list of "measurements o
 T2 and the manifest, and none of them is a comparison. Flagged for a `DESIGN.md` pass rather than
 silently generalised further.
 
-**Import closure: `dal/`, `decisions.starting_xi.{harness,rankers,orderings,uncertainty,results,
+**Import closure: `warehouse/`, `decisions.starting_xi.{harness,rankers,orderings,uncertainty,results,
 sampler}`, and -- transitively, through `rankers.py` -- `model/`.** Nothing here is forbidden:
 `operational/` is covered by no `.importlinter` contract in either direction (§3.8), and this is the
-one call site `rankers.py`'s Tier B permission and `harness.py`/`sampler.py`'s Tier A `dal/` edge are
+one call site `rankers.py`'s Tier B permission and `harness.py`/`sampler.py`'s Tier A `warehouse/` edge are
 both meant to be exercised from. (`serve` also loads whenever this module does, because
 `operational/__init__.py` eagerly re-exports `operational.recommend`, which imports it -- a
 pre-existing property of the package `__init__`, not of anything `starting_xi.py` itself imports.)
@@ -72,8 +72,6 @@ from typing import Final
 import pandas as pd
 import yaml
 
-from dal.config import DB_PATH
-from dal.pipeline import load
 from decisions.starting_xi import orderings, rankers, results, sampler, uncertainty
 from decisions.starting_xi.harness import BenchOrder, HarnessResult, RankFn
 from decisions.starting_xi.harness import run as harness_run
@@ -87,6 +85,9 @@ MIN_SCOREABLE_GW: Final[int] = 4
 # absent from this set is a candidate; present in it, a floor member. See the module docstring's
 # resolution of what a "comparison" is under the default (floor-only) `rank_fns`.
 _FLOOR_NAMES: Final[frozenset[str]] = frozenset(rankers.FLOOR_RANKERS)
+
+# The season every run reads (`decisions/starting_xi/DATA.md`).
+SEASON: Final[str] = "2025-26"
 
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[1]
 PRE_REGISTRATION_PATH: Final[Path] = REPO_ROOT / "decisions" / "starting_xi" / "PRE_REGISTRATION.yaml"
@@ -378,13 +379,14 @@ def _assemble_comparison(
 def _assemble_comparisons(t2: pd.DataFrame, t5: pd.DataFrame, rank_fns: Mapping[str, RankFn]) -> pd.DataFrame:
     """§7.2's T3, one row per candidate in `rank_fns` that is not a member of the floor set.
 
-    See the module docstring: under the default `rank_fns` (the floor set alone) there is no such
-    candidate, and this returns a correctly-schematised, zero-row frame.
+    A comparison needs a candidate and a floor. With either side absent -- the floor set alone, or
+    the rule grid, which holds no floor ranker (#43; #33 retires the floor machinery) -- this
+    returns a correctly-schematised, zero-row frame.
     """
     floor_names = sorted(set(rank_fns) & _FLOOR_NAMES)
     candidate_names = sorted(set(rank_fns) - _FLOOR_NAMES)
     columns = list(results.T3_COLUMNS[1:])
-    if not candidate_names:
+    if not candidate_names or not floor_names:
         return pd.DataFrame(columns=columns)
     rows = [_assemble_comparison(candidate, floor_names, t2, t5) for candidate in candidate_names]
     return pd.DataFrame(rows).loc[:, columns]
@@ -527,38 +529,39 @@ def preflight(
 
 
 def run_study(
-    mart: pd.DataFrame,
+    frames: served.Frames,
     *,
     bench_order: BenchOrder = orderings.PRE_REGISTERED_ORDERINGS,
-    rank_fns: Mapping[str, RankFn] = rankers.FLOOR_RANKERS,
+    rank_fns: Mapping[str, RankFn] | None = None,
     gameweeks: Sequence[int],
     n_squads: int,
     seed: int,
     results_root: Path,
-    warehouse_pin: served.Pin,
     repo_root: Path = REPO_ROOT,
     pre_registration_path: Path = PRE_REGISTRATION_PATH,
     allow_dirty: bool = False,
     allow_off_registration: bool = False,
 ) -> StartingXIRun:
-    """Run the `starting_xi` study against a mart already in hand -- the DB-free core.
+    """Run the `starting_xi` study against warehouse frames already in hand -- the load-free core.
 
     Sequence (§5.1.2): `preflight` (refuse, or mark non-canonical), sample squads once, replay
     each ranker at its own declared window (§6.3.1 -- never at a comparison's intersection),
     assemble T3 from T2/T5, build the manifest, write the artefact.
 
     Args:
-        mart: the mart across every gameweek in `gameweeks`, already in hand.
+        frames: the pinned warehouse frames, already in hand. The run is recorded against
+            their pin (run_id and sha256s).
         bench_order: §5.4's required-shape argument, defaulted to §5.4.1's sole pre-registered
             policy set. `harness.run` itself still receives it as an explicit, non-defaulted
             argument on every call this function makes.
-        rank_fns: name -> `rank(mart) -> RankerOutput`. Defaults to §0.12's whole pre-registered,
-            unconditional floor set.
+        rank_fns: name -> `rank(frames) -> RankerOutput`. Defaults to `rankers.rules(seed)`,
+            CARD.md §3's rule grid, each replayed at `rankers.RULE_WINDOW`. Until #33 re-pins
+            `PRE_REGISTRATION.yaml` to that grid, its `floor_rankers` never match, so a run
+            needs `allow_off_registration` and is non-canonical.
         gameweeks: the build gameweeks, explicit (`sampler.sample_squads`'s own contract, §2.9).
         n_squads: squads per gameweek.
         seed: the master seed, required with no default (§2.9, §8.4).
         results_root: where `results.write` lands the run's directory (§7.4).
-        warehouse_pin: the fpl-warehouse publish the run is recorded against, by run_id and sha256s.
         repo_root, pre_registration_path, allow_dirty, allow_off_registration: see `preflight`.
 
     Returns:
@@ -567,26 +570,27 @@ def run_study(
     Raises:
         RunRefused: from `preflight`, before anything is sampled or written.
     """
+    rank_fns = rankers.rules(seed) if rank_fns is None else rank_fns
     provenance = preflight(
         bench_order=bench_order,
         rank_fns=rank_fns,
         gameweeks=gameweeks,
         n_squads=n_squads,
         seed=seed,
-        warehouse_pin=warehouse_pin,
+        warehouse_pin=frames.pin,
         repo_root=repo_root,
         pre_registration_path=pre_registration_path,
         allow_dirty=allow_dirty,
         allow_off_registration=allow_off_registration,
     )
-    sample = sampler.sample_squads(mart, gameweeks, n_squads, seed)
+    sample = sampler.sample_squads(frames, gameweeks, n_squads, seed)
 
     squad_weeks: list[pd.DataFrame] = []
     ordering_replays: list[pd.DataFrame] = []
     ranker_windows: dict[str, tuple[int, int]] = {}
     for name, rank_fn in rank_fns.items():
-        window = rankers.DECLARED_WINDOWS[name]
-        result: HarnessResult = harness_run(sample.squads, rank_fn, bench_order, mart, window)
+        window = rankers.RULE_WINDOW
+        result: HarnessResult = harness_run(sample.squads, rank_fn, bench_order, frames, window)
         squad_weeks.append(result.squad_weeks)
         ordering_replays.append(result.ordering_replays)
         ranker_windows[name] = window
@@ -629,25 +633,26 @@ def run_study(
 def build_and_run(
     *,
     bench_order: BenchOrder = orderings.PRE_REGISTERED_ORDERINGS,
-    rank_fns: Mapping[str, RankFn] = rankers.FLOOR_RANKERS,
+    rank_fns: Mapping[str, RankFn] | None = None,
     gameweeks: Sequence[int],
     n_squads: int,
     seed: int,
     results_root: Path,
-    db_path: Path = DB_PATH,
+    season: str = SEASON,
+    pin: served.Pin | None = None,
+    snapshot_root: Path = served.SNAPSHOT_ROOT,
     allow_dirty: bool = False,
     allow_off_registration: bool = False,
 ) -> StartingXIRun:
-    """Read the mart via `dal/` and run the study against it. The one line that touches `dal/`."""
+    """Load the pinned warehouse frames and run the study against them. The one line that reads data."""
     return run_study(
-        load(db_path).mart,
+        served.load(season, pin=pin, snapshot_root=snapshot_root),
         bench_order=bench_order,
         rank_fns=rank_fns,
         gameweeks=gameweeks,
         n_squads=n_squads,
         seed=seed,
         results_root=results_root,
-        warehouse_pin=served.read_pin(),
         allow_dirty=allow_dirty,
         allow_off_registration=allow_off_registration,
     )

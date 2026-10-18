@@ -43,10 +43,10 @@ jobs:
       - name: Unit tests
         run: uv run pytest -m unit -v --tb=short
 
-      # Integration-tier tests that read only committed fixtures (warehouse/fixtures/), not the
-      # live DB the job below needs. Scoped by path: `-m integration` alone would collect those too.
+      # Every integration-tier test except those marked `live_db`, which need the local fpl.db
+      # the job below would provide.
       - name: Integration tests (committed fixtures)
-        run: uv run pytest tests/warehouse -m integration -v --tb=short
+        run: uv run pytest tests -m "integration and not live_db" -v --tb=short
 
   integration-tests:
     name: Integration tests (live DB)

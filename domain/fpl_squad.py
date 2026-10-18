@@ -37,6 +37,11 @@ from typing import Final
 # seeded squad set reproducible.
 POSITIONS: Final[tuple[str, ...]] = ("GK", "DEF", "MID", "FWD")
 
+# FPL's `element_type` id -- served as fpl-warehouse's `dim_player.position_id` -- to the position
+# label these constants are keyed on. Explicit rather than an index into POSITIONS, so a change to
+# the draw order can never relabel a player.
+POSITION_BY_ID: Final[Mapping[int, str]] = MappingProxyType({1: "GK", 2: "DEF", 3: "MID", 4: "FWD"})
+
 # ---------------------------------------------------------------------------
 # Squad composition
 # ---------------------------------------------------------------------------

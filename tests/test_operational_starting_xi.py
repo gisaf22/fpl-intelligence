@@ -28,21 +28,25 @@ import pytest
 import yaml
 
 from decisions.starting_xi import orderings, rankers, results
+from domain.fpl_squad import POSITION_BY_ID
 from operational import starting_xi
 from operational.starting_xi import run_study
 from warehouse import served
 
 pytestmark = pytest.mark.unit
 
+_ID_BY_POSITION = {label: position_id for position_id, label in POSITION_BY_ID.items()}
+
 
 # ---------------------------------------------------------------------------
-# A small, sampler-feasible mart (convention: tests/decisions/starting_xi/test_sampler.py's `mart`)
+# Small, sampler-feasible warehouse frames (convention: tests/decisions/starting_xi/test_sampler.py)
 # ---------------------------------------------------------------------------
 
 
-def _small_mart(n_gw: int = 8, seed: int = 3) -> pd.DataFrame:
+def _small_frames(n_gw: int = 8, seed: int = 3) -> served.Frames:
     """68 players over GK/DEF/MID/FWD, GW1..`n_gw`, 8 clubs, prices spread so §2.6's uniform
-    rejection sampling clears the proceed threshold on a real pilot."""
+    rejection sampling clears the proceed threshold on a real pilot. A third enter at GW2; as in
+    the loader's output, a player has no row before his entry gameweek."""
     rng = np.random.default_rng(seed)
     counts = {"GK": 10, "DEF": 22, "MID": 24, "FWD": 12}
     rows: list[dict[str, object]] = []
@@ -55,23 +59,22 @@ def _small_mart(n_gw: int = 8, seed: int = 3) -> pd.DataFrame:
             price = float(np.round(rng.uniform(4.0, 8.0), 1))
             team = (player_id % 8) + 1
             debut = 1 if slot % 3 else 2
-            for gw in range(1, n_gw + 1):
-                minutes = None if gw < debut else 90.0
+            for gw in range(debut, n_gw + 1):
                 rows.append(
                     {
                         "player_id": player_id,
                         "gw": gw,
-                        "position": position,
-                        "purchase_price": price,
+                        "fixture_count": 1,
+                        "total_points": float(rng.integers(0, 12)),
+                        "minutes": 90.0,
                         "team_id": team,
-                        "minutes": minutes,
-                        "total_points": None if minutes is None else float(rng.integers(0, 12)),
+                        "position_id": _ID_BY_POSITION[position],
+                        "price": price,
+                        "entry_gw": debut,
                     }
                 )
-    mart = pd.DataFrame(rows)
-    mart["minutes"] = mart["minutes"].astype("Float64")
-    mart["total_points"] = mart["total_points"].astype("Float64")
-    return mart
+    gameweek = pd.DataFrame(rows)
+    return served.Frames(fixture=pd.DataFrame(), gameweek=gameweek, pin=_warehouse_pin())
 
 
 @dataclass(frozen=True)
@@ -83,24 +86,23 @@ class _FakeRanker:
     scores: pd.DataFrame
 
 
-def _fake_rank_fns(mart: pd.DataFrame) -> dict[str, Callable[[pd.DataFrame], _FakeRanker]]:
-    """One fake ranker per pre-registered name, at that name's real declared window.
+def _fake_rank_fns(seed: int) -> dict[str, Callable[[served.Frames], _FakeRanker]]:
+    """One fake rule per name in `rankers.rules(seed)`, at `rankers.RULE_WINDOW`.
 
-    Cheap and deterministic, standing in for the real `p_play`/PPG fits -- `rankers.py`'s own
-    tests cover those; this module's job is the wiring around them, not the fits themselves.
+    Cheap and deterministic, standing in for the real rules -- `test_rules.py` covers those; this
+    module's job is the wiring around them, not the rules themselves.
     """
 
-    def _make(name: str) -> Callable[[pd.DataFrame], _FakeRanker]:
-        window = rankers.DECLARED_WINDOWS[name]
-
-        def _rank(m: pd.DataFrame) -> _FakeRanker:
-            scores = m.loc[:, ["player_id", "gw"]].copy()
-            scores["score"] = m["total_points"].fillna(0.0) - m["player_id"].astype(float) * 0.001
-            return _FakeRanker(name=name, window=window, scores=scores)
+    def _make(name: str) -> Callable[[served.Frames], _FakeRanker]:
+        def _rank(frames: served.Frames) -> _FakeRanker:
+            gameweek = frames.gameweek
+            scores = gameweek.loc[:, ["player_id", "gw"]].copy()
+            scores["score"] = gameweek["total_points"].fillna(0.0) - gameweek["player_id"].astype(float) * 0.001
+            return _FakeRanker(name=name, window=rankers.RULE_WINDOW, scores=scores)
 
         return _rank
 
-    return {name: _make(name) for name in rankers.FLOOR_RANKERS}
+    return {name: _make(name) for name in rankers.rules(seed)}
 
 
 def _git_repo(root, *, dirty: bool = False):
@@ -124,7 +126,6 @@ def _off_registration_flags(tmp_path) -> dict[str, object]:
     """What the small-fixture runs need: they are off-registration by construction (5 squads,
     GW2-8, seed != 0), so they run forced and land non-canonical."""
     return dict(
-        warehouse_pin=_warehouse_pin(),
         repo_root=_git_repo(tmp_path / "repo"),
         allow_off_registration=True,
     )
@@ -213,16 +214,14 @@ def test_preflight_refuses_off_registration_unless_forced_and_then_marks_it_non_
 
 
 def test_run_study_refuses_before_writing_anything(tmp_path) -> None:
-    mart = _small_mart(n_gw=8)
     with pytest.raises(starting_xi.RunRefused):
         run_study(
-            mart,
-            rank_fns=_fake_rank_fns(mart),
+            _small_frames(n_gw=8),
+            rank_fns=_fake_rank_fns(7),
             gameweeks=range(2, 9),
             n_squads=5,
             seed=7,
             results_root=tmp_path / "results",
-            warehouse_pin=_warehouse_pin(),
             repo_root=_git_repo(tmp_path / "repo"),
         )
     assert not (tmp_path / "results").exists()
@@ -234,11 +233,10 @@ def test_run_study_refuses_before_writing_anything(tmp_path) -> None:
 
 
 def test_run_study_end_to_end_on_a_small_fixture(tmp_path) -> None:
-    mart = _small_mart(n_gw=8)
-    rank_fns = _fake_rank_fns(mart)
+    rank_fns = _fake_rank_fns(7)
 
     run = run_study(
-        mart,
+        _small_frames(n_gw=8),
         rank_fns=rank_fns,
         gameweeks=range(2, 9),
         n_squads=5,
@@ -248,8 +246,8 @@ def test_run_study_end_to_end_on_a_small_fixture(tmp_path) -> None:
     )
 
     assert run.n_squad_weeks > 0
-    # The module docstring's resolution: no name in `rank_fns` is outside the floor set, so there
-    # is no candidate and zero comparisons -- not an omission, see `_assemble_comparisons`.
+    # The rule grid holds no floor ranker, so there is no comparison and zero T3 rows -- not an
+    # omission, see `_assemble_comparisons` (#33 retires the floor machinery).
     assert run.n_comparisons == 0
     assert run.results_dir == tmp_path / "results" / run.run_id
 
@@ -257,7 +255,7 @@ def test_run_study_end_to_end_on_a_small_fixture(tmp_path) -> None:
     assert len(read_back["squad_weeks"]) == run.n_squad_weeks
     assert list(read_back["comparisons"].columns) == list(results.T3_COLUMNS)
     assert read_back["comparisons"].empty
-    assert set(read_back["squad_weeks"]["ranker"]) == set(rankers.FLOOR_RANKERS)
+    assert set(read_back["squad_weeks"]["ranker"]) == set(rankers.rules(7))
     manifest = read_back["manifest"]
     assert manifest["provenance"]["canonical"] is False
     assert "off_registration:squads_per_gameweek" in manifest["provenance"]["non_canonical_reasons"]
@@ -265,12 +263,13 @@ def test_run_study_end_to_end_on_a_small_fixture(tmp_path) -> None:
 
 
 def test_same_seed_reproduces_run_id_and_squad_set_id(tmp_path) -> None:
-    mart = _small_mart(n_gw=8)
-    rank_fns = _fake_rank_fns(mart)
-    kwargs = dict(rank_fns=rank_fns, gameweeks=range(2, 9), n_squads=5, seed=11, **_off_registration_flags(tmp_path))
+    frames = _small_frames(n_gw=8)
+    kwargs = dict(
+        rank_fns=_fake_rank_fns(11), gameweeks=range(2, 9), n_squads=5, seed=11, **_off_registration_flags(tmp_path)
+    )
 
-    first = run_study(mart, results_root=tmp_path / "a", **kwargs)
-    second = run_study(mart, results_root=tmp_path / "b", **kwargs)
+    first = run_study(frames, results_root=tmp_path / "a", **kwargs)
+    second = run_study(frames, results_root=tmp_path / "b", **kwargs)
 
     assert first.run_id == second.run_id
     manifest_a = json.loads((tmp_path / "a" / first.run_id / "manifest.json").read_text())
@@ -284,9 +283,9 @@ def test_write_t1_is_never_called() -> None:
     assert "write_t1" not in source
 
 
-def test_importing_the_composition_root_reaches_model_and_dal_and_not_research() -> None:
+def test_importing_the_composition_root_reaches_model_and_warehouse_and_not_research() -> None:
     """§3.8: the composition root is the one legal place Tier A and Tier B meet, so `model` (via
-    `rankers.py`) and `dal` (via `dal.pipeline.load`) are expected. `research` is not needed by
+    `rankers.py`) and `warehouse` (via `served.load`) are expected. `research` is not needed by
     anything this module imports and must not leak in -- §3.9 excludes it from both tiers.
 
     `serve` is *not* asserted absent: `operational/__init__.py` eagerly re-exports
@@ -299,7 +298,7 @@ def test_importing_the_composition_root_reaches_model_and_dal_and_not_research()
         "import sys; import operational.starting_xi; "
         "reached = {m.split('.')[0] for m in sys.modules}; "
         "assert 'model' in reached, reached; "
-        "assert 'dal' in reached, reached; "
+        "assert 'warehouse' in reached, reached; "
         "assert 'research' not in reached, reached"
     )
     assert subprocess.run([sys.executable, "-c", program], check=False).returncode == 0

@@ -43,6 +43,13 @@ def test_xi_bounds_match_element_types(db_path: Path) -> None:
     assert dict(fpl_squad.XI_MAX_PLAY) == _declared(db_path, "squad_max_play")
 
 
+@pytest.mark.covers("#43 AC2")
+def test_position_ids_match_element_types(db_path: Path) -> None:
+    staged = get_staged_element_types(db_path)
+    declared = {int(row.position_code): LABEL_TO_POSITION[row.position_label] for row in staged.itertuples()}
+    assert dict(fpl_squad.POSITION_BY_ID) == declared
+
+
 def test_sizes_are_consistent_with_the_quota_and_bounds() -> None:
     assert fpl_squad.SQUAD_SIZE == sum(fpl_squad.SQUAD_SELECT.values())
     assert set(fpl_squad.POSITIONS) == set(fpl_squad.SQUAD_SELECT)

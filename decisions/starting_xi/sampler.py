@@ -41,7 +41,7 @@ The construction, and where each part is decided:
   the seed can: a change to `PROPOSAL_BATCH` or to the per-week derivation moves every squad in
   every week while every recorded *input* stays identical.
 
-Import closure: `dal/`, `domain/`, `numpy`, `pandas` (§2.9). Tier A — never `model/`,
+Import closure: `warehouse/`, `domain/`, `numpy`, `pandas` (§2.9). Tier A — never `model/`,
 `research/`, `serve/`, `operational/` or `rankers.py` (§3.5).
 """
 
@@ -55,16 +55,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from dal.config import DB_PATH
-from dal.pipeline import load
 from decisions.starting_xi.seeding import week_seed
 from domain.fpl_squad import (
     BUDGET_CAP_TENTHS,
     MAX_PER_CLUB,
+    POSITION_BY_ID,
     POSITIONS,
     SQUAD_SELECT,
     SQUAD_SIZE,
 )
+from warehouse import served
 
 # ---------------------------------------------------------------------------
 # Constants fixed by DESIGN.md §2.6
@@ -94,8 +94,8 @@ gameweek's stream is consumed. The *squads* are batch-size independent — they 
 `n_squads` accepted proposals in proposal order either way — but the stream position is not, so
 changing this constant changes every seeded artefact. It is fixed here for that reason."""
 
-_PIN_COLUMNS: tuple[str, ...] = ("player_id", "gw", "position", "purchase_price", "team_id", "minutes")
-"""The mart columns the sampler reads, and therefore the columns the pin covers (§5.3)."""
+_PIN_COLUMNS: tuple[str, ...] = ("player_id", "gw", "position_id", "price", "team_id", "minutes")
+"""The gameweek-frame columns the sampler reads, and therefore the columns the pin covers (§5.3)."""
 
 _ENTRANT_REFERENCE_GW: int = 2
 """The universe the cross-week diagnostic in §2.9 is stated against: U_2, the pool a build-once
@@ -217,7 +217,7 @@ def _price_tenths(price: np.ndarray) -> np.ndarray:
     """
     tenths = price * 10.0
     if not np.all(np.abs(tenths - np.rint(tenths)) < 1e-6):
-        raise ValueError("purchase_price is not quoted in tenths; the budget predicate assumes it is")
+        raise ValueError("price is null or not quoted in tenths; the budget predicate assumes tenths")
     return np.rint(tenths).astype(np.int64)
 
 
@@ -234,16 +234,16 @@ def _universes(mart: pd.DataFrame, gameweeks: Sequence[int]) -> dict[int, _Unive
     for gw in gameweeks:
         rows = mart.loc[mart["gw"] == gw, list(_PIN_COLUMNS)]
         if rows.empty:
-            raise ValueError(f"gameweek {gw} has no rows on the mart")
+            raise ValueError(f"gameweek {gw} has no rows on the gameweek frame")
         if rows["player_id"].duplicated().any():
-            raise ValueError(f"gameweek {gw} is not unique at player_id on the mart")
+            raise ValueError(f"gameweek {gw} is not unique at player_id on the gameweek frame")
 
         registered = rows["player_id"].map(registration_gw)
         rows = rows.loc[registered.notna() & (registered <= gw)].sort_values("player_id")
 
         pools: dict[str, _Pool] = {}
         for position in POSITIONS:
-            at_position = rows.loc[rows["position"] == position]
+            at_position = rows.loc[rows["position_id"].map(POSITION_BY_ID) == position]
             quota = SQUAD_SELECT[position]
             if len(at_position) < quota:
                 raise ValueError(
@@ -252,7 +252,7 @@ def _universes(mart: pd.DataFrame, gameweeks: Sequence[int]) -> dict[int, _Unive
                 )
             pools[position] = _Pool(
                 player_id=at_position["player_id"].to_numpy(dtype=np.int64),
-                price_tenths=_price_tenths(at_position["purchase_price"].to_numpy(dtype=float)),
+                price_tenths=_price_tenths(at_position["price"].to_numpy(dtype=float)),
                 team_id=at_position["team_id"].to_numpy(dtype=np.int64),
             )
         universes[gw] = _Universe(gw=gw, pools=pools)
@@ -480,7 +480,7 @@ def _ladder(acceptance_rate: float) -> str:
 
 
 def sample_squads(
-    mart: pd.DataFrame,
+    frames: served.Frames,
     gameweeks: Sequence[int],
     n_squads: int,
     seed: int,
@@ -488,12 +488,13 @@ def sample_squads(
     """Draw `n_squads` uniform feasible squads at each gameweek in `gameweeks`.
 
     Args:
-        mart: the mart across every gameweek in scope, read via `dal/` — `build_squads` is the
-            entry point that does the reading. The whole panel is needed rather than one
-            gameweek's slice, because U_g's prefix definition needs the history (§2.9).
-        gameweeks: the build gameweeks, **explicitly**. Not inferred from the mart's span: the
+        frames: the pinned warehouse frames — `build_squads` is the entry point that loads them.
+            Only the gameweek frame is read: price (in tenths), club, `position_id` and minutes.
+            The whole season is needed rather than one gameweek's slice, because U_g's prefix
+            definition needs the history (§2.9).
+        gameweeks: the build gameweeks, **explicitly**. Not inferred from the frame's span: the
             scope is §0.7's and the sampler must not silently widen or narrow it by taking
-            whatever the mart happens to hold.
+            whatever the frame happens to hold.
         n_squads: squads per gameweek (300 per §0.16).
         seed: the master seed. **Required, no default** (§2.9) — which of the repository's two
             competing seed constants a run uses is the call site's decision (§8.4), and a default
@@ -515,13 +516,17 @@ def sample_squads(
         raise ValueError("gameweeks must be non-empty")
     if len(set(weeks)) != len(weeks):
         raise ValueError(f"gameweeks contains duplicates: {weeks}")
-    missing = [column for column in _PIN_COLUMNS if column not in mart.columns]
+    gameweek = frames.gameweek
+    missing = [column for column in _PIN_COLUMNS if column not in gameweek.columns]
     if missing:
-        raise ValueError(f"mart is missing columns the sampler reads: {missing}")
+        raise ValueError(f"gameweek frame is missing columns the sampler reads: {missing}")
+    unknown = sorted(set(gameweek["position_id"].dropna().astype(int)) - set(POSITION_BY_ID))
+    if unknown:
+        raise ValueError(f"gameweek frame carries position_id(s) with no label: {unknown}")
 
     weeks = sorted(weeks)
-    universes = _universes(mart, weeks)
-    reference = _universes(mart, [_ENTRANT_REFERENCE_GW])[_ENTRANT_REFERENCE_GW].player_ids
+    universes = _universes(gameweek, weeks)
+    reference = _universes(gameweek, [_ENTRANT_REFERENCE_GW])[_ENTRANT_REFERENCE_GW].player_ids
 
     # Every pilot first, then the ladder, then the builds. §2.6 stops the entire build on a red
     # line in any one week, so measuring all 37 before building any is what makes that stop clean:
@@ -552,7 +557,7 @@ def sample_squads(
             pilots=pilots,
         )
 
-    frames: list[pd.DataFrame] = []
+    week_squads: list[pd.DataFrame] = []
     records: list[dict] = []
     for row in pilots.to_dict("records"):
         gw = int(row["gw"])
@@ -568,7 +573,7 @@ def sample_squads(
                 "player_id": squads.ravel(),
             }
         )
-        frames.append(week)
+        week_squads.append(week)
         records.append(
             row
             | {
@@ -584,9 +589,9 @@ def sample_squads(
     # the two can never disagree about what a week's squads were (§5.3.2).
     run_record = pd.DataFrame(records)
     return SquadSample(
-        squads=pd.concat(frames, ignore_index=True),
+        squads=pd.concat(week_squads, ignore_index=True),
         run_record=run_record,
-        mart_pin=_mart_pin(mart, weeks),
+        mart_pin=_mart_pin(gameweek, weeks),
         squad_set_id=_squad_set_id(run_record),
     )
 
@@ -596,12 +601,14 @@ def build_squads(
     n_squads: int,
     seed: int,
     *,
-    db_path: Path = DB_PATH,
+    season: str,
+    pin: served.Pin | None = None,
+    snapshot_root: Path = served.SNAPSHOT_ROOT,
 ) -> SquadSample:
-    """Read the mart via `dal/` and sample squads from it (§2.9, §5.1).
+    """Load the pinned warehouse frames and sample squads from them (§2.9, §5.1).
 
-    The one line of the sampler that touches the data layer. `sample_squads` is the same
-    construction over a mart already in hand — which is what the §2.8 tests exercise, against
-    universes small enough to enumerate F.
+    The one line of the sampler that reads data. `sample_squads` is the same construction over
+    frames already in hand — which is what the §2.8 tests exercise, against universes small
+    enough to enumerate F.
     """
-    return sample_squads(load(db_path).mart, gameweeks, n_squads, seed)
+    return sample_squads(served.load(season, pin=pin, snapshot_root=snapshot_root), gameweeks, n_squads, seed)

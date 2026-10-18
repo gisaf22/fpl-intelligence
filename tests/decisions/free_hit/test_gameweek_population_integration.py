@@ -19,7 +19,7 @@ from decisions.free_hit.gameweek_population import (
     schedule_clean_gameweeks,
 )
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.live_db]
 
 
 def test_schedule_axis_matches_the_known_anomaly_list_on_the_live_mart() -> None:

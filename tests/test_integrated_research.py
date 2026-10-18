@@ -67,12 +67,14 @@ def _make_analytics(rows: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(result)
 
 
+@pytest.mark.live_db
 def test_build_player_opponent_defensive_context_column_presence():
     df = build_player_opponent_defensive_context(get_player_fixture_base(_load_staged()))
     for col in _REQUIRED_COLS:
         assert col in df.columns, f"Missing column: {col}"
 
 
+@pytest.mark.live_db
 def test_build_player_opponent_defensive_context_grain_unique():
     df = build_player_opponent_defensive_context(get_player_fixture_base(_load_staged()))
     assert not df.duplicated(subset=["player_id", "gw"]).any()
@@ -238,6 +240,7 @@ def test_xgc_correctness_uses_only_90min_players():
     assert abs(actual - 1.52) < 1e-6, f"Expected opponent_xgc_roll3=1.52 (90-min only), got {actual}"
 
 
+@pytest.mark.live_db
 def test_build_player_opponent_defensive_context_no_look_ahead():
     """Roll3 stat at GW 4 for any team must not include GW 4 data (reflects GWs 1-3 only)."""
     analytics = get_player_fixture_base(_load_staged())
@@ -276,6 +279,7 @@ def test_build_player_opponent_defensive_context_no_look_ahead():
     pytest.skip("No team with data at GWs 1-4 found — cannot verify no look-ahead")
 
 
+@pytest.mark.live_db
 def test_build_player_opponent_defensive_context_dgw_max_aggregation():
     """For a DGW player, opponent_goals_conceded_roll3 equals max across fixtures, not mean."""
     analytics = get_player_fixture_base(_load_staged())
@@ -316,6 +320,7 @@ def test_build_player_opponent_defensive_context_dgw_max_aggregation():
     )
 
 
+@pytest.mark.live_db
 def test_team_id_resolution_igor_loan():
     """Igor played on loan at West Ham (19) in GWs 4-23; Brighton (6) before and after."""
     df = get_player_fixture_base(_load_staged())
@@ -331,6 +336,7 @@ def test_team_id_resolution_igor_loan():
     assert gw24_row["team_id"].iloc[0] == 6, f"Igor GW24: expected Brighton (6), got {gw24_row['team_id'].iloc[0]}"
 
 
+@pytest.mark.live_db
 def test_team_id_resolution_guehi_january_transfer():
     """Guéhi was at Crystal Palace (8) through GW22; Man City (13) from GW23."""
     df = get_player_fixture_base(_load_staged())
@@ -348,6 +354,7 @@ def test_team_id_resolution_guehi_january_transfer():
     assert gw23_row["team_id"].iloc[0] == 13, f"Guéhi GW23: expected Man City (13), got {gw23_row['team_id'].iloc[0]}"
 
 
+@pytest.mark.live_db
 def test_team_id_resolution_brentford_gw26():
     """Brentford player at GW26 has team_id == 5 (fixture_id join, not dict snapshot)."""
     df = get_player_fixture_base(_load_staged())
@@ -356,6 +363,7 @@ def test_team_id_resolution_brentford_gw26():
     assert (brentford_gw26["team_id"] == 5).all(), "Not all Brentford GW26 players have team_id == 5"
 
 
+@pytest.mark.live_db
 def test_team_id_resolution_column_contract():
     """Output columns are identical to pre-enrichment contract; no intermediate columns leak."""
     df = get_player_fixture_base(_load_staged())
@@ -389,6 +397,7 @@ def test_team_id_resolution_column_contract():
         assert bad_col not in df.columns, f"Intermediate column leaked to output: {bad_col}"
 
 
+@pytest.mark.live_db
 def test_team_id_resolution_stable_player_unaffected():
     """A player who never transferred keeps the same team_id across all GWs."""
     df = get_player_fixture_base(_load_staged())
@@ -400,6 +409,7 @@ def test_team_id_resolution_stable_player_unaffected():
     )
 
 
+@pytest.mark.live_db
 def test_team_id_resolution_discrepancy_logging(caplog):
     """get_player_fixture_base emits at least one [team_id resolution] log on real data."""
     with caplog.at_level("INFO", logger="dal.intermediate.int_player_fixture"):
@@ -443,6 +453,7 @@ def test_contract_xgc_001_raises_in_build_player_opponent_defensive_context():
         build_player_opponent_defensive_context(analytics)
 
 
+@pytest.mark.live_db
 def test_build_player_opponent_defensive_context_dgw_fixture_difficulty_avg():
     """For a DGW player, fixture_difficulty_avg equals mean of FDR values across fixtures."""
     analytics = get_player_fixture_base(_load_staged())

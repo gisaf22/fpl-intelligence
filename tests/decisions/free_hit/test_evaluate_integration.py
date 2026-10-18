@@ -37,7 +37,7 @@ from decisions.free_hit.gameweek_population import WARM_UP_EXCLUDED, qualifying_
 from decisions.free_hit.verdict import verdict
 from domain.fpl_squad import SQUAD_SIZE
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.live_db]
 
 _SUBSET_LAST_GW = 8
 """Truncate at GW8: past GW5, where `METRIC.md` §3.3 measures C1's and C3's signals as first

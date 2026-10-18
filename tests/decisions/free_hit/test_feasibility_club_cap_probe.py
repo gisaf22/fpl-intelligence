@@ -60,7 +60,7 @@ from decisions.free_hit.gameweek_population import schedule_clean_gameweeks
 from domain.fpl_squad import BUDGET_CAP_TENTHS, MAX_PER_CLUB, POSITIONS, SQUAD_SELECT
 from tests.decisions.free_hit.test_candidates import POLICIES
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.live_db]
 
 
 def _brute_force_cheapest(

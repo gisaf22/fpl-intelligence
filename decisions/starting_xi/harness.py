@@ -23,11 +23,11 @@ total is used, and only the as-of call's pair. §7.2's T2 keeps them in two name
 `best_legal_xi_points` against `best_legal_xi_asof`/`second_best_xi_asof` -- because a single
 runner-up column is what invited the conflation in the first place.
 
-**Import closure: `dal/`, `domain/`, `formations.py`, stdlib, numpy, pandas.** Tier A (§3.5), so
+**Import closure: `warehouse/`, `domain/`, `formations.py`, stdlib, numpy, pandas.** Tier A (§3.5), so
 no `model/`, no `research/`, no `serve/`, and **never `rankers.py`** -- the harness receives a
 ranking function and a bench-ordering policy set as arguments (§3.2, §5.4). That single absent
 edge is what makes §3.6's transitivity guarantee hold: every module this one reaches terminates
-in `dal/` or `domain/`, both already fenced by `.importlinter`.
+in `warehouse/` or `domain/`, both already fenced by `.importlinter`.
 
 **The ranker is consumed structurally, not by import.** `RankerOutput` below is a `Protocol`
 rather than a shared base class: `rankers.py` is Tier B and §5.1 forbids it every Tier A module,
@@ -46,10 +46,9 @@ from typing import Final, Protocol, SupportsFloat, cast, runtime_checkable
 import numpy as np
 import pandas as pd
 
-from dal.config import DB_PATH
-from dal.pipeline import load
 from decisions.starting_xi.formations import LEGAL_FORMATIONS, best_legal_xi, is_legal_xi
-from domain.fpl_squad import POSITIONS, SQUAD_SIZE, XI_MIN_PLAY, XI_SIZE
+from domain.fpl_squad import POSITION_BY_ID, POSITIONS, SQUAD_SIZE, XI_MIN_PLAY, XI_SIZE
+from warehouse import served
 
 # ---------------------------------------------------------------------------
 # Ranking tiers (§6.7)
@@ -63,7 +62,14 @@ _TIER_SCORED: Final[int] = 0
 _TIER_UNRANKABLE: Final[int] = 1
 _TIER_NO_FIXTURE: Final[int] = 2
 
-_MART_COLUMNS: Final[tuple[str, ...]] = ("player_id", "gw", "position", "minutes", "total_points")
+_GAMEWEEK_COLUMNS: Final[tuple[str, ...]] = (
+    "player_id",
+    "gw",
+    "position_id",
+    "fixture_count",
+    "minutes",
+    "total_points",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -91,8 +97,8 @@ class RankerOutput(Protocol):
     def scores(self) -> pd.DataFrame: ...
 
 
-RankFn = Callable[[pd.DataFrame], RankerOutput]
-"""§6.1's `rank(mart) -> RankerOutput`. Called **once per run**, over the whole mart."""
+RankFn = Callable[[served.Frames], RankerOutput]
+"""§6.1's `rank(frames) -> RankerOutput`, over the pinned warehouse frames. Called **once per run**."""
 
 
 @dataclass(frozen=True)
@@ -155,7 +161,7 @@ class HarnessResult:
 # ---------------------------------------------------------------------------
 
 
-def registration_gw(mart: pd.DataFrame) -> pd.Series:
+def registration_gw(gameweek: pd.DataFrame) -> pd.Series:
     """Per player, the first gameweek carrying a non-null `minutes` row.
 
     §8.3's population is "the full player-gameweek spine restricted to each player's
@@ -169,11 +175,11 @@ def registration_gw(mart: pd.DataFrame) -> pd.Series:
     player x gameweek cartesian product, so a GW20 debutant *has* GW1-19 rows with NULL
     performance, and counting them would score the DAL's construction rather than the player.
     """
-    played = mart.loc[mart["minutes"].notna(), ["player_id", "gw"]]
+    played = gameweek.loc[gameweek["minutes"].notna(), ["player_id", "gw"]]
     return played.groupby("player_id")["gw"].min()
 
 
-def as_of_points(mart: pd.DataFrame) -> pd.DataFrame:
+def as_of_points(gameweek: pd.DataFrame) -> pd.DataFrame:
     """§0.9's as-of statistic: season-to-date points per gameweek elapsed, strictly before `gw`.
 
     `archive/METRIC.md` §3.2's first option, with §0.9's three sub-choices resolved: blanked weeks count
@@ -198,12 +204,12 @@ def as_of_points(mart: pd.DataFrame) -> pd.DataFrame:
     §0.8 rejects C2 for. Flagged rather than buried: it is a `DESIGN.md` §0.9 question this
     module answers locally because the build cannot proceed without an answer.
     """
-    missing = [column for column in ("player_id", "gw", "minutes", "total_points") if column not in mart.columns]
+    missing = [column for column in ("player_id", "gw", "minutes", "total_points") if column not in gameweek.columns]
     if missing:
-        raise ValueError(f"mart is missing columns the as-of statistic reads: {missing}")
+        raise ValueError(f"gameweek frame is missing columns the as-of statistic reads: {missing}")
 
-    first = registration_gw(mart)
-    panel = mart.loc[:, ["player_id", "gw", "total_points"]].copy()
+    first = registration_gw(gameweek)
+    panel = gameweek.loc[:, ["player_id", "gw", "total_points"]].copy()
     panel["_first"] = panel["player_id"].map(first)
     panel = panel.loc[panel["_first"].notna() & (panel["gw"] >= panel["_first"])]
     panel = panel.sort_values(["player_id", "gw"], kind="stable")
@@ -483,7 +489,7 @@ def run(
     squads: pd.DataFrame,
     rank_fn: RankFn,
     bench_order: BenchOrder,
-    mart: pd.DataFrame,
+    frames: served.Frames,
     window: tuple[int, int],
 ) -> HarnessResult:
     """Replay every squad-week in `window` under one ranker and every candidate ordering.
@@ -491,16 +497,18 @@ def run(
     Args:
         squads: the sampler's frozen squad table -- (`gw`, `squad_id`, `player_id`), 15 rows per
             squad, one `gw` per `squad_id` (§2.9).
-        rank_fn: §6.1's `rank(mart) -> RankerOutput`. Called **once**, over the whole mart, not
+        rank_fn: §6.1's `rank(frames) -> RankerOutput`. Called **once**, over the whole frames, not
             once per gameweek: §6.1 records that a per-gameweek signature would force `p_play`'s
             expanding walk-forward to re-run from the start of the season for every gameweek.
         bench_order: §5.4's required argument -- a non-empty ordered sequence of `(name, policy)`
             pairs, element 0 the **primary**. No default: §4.9 establishes that primary regret is
             not independent of bench order, so a defaulted ordering would emit a regret figure
             that could not be reconstructed from its stated inputs.
-        mart: the mart across every gameweek in scope, read via `dal/` (`build` is the entry
-            point that does the reading). The whole panel is needed, not the window's slice: the
-            as-of statistic's denominator runs from each player's registration gameweek (§0.9).
+        frames: the pinned warehouse frames (`build` is the entry point that loads them). Only
+            the gameweek frame is read here: realised points are its per-gameweek totals, a
+            no-fixture week is `fixture_count == 0`, and the position is `position_id`'s label.
+            The whole season is needed, not the window's slice: the as-of statistic's
+            denominator runs from each player's registration gameweek (§0.9).
         window: the comparison window, inclusive. §6.3 computes it from the declared windows of
             the rankers in a comparison; the harness consumes it and never infers it (§0.7).
 
@@ -516,15 +524,19 @@ def run(
     names = [name for name, _ in bench_order]
     if len(set(names)) != len(names):
         raise ValueError(f"bench_order carries duplicate policy names: {names}")
-    missing = [column for column in _MART_COLUMNS if column not in mart.columns]
+    gameweek = frames.gameweek
+    missing = [column for column in _GAMEWEEK_COLUMNS if column not in gameweek.columns]
     if missing:
-        raise ValueError(f"mart is missing columns the harness reads: {missing}")
+        raise ValueError(f"gameweek frame is missing columns the harness reads: {missing}")
+    unknown = sorted(set(gameweek["position_id"].dropna().astype(int)) - set(POSITION_BY_ID))
+    if unknown:
+        raise ValueError(f"gameweek frame carries position_id(s) with no label: {unknown}")
 
     first_gw, last_gw = int(window[0]), int(window[1])
     if first_gw > last_gw:
         raise ValueError(f"window is empty: {window}")
 
-    output = rank_fn(mart)
+    output = rank_fn(frames)
     declared_first, declared_last = output.window
     if first_gw < declared_first or last_gw > declared_last:
         # §0.7 makes the declared window the ranker's own claim about where it can score. Scoring
@@ -542,15 +554,21 @@ def run(
         if not pd.isna(score)
     }
 
-    facts = mart.loc[:, list(_MART_COLUMNS)]
-    # `minutes` keeps its NULL state (§0.3, §0.4); `total_points` is filled to 0 here, once, at
-    # the boundary -- see `_realised_points` for why that fill is this module's to make.
-    fact_lookup: dict[tuple[int, int], tuple[str, float | None, float]] = {
-        (int(player_id), int(gw)): (str(position), _optional_float(minutes), _realised_points(points))
-        for player_id, gw, position, minutes, points in facts.itertuples(index=False)
+    facts = gameweek.loc[:, list(_GAMEWEEK_COLUMNS)]
+    # `minutes` keeps its NULL state (§0.3); `total_points` is filled to 0 here, once, at the
+    # boundary -- see `_realised_points` for why that fill is this module's to make.
+    fact_lookup: dict[tuple[int, int], tuple[str, bool, float | None, float]] = {
+        (int(player_id), int(gw)): (
+            POSITION_BY_ID[int(position_id)],
+            int(fixture_count) == 0,
+            _optional_float(minutes),
+            _realised_points(points),
+        )
+        for player_id, gw, position_id, fixture_count, minutes, points in facts.itertuples(index=False)
     }
     as_of_lookup: dict[tuple[int, int], float] = {
-        (int(player_id), int(gw)): float(value) for player_id, gw, value in as_of_points(mart).itertuples(index=False)
+        (int(player_id), int(gw)): float(value)
+        for player_id, gw, value in as_of_points(gameweek).itertuples(index=False)
     }
 
     in_window = squads.loc[(squads["gw"] >= first_gw) & (squads["gw"] <= last_gw)]
@@ -566,16 +584,15 @@ def run(
         keys = [(player_id, gw) for player_id in squad]
         absent = [key for key in keys if key not in fact_lookup]
         if absent:
-            raise ValueError(f"squad {squad_id!r} at gw {gw} names players absent from the mart: {absent}")
+            raise ValueError(f"squad {squad_id!r} at gw {gw} names players absent from the gameweek frame: {absent}")
 
         positions = {player_id: fact_lookup[(player_id, gw)][0] for player_id in squad}
-        minutes: dict[int, float | None] = {player_id: fact_lookup[(player_id, gw)][1] for player_id in squad}
-        points = {player_id: fact_lookup[(player_id, gw)][2] for player_id in squad}
         # §0.4: a player whose club has no fixture is ranked last by the harness, identically for
-        # every ranker. NULL `minutes` is that state on the mart, post-registration
-        # (`archive/INVENTORY.md` §2.5) -- and the squad universe excludes pre-registration rows by
-        # construction (§2.1), so a NULL reaching here is a blank rather than a prefix.
-        no_fixture = {player_id: minutes[player_id] is None for player_id in squad}
+        # every ranker. `fixture_count == 0` is that state; the loader drops pre-entry rows, so
+        # every zero reaching here is a blank rather than a prefix (DATA.md).
+        no_fixture = {player_id: fact_lookup[(player_id, gw)][1] for player_id in squad}
+        minutes: dict[int, float | None] = {player_id: fact_lookup[(player_id, gw)][2] for player_id in squad}
+        points = {player_id: fact_lookup[(player_id, gw)][3] for player_id in squad}
 
         records = [
             BenchPlayer(
@@ -699,12 +716,13 @@ def build(
     bench_order: BenchOrder,
     window: tuple[int, int],
     *,
-    db_path: Path = DB_PATH,
+    season: str,
+    pin: served.Pin | None = None,
+    snapshot_root: Path = served.SNAPSHOT_ROOT,
 ) -> HarnessResult:
-    """Read the mart via `dal/` and replay against it (§5.1).
+    """Load the pinned warehouse frames and replay against them (§5.1).
 
-    The one function in this module that touches the data layer, on the same shape as the
-    sampler's `build_squads`: `run` is the same computation over a mart already in hand, which is
-    what the tests exercise.
+    The one function in this module that reads data, on the same shape as the sampler's
+    `build_squads`: `run` is the same computation over frames already in hand.
     """
-    return run(squads, rank_fn, bench_order, load(db_path).mart, window)
+    return run(squads, rank_fn, bench_order, served.load(season, pin=pin, snapshot_root=snapshot_root), window)

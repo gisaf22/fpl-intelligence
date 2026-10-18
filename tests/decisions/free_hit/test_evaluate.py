@@ -42,6 +42,7 @@ from decisions.free_hit.evaluate import (
 )
 from decisions.free_hit.gameweek_population import WARM_UP_EXCLUDED, qualifying_gameweeks
 from domain.fpl_squad import BUDGET_CAP_TENTHS, SQUAD_SELECT, SQUAD_SIZE
+from warehouse import served
 
 pytestmark = pytest.mark.unit
 
@@ -207,6 +208,11 @@ def test_build_squads_shares_one_candidate_pool_across_the_three_policies(mart: 
 # ---------------------------------------------------------------------------
 
 
+def _frames(gameweek: pd.DataFrame) -> served.Frames:
+    """A gameweek frame wrapped as `served.Frames`; the ranker reads no other."""
+    return served.Frames(fixture=pd.DataFrame(), gameweek=gameweek, pin=served.Pin(run_id="test", sha256={}))
+
+
 def test_rank_season_ppg_is_the_lag_one_expanding_mean() -> None:
     """Hand-computed, not compared against another implementation of the same formula."""
     mart = pd.DataFrame(
@@ -216,7 +222,7 @@ def test_rank_season_ppg_is_the_lag_one_expanding_mean() -> None:
             "total_points": [2, 8, 5, 1],
         }
     )
-    scores = rank_season_ppg(mart).scores.sort_values("gw")["score"].tolist()
+    scores = rank_season_ppg(_frames(mart)).scores.sort_values("gw")["score"].tolist()
 
     assert pd.isna(scores[0])  # no prior row at GW1
     assert scores[1] == 2.0  # mean(2)
@@ -232,8 +238,8 @@ def test_rank_season_ppg_never_reads_a_gameweeks_own_outcome() -> None:
     tampered.loc[tampered["gw"] == 4, "total_points"] = 99
 
     pd.testing.assert_frame_equal(
-        rank_season_ppg(mart).scores.reset_index(drop=True),
-        rank_season_ppg(tampered).scores.reset_index(drop=True),
+        rank_season_ppg(_frames(mart)).scores.reset_index(drop=True),
+        rank_season_ppg(_frames(tampered)).scores.reset_index(drop=True),
     )
 
 
@@ -245,7 +251,7 @@ def test_rank_season_ppg_scores_players_independently() -> None:
             "total_points": [10, 0, 0, 0],
         }
     )
-    scores = rank_season_ppg(mart).scores.set_index(["player_id", "gw"])["score"]
+    scores = rank_season_ppg(_frames(mart)).scores.set_index(["player_id", "gw"])["score"]
     assert scores[(1, 2)] == 10.0
     assert scores[(2, 2)] == 0.0
 
@@ -253,7 +259,7 @@ def test_rank_season_ppg_scores_players_independently() -> None:
 def test_rank_season_ppg_reports_the_study_window_and_a_distinct_name() -> None:
     """`LOCAL_SEASON_PPG`'s docstring: the name must not collide with `rankers.F2_SEASON_PPG`,
     which is frozen in `decisions/starting_xi/PRE_REGISTRATION.yaml` against a different module."""
-    output = rank_season_ppg(pd.DataFrame({"player_id": [1], "gw": [1], "total_points": [3]}))
+    output = rank_season_ppg(_frames(pd.DataFrame({"player_id": [1], "gw": [1], "total_points": [3]})))
     assert output.window == STUDY_WINDOW
     assert output.name == LOCAL_SEASON_PPG
     assert output.name != "F2_season_ppg"

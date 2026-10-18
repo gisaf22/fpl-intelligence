@@ -3432,9 +3432,14 @@ right conclusion, which is why it survived unexamined.
 
 **T2 — `squad_weeks`. One row per (run, squad, gameweek, ranker).**
 
-`run_id, squad_id, gw, ranker, chosen_xi_points, best_legal_xi_points, best_legal_xi_asof,
-second_best_xi_asof, regret, closeness_gap, is_zero_gap, substitution_fired, uncovered_blank,
+`run_id, squad_id, gw, ranker, chosen_xi, chosen_xi_points, no_subs_xi_points, best_legal_xi_points,
+best_legal_xi_asof, second_best_xi_asof, regret, regret_gk, regret_def, regret_mid, regret_fwd,
+closeness_gap, is_zero_gap, is_zero_information, substitution_fired, uncovered_blank,
 no_fixture_rule_changed_xi, best_permutation_total`
+
+#32 added `no_subs_xi_points` (the chosen XI's points with no substitution) and `regret_<position>`
+(ideal-XI minus finishing-XI points at that position; may be negative; the four sum to `regret`).
+Under a formation tie the ideal XI is the first maximising formation in `LEGAL_FORMATIONS` order.
 
 This is the level P1's quantities are computed at and the level §0.8's zero-gap exclusions are applied
 at. **Two pairs, not one, and the split is §0.8's.** `chosen_xi_points` and `best_legal_xi_points` are

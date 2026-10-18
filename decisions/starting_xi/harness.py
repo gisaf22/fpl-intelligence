@@ -345,6 +345,8 @@ class Replay:
     uncovered_blank: bool
     entered_gk: int | None
     entered_outfield: tuple[int, ...]
+    final_xi: tuple[int, ...]
+    """Who finished on the pitch, ascending. Not a T5 column: T2's position regrets read it."""
 
 
 def _featured(minutes: float | None) -> bool:
@@ -454,6 +456,7 @@ def replay(
         # ordering-relevance by comparing these across policies, and §4.6 defines it on the
         # entering *sets*.
         entered_outfield=tuple(sorted(entered_outfield)),
+        final_xi=tuple(sorted(live)),
     )
 
 
@@ -673,6 +676,15 @@ def run(
             )
 
         closeness = asof.best_legal_xi_points - asof.second_best_xi_points
+        # #32's position segments: ideal minus finishing-XI points per position. They sum to
+        # `regret` by construction and a position may be negative.
+        final_by_position = {
+            position: sum(points[p] for p in primary.final_xi if positions[p] == position) for position in POSITIONS
+        }
+        position_regret = {
+            f"regret_{position.lower()}": ideal - final_by_position[position]
+            for position, ideal in zip(POSITIONS, realised.best_xi_position_points, strict=True)
+        }
         squad_week_rows.append(
             {
                 "squad_id": squad_id,
@@ -680,10 +692,12 @@ def run(
                 "ranker": output.name,
                 "chosen_xi": ",".join(str(player_id) for player_id in sorted(xi)),
                 "chosen_xi_points": primary.realised_total,
+                "no_subs_xi_points": float(sum(points[p] for p in xi)),
                 "best_legal_xi_points": realised.best_legal_xi_points,
                 "best_legal_xi_asof": asof.best_legal_xi_points,
                 "second_best_xi_asof": asof.second_best_xi_points,
                 "regret": max(regret, 0.0),
+                **position_regret,
                 "closeness_gap": closeness,
                 "is_zero_gap": closeness <= 0.0,
                 "substitution_fired": primary.substitution_fired,

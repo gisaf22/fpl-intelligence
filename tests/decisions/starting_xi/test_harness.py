@@ -69,10 +69,15 @@ T2_COLUMNS = (
     "ranker",
     "chosen_xi",
     "chosen_xi_points",
+    "no_subs_xi_points",
     "best_legal_xi_points",
     "best_legal_xi_asof",
     "second_best_xi_asof",
     "regret",
+    "regret_gk",
+    "regret_def",
+    "regret_mid",
+    "regret_fwd",
     "closeness_gap",
     "is_zero_gap",
     "substitution_fired",
@@ -1146,3 +1151,57 @@ def test_importing_the_harness_pulls_in_no_tier_b_module_and_no_ranker() -> None
         "assert 'dal.pipeline' not in sys.modules"
     )
     assert subprocess.run([sys.executable, "-c", program], check=False).returncode == 0
+
+
+# ---------------------------------------------------------------------------
+# #32 -- the per-squad-week inputs regret reporting reads
+# ---------------------------------------------------------------------------
+
+
+def _one_squad_week(xi_minutes: dict[int, float] | None = None) -> tuple[served.Frames, pd.DataFrame, _Ranker]:
+    """One 2/5/5/3 squad at gw 4 whose ranking picks a 3-5-2 while hindsight prefers a 3-4-3.
+
+    Scores pick GK 0, DEF 2-4, MID 7-11, FWD 12-13. Realised points are 2 for every player except
+    MID 11 (1), the bench GK and DEFs (0) and FWD 14 (10). The hindsight best is the 3-4-3 with
+    FWD 14 in for MID 11: 2 + 6 + 8 + 14 = 30, against the chosen 21, so regret is 9 and splits
+    GK 0, DEF 0, MID 8 - 9 = -1, FWD 14 - 4 = 10.
+    """
+    chosen = {0, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13}
+    points = dict.fromkeys(SQUAD, 2.0) | {1: 0.0, 5: 0.0, 6: 0.0, 11: 1.0, 14: 10.0}
+    minutes = dict.fromkeys(SQUAD, 90.0) | (xi_minutes or {})
+    gameweek = _gameweek([(p, 4, POSITION_OF[p], minutes[p], points[p]) for p in SQUAD])
+    squads = pd.DataFrame({"gw": 4, "squad_id": "gw04-0000", "player_id": list(SQUAD)})
+    scores = pd.DataFrame({"player_id": list(SQUAD), "gw": 4, "score": [5.0 if p in chosen else 0.0 for p in SQUAD]})
+    frames = served.Frames(fixture=pd.DataFrame(), gameweek=gameweek, pin=served.Pin(run_id="test", sha256={}))
+    return frames, squads, _Ranker(name="F_test", window=(4, 4), scores=scores)
+
+
+@pytest.mark.covers("#32 AC3")
+def test_position_regrets_sum_to_the_squad_weeks_regret_with_a_negative_component() -> None:
+    frames, squads, ranker = _one_squad_week()
+    row = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (4, 4)).squad_weeks.iloc[0]
+
+    assert row["regret"] == 9.0
+    assert (row["regret_gk"], row["regret_def"], row["regret_mid"], row["regret_fwd"]) == (0.0, 0.0, -1.0, 10.0)
+
+
+@pytest.mark.covers("#32 AC3")
+def test_position_regrets_sum_to_regret_on_every_squad_week_of_a_random_panel() -> None:
+    frames, squads, ranker = _fixture(n_squads=5)
+    t2 = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4)).squad_weeks
+    components = t2[["regret_gk", "regret_def", "regret_mid", "regret_fwd"]].sum(axis=1)
+    np.testing.assert_allclose(components, t2["regret"], atol=1e-9)
+
+
+@pytest.mark.covers("#32 AC9 (proposed)")
+def test_no_subs_points_are_the_chosen_xi_as_picked_with_no_substitution() -> None:
+    """MID 11 blanks; the bench's first outfielder (DEF 5, 0 points) comes on. With no subs the XI
+    scores its 10 players at 2 and MID 11's 0."""
+    frames, squads, ranker = _one_squad_week(xi_minutes={11: 0.0})
+    frames.gameweek.loc[frames.gameweek["player_id"] == 11, "total_points"] = 0.0
+    frames.gameweek.loc[frames.gameweek["player_id"] == 5, "total_points"] = 3.0
+    row = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (4, 4)).squad_weeks.iloc[0]
+
+    assert row["substitution_fired"]
+    assert row["no_subs_xi_points"] == 20.0
+    assert row["chosen_xi_points"] == 23.0

@@ -1,10 +1,10 @@
 # Starting XI — card
 
-**Stage 3 — Explore. Test design frozen 2026-10-17. Gates 0–1 passed; Gate 2 (Data) pending DATA.md.**
+**Stage 3 — Explore. Test design frozen 2026-10-17. Gates 0–2 passed.**
 
 Process: [ANALYSIS_WORKFLOW](https://github.com/gisaf22/.github/blob/main/ANALYSIS_WORKFLOW.md).
 Decisions and their reasons are recorded on the Epic issue; this card summarises them.
-Still governing the harness code: [`DESIGN.md`](DESIGN.md) and [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yaml).
+Still governing the harness code: [`DESIGN.md`](DESIGN.md) and [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yaml). Data mapping: [`DATA.md`](DATA.md).
 Superseded docs: [`archive/`](archive/).
 
 ## 0 Decision
@@ -24,12 +24,10 @@ Superseded docs: [`archive/`](archive/).
 
 ## 2 Data
 
-- **Source:** warehouse served v2 is the primary source. The mapping is pending: minutes NULL semantics, price ÷ 10, club as-of the gameweek, season filter, and naming.
+- **Source and mapping:** fpl-warehouse served parquet, season 2025-26 — see [`DATA.md`](DATA.md).
 - **Known-when:** each rule sees only data from gameweeks before the one being scored.
 - **Population:** exploration uses 2025-26; confirmation uses 2026-27, which is unseen because it comes later in time.
-- **Data notes** (move to DATA.md later): club per gameweek for 2025-26 = `team_fpl_id` from that gameweek's own `fct_player_fixture` rows (club membership is fixed before the deadline; no outcome leakage); carry the last known club forward only when the player has no fixture that gameweek. The 2025-26 status history cannot be backfilled (end-of-season snapshot only). Verified: 1,025 mover rows correct, 0 mismatches.
 - The two existing runs (3821cc93, 4b348fe0) are **dry runs, not results**.
-- `archive/METRIC.md` Appendix A.4 (38.6% season/3-GW PPG ties across GW5–38) is **unverified**.
 
 ## 3 Explore (current) — test design, frozen 2026-10-17
 

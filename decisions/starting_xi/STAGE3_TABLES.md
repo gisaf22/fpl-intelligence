@@ -279,3 +279,96 @@ Zero-information squad-weeks (excluded): {'uniform': 100, 'ownership': 71}
 | ownership | ppg_start_season | starts_rate_x_points_per_appearance | 0.894 |
 | ownership | random | starts_rate_x_points_per_appearance | 0.749 |
 
+
+## Pre-merge diagnostics (PR #53)
+
+Same two runs, zero-information squad-weeks excluded. Squads were re-drawn with `sampler.sample_squads` at the run's seed, and each matched its manifest's `squad_set_id`. The hindsight-ideal XI was recomputed from realised points (nulls read as 0) and matched `best_legal_xi_points` on every squad-week. Ranges use `uncertainty.gameweek_block_ci` (block 4, 10,000 resamples, seed 0) on per-gameweek mean series. A tied ideal goes to the first formation in `LEGAL_FORMATIONS` order (3-4-3), the harness's tie rule, so the ideal's 3-4-3 share is inflated wherever several formations tie. Most uniform ties are all-zero benches.
+
+#### Sanity diagnostics
+
+| measure | uniform | ownership |
+|---|---|---|
+| squad_weeks | 10400.000 | 10429.000 |
+| squad_played_mean | 5.701 | 11.857 |
+| squad_played_median | 6.000 | 12.000 |
+| share_squad_played_le_11 | 0.999 | 0.368 |
+| xi_played_mean_rules | 5.444 | 9.590 |
+| xi_played_mean_random | 4.311 | 8.767 |
+| share_2_gk_played | 0.043 | 0.636 |
+| best_xi_points_mean | 17.252 | 44.866 |
+| chosen_xi_points_mean_rules | 17.145 | 42.151 |
+| chosen_xi_points_mean_random | 17.134 | 41.413 |
+| share_all_rules_equal_points | 0.975 | 0.338 |
+
+#### Paired-difference ranges (XI regret, rule_a − rule_b; negative = rule_a lower regret)
+
+| squad_mode | comparison | rule_a | rule_b | mean_diff | ci_lo | ci_hi |
+|---|---|---|---|---|---|---|
+| uniform | best − random | starts_rate_x_points_per_appearance | random | -0.016 | -0.027 | -0.004 |
+| uniform | best season − best last-3 | ppg_fixture_season | ppg_fixture_last3 | -0.003 | -0.014 | 0.004 |
+| uniform | D1 − D2 | ppg_gameweek_season | ppg_fixture_season | 0.000 | 0.000 | 0.001 |
+| uniform | D1 − D3 | ppg_gameweek_season | ppg_appearance_season | -0.002 | -0.014 | 0.008 |
+| uniform | D1 − D4 | ppg_gameweek_season | ppg_start_season | -0.002 | -0.015 | 0.007 |
+| uniform | D2 − D3 | ppg_fixture_season | ppg_appearance_season | -0.002 | -0.014 | 0.008 |
+| uniform | D2 − D4 | ppg_fixture_season | ppg_start_season | -0.002 | -0.015 | 0.007 |
+| uniform | D3 − D4 | ppg_appearance_season | ppg_start_season | -0.000 | -0.003 | 0.001 |
+| ownership | best − random | ppg_fixture_season | random | -0.892 | -1.402 | -0.404 |
+| ownership | best season − best last-3 | ppg_fixture_season | ppg_fixture_last3 | -0.235 | -0.461 | -0.031 |
+| ownership | D1 − D2 | ppg_gameweek_season | ppg_fixture_season | 0.032 | -0.006 | 0.099 |
+| ownership | D1 − D3 | ppg_gameweek_season | ppg_appearance_season | 0.019 | -0.072 | 0.093 |
+| ownership | D1 − D4 | ppg_gameweek_season | ppg_start_season | -0.070 | -0.188 | 0.024 |
+| ownership | D2 − D3 | ppg_fixture_season | ppg_appearance_season | -0.014 | -0.088 | 0.037 |
+| ownership | D2 − D4 | ppg_fixture_season | ppg_start_season | -0.102 | -0.203 | -0.030 |
+| ownership | D3 − D4 | ppg_appearance_season | ppg_start_season | -0.088 | -0.140 | -0.041 |
+
+#### Outfield-only XI regret (regret_def + regret_mid + regret_fwd)
+
+| squad_mode | rule | mean | median | p90 | ci_lo | ci_hi | gk_mean |
+|---|---|---|---|---|---|---|---|
+| uniform | ppg_appearance_last3 | 0.054 | 0.000 | 0.000 | 0.041 | 0.067 | 0.056 |
+| uniform | ppg_appearance_season | 0.054 | 0.000 | 0.000 | 0.040 | 0.067 | 0.053 |
+| uniform | ppg_fixture_last3 | 0.053 | 0.000 | 0.000 | 0.040 | 0.068 | 0.054 |
+| uniform | ppg_fixture_season | 0.053 | 0.000 | 0.000 | 0.040 | 0.066 | 0.051 |
+| uniform | ppg_gameweek_last3 | 0.053 | 0.000 | 0.000 | 0.040 | 0.067 | 0.058 |
+| uniform | ppg_gameweek_season | 0.053 | 0.000 | 0.000 | 0.040 | 0.066 | 0.052 |
+| uniform | ppg_start_last3 | 0.054 | 0.000 | 0.000 | 0.041 | 0.067 | 0.055 |
+| uniform | ppg_start_season | 0.054 | 0.000 | 0.000 | 0.041 | 0.069 | 0.052 |
+| uniform | random | 0.053 | 0.000 | 0.000 | 0.040 | 0.066 | 0.065 |
+| uniform | starts_rate_x_points_per_appearance | 0.053 | 0.000 | 0.000 | 0.040 | 0.067 | 0.048 |
+| ownership | ppg_appearance_last3 | 2.031 | 0.000 | 7.000 | 1.657 | 2.460 | 0.821 |
+| ownership | ppg_appearance_season | 1.762 | 0.000 | 6.000 | 1.503 | 2.079 | 0.813 |
+| ownership | ppg_fixture_last3 | 1.975 | 0.000 | 7.000 | 1.642 | 2.347 | 0.822 |
+| ownership | ppg_fixture_season | 1.763 | 0.000 | 6.000 | 1.494 | 2.069 | 0.799 |
+| ownership | ppg_gameweek_last3 | 2.040 | 0.000 | 7.000 | 1.744 | 2.380 | 0.851 |
+| ownership | ppg_gameweek_season | 1.778 | 0.000 | 6.000 | 1.527 | 2.074 | 0.816 |
+| ownership | ppg_start_last3 | 2.100 | 0.000 | 7.000 | 1.748 | 2.531 | 0.816 |
+| ownership | ppg_start_season | 1.853 | 0.000 | 7.000 | 1.584 | 2.186 | 0.811 |
+| ownership | random | 2.536 | 0.000 | 9.000 | 2.044 | 3.156 | 0.918 |
+| ownership | starts_rate_x_points_per_appearance | 1.774 | 0.000 | 6.000 | 1.526 | 2.063 | 0.812 |
+
+#### Formation usage (share of squad-weeks; DEF-MID-FWD; chosen XI before substitutions)
+
+| squad_mode | who | 3-4-3 | 3-5-2 | 4-3-3 | 4-4-2 | 4-5-1 | 5-2-3 | 5-3-2 | 5-4-1 |
+|---|---|---|---|---|---|---|---|---|---|
+| uniform | hindsight_ideal | 0.933 | 0.007 | 0.049 | 0.004 | 0.000 | 0.005 | 0.001 | 0.000 |
+| uniform | ppg_appearance_last3 | 0.164 | 0.110 | 0.170 | 0.281 | 0.058 | 0.037 | 0.119 | 0.062 |
+| uniform | ppg_appearance_season | 0.173 | 0.107 | 0.178 | 0.278 | 0.052 | 0.040 | 0.113 | 0.060 |
+| uniform | ppg_fixture_last3 | 0.185 | 0.114 | 0.169 | 0.269 | 0.058 | 0.035 | 0.111 | 0.058 |
+| uniform | ppg_fixture_season | 0.181 | 0.110 | 0.176 | 0.275 | 0.052 | 0.038 | 0.110 | 0.059 |
+| uniform | ppg_gameweek_last3 | 0.186 | 0.114 | 0.169 | 0.268 | 0.058 | 0.035 | 0.111 | 0.059 |
+| uniform | ppg_gameweek_season | 0.183 | 0.110 | 0.175 | 0.274 | 0.051 | 0.038 | 0.110 | 0.060 |
+| uniform | ppg_start_last3 | 0.138 | 0.104 | 0.150 | 0.291 | 0.068 | 0.036 | 0.132 | 0.080 |
+| uniform | ppg_start_season | 0.133 | 0.098 | 0.154 | 0.283 | 0.068 | 0.041 | 0.138 | 0.085 |
+| uniform | random | 0.187 | 0.124 | 0.172 | 0.269 | 0.058 | 0.037 | 0.100 | 0.053 |
+| uniform | starts_rate_x_points_per_appearance | 0.167 | 0.107 | 0.170 | 0.280 | 0.054 | 0.040 | 0.119 | 0.064 |
+| ownership | hindsight_ideal | 0.501 | 0.141 | 0.148 | 0.142 | 0.021 | 0.013 | 0.024 | 0.011 |
+| ownership | ppg_appearance_last3 | 0.183 | 0.154 | 0.124 | 0.287 | 0.078 | 0.019 | 0.089 | 0.066 |
+| ownership | ppg_appearance_season | 0.190 | 0.181 | 0.110 | 0.295 | 0.080 | 0.014 | 0.076 | 0.054 |
+| ownership | ppg_fixture_last3 | 0.210 | 0.148 | 0.143 | 0.282 | 0.063 | 0.022 | 0.082 | 0.051 |
+| ownership | ppg_fixture_season | 0.214 | 0.158 | 0.132 | 0.288 | 0.063 | 0.016 | 0.081 | 0.047 |
+| ownership | ppg_gameweek_last3 | 0.212 | 0.147 | 0.146 | 0.282 | 0.060 | 0.022 | 0.082 | 0.049 |
+| ownership | ppg_gameweek_season | 0.221 | 0.156 | 0.139 | 0.283 | 0.060 | 0.016 | 0.080 | 0.045 |
+| ownership | ppg_start_last3 | 0.198 | 0.158 | 0.131 | 0.281 | 0.071 | 0.022 | 0.084 | 0.056 |
+| ownership | ppg_start_season | 0.226 | 0.197 | 0.115 | 0.271 | 0.072 | 0.013 | 0.063 | 0.043 |
+| ownership | random | 0.164 | 0.114 | 0.163 | 0.280 | 0.061 | 0.035 | 0.119 | 0.065 |
+| ownership | starts_rate_x_points_per_appearance | 0.160 | 0.118 | 0.138 | 0.305 | 0.071 | 0.023 | 0.113 | 0.073 |

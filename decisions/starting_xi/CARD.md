@@ -65,19 +65,36 @@ Superseded docs: [`archive/`](archive/).
   | ppg_start_last3 | 0.109 [0.094, 0.128] | 0 / 0 | 7.5% | 2.916 [2.556, 3.408] | 1 / 9 | 15.6% |
   | random | 0.118 [0.104, 0.133] | 0 / 0 | 0% | 3.454 [2.932, 4.128] | 1 / 10 | 0% |
 
-  Scale = position from random (0%) to hindsight ideal (100%). Uniform-squad regret is near 0 for every rule, random included, while no-subs regret is not (below). A plausible reading, not checked here, is that uniform squads hold few players who play, so auto-subs field almost the same XI whatever the pick.
+  Scale = position from random (0%) to hindsight ideal (100%). Uniform-squad regret is near 0 for every rule, random included, while no-subs regret is not (below). The sanity diagnostics confirm why.
 - **Bench-order regret** (mean, all weeks / when a sub fired): uniform ≤ 0.002 / ≤ 0.005 for every rule. Ownership: rules 0.32–0.54 / 0.60–0.78; random 0.885 / 1.024. Per-rule ranges are in the tables.
 - **No-subs sensitivity** (mean): uniform, rules 0.31–1.05 vs random 4.27; ownership, rules 4.67–6.41 vs random 10.15. Season windows sit below last-3 windows in both modes.
 - **Segments by position** (mean XI regret at that position, range across the 9 non-random rules; random in brackets). Uniform: GK 0.05–0.06 (0.065), DEF 0.04 (0.044), MID ≤ 0.01, FWD ≤ 0.002. Ownership: GK 0.80–0.85 (0.92), DEF 0.41–0.84 (0.62), MID 0.56–0.74 (1.18), FWD 0.44–0.63 (0.73).
 - **Segments by phase** (same layout). Uniform: 4–12 0.11–0.13 (0.125), 13–26 0.10–0.13 (0.123), 27–38 0.08–0.09 (0.107). Ownership: 4–12 2.81–3.44 (4.59), 13–26 2.80–3.05 (3.10), 27–38 1.99–2.40 (3.00).
 - **Rule agreement** (mean share of the XI two rules have in common): between non-random rules 0.91–1.00 for uniform and 0.85–0.99 for ownership; with random 0.75 in both.
+- **Uniform sanity diagnostics** (both modes; tables in [`STAGE3_TABLES.md`](STAGE3_TABLES.md)). Players with minutes > 0 per squad-week: uniform mean 5.7 (median 6), with 99.9% of squad-weeks having ≤ 11; ownership 11.9 (median 12), 36.8% ≤ 11. Playing players in the chosen XI before subs: uniform 5.4 (rules) / 4.3 (random); ownership 9.6 / 8.8. Mean best-XI points against chosen-XI points: uniform 17.25 vs 17.15 (rules) / 17.13 (random); ownership 44.87 vs 42.15 / 41.41. All 10 rules realise equal XI points in 97.5% of uniform squad-weeks and 33.8% of ownership ones. **This confirms the reading:** uniform squads are dominated by non-playing players. Auto-subs bring in every player who played whatever the pick, so uniform XI regret measures almost nothing about the rules.
+- **Paired-difference ranges** (mean XI-regret difference, rule_a − rule_b, with its 95% range from `gameweek_block_ci` on the per-gameweek difference series; negative means rule_a has lower regret). D1–D4 are the season windows of gameweek, fixture, appearance and start rates.
+
+  | Comparison | Uniform | Ownership |
+  |---|---|---|
+  | best rule − random | −0.016 [−0.027, −0.004] (starts_rate × ppa) | −0.892 [−1.402, −0.404] (ppg_fixture_season) |
+  | best season − best last-3 (ppg_fixture_season − ppg_fixture_last3) | −0.003 [−0.014, 0.004] | −0.235 [−0.461, −0.031] |
+  | D1 − D2 | 0.000 [0.000, 0.001] | 0.032 [−0.006, 0.099] |
+  | D1 − D3 | −0.002 [−0.014, 0.008] | 0.019 [−0.072, 0.093] |
+  | D1 − D4 | −0.002 [−0.015, 0.007] | −0.070 [−0.188, 0.024] |
+  | D2 − D3 | −0.002 [−0.014, 0.008] | −0.014 [−0.088, 0.037] |
+  | D2 − D4 | −0.002 [−0.015, 0.007] | −0.102 [−0.203, −0.030] |
+  | D3 − D4 | −0.000 [−0.003, 0.001] | −0.088 [−0.140, −0.041] |
+- **Outfield-only sensitivity** (XI regret without the GK slot, i.e. regret_def + regret_mid + regret_fwd). Uniform: 0.053–0.054 for every rule, random included. Ownership: rules 1.76–2.10, random 2.54. The season windows (1.76–1.85) and the decomposition (1.77) sit below the last-3 windows (1.98–2.10). GK regret is nearly flat across rules (ownership 0.80–0.85, random 0.92). In 63.6% of ownership squad-weeks (4.3% uniform) both keepers played, so the GK slot is a live choice far more often than for real managers, who usually hold one nailed starter plus bench fodder, or a rotating cheap pair. Synthetic GK regret is therefore inflated relative to real squads.
+- **Formation usage** (chosen XI before subs; share of squad-weeks). Ownership: rules use 4-4-2 most (27–31%), then 3-4-3 (16–23%), with 5-2-3 rarest (1–2%); random 4-4-2 28%, 3-4-3 16%. Hindsight ideal: 3-4-3 50%, 3-5-2 / 4-3-3 / 4-4-2 14–15% each. Uniform: rules and random have near-identical mixes (4-4-2 27–29%); the ideal is 3-4-3 93%, mostly ties broken to 3-4-3 by the harness's tie rule. The ideal's 3-4-3 share is inflated by that tie rule in both modes.
 - **Weighted-squad premium caveat:** as stated under Squads above. Ownership-weighted squads under-represent top premiums by ~30–40% against ownership and hold ~half the distinct players of uniform squads, so the ownership numbers do not describe the real field.
 
 ### Stage 4 evidence (no verdict)
 
-- **Margin over random:** ownership, the best rule's mean XI regret is 2.56 against random's 3.45 (0.89 points, 25.8% of the way to ideal); the rules span 15.6–25.8%. The per-rule 95% ranges of the best rule [2.24, 2.93] and random [2.93, 4.13] touch. These are per-rule ranges, not a range on the difference. Uniform, the margin is 0.016 points (5.5–13.9% of the scale), and every rule's range overlaps random's.
-- **Spread between rules:** ownership 2.56–2.92 (0.35 points), with overlapping ranges. The ordering is consistent: every season-window rule is below every last-3 rule. The same holds for no-subs regret in both modes. Uniform spread: 0.102–0.111. Non-random rules share 85–100% of their XI picks.
-- **Loss clustering:** ownership regret is spread across all four positions. GK is the largest per rule (0.80–0.85 from one slot) and FWD the smallest. By phase, rules' regret is lowest in GW27–38 (1.99–2.40, against 2.80–3.44 earlier). Random's excess over the rules is concentrated in MID (1.18 vs ≤ 0.74) and GW4–12 (4.59 vs ≤ 3.44). Uniform regret is almost all GK and DEF.
+Differences are paired, with 95% ranges on the per-gameweek difference series (table above).
+
+- **Margin over random:** ownership, the best rule (ppg_fixture_season) has 0.89 points less mean XI regret than random, range [0.40, 1.40], 25.8% of the way to ideal. Outfield-only, the rules sit 0.44–0.77 points below random. Uniform, the margin is 0.016 points [0.004, 0.027]. The range excludes 0, but uniform squads have about 6 playing players, so the margin carries little information.
+- **Spread between rules:** ownership, the best season rule beats the best last-3 rule by 0.24 points [0.03, 0.46]. Among season windows, D4 (start rate) has more regret than D2 (fixture), by 0.10 [0.03, 0.20], and than D3 (appearance), by 0.09 [0.04, 0.14]. The D1/D2/D3 pairs' ranges all include 0. Non-random rules share 85–99% of their XI picks. Uniform: every season-pair and season-vs-last-3 range includes 0 or lies within ±0.015.
+- **Loss clustering:** ownership regret is spread across positions. GK carries 0.80–0.85 per rule from one slot, nearly flat across rules and inflated by two-playing-keeper squads (63.6%). With GK removed, the rule ordering above holds. By phase, rules' regret is lowest in GW27–38 (1.99–2.40, against 2.80–3.44 earlier). Random's excess over the rules is concentrated in MID (1.18 vs ≤ 0.74) and GW4–12 (4.59 vs ≤ 3.44). Uniform regret is almost all GK and DEF, from squads with few playing players.
 
 ## 4 Decide (next)
 

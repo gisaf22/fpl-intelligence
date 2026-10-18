@@ -18,7 +18,7 @@ from dal.feat.feat_player_gameweek import build_player_gameweek_state
 from dal.intermediate.int_player_fixture import get_player_fixture_base
 from dal.staging import load_staged_entities
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.live_db]
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 

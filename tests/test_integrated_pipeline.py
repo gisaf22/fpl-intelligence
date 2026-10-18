@@ -8,7 +8,7 @@ from dal.exceptions import DataFreshnessError
 from dal.fct.fct_gameweek_context import resolve_target_gw
 from dal.staging import validate_data_freshness
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.live_db]
 
 DB_PATH = Path.home() / ".fpl" / "fpl.db"
 

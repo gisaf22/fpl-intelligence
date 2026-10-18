@@ -181,7 +181,7 @@ class SquadIntervalParams:
 class RunProvenance:
     """Run hygiene: where the run came from, and whether it counts.
 
-    Recorded so a run can be traced to a commit, a data file and a pre-registration file byte for
+    Recorded so a run can be traced to a commit, a pinned fpl-warehouse publish and a pre-registration file byte for
     byte. `canonical` is False when the run was forced past a dirty tree or off-registration
     parameters, and `non_canonical_reasons` says which. Only `canonical` enters `run_id` (see
     `identity_fields`); the rest is provenance rather than identity, because a commit sha in the
@@ -190,8 +190,8 @@ class RunProvenance:
 
     git_sha: str
     clean_tree: bool
-    data_source_path: str
-    data_source_sha256: str
+    warehouse_run_id: str
+    warehouse_sha256: Mapping[str, str]
     pre_registration_sha256: str
     canonical: bool
     non_canonical_reasons: Sequence[str]
@@ -324,8 +324,8 @@ def manifest_document(manifest: Manifest, identifier: str) -> dict[str, object]:
         "provenance": {
             "git_sha": manifest.provenance.git_sha,
             "clean_tree": manifest.provenance.clean_tree,
-            "data_source_path": manifest.provenance.data_source_path,
-            "data_source_sha256": manifest.provenance.data_source_sha256,
+            "warehouse_run_id": manifest.provenance.warehouse_run_id,
+            "warehouse_sha256": dict(sorted(manifest.provenance.warehouse_sha256.items())),
             "pre_registration_sha256": manifest.provenance.pre_registration_sha256,
             "canonical": manifest.provenance.canonical,
             "non_canonical_reasons": list(manifest.provenance.non_canonical_reasons),

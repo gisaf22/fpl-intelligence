@@ -33,10 +33,11 @@ dev-mode-dirs = ["."]
 # silently skipped. A golden that nothing runs is not a golden.
 # `decisions` is here for the same reason: the starting_xi slice's tests are colocated with the
 # harness code they guard (decisions/README.md — a decision folder holds its own artefacts).
-testpaths = ["tests", "model", "decisions"]
+testpaths = ["tests", "model", "decisions", "warehouse"]
 markers = [
     "integration: marks tests that require a live database (deselect with '-m not integration')",
     "unit: marks tests that run without any external dependencies",
+    'covers: the acceptance criterion a test proves — covers("#<issue> AC<n>"); repeat for several',
 ]
 
 [dependency-groups]
@@ -97,7 +98,7 @@ python_version = "3.12"
 # `decisions` carries harness code and its COLOCATED tests, so both are gated here; `tests/` is not in
 # scope, so a decision folder's tests are the only tests mypy checks. That asymmetry is deliberate —
 # the slice's tests are its specification (decisions/README.md), not coverage around it.
-files = ["dal", "serve", "domain", "examples", "research", "operational", "decisions"]
+files = ["dal", "serve", "domain", "examples", "research", "operational", "decisions", "warehouse"]
 explicit_package_bases = true
 ignore_missing_imports = true
 disallow_untyped_defs = true

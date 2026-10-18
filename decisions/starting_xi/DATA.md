@@ -9,8 +9,9 @@ It supersedes, for the warehouse path, the local-mart column assumptions in
 
 ## Source
 
-fpl-warehouse served parquet, read from a path recorded in the run manifest together with its
-sha256. A run whose input hash differs from its manifest is a different run.
+A pinned snapshot of one fpl-warehouse served publish, read by `warehouse.served` (#29). The pin
+(`warehouse/pin.json`) names the publish's manifest `run_id` and each file's sha256, and the run
+manifest records both. A run whose input hashes differ from its pin is refused.
 
 ## Mapping
 
@@ -18,12 +19,12 @@ sha256. A run whose input hash differs from its manifest is a different run.
 |---|---|---|
 | Points, minutes, starts per match | `fct_player_fixture` (`total_points`, `minutes`, `starts`) | Per-fixture rows; gameweek totals are their sum (aggregation audited on [fpl-warehouse#164](https://github.com/gisaf22/fpl-warehouse/issues/164)). |
 | Fixtures in the coming gameweek | `fct_player_gameweek.fixture_count` | 0 = blank, 2 = double. |
-| Entry gameweek | `fct_player_gameweek` | The player's first gameweek with a non-null row. |
+| Entry gameweek | `fct_player_fixture` | The player's first gameweek with a fixture row. Earlier `fct_player_gameweek` rows are pre-entry (null, `fixture_count` 0), not blanks, and are dropped. |
 | Position | `dim_player.position_id` | |
 | Club per gameweek | `fct_player_fixture.team_fpl_id` | That gameweek's own rows. Club membership is fixed before the deadline, so this leaks no outcome. On a blank, carry the last known club forward. |
-| Price (squad cost) | `fct_player_gameweek.value` at gw − 1, ÷ 10 | Lag 1: the deadline price is not served for 2025-26. |
+| Price (squad cost) | `fct_player_gameweek.value` ÷ 10: the most recent non-null value strictly before gw; with none (GW1, a player's entry week), that gameweek's own value | The deadline price is not served for 2025-26. A blank's row is null, so the gameweek after a blank carries the last known price and the player stays pickable. The listing price is set before the deadline, so the own-week fallback leaks no outcome. NULL only when the player has no value at all. |
 | Budget | — | £100.0m every gameweek. |
-| Ownership weight | `fct_player_gameweek.selected` at gw − 1 | Lag 1; GW1 is uniform. A realism assumption, read only alongside the uniform view. |
+| Ownership weight | `fct_player_gameweek.selected`, by the same rule as price | A realism assumption, read only alongside the uniform view. |
 
 ## Naming
 

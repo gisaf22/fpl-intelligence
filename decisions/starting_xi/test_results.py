@@ -293,8 +293,8 @@ def _provenance(**overrides: object) -> RunProvenance:
     fields: dict[str, object] = {
         "git_sha": "d" * 40,
         "clean_tree": True,
-        "data_source_path": "/data/fpl.db",
-        "data_source_sha256": "e" * 64,
+        "warehouse_run_id": "39064033745",
+        "warehouse_sha256": {"fct_player_fixture.parquet": "e" * 64},
         "pre_registration_sha256": "f" * 64,
         "canonical": True,
         "non_canonical_reasons": (),
@@ -438,7 +438,10 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
         "gameweek_interval": replace(base, gameweek_interval=GameweekIntervalParams(5, 8, 0.9, 99)),
         "squad_interval": replace(base, squad_interval=SquadIntervalParams(5, 0.9, 99)),
         "git_sha": replace(base, provenance=_provenance(git_sha="0" * 40)),
-        "data_source": replace(base, provenance=_provenance(data_source_path="/x.db", data_source_sha256="1" * 64)),
+        "warehouse_pin": replace(
+            base,
+            provenance=_provenance(warehouse_run_id="1", warehouse_sha256={"fct_player_fixture.parquet": "1" * 64}),
+        ),
         "pre_registration_sha256": replace(base, provenance=_provenance(pre_registration_sha256="2" * 64)),
     }
     for field, perturbed in metadata_perturbations.items():
@@ -490,7 +493,7 @@ def test_identity_fields_holds_the_identity_half_and_nothing_from_the_metadata_h
         "canonical",
     }
     flat = json.dumps(fields)
-    for absent in ("ranker_windows", "sampler_diagnostics", "ci_level", "block", "git_sha", "data_source"):
+    for absent in ("ranker_windows", "sampler_diagnostics", "ci_level", "block", "git_sha", "warehouse"):
         assert absent not in flat
 
 
@@ -506,18 +509,20 @@ def test_the_two_interval_parameter_sets_stay_apart_and_only_one_carries_a_block
     assert "block" not in metadata["squad_interval"]
 
 
+@pytest.mark.covers("#29 AC8")
 def test_the_manifest_document_records_run_provenance_outside_the_identity_half() -> None:
-    """Run hygiene: git sha, clean-tree flag, data source path + sha256, the pre-registration's
-    sha256 and the canonical flag are written to T4 under their own key. Only `canonical` is
-    identity (so a forced run can never overwrite a canonical run's directory); the rest would make
-    identical inputs at two commits two different runs, which §7.3's determinism forbids."""
+    """Run hygiene: git sha, clean-tree flag, the pinned warehouse publish's run_id and per-file
+    sha256s, the pre-registration's sha256 and the canonical flag are written to T4 under their
+    own key. Only `canonical` is identity (so a forced run can never overwrite a canonical run's
+    directory); the rest would make identical inputs at two commits two different runs, which
+    §7.3's determinism forbids."""
     manifest = replace(_manifest(), provenance=_provenance(canonical=False, non_canonical_reasons=("dirty_tree",)))
     document = manifest_document(manifest, "abc123")
     assert document["provenance"] == {
         "git_sha": "d" * 40,
         "clean_tree": True,
-        "data_source_path": "/data/fpl.db",
-        "data_source_sha256": "e" * 64,
+        "warehouse_run_id": "39064033745",
+        "warehouse_sha256": {"fct_player_fixture.parquet": "e" * 64},
         "pre_registration_sha256": "f" * 64,
         "canonical": False,
         "non_canonical_reasons": ["dirty_tree"],

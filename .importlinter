@@ -1,6 +1,20 @@
 [importlinter]
 root_packages =
     dal
+    warehouse
+    domain
+    research
+    model
+    serve
+    decisions
+
+[importlinter:contract:warehouse_is_a_leaf]
+name = warehouse reads the served publish and imports nothing project-internal
+type = forbidden
+source_modules =
+    warehouse
+forbidden_modules =
+    dal
     domain
     research
     model

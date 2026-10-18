@@ -1,6 +1,6 @@
 # Starting XI — card
 
-**Stage 3 — Explore. Gates 0–2 passed (Data: partial — warehouse mapping pending).**
+**Stage 3 — Explore. Test design frozen 2026-10-17. Gates 0–1 passed; Gate 2 (Data) pending DATA.md.**
 
 Process: [ANALYSIS_WORKFLOW](https://github.com/gisaf22/.github/blob/main/ANALYSIS_WORKFLOW.md).
 Decisions and their reasons are recorded on the Epic issue; this card summarises them.
@@ -30,21 +30,27 @@ Superseded docs: [`archive/`](archive/).
 - The two existing runs (3821cc93, 4b348fe0) are **dry runs, not results**.
 - `archive/METRIC.md` Appendix A.4 (38.6% season/3-GW PPG ties across GW5–38) is **unverified**.
 
-## 3 Explore (current)
+## 3 Explore (current) — test design, frozen 2026-10-17
 
-- **Baselines:** a grid of points-averages, with denominators {gameweeks elapsed, team had a fixture, appeared, started} × windows {season, last 3}. Plus a decomposition: starts rate × points per appearance. All are unfitted, one idea per rule, and their definitions are frozen before running.
-- `p_play` is its own exercise, later.
-- **Squads:** synthetic, drawn both uniformly and weighted by ownership. Rules must not use any signal the ranker uses.
-- Claims at this stage are descriptive only.
+- **Rules** (unfitted, one idea each). Per-fixture points rates from warehouse `fct_player_fixture`; prediction = rate × the coming gameweek's `fixture_count`.
+  - D1–D4: points ÷ {gameweeks elapsed since entry, team fixtures, appearances (minutes > 0), starts} × windows {season, last 3}.
+  - Decomposition: starts rate (last 3 team fixtures) × season points per appearance.
+  - Floor: a random legal XI.
+- **Missing history:** NULL, ranked last within position. **Ties:** the harness's ascending `player_id` tie-break, `rank_squad` in [`harness.py:234`](harness.py#L234) (key at line 257).
+- **Metric:** XI regret primary; bench-order regret secondary; no-subs regret as sensitivity (§1).
+- **Report per rule:** mean, median, 95% paired block-bootstrap range and P90 of regret; position on a random (0%) → hindsight-ideal (100%) scale. Segments: position, and season phase GW 3–12 / 13–26 / 27–38 (the lens scheme; the characterisation scheme ≤14/≤24 is not used here). DGWs not segmented.
+- **Squads:** synthetic 2025-26, uniform and ownership-weighted. Zero-information weeks are excluded and counted. Ownership weights use the previous gameweek's `fct_player_gameweek.selected` (lag 1), since no pre-deadline snapshot exists for 2025-26; GW1 falls back to uniform. This is a realism assumption, read only alongside the uniform view.
+- Real managers' squads and the human baseline are **not** used here (Stage 5 only), so that data stays unseen.
+- Claims at this stage are descriptive only. `p_play` is its own exercise, later.
 
 ## 4 Decide (next)
 
-- Headroom = best baseline's regret vs zero (the ideal). Failure patterns become hypotheses.
-- Go/no-go threshold to be set before exploring.
+- **Go/no-go:** go to Stage 4 only if there is a clear margin over random, a material spread between rules, and losses cluster in an explainable segment.
+- No threshold against hindsight: the hindsight ideal is a reference only. Failure patterns become hypotheses.
 
 ## 5 Confirm (to pre-register before 2026-27)
 
-- **Squads:** real managers, a random sample by manager ID, excluding Free Hit and Bench Boost weeks.
+- **Squads:** real managers, a random sample by manager ID, excluding Free Hit and Bench Boost weeks. Captured through an fpl-ingest story (not yet created).
 - **Human baseline:** each manager's own XI regret.
 - **To write and commit before looking:** reference, threshold, power simulation (sample size), Holm correction, guardrails, and the decision rule per outcome.
 

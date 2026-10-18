@@ -1,5 +1,5 @@
-"""Acceptance tests for the warehouse rewire (#43): the sampler, the harness and the composition root
-read the pinned warehouse frames, not the local mart.
+"""Acceptance tests for the warehouse rewire (#43) -- the sampler, the harness and the composition root
+read the pinned warehouse frames, not the local mart -- and for the squad modes run on them (#31).
 
 The real fixture under `warehouse/fixtures/` holds two players, too few to fill a squad, so these
 tests write a synthetic pinned snapshot in the publish's own schema and read it through
@@ -200,6 +200,89 @@ def test_build_and_run_replays_the_rule_grid_on_the_warehouse_frames(
     assert set(t2["ranker"]) == set(rankers.rules(SEED))
     assert run.n_squad_weeks == 2 * 2 * len(rankers.rules(SEED))
     assert manifest["provenance"]["warehouse_run_id"] == RUN_ID
+
+
+# Today's uniform squads at GW4-6, three a week, under `SEED` -- captured from `main` at 4bb7ebe,
+# before squad modes existed.
+UNIFORM_SQUAD_SET_ID = "076cc304dfa260ac81cd1db9ea015c16154221ece7bdedef1b7309c68ddb7e6a"
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#31 AC1")
+def test_uniform_mode_draws_todays_squads_byte_for_byte(snapshot: tuple[Path, served.Pin]) -> None:
+    sample = sampler.build_squads(
+        [4, 5, 6], 3, SEED, squad_mode="uniform", season=SEASON, pin=snapshot[1], snapshot_root=snapshot[0]
+    )
+
+    assert sample.squad_set_id == UNIFORM_SQUAD_SET_ID
+
+
+def _agrees_with_random_at_gw4(frames: served.Frames) -> rankers.RankerOutput:
+    """A second random rule: the grid's own at GW4, a differently seeded one elsewhere, so GW4 is a
+    zero-information week for every squad and the other weeks are not."""
+    same = rankers.rules(SEED)["random"](frames).scores
+    other = rankers.rules(SEED + 1)["random"](frames).scores
+    scores = pd.concat([same.loc[same["gw"] == 4], other.loc[other["gw"] != 4]])
+    return rankers.RankerOutput(
+        name="random_reseeded",
+        window=rankers.RULE_WINDOW,
+        scores=scores.sort_values(["player_id", "gw"], ignore_index=True),
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#31 AC4")
+@pytest.mark.parametrize("squad_mode", ["uniform", "ownership"])
+def test_squad_weeks_where_every_rule_picks_the_same_xi_are_excluded_and_counted(
+    snapshot: tuple[Path, served.Pin], tmp_path: Path, squad_mode: str
+) -> None:
+    rank_fns = {"random": rankers.rules(SEED)["random"], "random_reseeded": _agrees_with_random_at_gw4}
+    n_squads, gameweeks = 3, [4, 5, 6]
+    run = starting_xi.build_and_run(
+        rank_fns=rank_fns,
+        gameweeks=gameweeks,
+        n_squads=n_squads,
+        seed=SEED,
+        squad_mode=squad_mode,
+        results_root=tmp_path,
+        allow_dirty=True,
+        allow_off_registration=True,
+        season=SEASON,
+        pin=snapshot[1],
+        snapshot_root=snapshot[0],
+    )
+
+    read_back = results.read(tmp_path, run.run_id)
+    t2, manifest = read_back["squad_weeks"], read_back["manifest"]
+    assert isinstance(t2, pd.DataFrame) and isinstance(manifest, dict)
+    assert 4 not in set(t2["gw"])
+    excluded = manifest["zero_information_excluded"]
+    assert manifest["squad_mode"] == squad_mode
+    assert excluded >= n_squads
+    assert excluded == n_squads * len(gameweeks) - t2[["squad_id", "gw"]].drop_duplicates().shape[0]
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#31 AC5")
+def test_only_gameweeks_4_to_38_are_scored(snapshot: tuple[Path, served.Pin], tmp_path: Path) -> None:
+    run = starting_xi.build_and_run(
+        gameweeks=[2, 3, 4, 5],
+        n_squads=2,
+        seed=SEED,
+        squad_mode="uniform",
+        results_root=tmp_path,
+        allow_dirty=True,
+        allow_off_registration=True,
+        season=SEASON,
+        pin=snapshot[1],
+        snapshot_root=snapshot[0],
+    )
+
+    read_back = results.read(tmp_path, run.run_id)
+    for table in ("squad_weeks", "ordering_replays"):
+        frame = read_back[table]
+        assert isinstance(frame, pd.DataFrame)
+        assert set(frame["gw"]) == {4, 5}, table
 
 
 def _imports_dal_pipeline(path: Path) -> bool:

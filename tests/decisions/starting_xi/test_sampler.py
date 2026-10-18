@@ -24,7 +24,7 @@ import subprocess
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
-from itertools import combinations, product
+from itertools import combinations, pairwise, product
 
 import numpy as np
 import pandas as pd
@@ -634,3 +634,105 @@ def test_importing_the_sampler_pulls_in_no_downstream_layer() -> None:
         "assert not leaked, leaked"
     )
     assert subprocess.run([sys.executable, "-c", program], check=False).returncode == 0
+
+
+# ---------------------------------------------------------------------------
+# #31 — ownership-weighted squads. The weight is the frame's `ownership` column, which
+# `warehouse.served` already derives as lag-1 `selected` (its own tests pin that rule).
+# ---------------------------------------------------------------------------
+
+# Every player costs 4.5 and has a club of his own, so no proposal is ever rejected and an
+# inclusion rate measures the proposal weighting alone.
+_OWNERSHIP_TIERS = (1_000, 2_000, 4_000, 8_000)
+_WEIGHTED_SQUADS = 10_000
+
+
+def _owned_gameweek(ownership: Callable[[str, int, int], float], gws: range = range(1, 3)) -> pd.DataFrame:
+    gameweek = _gameweek(
+        counts={"GK": 8, "DEF": 16, "MID": 16, "FWD": 8},
+        gws=gws,
+        prices=lambda position, slot: 4.5,
+        teams=lambda position, slot, player_id: player_id,
+        debuts=lambda position, slot: 1,
+    )
+    slots = gameweek.groupby(["gw", "position_id"]).cumcount()
+    gameweek["ownership"] = [
+        ownership(POSITION_BY_ID[position_id], int(slot), int(gw))
+        for position_id, slot, gw in zip(gameweek["position_id"], slots, gameweek["gw"], strict=True)
+    ]
+    return gameweek
+
+
+def _tiered(position: str, slot: int, gw: int) -> float:
+    return float(_OWNERSHIP_TIERS[slot % len(_OWNERSHIP_TIERS)])
+
+
+@pytest.mark.covers("#31 AC2")
+def test_weighted_inclusion_rises_with_ownership() -> None:
+    """Tolerance: each tier's inclusion rate beats the tier below by more than 4 standard errors of
+    the difference, and players sharing a tier agree within 4 standard errors."""
+    gameweek = _owned_gameweek(_tiered)
+    sample = sample_squads(_frames(gameweek), [2], _WEIGHTED_SQUADS, 0, squad_mode="ownership")
+
+    rate = sample.squads["player_id"].value_counts().reindex(gameweek["player_id"].unique(), fill_value=0)
+    rate = rate / _WEIGHTED_SQUADS
+    at_gw = gameweek.loc[gameweek["gw"] == 2].set_index("player_id")
+    for position in POSITIONS:
+        players = at_gw.loc[at_gw["position_id"] == _ID_BY_POSITION[position]]
+        tiers = [rate[players.index[players["ownership"] == tier]] for tier in _OWNERSHIP_TIERS]
+        for tier in tiers:
+            p = tier.mean()
+            assert tier.max() - tier.min() < 4 * np.sqrt(2 * p * (1 - p) / _WEIGHTED_SQUADS), position
+        for lower, higher in pairwise(tiers):
+            p_lo, p_hi = lower.mean(), higher.mean()
+            se = np.sqrt((p_lo * (1 - p_lo) + p_hi * (1 - p_hi)) / _WEIGHTED_SQUADS)
+            assert higher.min() - lower.max() > 4 * se, position
+
+
+@pytest.mark.covers("#31 AC2")
+def test_a_player_with_no_ownership_is_never_drawn() -> None:
+    unowned = {"GK": 0, "DEF": 3, "MID": 5, "FWD": 1}
+    gameweek = _owned_gameweek(
+        lambda position, slot, gw: np.nan if slot == unowned[position] else _tiered(position, slot, gw)
+    )
+    sample = sample_squads(_frames(gameweek), [2], 2_000, 0, squad_mode="ownership")
+
+    at_gw = gameweek.loc[gameweek["gw"] == 2]
+    assert not set(sample.squads["player_id"]) & set(at_gw.loc[at_gw["ownership"].isna(), "player_id"])
+
+
+@pytest.mark.covers("#31 AC2")
+@pytest.mark.parametrize("owned_keepers", [0, 1], ids=["no keeper owned", "fewer owned keepers than the quota"])
+def test_a_position_without_enough_owned_players_fails_loudly(owned_keepers: int) -> None:
+    gameweek = _owned_gameweek(
+        lambda position, slot, gw: 0.0 if position == "GK" and slot >= owned_keepers else _tiered(position, slot, gw)
+    )
+    with pytest.raises(ValueError, match=r"gameweek 2.*GK"):
+        sample_squads(_frames(gameweek), [2], 10, 0, squad_mode="ownership")
+
+
+@pytest.mark.covers("#31 AC3")
+def test_gameweek_one_draws_uniformly_in_weighted_mode() -> None:
+    gameweek = _owned_gameweek(_tiered)
+    weighted = sample_squads(_frames(gameweek), [1], 200, 0, squad_mode="ownership")
+    uniform = sample_squads(_frames(gameweek), [1], 200, 0, squad_mode="uniform")
+
+    pd.testing.assert_frame_equal(weighted.squads, uniform.squads)
+    assert weighted.squad_set_id == uniform.squad_set_id
+
+
+@pytest.mark.covers("#31 AC3")
+def test_weighted_mode_does_draw_differently_after_gameweek_one() -> None:
+    """The control for the test above: the same frame at GW2 is weighted, so equality at GW1 is the
+    GW1 rule and not a weighting that never takes effect."""
+    gameweek = _owned_gameweek(_tiered)
+    weighted = sample_squads(_frames(gameweek), [2], 200, 0, squad_mode="ownership")
+    uniform = sample_squads(_frames(gameweek), [2], 200, 0, squad_mode="uniform")
+
+    assert weighted.squad_set_id != uniform.squad_set_id
+
+
+@pytest.mark.covers("#31 AC6")
+def test_an_unknown_squad_mode_is_refused(gameweek: pd.DataFrame) -> None:
+    with pytest.raises(ValueError, match="squad_mode"):
+        sample_squads(_frames(gameweek), [2], 10, 0, squad_mode="popular")

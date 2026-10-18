@@ -227,15 +227,25 @@ def test_a_double_gameweek_has_two_fixtures_in_both_frames(frames: served.Frames
     assert fixtures["fixture_id"].nunique() == 2
 
 
-# --- AC10: GW1 has no lag-1 ---
+# --- AC10: with no earlier value (GW1, entry week), the gameweek's own value ---
 
 
 @pytest.mark.unit
 @pytest.mark.covers("#29 AC10")
-def test_gameweek_one_price_and_ownership_are_null(frames: served.Frames) -> None:
+def test_gameweek_one_uses_its_own_price_and_ownership(frames: served.Frames) -> None:
+    # Source row for 149 at GW1: value 45, selected 3843.
     row = _gameweek_row(frames, LOAN_AND_RETURN, 1)
-    assert pd.isna(row["price"])
-    assert pd.isna(row["ownership"])
+    assert row["price"] == pytest.approx(4.5)
+    assert row["ownership"] == 3843
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#29 AC10")
+def test_an_entry_week_uses_its_own_price_and_ownership(frames: served.Frames) -> None:
+    # 691 enters at GW2 (GW1 is a null pre-entry row); its GW2 row has value 55, selected 6667.
+    row = _gameweek_row(frames, LATE_ENTRANT, 2)
+    assert row["price"] == pytest.approx(5.5)
+    assert row["ownership"] == 6667
 
 
 # --- AC11 (proposed): no gameweek row before a player's entry ---

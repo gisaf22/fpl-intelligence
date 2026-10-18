@@ -196,9 +196,13 @@ def load(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_
     gameweek = gameweek[gameweek["gw"] >= gameweek["entry_gw"]].reset_index(drop=True)
 
     by_player = gameweek.groupby("player_id")
-    # Most recent non-null value strictly before gw: shift, then carry forward within the player.
-    gameweek["price"] = by_player["value"].shift(1).groupby(gameweek["player_id"]).ffill() / 10
-    gameweek["ownership"] = by_player["selected"].shift(1).groupby(gameweek["player_id"]).ffill()
+    # Most recent non-null value strictly before gw (shift, then carry forward within the player).
+    # With none -- the entry week, or GW1 -- the gameweek's own value: the listing price and
+    # ownership are set before the deadline, so they leak no outcome.
+    for source, target in (("value", "price"), ("selected", "ownership")):
+        prior = by_player[source].shift(1).groupby(gameweek["player_id"]).ffill()
+        gameweek[target] = prior.fillna(gameweek[source])
+    gameweek["price"] = gameweek["price"] / 10
 
     clubs = fixture.groupby(["player_id", "gw"])["team_id"].first().rename("team_id")
     gameweek = gameweek.join(clubs, on=["player_id", "gw"])

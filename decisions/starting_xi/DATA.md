@@ -22,9 +22,9 @@ manifest records both. A run whose input hashes differ from its pin is refused.
 | Entry gameweek | `fct_player_fixture` | The player's first gameweek with a fixture row. Earlier `fct_player_gameweek` rows are pre-entry (null, `fixture_count` 0), not blanks, and are dropped. |
 | Position | `dim_player.position_id` | |
 | Club per gameweek | `fct_player_fixture.team_fpl_id` | That gameweek's own rows. Club membership is fixed before the deadline, so this leaks no outcome. On a blank, carry the last known club forward. |
-| Price (squad cost) | `fct_player_gameweek.value` ÷ 10, the most recent non-null value strictly before gw | The deadline price is not served for 2025-26. A blank's row is null, so the gameweek after a blank carries the last known price and the player stays pickable. GW1 is NULL. |
+| Price (squad cost) | `fct_player_gameweek.value` ÷ 10: the most recent non-null value strictly before gw; with none (GW1, a player's entry week), that gameweek's own value | The deadline price is not served for 2025-26. A blank's row is null, so the gameweek after a blank carries the last known price and the player stays pickable. The listing price is set before the deadline, so the own-week fallback leaks no outcome. NULL only when the player has no value at all. |
 | Budget | — | £100.0m every gameweek. |
-| Ownership weight | `fct_player_gameweek.selected`, the most recent non-null value strictly before gw | Same rule as price; GW1 is NULL (uniform). A realism assumption, read only alongside the uniform view. |
+| Ownership weight | `fct_player_gameweek.selected`, by the same rule as price | A realism assumption, read only alongside the uniform view. |
 
 ## Naming
 

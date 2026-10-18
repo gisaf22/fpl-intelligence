@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -113,6 +114,49 @@ def test_an_empty_phase_is_listed_with_no_squad_weeks() -> None:
     late = phases.loc[("uniform", "random", "27-38")]
     assert late["n"] == 0
     assert late["mean"] is None
+
+
+def _bench_order_panel() -> list[dict[str, object]]:
+    """`random` over gw 4-15, one squad. A substitution fires in even gameweeks, where the best
+    permutation beats the primary ordering by gw % 3. In odd gameweeks none fires, and
+    `best_permutation_total` is set 5 above the chosen total to show it is not read there."""
+    rows = []
+    for gw in range(4, 16):
+        fired = gw % 2 == 0
+        row = _row("s0", gw, "random", 3.0)
+        row["substitution_fired"] = fired
+        row["best_permutation_total"] = float(row["chosen_xi_points"]) + (gw % 3 if fired else 5.0)  # type: ignore[arg-type]
+        rows.append(row)
+    return rows
+
+
+@pytest.mark.covers("#32 AC1")
+def test_bench_order_regret_is_zero_where_no_substitution_fired_and_summarised_over_all_squad_weeks() -> None:
+    expected = pd.Series([float(gw % 3) if gw % 2 == 0 else 0.0 for gw in range(4, 16)])
+    random = report.build([_artefact(_bench_order_panel())]).rules.loc[("uniform", "random")]
+    assert random["bench_order_mean"] == pytest.approx(expected.mean())
+    assert random["bench_order_median"] == pytest.approx(expected.median())
+    assert random["bench_order_p90"] == pytest.approx(expected.quantile(0.9))
+
+
+@pytest.mark.covers("#32 AC1")
+def test_bench_order_regret_conditional_on_a_substitution_firing_has_no_range() -> None:
+    fired = pd.Series([float(gw % 3) for gw in range(4, 16) if gw % 2 == 0])
+    table = report.build([_artefact(_bench_order_panel())]).rules
+    random = table.loc[("uniform", "random")]
+    assert random["bench_order_fired_n"] == len(fired)
+    assert random["bench_order_fired_mean"] == pytest.approx(fired.mean())
+    assert random["bench_order_fired_median"] == pytest.approx(fired.median())
+    assert random["bench_order_fired_p90"] == pytest.approx(fired.quantile(0.9))
+    assert not {c for c in table.columns if c.startswith("bench_order_fired_ci")}
+
+
+@pytest.mark.covers("#32 AC5")
+def test_the_all_squad_weeks_bench_order_range_bootstraps_the_zero_filled_series() -> None:
+    series = np.array([float(gw % 3) if gw % 2 == 0 else 0.0 for gw in range(4, 16)])
+    random = report.build([_artefact(_bench_order_panel())]).rules.loc[("uniform", "random")]
+    lo, hi = gameweek_block_ci(series, n_scoreable_gw=len(series))
+    assert (random["bench_order_ci_lo"], random["bench_order_ci_hi"]) == pytest.approx((lo, hi))
 
 
 # ---------------------------------------------------------------------------

@@ -41,6 +41,7 @@ from decisions.free_hit.evaluate import (
     selection_regret,
 )
 from decisions.free_hit.gameweek_population import WARM_UP_EXCLUDED, qualifying_gameweeks
+from decisions.starting_xi import rankers
 from domain.fpl_squad import BUDGET_CAP_TENTHS, SQUAD_SELECT, SQUAD_SIZE
 from warehouse import served
 
@@ -257,12 +258,11 @@ def test_rank_season_ppg_scores_players_independently() -> None:
 
 
 def test_rank_season_ppg_reports_the_study_window_and_a_distinct_name() -> None:
-    """`LOCAL_SEASON_PPG`'s docstring: the name must not collide with `rankers.F2_SEASON_PPG`,
-    which is frozen in `decisions/starting_xi/PRE_REGISTRATION.yaml` against a different module."""
+    """`LOCAL_SEASON_PPG`'s docstring: the name must not collide with a pre-registered starting_xi rule."""
     output = rank_season_ppg(_frames(pd.DataFrame({"player_id": [1], "gw": [1], "total_points": [3]})))
     assert output.window == STUDY_WINDOW
     assert output.name == LOCAL_SEASON_PPG
-    assert output.name != "F2_season_ppg"
+    assert output.name not in rankers.rules(0)
     assert list(output.scores.columns) == ["player_id", "gw", "score"]
 
 

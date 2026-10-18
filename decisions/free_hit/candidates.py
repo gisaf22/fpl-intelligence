@@ -54,7 +54,7 @@ import numpy as np
 import pandas as pd
 
 from decisions.free_hit.feasibility import _Pool, can_complete
-from domain.fpl_squad import MAX_PER_CLUB, POSITIONS, SQUAD_SIZE
+from domain.fpl_squad import MAX_PER_CLUB, POSITIONS, SQUAD_SIZE, price_in_tenths
 
 RECENT_FORM_WINDOW: Final[int] = 3
 """Rolling-PPG window for C3's "recent form" signal. `DESIGN.md` does not pin a window; 3 matches
@@ -188,18 +188,6 @@ class _Candidate:
     score: float
 
 
-def _price_tenths(price: float) -> int:
-    """Convert a mart price to integer tenths -- the unit the budget cap is exact in.
-
-    Reimplemented from `decisions.starting_xi.sampler._price_tenths`'s exact check rather than
-    imported, for the same self-containment reason as the rest of this module.
-    """
-    tenths = price * 10.0
-    if abs(tenths - round(tenths)) > 1e-6:
-        raise ValueError(f"purchase_price {price!r} is not quoted in tenths")
-    return round(tenths)
-
-
 def derive_signals(mart: pd.DataFrame) -> pd.DataFrame:
     """Every derived signal `build_candidates` reads, computed once over the whole mart.
 
@@ -281,7 +269,7 @@ def build_candidates(
         _Candidate(
             player_id=int(row.player_id),
             position=str(row.position),
-            price_tenths=_price_tenths(float(row.purchase_price)),
+            price_tenths=int(price_in_tenths(float(row.purchase_price))),
             team_id=int(row.team_id),
             season_ppg=float(row.season_ppg),
             recent_form_ppg=float(row.recent_form_ppg),

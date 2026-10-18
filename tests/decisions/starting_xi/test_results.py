@@ -7,7 +7,7 @@ executed rather than described:
   what a reader needs, so an in-process assertion cannot make it: the session has already imported
   `dal` and `model`. A child interpreter reads the written artefact, reconstructs every quantity
   the results document reports -- §0.1's regret distribution, §4.4's ordering regret against
-  §0.10's absolute counterfactual, §4.6's counts -- and asserts it never imported the harness, the
+  §0.10's absolute counterfactual -- and asserts it never imported the harness, the
   sampler or `dal`.
 * **§7.3's determinism is checked by exhaustion over the identity fields.** Every single-field
   perturbation of §7.3's identity half must move `run_id`, and every perturbation of the metadata
@@ -15,8 +15,7 @@ executed rather than described:
   metadata both fail.
 * **Where a test could pass while blind, the wrong version runs beside the right one.** The
   round-trip is asserted against frames built independently of the module; the schema check is
-  shown to reject a real violation before it is trusted; and the T1 gap is asserted to raise rather
-  than being noted in a docstring.
+  shown to reject a real violation before it is trusted.
 """
 
 from __future__ import annotations
@@ -33,53 +32,29 @@ import pandas as pd
 import pytest
 
 from decisions.starting_xi.results import (
-    STATUSES,
-    T1_COLUMNS,
     T2_COLUMNS,
     T2_FILE,
-    T3_COLUMNS,
-    T3_FILE,
     T4_FILE,
     T5_COLUMNS,
     T5_FILE,
     GameweekIntervalParams,
     Manifest,
     RunProvenance,
-    SquadIntervalParams,
-    T1HasNoProducer,
     identity_fields,
     manifest_document,
     read,
     run_id,
     stamp,
     write,
-    write_t1,
 )
 
 pytestmark = pytest.mark.unit
 
 
-# `DESIGN.md` §7.2's four schemas, written out here and nowhere in the module. A column added,
+# `DESIGN.md` §7.2's two schemas, written out here and nowhere in the module. A column added,
 # removed, renamed or reordered in `results.py` without §7.2 moving fails here. T2's list is the
 # one §7.2 carries after this week's two corrections -- the realised/as-of split for C1, and
 # `best_permutation_total` for §0.10's absolute counterfactual.
-DESIGN_T1 = (
-    "run_id",
-    "squad_id",
-    "gw",
-    "ranker",
-    "player_id",
-    "position",
-    "score",
-    "rank",
-    "is_unrankable",
-    "no_fixture",
-    "selected",
-    "bench_slot",
-    "entered_as_sub",
-    "minutes_recorded",
-    "points",
-)
 DESIGN_T2 = (
     "run_id",
     "squad_id",
@@ -103,34 +78,6 @@ DESIGN_T2 = (
     "uncovered_blank",
     "no_fixture_rule_changed_xi",
     "best_permutation_total",
-)
-DESIGN_T3 = (
-    "run_id",
-    "comparison_id",
-    "rankers",
-    "window_first_gw",
-    "window_last_gw",
-    "n_scoreable_gw",
-    "floor_ranker",
-    "floor_mean_regret",
-    "candidate_mean_regret",
-    "abs_reduction",
-    "rel_reduction",
-    "ci_squads_lo",
-    "ci_squads_hi",
-    "ci_gw_lo",
-    "ci_gw_hi",
-    "crit_direction",
-    "crit_significance",
-    "crit_materiality",
-    "passed",
-    "status",
-    "status_reason",
-    "n_zero_gap_excluded",
-    "substitution_count",
-    "uncovered_blank_count",
-    "ordering_relevant_count",
-    "no_fixture_rule_count",
 )
 DESIGN_T5 = (
     "run_id",
@@ -210,69 +157,6 @@ def _t5(t2: pd.DataFrame, orderings: Sequence[str] = ("by_rank", "reversed")) ->
     return pd.DataFrame(rows, columns=[c for c in DESIGN_T5 if c != "run_id"])
 
 
-def _t3() -> pd.DataFrame:
-    """T3, already assembled -- including §4.6's B2, which §7.2.1 computes at assembly."""
-    rows = [
-        {
-            "comparison_id": "c1",
-            "rankers": "F1|F2",
-            "window_first_gw": 4,
-            "window_last_gw": 5,
-            "n_scoreable_gw": 2,
-            "floor_ranker": "F1",
-            "floor_mean_regret": 2.0,
-            "candidate_mean_regret": 1.5,
-            "abs_reduction": 0.5,
-            "rel_reduction": 0.25,
-            "ci_squads_lo": 0.1,
-            "ci_squads_hi": 0.9,
-            "ci_gw_lo": 0.05,
-            "ci_gw_hi": 0.95,
-            "crit_direction": True,
-            "crit_significance": True,
-            "crit_materiality": True,
-            "passed": True,
-            "status": "evaluated",
-            "status_reason": None,
-            "n_zero_gap_excluded": 4,
-            "substitution_count": 6,
-            "uncovered_blank_count": 2,
-            "ordering_relevant_count": 3,
-            "no_fixture_rule_count": 1,
-        },
-        {
-            "comparison_id": "c2",
-            "rankers": "F1|F3",
-            "window_first_gw": 4,
-            "window_last_gw": 5,
-            "n_scoreable_gw": 2,
-            "floor_ranker": "F1",
-            "floor_mean_regret": 2.0,
-            "candidate_mean_regret": 2.0,
-            "abs_reduction": 0.0,
-            "rel_reduction": 0.0,
-            # §7.5: intervals null and `crit_significance` null -- **not** false -- when the
-            # comparison could not be evaluated. The writer must round-trip null as null.
-            "ci_squads_lo": None,
-            "ci_squads_hi": None,
-            "ci_gw_lo": None,
-            "ci_gw_hi": None,
-            "crit_direction": False,
-            "crit_significance": None,
-            "crit_materiality": False,
-            "passed": None,
-            "status": "underpowered",
-            "status_reason": "fewer than four scoreable gameweeks",
-            "n_zero_gap_excluded": 4,
-            "substitution_count": 6,
-            "uncovered_blank_count": 2,
-            "ordering_relevant_count": 0,
-            "no_fixture_rule_count": 1,
-        },
-    ]
-    return pd.DataFrame(rows, columns=[c for c in DESIGN_T3 if c != "run_id"])
-
-
 def _manifest() -> Manifest:
     return Manifest(
         mart_pin={
@@ -295,12 +179,7 @@ def _manifest() -> Manifest:
         sampler_diagnostics=[{"gw": 4, "acceptance_rate": 0.21}, {"gw": 5, "acceptance_rate": 0.19}],
         zero_information_squad_weeks=2,
         gameweek_interval=GameweekIntervalParams(n=10000, block=4, ci_level=0.95, seed=1),
-        squad_interval=SquadIntervalParams(n=10000, ci_level=0.95, seed=2),
-        floor_method={"rule": "lowest_mean_regret_per_comparison", "rankers": {"F1": (4, 38), "F2": (2, 38)}},
-        materiality={"threshold": 0.10, "relative_to": "floor_mean_regret"},
-        success_criteria=("crit_direction", "crit_significance", "crit_materiality"),
         construction="weekly",
-        squad_interval_stratified_by="gw",
         provenance=_provenance(),
     )
 
@@ -325,11 +204,9 @@ def _provenance(**overrides: object) -> RunProvenance:
 
 
 def test_the_module_carries_exactly_the_columns_section_7_2_specifies() -> None:
-    """The drift test. §7.2's four schemas are written out in this file and compared to the
+    """The drift test. §7.2's schemas are written out in this file and compared to the
     module's, so a column that moves in one without moving in the other fails here."""
-    assert T1_COLUMNS == DESIGN_T1
     assert T2_COLUMNS == DESIGN_T2
-    assert T3_COLUMNS == DESIGN_T3
     assert T5_COLUMNS == DESIGN_T5
 
 
@@ -349,17 +226,16 @@ def test_stamp_puts_run_id_first_and_preserves_section_7_2_order() -> None:
     pd.testing.assert_frame_equal(stamped.drop(columns=["run_id"]), t2)
 
 
-@pytest.mark.parametrize("table", ["t2", "t5", "t3"])
+@pytest.mark.parametrize("table", ["t2", "t5"])
 def test_a_frame_missing_a_column_is_rejected_rather_than_written(table: str, tmp_path: Path) -> None:
     """The schema check is shown to reject a real violation before it is trusted. §7.1's guarantee
     is that the artefact is readable from §7.2 alone, which is false the moment a column is
     missing -- so this fails at the boundary rather than producing an unreadable artefact."""
-    t2, t3 = _t2(), _t3()
-    t5 = _t5(t2)
-    frames = {"t2": t2, "t5": t5, "t3": t3}
+    t2 = _t2()
+    frames = {"t2": t2, "t5": _t5(t2)}
     frames[table] = frames[table].drop(columns=[frames[table].columns[-1]])
     with pytest.raises(ValueError, match=r"§7\.2's schema"):
-        write(frames["t2"], frames["t5"], frames["t3"], _manifest(), tmp_path)
+        write(frames["t2"], frames["t5"], _manifest(), tmp_path)
     assert not list(tmp_path.iterdir()), "a rejected write left files behind"
 
 
@@ -368,7 +244,7 @@ def test_an_extra_column_is_rejected_as_loudly_as_a_missing_one(tmp_path: Path) 
     t2 = _t2()
     t2["surprise"] = 1.0
     with pytest.raises(ValueError, match="extra=\\['surprise'\\]"):
-        write(t2, _t5(_t2()), _t3(), _manifest(), tmp_path)
+        write(t2, _t5(_t2()), _manifest(), tmp_path)
 
 
 def test_a_reordered_frame_is_rejected_so_the_stored_order_is_section_7_2s() -> None:
@@ -378,16 +254,6 @@ def test_a_reordered_frame_is_rejected_so_the_stored_order_is_section_7_2s() -> 
     shuffled = t2.loc[:, [t2.columns[1], t2.columns[0], *t2.columns[2:]]]
     with pytest.raises(ValueError, match="column order differs"):
         stamp(shuffled, "abc123", T2_COLUMNS)
-
-
-def test_a_status_outside_section_7_5s_three_is_rejected(tmp_path: Path) -> None:
-    """§7.5 defines three values and turns on the difference between null and false. A fourth
-    would leave an unevaluated comparison indistinguishable from a failed one."""
-    t3 = _t3()
-    t3.loc[0, "status"] = "ok"
-    with pytest.raises(ValueError, match="status values"):
-        write(_t2(), _t5(_t2()), t3, _manifest(), tmp_path)
-    assert STATUSES == {"evaluated", "underpowered", "not_evaluable"}
 
 
 # ---------------------------------------------------------------------------
@@ -403,7 +269,7 @@ def test_run_id_is_deterministic_across_calls_and_across_processes() -> None:
     assert run_id(manifest) == run_id(_manifest())
     program = (
         "import json;"
-        "from decisions.starting_xi.results import run_id, Manifest, GameweekIntervalParams, SquadIntervalParams,"
+        "from decisions.starting_xi.results import run_id, Manifest, GameweekIntervalParams,"
         " RunProvenance;"
         f"m = Manifest(mart_pin={dict(manifest.mart_pin)!r}, bench_order={tuple(manifest.bench_order)!r},"
         f" master_seed={manifest.master_seed!r}, squad_mode={manifest.squad_mode!r},"
@@ -412,10 +278,7 @@ def test_run_id_is_deterministic_across_calls_and_across_processes() -> None:
         f" sampler_diagnostics={list(manifest.sampler_diagnostics)!r},"
         f" zero_information_squad_weeks={manifest.zero_information_squad_weeks!r},"
         " gameweek_interval=GameweekIntervalParams(n=10000, block=4, ci_level=0.95, seed=1),"
-        " squad_interval=SquadIntervalParams(n=10000, ci_level=0.95, seed=2),"
-        f" floor_method={dict(manifest.floor_method)!r}, materiality={dict(manifest.materiality)!r},"
-        f" success_criteria={tuple(manifest.success_criteria)!r}, construction={manifest.construction!r},"
-        f" squad_interval_stratified_by={manifest.squad_interval_stratified_by!r},"
+        f" construction={manifest.construction!r},"
         f" provenance=RunProvenance(**{dict(vars(manifest.provenance))!r}));"
         "print(run_id(m))"
     )
@@ -441,11 +304,7 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
         "squad_mode": replace(base, squad_mode="ownership"),
         "squad_set_id": replace(base, squad_set_id="c" * 64),
         "build_gameweeks": replace(base, build_gameweeks=(4, 5, 6)),
-        "floor_method": replace(base, floor_method={**base.floor_method, "rankers": {"F1": (2, 38)}}),
-        "materiality": replace(base, materiality={**base.materiality, "threshold": 0.05}),
-        "success_criteria": replace(base, success_criteria=("crit_direction", "crit_materiality")),
         "construction": replace(base, construction="build_once"),
-        "squad_interval_stratified_by": replace(base, squad_interval_stratified_by="none"),
         "canonical": replace(base, provenance=_provenance(canonical=False, non_canonical_reasons=("dirty_tree",))),
     }
     for field, perturbed in identity_perturbations.items():
@@ -456,7 +315,6 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
         "sampler_diagnostics": replace(base, sampler_diagnostics=[{"gw": 4, "acceptance_rate": 0.99}]),
         "zero_information_squad_weeks": replace(base, zero_information_squad_weeks=5),
         "gameweek_interval": replace(base, gameweek_interval=GameweekIntervalParams(5, 8, 0.9, 99)),
-        "squad_interval": replace(base, squad_interval=SquadIntervalParams(5, 0.9, 99)),
         "git_sha": replace(base, provenance=_provenance(git_sha="0" * 40)),
         "warehouse_pin": replace(
             base,
@@ -506,11 +364,7 @@ def test_identity_fields_holds_the_identity_half_and_nothing_from_the_metadata_h
         "squad_mode",
         "squad_set_id",
         "build_gameweeks",
-        "floor_method",
-        "materiality",
-        "success_criteria",
         "construction",
-        "squad_interval_stratified_by",
         "canonical",
     }
     flat = json.dumps(fields)
@@ -518,16 +372,11 @@ def test_identity_fields_holds_the_identity_half_and_nothing_from_the_metadata_h
         assert absent not in flat
 
 
-def test_the_two_interval_parameter_sets_stay_apart_and_only_one_carries_a_block() -> None:
-    """§7.3: recorded per interval, "because there are two sets and they differ". The squad
-    interval has no `block` -- squads are unordered (§10.1) -- and merging them would leave a
-    reader unable to tell which parameters produced which of T3's two column pairs."""
+def test_the_gameweek_interval_parameters_are_recorded_as_metadata() -> None:
     document = manifest_document(_manifest(), "abc123")
     metadata = document["metadata"]
     assert isinstance(metadata, dict)
     assert set(metadata["gameweek_interval"]) == {"n", "block", "ci_level", "seed"}
-    assert set(metadata["squad_interval"]) == {"n", "ci_level", "seed"}
-    assert "block" not in metadata["squad_interval"]
 
 
 @pytest.mark.covers("#29 AC8")
@@ -552,9 +401,6 @@ def test_the_manifest_document_records_run_provenance_outside_the_identity_half(
     assert isinstance(identity, dict)
     assert identity["canonical"] is False
     assert identity["construction"] == "weekly"
-    assert identity["squad_interval_stratified_by"] == "gw"
-    assert identity["success_criteria"] == ["crit_direction", "crit_significance", "crit_materiality"]
-    assert identity["materiality"] == {"relative_to": "floor_mean_regret", "threshold": 0.10}
 
 
 def test_a_canonical_run_cannot_carry_non_canonical_reasons() -> None:
@@ -580,20 +426,20 @@ def test_an_empty_or_duplicated_bench_order_is_rejected() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_write_emits_the_four_files_it_can_and_returns_the_run_id(tmp_path: Path) -> None:
+def test_write_emits_the_three_files_and_returns_the_run_id(tmp_path: Path) -> None:
     t2 = _t2()
-    identifier = write(t2, _t5(t2), _t3(), _manifest(), tmp_path)
+    identifier = write(t2, _t5(t2), _manifest(), tmp_path)
     assert identifier == run_id(_manifest())
     directory = tmp_path / identifier
-    assert sorted(p.name for p in directory.iterdir()) == sorted([T2_FILE, T3_FILE, T5_FILE, T4_FILE])
+    assert sorted(p.name for p in directory.iterdir()) == sorted([T2_FILE, T5_FILE, T4_FILE])
 
 
 def test_writing_the_same_run_twice_is_idempotent(tmp_path: Path) -> None:
     """§7.3's determinism is only useful if identical inputs land in the same place. Re-running
     rewrites the same directory rather than creating a second one."""
     t2 = _t2()
-    first = write(t2, _t5(t2), _t3(), _manifest(), tmp_path)
-    second = write(t2, _t5(t2), _t3(), _manifest(), tmp_path)
+    first = write(t2, _t5(t2), _manifest(), tmp_path)
+    second = write(t2, _t5(t2), _manifest(), tmp_path)
     assert first == second
     assert [p.name for p in tmp_path.iterdir()] == [first]
 
@@ -602,8 +448,8 @@ def test_two_different_runs_cannot_overwrite_each_other(tmp_path: Path) -> None:
     """The property the per-run subdirectory buys, and the reason for choosing it (§7.4 is silent).
     A flat layout would have the second run destroy the first's files under the same names."""
     t2 = _t2()
-    first = write(t2, _t5(t2), _t3(), _manifest(), tmp_path)
-    second = write(t2, _t5(t2), _t3(), replace(_manifest(), master_seed=99), tmp_path)
+    first = write(t2, _t5(t2), _manifest(), tmp_path)
+    second = write(t2, _t5(t2), replace(_manifest(), master_seed=99), tmp_path)
     assert first != second
     assert sorted(p.name for p in tmp_path.iterdir()) == sorted([first, second])
     assert (tmp_path / first / T2_FILE).exists() and (tmp_path / second / T2_FILE).exists()
@@ -614,19 +460,17 @@ def test_the_artefact_round_trips_every_frame_including_nulls_and_list_columns(t
     back through the module's own writer alone: the expected values are the fixtures plus a stamped
     `run_id`, so a writer that mangled a column fails here.
 
-    Two columns are the ones a naive writer loses. T5's `entered_outfield` is a tuple per row, and
-    T3's null intervals are §7.5's "null is not false" -- a writer coercing either would pass a
-    row-count check and destroy the artefact's meaning.
+    T5's `entered_outfield` is a tuple per row, the column a naive writer loses -- a writer
+    coercing it would pass a row-count check and destroy the artefact's meaning.
     """
     t2 = _t2()
-    t5, t3 = _t5(t2), _t3()
-    identifier = write(t2, t5, t3, _manifest(), tmp_path)
+    t5 = _t5(t2)
+    identifier = write(t2, t5, _manifest(), tmp_path)
     back = read(tmp_path, identifier)
 
     for name, original, columns in (
         ("squad_weeks", t2, DESIGN_T2),
         ("ordering_replays", t5, DESIGN_T5),
-        ("comparisons", t3, DESIGN_T3),
     ):
         frame = back[name]
         assert isinstance(frame, pd.DataFrame)
@@ -638,41 +482,10 @@ def test_the_artefact_round_trips_every_frame_including_nulls_and_list_columns(t
     assert isinstance(replays, pd.DataFrame)
     assert [tuple(v) for v in replays["entered_outfield"]] == list(t5["entered_outfield"])
 
-    comparisons = back["comparisons"]
-    assert isinstance(comparisons, pd.DataFrame)
-    underpowered = comparisons.loc[comparisons["comparison_id"] == "c2"].iloc[0]
-    assert pd.isna(underpowered["ci_squads_lo"]) and pd.isna(underpowered["ci_gw_hi"])
-    assert underpowered["crit_significance"] is None or pd.isna(underpowered["crit_significance"])
-    assert bool(comparisons.loc[comparisons["comparison_id"] == "c1"].iloc[0]["crit_significance"]) is True
-
-
-def test_a_writer_coercing_nulls_to_false_would_fail_that_round_trip(tmp_path: Path) -> None:
-    """§7.5's rule executed as a counterfactual rather than cited: "Null is not false". A
-    comparison that could not be evaluated must not read as one that failed, so the wrong version
-    -- filling `crit_significance` -- is constructed here and shown to differ from what was
-    written."""
-    t3 = _t3()
-    identifier = write(_t2(), _t5(_t2()), t3, _manifest(), tmp_path)
-    stored = read(tmp_path, identifier)["comparisons"]
-    assert isinstance(stored, pd.DataFrame)
-
-    # What was written: null survives as null on the underpowered row, true stays true on the other.
-    underpowered = stored.loc[stored["comparison_id"] == "c2", "crit_significance"].iloc[0]
-    evaluated = stored.loc[stored["comparison_id"] == "c1", "crit_significance"].iloc[0]
-    assert pd.isna(underpowered), "null was coerced; §7.5 turns on null not being false"
-    assert bool(evaluated) is True
-
-    # The wrong version, constructed and shown to differ: a writer filling nulls would make the
-    # two rows indistinguishable from "evaluated and failed", which is what §7.5 forbids.
-    coerced = stored["crit_significance"].fillna(False)
-    assert coerced.loc[stored["comparison_id"] == "c2"].iloc[0] is not underpowered
-    assert not coerced.isna().any()
-    assert stored["crit_significance"].isna().any(), "the artefact carries no null to distinguish"
-
 
 def test_the_manifest_is_json_a_reviewer_can_diff(tmp_path: Path) -> None:
     """§7.4: T4 is JSON "because it is the thing a human reads first and a reviewer diffs"."""
-    identifier = write(_t2(), _t5(_t2()), _t3(), _manifest(), tmp_path)
+    identifier = write(_t2(), _t5(_t2()), _manifest(), tmp_path)
     text = (tmp_path / identifier / T4_FILE).read_text(encoding="utf-8")
     document = json.loads(text)
     assert document["run_id"] == identifier
@@ -694,11 +507,11 @@ def test_the_results_document_is_producible_from_the_artefact_without_the_harnes
     What the child reconstructs is not a token read -- it is every quantity §7.1 names plus the two
     this week's corrections added: §0.1's regret and its distribution from T2, §0.8's closeness gap
     from the **as-of** pair, §4.4's ordering regret against §0.10's absolute counterfactual by
-    joining T5 to T2's `best_permutation_total`, and §4.6's counts from T3. If any of those needed
+    joining T5 to T2's `best_permutation_total`. If any of those needed
     the harness or the mart, the child fails.
     """
     t2 = _t2()
-    identifier = write(t2, _t5(t2), _t3(), _manifest(), tmp_path)
+    identifier = write(t2, _t5(t2), _manifest(), tmp_path)
     program = f"""
 import sys, json
 from pathlib import Path
@@ -706,7 +519,7 @@ import pandas as pd
 from decisions.starting_xi.results import read
 
 art = read(Path({str(tmp_path)!r}), {identifier!r})
-t2, t5, t3 = art["squad_weeks"], art["ordering_replays"], art["comparisons"]
+t2, t5 = art["squad_weeks"], art["ordering_replays"]
 
 # §0.1 -- regret and its distribution (P3 is the worst weeks, not a mean).
 assert (t2["regret"] == t2["best_legal_xi_points"] - t2["chosen_xi_points"]).all()
@@ -720,10 +533,6 @@ joined = t5.merge(t2[["run_id", "squad_id", "gw", "ranker", "best_permutation_to
                   on=["run_id", "squad_id", "gw", "ranker"], validate="many_to_one")
 regret = joined["best_permutation_total"] - joined["realised_total"]
 assert (regret >= -1e-9).all()
-
-# §4.6 -- the counts, read off T3 where assembly wrote them.
-assert set(t3["status"]) <= {{"evaluated", "underpowered", "not_evaluable"}}
-assert int(t3["ordering_relevant_count"].sum()) >= 0
 
 # §7.3 -- the manifest reads back and names the run.
 assert art["manifest"]["run_id"] == {identifier!r}
@@ -743,7 +552,7 @@ def test_that_reconstruction_would_fail_without_the_column_this_week_added(tmp_p
     as blocked before the column existed. Dropping it breaks the join, which is what makes the
     reconstruction above evidence rather than decoration."""
     t2 = _t2()
-    identifier = write(t2, _t5(t2), _t3(), _manifest(), tmp_path)
+    identifier = write(t2, _t5(t2), _manifest(), tmp_path)
     back = read(tmp_path, identifier)
     stored, replays = back["squad_weeks"], back["ordering_replays"]
     assert isinstance(stored, pd.DataFrame)
@@ -758,32 +567,6 @@ def test_that_reconstruction_would_fail_without_the_column_this_week_added(tmp_p
     without = stored.drop(columns=["best_permutation_total"])
     with pytest.raises(KeyError):
         replays.merge(without[[*key, "best_permutation_total"]], on=key, validate="many_to_one")
-
-
-# ---------------------------------------------------------------------------
-# §5.1 -- T1 has no producer
-# ---------------------------------------------------------------------------
-
-
-def test_t1_is_specified_but_no_module_produces_it_and_the_writer_says_so() -> None:
-    """§7.2 specifies T1 and §5.1's row says this module "writes T1-T5" -- but its *Takes* column
-    does not hand it T1, and §7.8 forbids it reading data of its own. `DESIGN.md`'s Provenance
-    already records the same gap from the harness side and states that assigning T1's producer is
-    a §5.1 pass. Asserted as a raise rather than left as a comment, so the gap cannot be closed by
-    accident with an empty frame that satisfies a schema check and carries none of the three
-    findings §7.1 says T1 exists to make representable."""
-    with pytest.raises(T1HasNoProducer):
-        write_t1(pd.DataFrame())
-    assert issubclass(T1HasNoProducer, NotImplementedError)
-
-
-def test_the_writer_does_not_silently_emit_a_t1_file(tmp_path: Path) -> None:
-    """The other half: `write` must not invent one either."""
-    t2 = _t2()
-    identifier = write(t2, _t5(t2), _t3(), _manifest(), tmp_path)
-    names = [p.name for p in (tmp_path / identifier).iterdir()]
-    assert not any("selection" in name for name in names)
-    assert len(names) == 4
 
 
 # ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from dal.staging.stg_entities import get_staged_element_types
@@ -67,3 +68,16 @@ def test_budget_cap_tenths_matches_the_float_cap() -> None:
 def test_the_constants_are_immutable() -> None:
     with pytest.raises(TypeError):
         fpl_squad.SQUAD_SELECT["GK"] = 3  # type: ignore[index]
+
+
+@pytest.mark.covers("#33 AC4 (proposed)")
+def test_prices_convert_to_exact_integer_tenths() -> None:
+    assert fpl_squad.price_in_tenths(np.array([4.5, 10.0, 14.1])).tolist() == [45, 100, 141]
+    assert int(fpl_squad.price_in_tenths(5.5)) == 55
+
+
+@pytest.mark.covers("#33 AC4 (proposed)")
+@pytest.mark.parametrize("price", [5.55, float("nan")])
+def test_a_price_not_quoted_in_tenths_is_refused(price: float) -> None:
+    with pytest.raises(ValueError, match="tenths"):
+        fpl_squad.price_in_tenths(np.array([5.0, price]))

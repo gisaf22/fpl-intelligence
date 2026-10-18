@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from decisions.starting_xi.harness import BenchPlayer, registration_gw, run
+from decisions.starting_xi.harness import BenchPlayer, run
 from decisions.starting_xi.orderings import (
     BY_RANK,
     BY_WEIGHTED_SCORE,
@@ -89,10 +89,12 @@ def _fixture(
     )
     gameweek["position_id"] = gameweek.pop("position").map(_ID_BY_POSITION)
     gameweek["fixture_count"] = gameweek["minutes"].notna().astype(int)
+    gameweek["entry_gw"] = gameweek["player_id"].map(
+        gameweek.loc[gameweek["minutes"].notna()].groupby("player_id")["gw"].min()
+    )
 
-    # §2.1's registration predicate, applied when drawing: the sampler builds the universe before
-    # drawing, so a squad never names a player who has not yet registered.
-    registered = registration_gw(gameweek)
+    # The sampler draws only entered players, so a squad never names one before his entry.
+    registered = gameweek.groupby("player_id")["entry_gw"].first().dropna()
     squad_rows = []
     for gw in gameweeks:
         eligible = {int(p) for p in registered.index if registered[p] <= gw}

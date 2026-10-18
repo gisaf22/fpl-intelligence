@@ -28,6 +28,9 @@ from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Final
 
+import numpy as np
+from numpy.typing import ArrayLike
+
 # ---------------------------------------------------------------------------
 # Position vocabulary
 # ---------------------------------------------------------------------------
@@ -82,3 +85,18 @@ BUDGET_CAP: Final[float] = 100.0
 # integer tenths and only approximate in floats. Consumers comparing a summed squad price against
 # the cap should work in tenths rather than round a float sum.
 BUDGET_CAP_TENTHS: Final[int] = 1000
+
+
+def price_in_tenths(price: ArrayLike) -> np.ndarray:
+    """Prices as exact integer tenths, the unit FPL quotes them in.
+
+    Asserted rather than assumed: a change of unit upstream would otherwise turn the budget test
+    into a silently different one.
+
+    Raises:
+        ValueError: if any price is null or not a whole number of tenths.
+    """
+    tenths = np.asarray(price, dtype=float) * 10.0
+    if not np.all(np.abs(tenths - np.rint(tenths)) < 1e-6):
+        raise ValueError(f"price is null or not quoted in tenths: {np.asarray(price).tolist()}")
+    return np.rint(tenths).astype(np.int64)

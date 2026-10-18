@@ -3,9 +3,7 @@
 **It serialises and it does not compute.** §7.8 states the boundary: this module writes frames it
 is handed and reads no data of its own, so it needs neither `dal/` nor `model/`. Nothing here
 re-derives a quantity `harness.py` or `formations.py` already produced, and nothing here computes
-one that §7.2.1 assigns to assembly -- ordering-relevance and §4.6's B2 arrive inside T3's
-`ordering_relevant_count`, already counted, because §5.1 has this module take *the comparison
-results* rather than build them.
+one that assembly derives.
 
 **The one exception, and §7.3 assigns it here explicitly.** `run_id` is a deterministic hash of the
 run's identifying fields, and `harness.py` deliberately emits neither it nor the column that carries
@@ -43,23 +41,6 @@ import pandas as pd
 # requires the results document be producible from the artefact alone, which is only true if the
 # artefact carries the columns §7.2 names. A frame missing one is rejected at this boundary rather
 # than written and discovered later.
-T1_COLUMNS: Final[tuple[str, ...]] = (
-    "run_id",
-    "squad_id",
-    "gw",
-    "ranker",
-    "player_id",
-    "position",
-    "score",
-    "rank",
-    "is_unrankable",
-    "no_fixture",
-    "selected",
-    "bench_slot",
-    "entered_as_sub",
-    "minutes_recorded",
-    "points",
-)
 T2_COLUMNS: Final[tuple[str, ...]] = (
     "run_id",
     "squad_id",
@@ -84,34 +65,6 @@ T2_COLUMNS: Final[tuple[str, ...]] = (
     "no_fixture_rule_changed_xi",
     "best_permutation_total",
 )
-T3_COLUMNS: Final[tuple[str, ...]] = (
-    "run_id",
-    "comparison_id",
-    "rankers",
-    "window_first_gw",
-    "window_last_gw",
-    "n_scoreable_gw",
-    "floor_ranker",
-    "floor_mean_regret",
-    "candidate_mean_regret",
-    "abs_reduction",
-    "rel_reduction",
-    "ci_squads_lo",
-    "ci_squads_hi",
-    "ci_gw_lo",
-    "ci_gw_hi",
-    "crit_direction",
-    "crit_significance",
-    "crit_materiality",
-    "passed",
-    "status",
-    "status_reason",
-    "n_zero_gap_excluded",
-    "substitution_count",
-    "uncovered_blank_count",
-    "ordering_relevant_count",
-    "no_fixture_rule_count",
-)
 T5_COLUMNS: Final[tuple[str, ...]] = (
     "run_id",
     "squad_id",
@@ -125,33 +78,10 @@ T5_COLUMNS: Final[tuple[str, ...]] = (
     "entered_outfield",
 )
 
-# §7.4: T1-T3 and T5 as parquet, T4 as JSON. The stems are §7.2's table names.
+# §7.4: T2 and T5 as parquet, T4 as JSON. The stems are §7.2's table names.
 T2_FILE: Final[str] = "squad_weeks.parquet"
-T3_FILE: Final[str] = "comparisons.parquet"
 T5_FILE: Final[str] = "ordering_replays.parquet"
 T4_FILE: Final[str] = "manifest.json"
-
-# §7.5's three values. A `status` outside them would make the null-is-not-false rule unreadable.
-STATUSES: Final[frozenset[str]] = frozenset({"evaluated", "underpowered", "not_evaluable"})
-
-
-class T1HasNoProducer(NotImplementedError):
-    """Raised by `write_t1`, which exists only to name the gap rather than paper over it.
-
-    §7.2 specifies **T1 — `selections`**, one row per (run, squad, gameweek, ranker, player), and
-    §7.4 has it written as parquet alongside the rest. §5.1's row for this module says it "writes
-    T1-T5", but its *Takes* column names only the per-squad-week records, the per-ordering records,
-    the comparison results and the manifest fields -- T1 is not among them, and §7.8 forbids this
-    module reading data of its own to make up the difference.
-
-    `DESIGN.md`'s Provenance already records the same finding from the harness side: §5.1's
-    `harness.py` row returns T2 and T5 only and names no producer for T1, and it states that
-    `results.py` is not the producer either because it serialises frames it is handed. Assigning
-    T1's producer is a §5.1 pass. Until that pass runs, no module in the slice can emit T1, so this
-    one raises rather than writing an empty or fabricated frame that would satisfy a schema check
-    while carrying none of the three findings §7.1 says T1 exists to make representable.
-    """
-
 
 # ---------------------------------------------------------------------------
 # §7.3's manifest -- T4
@@ -164,22 +94,6 @@ class GameweekIntervalParams:
 
     n: int
     block: int
-    ci_level: float
-    seed: int
-
-
-@dataclass(frozen=True)
-class SquadIntervalParams:
-    """§10.1's interval: `n`, `ci_level`, `seed`, and **no** `block` -- squads are unordered.
-
-    Two dataclasses rather than one with an optional `block`, because §7.3 requires the parameters
-    be "recorded per interval, because there are two sets and they differ", and states the cost of
-    merging them: a reader could not tell which parameters produced which of T3's two column pairs.
-    A single type with a nullable field would leave that distinction to a convention; two types
-    make it unfakeable.
-    """
-
-    n: int
     ci_level: float
     seed: int
 
@@ -215,24 +129,13 @@ class RunProvenance:
 class Manifest:
     """§7.3's run manifest, split into what identifies a run and what merely accompanies it.
 
-    **The identity half** is what `run_id` hashes: the mart pin, the whole ordered bench-ordering
-    policy set with element 0 primary, the master seed, the squad mode (CARD.md §3), the squad-set
-    id, the build gameweek set, and the pre-registered study parameters `PRE_REGISTRATION.yaml` freezes (floor method,
-    materiality, success criteria, construction, squad-interval stratification), plus the
-    provenance's `canonical` flag. **The provenance** (`RunProvenance`) is written alongside, not
-    hashed. **The metadata half** -- ranker windows, sampler diagnostics, the count of zero-information
-    squad-weeks (every rule picked the same XI; flagged in T2, never dropped), both interval parameter sets
-    -- is carried "for completeness rather than identity" (§7.3) and is excluded from the hash.
-
-    **Two of §7.3's identity rows are not fields here, and their own reasons say why.** The
-    *window* and the *floor ranker* are listed in §7.3's table as identity, each annotated **"per
-    comparison, in T3"**: §0.13 re-determines the floor per comparison on the intersection of every
-    ranker in it, and §7.3 states that "recording 'the floor' once at run level would be wrong". So
-    T3 carries them per row, as §7.2's T3 schema does. They are also not hashable into a run's
-    identity even in principle -- §0.13 determines the floor from the run's own results, so a
-    `run_id` depending on it could not be computed before the run it identifies. Flagged in this
-    module's report rather than resolved here: whether §7.3 intends the hash to span T3's
-    per-comparison fields is a §7.3 question.
+    **The identity half** is what `run_id` hashes: the mart pin, the whole ordered bench-ordering policy
+    set with element 0 primary, the master seed, the squad mode (CARD.md §3), the squad-set id, the
+    build gameweek set and the squad construction, plus the provenance's `canonical` flag. **The
+    provenance** (`RunProvenance`) is written alongside, not hashed. **The metadata half** -- ranker
+    windows, sampler diagnostics, the count of zero-information squad-weeks (every rule picked the same
+    XI; flagged in T2, never dropped), the gameweek interval's parameters -- is carried "for
+    completeness rather than identity" (§7.3) and is excluded from the hash.
     """
 
     mart_pin: Mapping[str, object]
@@ -245,12 +148,7 @@ class Manifest:
     sampler_diagnostics: Sequence[Mapping[str, object]]
     zero_information_squad_weeks: int
     gameweek_interval: GameweekIntervalParams
-    squad_interval: SquadIntervalParams
-    floor_method: Mapping[str, object]
-    materiality: Mapping[str, object]
-    success_criteria: Sequence[str]
     construction: str
-    squad_interval_stratified_by: str
     provenance: RunProvenance
 
     def __post_init__(self) -> None:
@@ -282,11 +180,7 @@ def identity_fields(manifest: Manifest) -> dict[str, object]:
         "squad_mode": str(manifest.squad_mode),
         "squad_set_id": str(manifest.squad_set_id),
         "build_gameweeks": sorted({int(gw) for gw in manifest.build_gameweeks}),
-        "floor_method": _canonical(manifest.floor_method),
-        "materiality": _canonical(manifest.materiality),
-        "success_criteria": list(manifest.success_criteria),
         "construction": str(manifest.construction),
-        "squad_interval_stratified_by": str(manifest.squad_interval_stratified_by),
         # A forced run must never share a directory with -- and so overwrite -- a canonical one.
         "canonical": bool(manifest.provenance.canonical),
     }
@@ -351,11 +245,6 @@ def manifest_document(manifest: Manifest, identifier: str) -> dict[str, object]:
                 "ci_level": manifest.gameweek_interval.ci_level,
                 "seed": manifest.gameweek_interval.seed,
             },
-            "squad_interval": {
-                "n": manifest.squad_interval.n,
-                "ci_level": manifest.squad_interval.ci_level,
-                "seed": manifest.squad_interval.seed,
-            },
         },
     }
 
@@ -392,31 +281,9 @@ def stamp(frame: pd.DataFrame, identifier: str, columns: Sequence[str]) -> pd.Da
     return stamped
 
 
-def _check_statuses(comparisons: pd.DataFrame) -> None:
-    """§7.5's three values, and nothing else.
-
-    Checked rather than assumed because §7.5's rule -- "Null is not false" -- is only legible if
-    `status` is one of the three it defines. A fourth value would leave a reader unable to tell an
-    unevaluated comparison from a failed one, which is the exact confusion §7.5 exists to prevent.
-    """
-    unknown = sorted({str(value) for value in comparisons["status"]} - STATUSES)
-    if unknown:
-        raise ValueError(f"T3 carries status values §7.5 does not define: {unknown}")
-
-
-def write_t1(*_: object, **__: object) -> None:
-    """T1 has no producer. See `T1HasNoProducer`.
-
-    Present as a named, raising entry point rather than absent, so that a caller reaching for T1
-    gets §5.1's open gap and its routing instead of an `AttributeError` that reads like a typo.
-    """
-    raise T1HasNoProducer(T1HasNoProducer.__doc__)
-
-
 def write(
     squad_weeks: pd.DataFrame,
     ordering_replays: pd.DataFrame,
-    comparisons: pd.DataFrame,
     manifest: Manifest,
     root: Path,
 ) -> str:
@@ -425,9 +292,6 @@ def write(
     Args:
         squad_weeks: §7.2's T2, as `harness.py` returns it -- without `run_id`.
         ordering_replays: §7.2's T5, likewise.
-        comparisons: §7.2's T3, already assembled. Its derived fields -- `ordering_relevant_count`
-            above all -- are computed at assembly (§7.2.1) and this module never recomputes one:
-            §5.1 has it take *the comparison results*, and §7.8 forbids it computing its own.
         manifest: §7.3's fields. `run_id` is hashed from the identity half.
         root: the results directory, `decisions/starting_xi/results/` in the repository (§7.4).
 
@@ -435,12 +299,7 @@ def write(
         The `run_id`, per §5.1's row.
 
     Raises:
-        ValueError: if any frame departs from §7.2's schema, or if T3 carries a `status` outside
-            §7.5's three.
-
-    **T1 is not written, and its absence is a documented gap rather than an omission here** --
-    §5.1's *Takes* column does not hand this module T1 and no module in the slice produces it. See
-    `T1HasNoProducer`.
+        ValueError: if any frame departs from §7.2's schema.
 
     **The per-run subdirectory is this module's reading of §7.4, and §7.4 does not state it.**
     §7.4 fixes the directory and the formats and is silent on whether two runs share files. The id
@@ -451,17 +310,14 @@ def write(
     in this module's report as a §7.4 question.
     """
     identifier = run_id(manifest)
-    _check_statuses(comparisons)
 
     t2 = stamp(squad_weeks, identifier, T2_COLUMNS)
     t5 = stamp(ordering_replays, identifier, T5_COLUMNS)
-    t3 = stamp(comparisons, identifier, T3_COLUMNS)
 
     directory = root / identifier
     directory.mkdir(parents=True, exist_ok=True)
     t2.to_parquet(directory / T2_FILE, index=False)
     t5.to_parquet(directory / T5_FILE, index=False)
-    t3.to_parquet(directory / T3_FILE, index=False)
     (directory / T4_FILE).write_text(
         json.dumps(manifest_document(manifest, identifier), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -477,12 +333,11 @@ def read(root: Path, identifier: str) -> dict[str, object]:
     `dal/` nor the harness can, and `test_results.py` uses this to reconstruct every quantity the
     results document reports in a subprocess that never imports either.
 
-    Returns the three frames under their §7.2 table names and the manifest document, as read.
+    Returns the two frames under their §7.2 table names and the manifest document, as read.
     """
     directory = root / identifier
     return {
         "squad_weeks": pd.read_parquet(directory / T2_FILE),
         "ordering_replays": pd.read_parquet(directory / T5_FILE),
-        "comparisons": pd.read_parquet(directory / T3_FILE),
         "manifest": json.loads((directory / T4_FILE).read_text(encoding="utf-8")),
     }

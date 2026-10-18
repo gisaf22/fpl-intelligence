@@ -82,8 +82,7 @@ BY_WEIGHTED_SCORE: Final[str] = "by_weighted_score"
 
 Not pre-registered: §5.4.1 records that closing "which ordering policies form the comparison set"
 takes a `archive/METRIC.md` pass, which has not run. Defined and tested here so that pass has a second
-naive candidate to characterise against `by_rank` -- `by_rank` cannot be the sole naive baseline
-for the same reason F1 alone could not stand in for §5.1's three naive rankers.
+naive candidate to characterise against `by_rank`, which should not be the sole naive baseline.
 """
 
 _POSITION_WEIGHT: Final[dict[str, float]] = {"DEF": 1.00, "MID": 1.05, "FWD": 1.10}
@@ -144,6 +143,6 @@ the ordering behind every figure T2 carries -- and §7.3 makes the whole ordered
 as such, part of `run_id`. A mapping would carry the same members and lose the fact that decides
 which of them the headline number was computed under.
 
-Ordering `rankers.py`'s `FLOOR_RANKERS`: both are the slice's pre-registered sets of callables the
-composition root passes into the harness, and §7.4 freezes both into `PRE_REGISTRATION.yaml`.
+Like `rankers.rules`, it is a pre-registered set of callables the composition root passes into the
+harness, and `PRE_REGISTRATION.yaml` freezes both.
 """

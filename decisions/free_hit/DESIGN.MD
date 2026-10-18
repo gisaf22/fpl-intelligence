@@ -614,7 +614,7 @@ rationale.
 
 This is the third instance of the same call in this slice, made for the same
 reason both previous times: `candidates.py` re-derives `season_ppg`,
-`recent_form_ppg` and `_price_tenths` locally rather than importing them
+`recent_form_ppg` locally rather than importing them
 (`candidates.py:110-137`, and §4 above for the `expanding_prior_mean`
 reasoning), and `evaluate.py` re-derives its ranking signal rather than
 importing `decisions.starting_xi.rankers`, whose module-scope imports pull in 16

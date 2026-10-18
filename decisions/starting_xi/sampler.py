@@ -19,14 +19,13 @@ The construction, and where each part is decided:
   15 and redraw independently. Conditioning a uniform distribution on a subset gives the uniform
   distribution on that subset, so uniformity on F_g is a theorem here rather than a diagnostic.
   Three conditions carry that proof and each is load-bearing in the code below: the per-position
-  draw is without replacement (`_propose`); registration restricts the pool rather than rejecting
+  draw is without replacement (`_propose`); entry restricts the pool rather than rejecting
   a draw (`_universes`); and rejection discards the entire 15 (`_build_week` keeps whole rows and
   never repairs one).
-* **Registration** (§2.1). A player is in U_g iff he has a non-null `minutes` row at gameweek *g*
-  or any earlier one. It is applied by building U_g before drawing, never as a rejection test:
-  pre-registration rows carry a **forward-filled price** (`archive/INVENTORY.md` §2.7), so a leaked
-  prefix row would not fail a null check — it would silently price a phantom against the cap
-  using a value from later in the season.
+* **Entry** (§2.1). A player is in U_g iff his `entry_gw` (the loader's first gameweek with a
+  fixture, DATA.md) is at or before *g*. It is applied by building U_g before drawing, never as a
+  rejection test: a pre-entry row can carry a price, so a leaked one would not fail a null check
+  — it would silently price a phantom against the cap.
 * **Weekly resampling** (§0.16). Each gameweek in scope draws its own squads from its own
   universe at its own prices and clubs. A squad exists for exactly one gameweek; `squad_id` is
   unique across the whole set and belongs to exactly one `gw`, which is what §10.3's stratified
@@ -68,6 +67,7 @@ from domain.fpl_squad import (
     POSITIONS,
     SQUAD_SELECT,
     SQUAD_SIZE,
+    price_in_tenths,
 )
 from warehouse import served
 
@@ -99,7 +99,7 @@ gameweek's stream is consumed. The *squads* are batch-size independent — they 
 `n_squads` accepted proposals in proposal order either way — but the stream position is not, so
 changing this constant changes every seeded artefact. It is fixed here for that reason."""
 
-_PIN_COLUMNS: tuple[str, ...] = ("player_id", "gw", "position_id", "price", "team_id", "minutes")
+_PIN_COLUMNS: tuple[str, ...] = ("player_id", "gw", "position_id", "price", "team_id", "entry_gw")
 """The gameweek-frame columns the uniform mode reads, and therefore the columns its pin covers (§5.3)."""
 
 SQUAD_MODES: tuple[str, ...] = ("uniform", "ownership")
@@ -215,32 +215,6 @@ class _Universe:
 # ---------------------------------------------------------------------------
 
 
-def _registration_gw(mart: pd.DataFrame) -> pd.Series:
-    """Per player, the first gameweek carrying a non-null `minutes` row.
-
-    This is the whole of the registration predicate: a player is in U_g iff this value exists and
-    is ≤ *g*. Evaluated once over the panel rather than per gameweek — the prefix test needs the
-    history, which is why §2.9 has the sampler take the whole panel and slice it itself.
-    """
-    played = mart.loc[mart["minutes"].notna(), ["player_id", "gw"]]
-    return played.groupby("player_id")["gw"].min()
-
-
-def _price_tenths(price: np.ndarray) -> np.ndarray:
-    """Convert prices to integer tenths, the unit FPL quotes them in.
-
-    The budget test is exact in tenths and only approximate in floats: fifteen float prices can
-    sum to 100.00000000000001 and reject a squad that costs exactly 100.0. `purchase_price` is
-    `player_histories.value ÷ 10` (`archive/INVENTORY.md` §2.7), so the conversion is lossless — and it is
-    asserted rather than assumed, because a change of unit upstream would otherwise turn the
-    budget predicate into a silently different one.
-    """
-    tenths = price * 10.0
-    if not np.all(np.abs(tenths - np.rint(tenths)) < 1e-6):
-        raise ValueError("price is null or not quoted in tenths; the budget predicate assumes tenths")
-    return np.rint(tenths).astype(np.int64)
-
-
 def _ownership_weight(at_position: pd.DataFrame, gw: int, position: str, quota: int) -> np.ndarray:
     """A position's proposal weights: `ownership`, with a player who has none weighted 0.
 
@@ -259,11 +233,10 @@ def _ownership_weight(at_position: pd.DataFrame, gw: int, position: str, quota: 
 def _universes(mart: pd.DataFrame, gameweeks: Sequence[int], squad_mode: str) -> dict[int, _Universe]:
     """Build U_g for every gameweek in scope, priced and club-keyed at that gameweek.
 
-    Registration enters **here and only here**. Every member of the returned pools is
-    registration-legal at its own gameweek, so every proposal drawn from them is too, and no
-    rejection test ever has to consider registration (§2.1).
+    Entry enters **here and only here**. Every member of the returned pools is
+    entry-legal at its own gameweek, so every proposal drawn from them is too, and no
+    rejection test ever has to consider entry (§2.1).
     """
-    registration_gw = _registration_gw(mart)
     universes: dict[int, _Universe] = {}
 
     for gw in gameweeks:
@@ -273,8 +246,7 @@ def _universes(mart: pd.DataFrame, gameweeks: Sequence[int], squad_mode: str) ->
         if rows["player_id"].duplicated().any():
             raise ValueError(f"gameweek {gw} is not unique at player_id on the gameweek frame")
 
-        registered = rows["player_id"].map(registration_gw)
-        rows = rows.loc[registered.notna() & (registered <= gw)].sort_values("player_id")
+        rows = rows.loc[rows["entry_gw"] <= gw].sort_values("player_id")
 
         pools: dict[str, _Pool] = {}
         for position in POSITIONS:
@@ -287,7 +259,7 @@ def _universes(mart: pd.DataFrame, gameweeks: Sequence[int], squad_mode: str) ->
                 )
             pools[position] = _Pool(
                 player_id=at_position["player_id"].to_numpy(dtype=np.int64),
-                price_tenths=_price_tenths(at_position["price"].to_numpy(dtype=float)),
+                price_tenths=price_in_tenths(at_position["price"].to_numpy(dtype=float)),
                 team_id=at_position["team_id"].to_numpy(dtype=np.int64),
                 weight=_ownership_weight(at_position, gw, position, quota) if squad_mode == "ownership" else None,
             )
@@ -336,7 +308,7 @@ def _propose(rng: np.random.Generator, universe: _Universe, size: int) -> tuple[
 def _feasible(price_tenths: np.ndarray, team_id: np.ndarray) -> np.ndarray:
     """The two rejectable conditions, per proposal (§2.1).
 
-    The quota holds by construction and registration holds by construction of the pools, so only
+    The quota holds by construction and entry holds by construction of the pools, so only
     the budget cap and the club limit are tested here. The club test sorts each row and looks for
     any value repeated `MAX_PER_CLUB + 1` times: in a sorted row that is exactly the condition
     `s[j + 3] == s[j]` for some j. It is a per-*squad* test over all 15, not a per-position one —
@@ -534,7 +506,7 @@ def sample_squads(
 
     Args:
         frames: the pinned warehouse frames — `build_squads` is the entry point that loads them.
-            Only the gameweek frame is read: price (in tenths), club, `position_id` and minutes.
+            Only the gameweek frame is read: price (in tenths), club, `position_id` and `entry_gw`.
             The whole season is needed rather than one gameweek's slice, because U_g's prefix
             definition needs the history (§2.9).
         gameweeks: the build gameweeks, **explicitly**. Not inferred from the frame's span: the

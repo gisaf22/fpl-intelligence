@@ -37,9 +37,12 @@ from decisions.starting_xi.orderings import (
     order_by_rank,
     order_by_weighted_score,
 )
-from domain.fpl_squad import POSITIONS, SQUAD_SELECT
+from domain.fpl_squad import POSITION_BY_ID, POSITIONS, SQUAD_SELECT
+from warehouse import served
 
 pytestmark = pytest.mark.unit
+
+_ID_BY_POSITION = {label: position_id for position_id, label in POSITION_BY_ID.items()}
 
 
 @dataclass(frozen=True)
@@ -62,8 +65,8 @@ def _identity(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
 
 def _fixture(
     n_squads: int = 4, gameweeks: Sequence[int] = (2, 3, 4), seed: int = 3
-) -> tuple[pd.DataFrame, pd.DataFrame, _Ranker]:
-    """A small mart, squad table and ranker, built together so the ids line up.
+) -> tuple[served.Frames, pd.DataFrame, _Ranker]:
+    """Small warehouse frames, squad table and ranker, built together so the ids line up.
 
     Blanks and no-fixture rows are drawn at a rate that makes substitutions fire, since an
     ordering that is never consumed would let the equivalence test pass vacuously.
@@ -81,13 +84,15 @@ def _fixture(
                 rows.append((player_id, gw, positions[player_id], 0.0, 0.0))
             else:
                 rows.append((player_id, gw, positions[player_id], 90.0, float(rng.integers(0, 16))))
-    mart = pd.DataFrame(rows, columns=["player_id", "gw", "position", "minutes", "total_points"]).astype(
+    gameweek = pd.DataFrame(rows, columns=["player_id", "gw", "position", "minutes", "total_points"]).astype(
         {"minutes": "Float64", "total_points": "Float64"}
     )
+    gameweek["position_id"] = gameweek.pop("position").map(_ID_BY_POSITION)
+    gameweek["fixture_count"] = gameweek["minutes"].notna().astype(int)
 
     # §2.1's registration predicate, applied when drawing: the sampler builds the universe before
     # drawing, so a squad never names a player who has not yet registered.
-    registered = registration_gw(mart)
+    registered = registration_gw(gameweek)
     squad_rows = []
     for gw in gameweeks:
         eligible = {int(p) for p in registered.index if registered[p] <= gw}
@@ -104,9 +109,10 @@ def _fixture(
             squad_rows += [{"gw": gw, "squad_id": f"gw{gw:02d}-{index:04d}", "player_id": p} for p in members]
     squads = pd.DataFrame(squad_rows)
 
-    scores = mart.loc[:, ["player_id", "gw"]].copy()
+    scores = gameweek.loc[:, ["player_id", "gw"]].copy()
     scores["score"] = rng.integers(0, 5, len(scores)).astype(float)
-    return mart, squads, _Ranker(name="F_test", window=(1, max(gameweeks)), scores=scores)
+    frames = served.Frames(fixture=pd.DataFrame(), gameweek=gameweek, pin=served.Pin(run_id="test", sha256={}))
+    return frames, squads, _Ranker(name="F_test", window=(1, max(gameweeks)), scores=scores)
 
 
 # ---------------------------------------------------------------------------
@@ -123,14 +129,14 @@ def test_ordering_by_rank_agrees_with_the_bench_the_harness_hands_it() -> None:
     player, so a policy sorting by `player_id` produces replay records identical to this one's
     across a whole fixture. The claim is about the ordering, so the ordering is what is compared.
     """
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     seen: list[tuple[BenchPlayer, ...]] = []
 
     def spy(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
         seen.append(tuple(bench))
         return _identity(bench)
 
-    run(squads, lambda _: ranker, [("spy", spy)], mart, (2, 4))
+    run(squads, lambda _: ranker, [("spy", spy)], frames, (2, 4))
 
     assert seen, "the harness never called a policy; there is nothing to compare"
     for bench in seen:
@@ -145,14 +151,14 @@ def test_the_equivalence_is_not_vacuous() -> None:
     happened to arrive in ascending `player_id` order, agreeing with it would say nothing about
     §6.7's tiers or §6.8's tie-break, since the identity and a bare id-sort would coincide.
     """
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     seen: list[tuple[BenchPlayer, ...]] = []
 
     def spy(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
         seen.append(tuple(bench))
         return _identity(bench)
 
-    result = run(squads, lambda _: ranker, [("spy", spy)], mart, (2, 4))
+    result = run(squads, lambda _: ranker, [("spy", spy)], frames, (2, 4))
 
     assert result.squad_weeks["substitution_fired"].sum() > 0, "no substitution fired; the ordering was never live"
     by_id = [bench for bench in seen if _identity(bench) != tuple(sorted(r.player_id for r in bench))]
@@ -244,14 +250,14 @@ def test_weighted_score_is_consumed_by_the_harness_and_is_not_vacuously_equal_to
     least one of those benches arrives in an order the weighting changes -- otherwise this test
     would pass for a policy that is secretly `order_by_rank` in disguise, or the argument untouched.
     """
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     seen: list[tuple[BenchPlayer, ...]] = []
 
     def spy(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
         seen.append(tuple(bench))
         return tuple(record.player_id for record in bench)
 
-    result = run(squads, lambda _: ranker, [(BY_WEIGHTED_SCORE, spy)], mart, (2, 4))
+    result = run(squads, lambda _: ranker, [(BY_WEIGHTED_SCORE, spy)], frames, (2, 4))
 
     assert seen, "the harness never called the policy; there is nothing to compare"
     assert result.squad_weeks["substitution_fired"].sum() > 0, "no substitution fired; the ordering was never live"
@@ -283,8 +289,8 @@ def test_the_pre_registered_set_is_what_it_is_frozen_as() -> None:
 def test_the_harness_accepts_the_pre_registered_set_unmodified() -> None:
     """The composition root passes this tuple straight through, so the acceptance is asserted here
     rather than left for the root to discover."""
-    mart, squads, ranker = _fixture()
-    result = run(squads, lambda _: ranker, PRE_REGISTERED_ORDERINGS, mart, (2, 4))
+    frames, squads, ranker = _fixture()
+    result = run(squads, lambda _: ranker, PRE_REGISTERED_ORDERINGS, frames, (2, 4))
     assert len(result.ordering_replays) == len(result.squad_weeks)
     assert result.ordering_replays["is_primary"].all()
     assert set(result.ordering_replays["ordering_name"]) == {BY_RANK}

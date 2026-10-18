@@ -784,7 +784,7 @@ def test_importing_the_results_writer_pulls_in_no_dal_no_tier_b_and_no_sibling()
     program = (
         "import sys; import decisions.starting_xi.results; "
         "leaked = [m for m in sys.modules "
-        "if m.split('.')[0] in {'model', 'research', 'serve', 'dal', 'operational', 'statsmodels'} "
+        "if m.split('.')[0] in {'model', 'research', 'serve', 'dal', 'warehouse', 'operational', 'statsmodels'} "
         "or m.startswith('decisions.starting_xi.') and m != 'decisions.starting_xi.results']; "
         "assert not leaked, leaked"
     )
@@ -793,12 +793,12 @@ def test_importing_the_results_writer_pulls_in_no_dal_no_tier_b_and_no_sibling()
 
 def test_that_closure_check_can_actually_fail() -> None:
     """The falsification half, and the reason the test above is evidence rather than a formality:
-    the same probe run against a module that *does* reach `dal` must fail. `sampler.py` is that
-    module -- §5.1 permits it the mart -- so a probe that passed for both would be checking
+    the same probe run against a module that *does* reach `warehouse` must fail. `sampler.py` is that
+    module -- it reads the warehouse frames -- so a probe that passed for both would be checking
     nothing."""
     program = (
         "import sys; import decisions.starting_xi.sampler; "
-        "leaked = [m for m in sys.modules if m.split('.')[0] in {'dal'}]; "
+        "leaked = [m for m in sys.modules if m.split('.')[0] in {'warehouse'}]; "
         "assert not leaked, leaked"
     )
     assert subprocess.run([sys.executable, "-c", program], capture_output=True, check=False).returncode != 0

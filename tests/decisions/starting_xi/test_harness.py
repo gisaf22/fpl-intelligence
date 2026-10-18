@@ -52,9 +52,12 @@ from decisions.starting_xi.harness import (
     select_xi,
 )
 from decisions.starting_xi.sampler import _registration_gw
-from domain.fpl_squad import POSITIONS, SQUAD_SELECT, SQUAD_SIZE, XI_MAX_PLAY, XI_MIN_PLAY, XI_SIZE
+from domain.fpl_squad import POSITION_BY_ID, POSITIONS, SQUAD_SELECT, SQUAD_SIZE, XI_MAX_PLAY, XI_MIN_PLAY, XI_SIZE
+from warehouse import served
 
 pytestmark = pytest.mark.unit
+
+_ID_BY_POSITION = {label: position_id for position_id, label in POSITION_BY_ID.items()}
 
 
 # `DESIGN.md` §7.2's T2 and T5 column sets, written out here and nowhere in the module. A column
@@ -474,9 +477,9 @@ def test_the_final_total_is_NOT_invariant_to_the_vacancy_order() -> None:
 def test_the_slack_order_beats_the_retired_fixed_order_and_reaches_the_bound() -> None:
     """§4.3.1's selection, on its own terms rather than on the pinned case alone.
 
-    §4.3.1 measures slack ordering over the mart as never worse than the retired DEF-then-MID-
+    §4.3.1 measures slack ordering over the gameweek as never worse than the retired DEF-then-MID-
     then-FWD order on any of the 11,100 squad-weeks, strictly better on 105, and 2 points short
-    of the best-over-orderings bound in one. That measurement needs the mart; what is checkable
+    of the best-over-orderings bound in one. That measurement needs the gameweek; what is checkable
     here is the same comparison over seeded multi-vacancy squad-weeks, at a blank rate high
     enough to exercise the poisoning case often.
 
@@ -632,10 +635,15 @@ def test_a_replay_never_lets_the_chosen_side_out_score_its_own_counterfactual() 
 # ---------------------------------------------------------------------------
 
 
-def _mart(rows: Sequence[tuple[int, int, str, float | None, float | None]]) -> pd.DataFrame:
-    return pd.DataFrame(rows, columns=["player_id", "gw", "position", "minutes", "total_points"]).astype(
+def _gameweek(rows: Sequence[tuple[int, int, str, float | None, float | None]]) -> pd.DataFrame:
+    """A gameweek frame in `served.Frames` shape from (player_id, gw, position, minutes, points)
+    rows. A null `minutes` row is a blank: `fixture_count` 0."""
+    frame = pd.DataFrame(rows, columns=["player_id", "gw", "position", "minutes", "total_points"]).astype(
         {"minutes": "Float64", "total_points": "Float64"}
     )
+    frame["position_id"] = frame.pop("position").map(_ID_BY_POSITION)
+    frame["fixture_count"] = frame["minutes"].notna().astype(int)
+    return frame
 
 
 def test_the_as_of_statistic_matches_an_independent_per_player_reference() -> None:
@@ -652,13 +660,13 @@ def test_the_as_of_statistic_matches_an_independent_per_player_reference() -> No
                 rows.append((player_id, gw, "MID", None, None))  # a blank after registration
             else:
                 rows.append((player_id, gw, "MID", 90.0, float(rng.integers(0, 12))))
-    mart = _mart(rows)
+    gameweek = _gameweek(rows)
 
     # `registration_gw` is the module's; the reference below re-derives the window from the raw
     # rows so the two are not the same computation twice.
-    got = as_of_points(mart).set_index(["player_id", "gw"])["as_of_points"].to_dict()
+    got = as_of_points(gameweek).set_index(["player_id", "gw"])["as_of_points"].to_dict()
     for player_id in range(6):
-        own = mart.loc[mart["player_id"] == player_id].sort_values("gw")
+        own = gameweek.loc[gameweek["player_id"] == player_id].sort_values("gw")
         played = own.loc[own["minutes"].notna(), "gw"]
         debut = int(played.min())
         for gw in range(debut, 12):
@@ -671,7 +679,7 @@ def test_an_appearance_denominated_statistic_would_differ() -> None:
     """§8.3 names this as the silent-wrong-answer risk: a rolling mean that skips nulls yields
     an *appearance*-denominated rate, which §0.9 rejects. The wrong quantity is computed here so
     the test above is known to be pinning the right one."""
-    mart = _mart(
+    gameweek = _gameweek(
         [
             (1, 1, "MID", 90.0, 10.0),
             (1, 2, "MID", None, None),  # a blank -- counts at 0 under §0.9
@@ -679,7 +687,7 @@ def test_an_appearance_denominated_statistic_would_differ() -> None:
             (1, 4, "MID", 90.0, 0.0),
         ]
     )
-    got = as_of_points(mart).set_index("gw")["as_of_points"].to_dict()
+    got = as_of_points(gameweek).set_index("gw")["as_of_points"].to_dict()
     assert got[4] == pytest.approx(12 / 3), "gameweeks elapsed"
     assert got[4] != pytest.approx(12 / 2), "appearances -- the quantity §0.9 rejects"
 
@@ -689,7 +697,7 @@ def test_pre_registration_weeks_do_not_count() -> None:
     (`archive/INVENTORY.md` §2.5), not the player. The counting version is computed and must differ."""
     rows: list[tuple[int, int, str, float | None, float | None]] = [(1, gw, "MID", None, None) for gw in range(1, 5)]
     rows += [(1, gw, "MID", 90.0, 6.0) for gw in range(5, 8)]
-    got = as_of_points(_mart(rows)).set_index("gw")["as_of_points"].to_dict()
+    got = as_of_points(_gameweek(rows)).set_index("gw")["as_of_points"].to_dict()
     assert set(got) == {5, 6, 7}, "prefix rows are not in the population at all"
     assert got[7] == pytest.approx(6.0)
     assert got[7] != pytest.approx(12 / 6), "the prefix-counting version"
@@ -699,7 +707,7 @@ def test_a_player_registering_at_the_squad_week_itself_scores_zero_not_a_nan() -
     """The empty-denominator case, which §0.9 does not reach and `harness.py` resolves at 0. A
     NaN here would reach `best_legal_xi`, which rejects non-finite values -- so the case has to
     be answered, and the answer is asserted rather than left to a docstring."""
-    got = as_of_points(_mart([(1, 1, "MID", 90.0, 7.0), (1, 2, "MID", 90.0, 3.0)]))
+    got = as_of_points(_gameweek([(1, 1, "MID", 90.0, 7.0), (1, 2, "MID", 90.0, 3.0)]))
     assert got.loc[got["gw"] == 1, "as_of_points"].item() == 0.0
     assert np.isfinite(got["as_of_points"]).all()
 
@@ -715,8 +723,8 @@ def test_the_registration_predicate_is_the_samplers() -> None:
         for gw in range(1, 12):
             featured = gw >= debut and rng.random() < 0.8
             rows.append((player_id, gw, "MID", 90.0 if featured else None, 4.0 if featured else None))
-    mart = _mart(rows)
-    pd.testing.assert_series_equal(registration_gw(mart), _registration_gw(mart))
+    gameweek = _gameweek(rows)
+    pd.testing.assert_series_equal(registration_gw(gameweek), _registration_gw(gameweek))
 
 
 # ---------------------------------------------------------------------------
@@ -744,8 +752,8 @@ def _reversed(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
 
 def _fixture(
     n_squads: int = 3, gameweeks: Sequence[int] = (2, 3, 4), seed: int = 1
-) -> tuple[pd.DataFrame, pd.DataFrame, _Ranker]:
-    """A small mart, squad table and ranker, built together so the ids line up."""
+) -> tuple[served.Frames, pd.DataFrame, _Ranker]:
+    """Small warehouse frames, squad table and ranker, built together so the ids line up."""
     rng = np.random.default_rng(seed)
     n_players = 60
     positions = [p for p in POSITIONS for _ in range(SQUAD_SELECT[p] * 4)]
@@ -759,12 +767,12 @@ def _fixture(
                 rows.append((player_id, gw, positions[player_id], 0.0, 0.0))
             else:
                 rows.append((player_id, gw, positions[player_id], 90.0, float(rng.integers(0, 16))))
-    mart = _mart(rows)
+    gameweek = _gameweek(rows)
 
     # §2.1's registration predicate, applied when drawing: the sampler builds the universe before
     # drawing, so a squad never names a player who has not yet registered. The harness rejects one
     # that does, and a fixture ignoring it would be testing an input the slice cannot produce.
-    registered = registration_gw(mart)
+    registered = registration_gw(gameweek)
     squad_rows = []
     for gw in gameweeks:
         eligible = {int(p) for p in registered.index if registered[p] <= gw}
@@ -781,24 +789,25 @@ def _fixture(
             squad_rows += [{"gw": gw, "squad_id": f"gw{gw:02d}-{index:04d}", "player_id": p} for p in members]
     squads = pd.DataFrame(squad_rows)
 
-    scores = mart.loc[:, ["player_id", "gw"]].copy()
+    scores = gameweek.loc[:, ["player_id", "gw"]].copy()
     scores["score"] = rng.integers(0, 5, len(scores)).astype(float)
     ranker = _Ranker(name="F_test", window=(1, max(gameweeks)), scores=scores)
-    return mart, squads, ranker
+    frames = served.Frames(fixture=pd.DataFrame(), gameweek=gameweek, pin=served.Pin(run_id="test", sha256={}))
+    return frames, squads, ranker
 
 
 def test_the_two_frames_carry_exactly_the_columns_section_7_2_specifies() -> None:
-    mart, squads, ranker = _fixture()
-    result = run(squads, lambda _: ranker, [("primary", _by_rank)], mart, (2, 4))
+    frames, squads, ranker = _fixture()
+    result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
     assert tuple(result.squad_weeks.columns) == T2_COLUMNS
     assert tuple(result.ordering_replays.columns) == T5_COLUMNS
 
 
 def test_t5_carries_one_row_per_squad_week_per_ordering_with_one_primary() -> None:
     """§7.2's T5 grain includes `ranker`, and §5.4 makes element 0 the primary."""
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     order = [("by_rank", _by_rank), ("reversed", _reversed)]
-    result = run(squads, lambda _: ranker, order, mart, (2, 4))
+    result = run(squads, lambda _: ranker, order, frames, (2, 4))
     assert len(result.ordering_replays) == 2 * len(result.squad_weeks)
     per_group = result.ordering_replays.groupby(["squad_id", "gw", "ranker"])["is_primary"].sum()
     assert (per_group == 1).all()
@@ -809,9 +818,9 @@ def test_t5_carries_one_row_per_squad_week_per_ordering_with_one_primary() -> No
 def test_t2_carries_the_primary_orderings_replay_and_no_other() -> None:
     """§7.2: "Every figure in T2 is the *primary* ordering's." Checked by running the same
     fixture with the two policies swapped and asserting T2 follows element 0."""
-    mart, squads, ranker = _fixture()
-    forward = run(squads, lambda _: ranker, [("a", _by_rank), ("b", _reversed)], mart, (2, 4))
-    backward = run(squads, lambda _: ranker, [("b", _reversed), ("a", _by_rank)], mart, (2, 4))
+    frames, squads, ranker = _fixture()
+    forward = run(squads, lambda _: ranker, [("a", _by_rank), ("b", _reversed)], frames, (2, 4))
+    backward = run(squads, lambda _: ranker, [("b", _reversed), ("a", _by_rank)], frames, (2, 4))
 
     for label, result in (("a", forward), ("b", backward)):
         chosen = result.squad_weeks.set_index(["squad_id", "gw"])["chosen_xi_points"]
@@ -824,8 +833,8 @@ def test_the_realised_and_as_of_pairs_are_not_the_same_call() -> None:
     """§0.8's correction, asserted rather than trusted: the closeness gap is the **as-of** pair's,
     and computing it from realised points gives a different number. If the two calls were
     conflated this test fails, and the columns' names would be lying."""
-    mart, squads, ranker = _fixture()
-    result = run(squads, lambda _: ranker, [("primary", _by_rank)], mart, (2, 4))
+    frames, squads, ranker = _fixture()
+    result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
 
     assert (result.squad_weeks["best_legal_xi_points"] != result.squad_weeks["best_legal_xi_asof"]).any(), (
         "the two calls returned identical totals everywhere; they may be the same call"
@@ -837,8 +846,8 @@ def test_the_realised_and_as_of_pairs_are_not_the_same_call() -> None:
 
 def test_regret_is_the_realised_pair_and_is_never_negative() -> None:
     """§0.1, and §0.2's asymmetric option: the counterfactual has no substitutions applied."""
-    mart, squads, ranker = _fixture()
-    result = run(squads, lambda _: ranker, [("primary", _by_rank)], mart, (2, 4))
+    frames, squads, ranker = _fixture()
+    result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
     expected = result.squad_weeks["best_legal_xi_points"] - result.squad_weeks["chosen_xi_points"]
     pd.testing.assert_series_equal(result.squad_weeks["regret"], expected, check_names=False)
     assert (result.squad_weeks["regret"] >= 0).all()
@@ -846,8 +855,8 @@ def test_regret_is_the_realised_pair_and_is_never_negative() -> None:
 
 def test_zero_gap_is_flagged_where_the_two_leading_as_of_xis_tie() -> None:
     """§0.8's zero-gap squad-weeks -- excluded and counted at assembly, flagged here."""
-    mart, squads, ranker = _fixture()
-    result = run(squads, lambda _: ranker, [("primary", _by_rank)], mart, (2, 4))
+    frames, squads, ranker = _fixture()
+    result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
     pd.testing.assert_series_equal(
         result.squad_weeks["is_zero_gap"], result.squad_weeks["closeness_gap"] <= 0.0, check_names=False
     )
@@ -856,61 +865,61 @@ def test_zero_gap_is_flagged_where_the_two_leading_as_of_xis_tie() -> None:
 def test_the_no_fixture_rule_is_measured_and_actually_bites() -> None:
     """§0.4's measurement, stored per squad-week (§7.6). A fixture in which the rule never
     changed an XI would make the column untested, so the flag must fire somewhere."""
-    mart, squads, ranker = _fixture(seed=4)
-    result = run(squads, lambda _: ranker, [("primary", _by_rank)], mart, (2, 4))
+    frames, squads, ranker = _fixture(seed=4)
+    result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
     assert result.squad_weeks["no_fixture_rule_changed_xi"].any()
 
 
 def test_a_window_outside_the_rankers_declared_span_raises() -> None:
     """§0.7 makes the declared window the ranker's own claim; §6.3 has a caller narrow to the
     intersection. Scoring outside it would be the harness inventing coverage."""
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     narrow = _Ranker(name=ranker.name, window=(3, 4), scores=ranker.scores)
     with pytest.raises(ValueError, match="declared window"):
-        run(squads, lambda _: narrow, [("primary", _by_rank)], mart, (2, 4))
+        run(squads, lambda _: narrow, [("primary", _by_rank)], frames, (2, 4))
 
 
 def test_the_run_is_deterministic() -> None:
     """§7.3 makes `run_id` a hash of the identifying fields, which is only sound if identical
     inputs replay identically. §6.8's tie-break is the part that could break this."""
-    mart, squads, ranker = _fixture()
-    first = run(squads, lambda _: ranker, [("primary", _by_rank)], mart, (2, 4))
-    second = run(squads.sample(frac=1, random_state=2), lambda _: ranker, [("primary", _by_rank)], mart, (2, 4))
+    frames, squads, ranker = _fixture()
+    first = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
+    second = run(squads.sample(frac=1, random_state=2), lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
     pd.testing.assert_frame_equal(first.squad_weeks, second.squad_weeks)
 
 
 def test_an_empty_bench_order_raises() -> None:
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     with pytest.raises(ValueError, match="non-empty"):
-        run(squads, lambda _: ranker, [], mart, (2, 4))
+        run(squads, lambda _: ranker, [], frames, (2, 4))
 
 
 def test_a_policy_that_drops_or_invents_a_bench_player_raises() -> None:
     """A policy is a callable supplied by the caller (§5.4), so its output is validated rather
     than trusted -- a dropped player would silently shorten the queue and change the replay."""
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     with pytest.raises(ValueError, match="exactly the outfield bench"):
-        run(squads, lambda _: ranker, [("bad", lambda bench: [bench[0].player_id])], mart, (2, 4))
+        run(squads, lambda _: ranker, [("bad", lambda bench: [bench[0].player_id])], frames, (2, 4))
 
 
 def test_unrankable_rows_are_the_absent_ones_as_well_as_the_null_ones() -> None:
     """§6.5: a ranker "emits it as unrankable rather than as a number", which on a frame is
     either a null score or an absent row. Both must reach the same tier."""
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     dropped = ranker.scores.loc[ranker.scores["gw"] != 3]
     nulled = ranker.scores.copy()
     nulled.loc[nulled["gw"] == 3, "score"] = np.nan
     order = [("primary", _by_rank)]
-    a = run(squads, lambda _: _Ranker(ranker.name, ranker.window, dropped), order, mart, (2, 4))
-    b = run(squads, lambda _: _Ranker(ranker.name, ranker.window, nulled), order, mart, (2, 4))
+    a = run(squads, lambda _: _Ranker(ranker.name, ranker.window, dropped), order, frames, (2, 4))
+    b = run(squads, lambda _: _Ranker(ranker.name, ranker.window, nulled), order, frames, (2, 4))
     pd.testing.assert_frame_equal(a.squad_weeks, b.squad_weeks)
 
 
-def test_run_returns_the_result_type_and_build_is_the_dal_entry_point() -> None:
+def test_run_returns_the_result_type_and_build_is_the_loading_entry_point() -> None:
     """§5.1's shape. `build` is the one function that reads, on the sampler's `build_squads`
-    pattern; `run` is the same computation over a mart already in hand."""
-    mart, squads, ranker = _fixture()
-    result = run(squads, lambda _: ranker, [("primary", _by_rank)], mart, (2, 4))
+    pattern; `run` is the same computation over frames already in hand."""
+    frames, squads, ranker = _fixture()
+    result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
     assert isinstance(result, HarnessResult)
     assert callable(build)
 
@@ -945,12 +954,13 @@ def _score_of(ranker: _Ranker, player_id: int, gw: int) -> float | None:
 
 
 def _squad_week_inputs(
-    mart: pd.DataFrame, squads: pd.DataFrame, squad_id: str, gw: int
+    frames: served.Frames, squads: pd.DataFrame, squad_id: str, gw: int
 ) -> tuple[list[int], dict[int, str], dict[int, float | None], dict[int, float]]:
     """The per-squad-week lookups `run` builds, rebuilt here from the fixture frames."""
     squad = [int(p) for p in squads.loc[(squads["squad_id"] == squad_id) & (squads["gw"] == gw), "player_id"]]
-    slice_ = mart.loc[mart["gw"] == gw].set_index("player_id")
-    positions = {p: str(slice_.loc[p, "position"]) for p in squad}
+    gameweek = frames.gameweek
+    slice_ = gameweek.loc[gameweek["gw"] == gw].set_index("player_id")
+    positions = {p: POSITION_BY_ID[int(slice_.loc[p, "position_id"])] for p in squad}
     minutes: dict[int, float | None] = {
         p: (None if pd.isna(slice_.loc[p, "minutes"]) else float(slice_.loc[p, "minutes"])) for p in squad
     }
@@ -967,13 +977,13 @@ def test_best_permutation_total_is_the_max_over_all_six_orderings_on_every_squad
     over (§4.4 conditions the bench on the ranker's XI), and the maximum is then re-derived from
     the independent enumeration above.
     """
-    mart, squads, ranker = _fixture()
-    result = run(squads, lambda _: ranker, [("primary", _by_rank)], mart, (2, 4))
+    frames, squads, ranker = _fixture()
+    result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
 
     checked = 0
     for row in result.squad_weeks.itertuples(index=False):
         gw = int(row.gw)
-        squad, positions, minutes, points = _squad_week_inputs(mart, squads, str(row.squad_id), gw)
+        squad, positions, minutes, points = _squad_week_inputs(frames, squads, str(row.squad_id), gw)
         records = [BenchPlayer(p, positions[p], _score_of(ranker, p, gw), no_fixture=minutes[p] is None) for p in squad]
         xi = select_xi(rank_squad(records), positions)
         assert row.best_permutation_total == pytest.approx(_enumerate_best_total(xi, squad, positions, minutes, points))
@@ -991,8 +1001,8 @@ def test_the_absolute_counterfactual_is_not_the_relative_one_the_document_withdr
     perfect. Both halves are asserted -- that the relative form degenerates, and that the emitted
     one does not.
     """
-    mart, squads, ranker = _fixture()
-    result = run(squads, lambda _: ranker, [("only", _by_rank)], mart, (2, 4))
+    frames, squads, ranker = _fixture()
+    result = run(squads, lambda _: ranker, [("only", _by_rank)], frames, (2, 4))
 
     key = ["squad_id", "gw", "ranker"]
     absolute = result.squad_weeks.set_index(key)["best_permutation_total"]
@@ -1007,9 +1017,9 @@ def test_the_absolute_counterfactual_is_not_the_relative_one_the_document_withdr
 def test_ordering_regret_is_non_negative_for_every_candidate_ordering() -> None:
     """§4.4: ordering regret is >= 0, and 0 only for an ordering that achieved the best total
     available. Every candidate is one of the 6 sigma* ranges over, so the bound is structural."""
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     order = [("by_rank", _by_rank), ("reversed", _reversed)]
-    result = run(squads, lambda _: ranker, order, mart, (2, 4))
+    result = run(squads, lambda _: ranker, order, frames, (2, 4))
 
     joined = result.ordering_replays.merge(
         result.squad_weeks[["squad_id", "gw", "ranker", "best_permutation_total"]],
@@ -1030,9 +1040,9 @@ def test_sigma_star_cancels_from_the_paired_difference_and_is_the_same_stored_ce
     ordering dimension, both regrets at a squad-week read the same T2 cell, so sigma* is gone from
     the difference per squad-week and not merely on average.
     """
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     order = [("by_rank", _by_rank), ("reversed", _reversed)]
-    result = run(squads, lambda _: ranker, order, mart, (2, 4))
+    result = run(squads, lambda _: ranker, order, frames, (2, 4))
 
     key = ["squad_id", "gw", "ranker"]
     star = result.squad_weeks.set_index(key)["best_permutation_total"]
@@ -1052,9 +1062,9 @@ def test_a_counterfactual_carrying_an_ordering_dimension_would_not_cancel_cell_w
     constructed here and its cell-wise difference does **not** reduce to the totals' difference,
     which is what makes the assertion above load-bearing rather than a tautology of subtraction.
     """
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     order = [("by_rank", _by_rank), ("reversed", _reversed)]
-    result = run(squads, lambda _: ranker, order, mart, (2, 4))
+    result = run(squads, lambda _: ranker, order, frames, (2, 4))
 
     key = ["squad_id", "gw", "ranker"]
     totals = result.ordering_replays.pivot_table(index=key, columns="ordering_name", values="realised_total")
@@ -1069,8 +1079,8 @@ def test_no_substitution_leaves_sigma_star_defined_and_equal_to_the_chosen_total
     total, so sigma* is well defined and equals the chosen total -- and the *derived* regret is 0.
     §7.5 gates that derivation on `substitution_fired` so it reads null rather than 0 at assembly;
     the column itself is always populated, which is what this asserts."""
-    mart, squads, ranker = _fixture()
-    result = run(squads, lambda _: ranker, [("primary", _by_rank)], mart, (2, 4))
+    frames, squads, ranker = _fixture()
+    result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
     quiet = result.squad_weeks.loc[~result.squad_weeks["substitution_fired"]]
     assert not quiet.empty, "the fixture fired a substitution everywhere; the quiet case is untested"
     assert quiet["best_permutation_total"].notna().all()
@@ -1082,10 +1092,10 @@ def test_sigma_star_does_not_depend_on_which_policies_the_run_compares() -> None
     adding a policy to a comparison moved every other policy's already-computed score. Under the
     absolute form the counterfactual is a fact about the squad-week, so it is identical across two
     runs comparing different policy sets -- while the relative form demonstrably is not."""
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     key = ["squad_id", "gw", "ranker"]
-    one = run(squads, lambda _: ranker, [("by_rank", _by_rank)], mart, (2, 4))
-    two = run(squads, lambda _: ranker, [("by_rank", _by_rank), ("reversed", _reversed)], mart, (2, 4))
+    one = run(squads, lambda _: ranker, [("by_rank", _by_rank)], frames, (2, 4))
+    two = run(squads, lambda _: ranker, [("by_rank", _by_rank), ("reversed", _reversed)], frames, (2, 4))
 
     pd.testing.assert_series_equal(
         one.squad_weeks.set_index(key)["best_permutation_total"],
@@ -1100,9 +1110,9 @@ def test_t5_is_untouched_by_the_new_column_so_b2_stays_comparison_relative() -> 
     """§7.2.1's third reason for the T2 shape. Six permutation rows on T5 would have redefined the
     group §4.6's ordering-relevance derivation runs over, converting B2 into the
     permutation-relevant count §4.10 forbids. T5's rows must stay one per candidate ordering."""
-    mart, squads, ranker = _fixture()
+    frames, squads, ranker = _fixture()
     order = [("by_rank", _by_rank), ("reversed", _reversed)]
-    result = run(squads, lambda _: ranker, order, mart, (2, 4))
+    result = run(squads, lambda _: ranker, order, frames, (2, 4))
     assert len(result.ordering_replays) == len(order) * len(result.squad_weeks)
     assert set(result.ordering_replays["ordering_name"]) == {"by_rank", "reversed"}
 
@@ -1114,7 +1124,7 @@ def test_t5_is_untouched_by_the_new_column_so_b2_stays_comparison_relative() -> 
 
 def test_importing_the_harness_pulls_in_no_tier_b_module_and_no_ranker() -> None:
     """§5.1 forbids `harness.py` `model/`, `research/`, `serve/` and `rankers.py`; §3.6's
-    transitivity guarantee rests on that closure. `dal/` and `domain/` are permitted and expected.
+    transitivity guarantee rests on that closure. `warehouse/` and `domain/` are permitted and expected.
 
     Run in a subprocess for §5.6's reason: the session has already imported `model` via
     `testpaths`, so an in-process check could not tell this module's closure from what was
@@ -1130,6 +1140,7 @@ def test_importing_the_harness_pulls_in_no_tier_b_module_and_no_ranker() -> None
         "or m.startswith('decisions.starting_xi.uncertainty')]; "
         "assert not leaked, leaked; "
         "assert 'decisions.starting_xi.formations' in sys.modules; "
-        "assert 'dal.pipeline' in sys.modules"
+        "assert 'warehouse.served' in sys.modules; "
+        "assert 'dal.pipeline' not in sys.modules"
     )
     assert subprocess.run([sys.executable, "-c", program], check=False).returncode == 0

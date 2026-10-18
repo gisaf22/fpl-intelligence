@@ -194,7 +194,7 @@ def test_build_and_run_replays_the_rule_grid_on_the_warehouse_frames(
     )
 
     read_back = results.read(tmp_path, run.run_id)
-    t2 = read_back["t2"]
+    t2 = read_back["squad_weeks"]
     manifest = read_back["manifest"]
     assert isinstance(t2, pd.DataFrame) and isinstance(manifest, dict)
     assert set(t2["ranker"]) == set(rankers.rules(SEED))

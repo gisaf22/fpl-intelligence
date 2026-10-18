@@ -1395,7 +1395,7 @@ that **building a subset of the gameweeks reproduces those gameweeks' squads exa
 property is what makes a partial re-run auditable and it is a consequence of the seed derivation
 being independent of build order, so it is worth asserting rather than assuming. `archive/INVENTORY.md` §2.8
 records that determinism is already tested as a property elsewhere in the repository
-(`tests/test_kernels_inferential_resampling.py`, `model/terms/p_play/test_p_play.py`, and the whole
+(`tests/test_kernels_inferential_resampling.py`, `tests/model/terms/p_play/test_p_play.py`, and the whole
 of `tests/stabilization/test_wave3_determinism.py`) rather than assumed, and this follows that
 convention.
 
@@ -4717,7 +4717,7 @@ changes which candidate is selected: C1 was and remains the selection over C2 an
    claim and this document cited it; the citation was correct and the fact was wrong. An
    `archive/INVENTORY.md` pass has since withdrawn it there and pinned a counterexample — best 745,
    enumeration runner-up 729, second-best legal XI 744 — measured by
-   `decisions/starting_xi/test_formations.py`. §0.8 now **selects between** the two quantities rather
+   `tests/decisions/starting_xi/test_formations.py`. §0.8 now **selects between** the two quantities rather
    than assuming they coincide, and takes the XI gap. The cost sentence that carried the old position
    ("the cost is one extra pass over eight combinations, which is nothing") is withdrawn as a
    *reason*, not as a fact: it was true, and it is equally true of the alternative, which is precisely

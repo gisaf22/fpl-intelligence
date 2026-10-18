@@ -46,7 +46,7 @@ jobs:
       # Integration-tier tests that read only committed fixtures (warehouse/fixtures/), not the
       # live DB the job below needs. Scoped by path: `-m integration` alone would collect those too.
       - name: Integration tests (committed fixtures)
-        run: uv run pytest warehouse -m integration -v --tb=short
+        run: uv run pytest tests/warehouse -m integration -v --tb=short
 
   integration-tests:
     name: Integration tests (live DB)

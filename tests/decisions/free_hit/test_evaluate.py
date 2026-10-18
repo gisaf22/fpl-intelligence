@@ -264,7 +264,7 @@ def test_the_import_closure_is_tier_a() -> None:
     """`DESIGN.md` §4's Tier A property and this module's stated reason for re-deriving the ranker:
     importing it must not pull in `model/`, which `decisions.starting_xi.rankers` would.
 
-    Run as a subprocess, for the reason `decisions/starting_xi/test_rankers.py`'s equivalent gives:
+    Run as a subprocess, for the reason `tests/decisions/starting_xi/test_rankers.py`'s equivalent gives:
     `pyproject.toml`'s `testpaths` imports `model` before any test here runs, so an in-process
     `sys.modules` check would pass against any module at all. `.importlinter` cannot cover this
     yet -- no contract names `decisions.free_hit.*` (`DESIGN.md` §4 defers that to its own

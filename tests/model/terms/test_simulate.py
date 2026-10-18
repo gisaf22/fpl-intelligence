@@ -21,7 +21,7 @@ from model.simulate import (
     simulate_points,
     simulator_consistency,
 )
-from model.terms.test_compose import _mart
+from tests.model.terms.test_compose import _mart
 
 pytestmark = pytest.mark.unit
 

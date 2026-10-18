@@ -45,6 +45,8 @@ DAL contracts are code-enforced — `dal/fct/fct_contracts.py`, `dal/feat/feat_c
 
 The governed registry must have real promotion_class values before any lens study design begins — this gate is now met
 
+Code tests live in tests/, mirroring the package path; statistical analysis is not pytest.
+
 No production or workflow logic in `tests/` — it holds only thin software-engineering tests plus
 the fixtures they need; anything the product runs moves to a real layer and the original is deleted
 

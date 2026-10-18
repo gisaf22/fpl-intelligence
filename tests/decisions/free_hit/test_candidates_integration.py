@@ -21,8 +21,8 @@ from decisions.free_hit.candidates import (
     derive_signals,
 )
 from decisions.free_hit.gameweek_population import qualifying_gameweeks
-from decisions.free_hit.test_candidates import POLICIES, _is_legal_squad
 from domain.fpl_squad import BUDGET_CAP_TENTHS, SQUAD_SELECT
+from tests.decisions.free_hit.test_candidates import POLICIES, _is_legal_squad
 
 pytestmark = pytest.mark.integration
 

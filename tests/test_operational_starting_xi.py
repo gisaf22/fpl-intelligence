@@ -8,7 +8,7 @@ and calls `_determine_floor`, `_difference_and_restrict`, `_derive_ordering_rele
 The one end-to-end pass (`test_run_study_end_to_end_on_a_small_fixture`) exercises `run_study` for
 real -- the sampler's actual rejection sampling and the harness's actual replay -- against fake,
 cheap rankers standing in for `rankers.py`'s real `p_play`/PPG fits, on the same small-universe
-convention `decisions/starting_xi/test_sampler.py` uses (a feasible, budget-and-club-legal universe
+convention `tests/decisions/starting_xi/test_sampler.py` uses (a feasible, budget-and-club-legal universe
 small enough to run a real pilot over).
 """
 
@@ -36,7 +36,7 @@ pytestmark = pytest.mark.unit
 
 
 # ---------------------------------------------------------------------------
-# A small, sampler-feasible mart (convention: decisions/starting_xi/test_sampler.py's `mart`)
+# A small, sampler-feasible mart (convention: tests/decisions/starting_xi/test_sampler.py's `mart`)
 # ---------------------------------------------------------------------------
 
 

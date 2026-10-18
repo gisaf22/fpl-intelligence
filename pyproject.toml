@@ -27,13 +27,7 @@ build-backend = "hatchling.build"
 dev-mode-dirs = ["."]
 
 [tool.pytest.ini_options]
-# `model` is here because the term tests are CO-LOCATED with the code they guard (spec §9) — every
-# term golden, the strangler-invariant vectors, compose and simulate. With `tests` alone, CI ran none
-# of them: `pytest -m unit` collects only testpaths, so 80 tests including every model golden were
-# silently skipped. A golden that nothing runs is not a golden.
-# `decisions` is here for the same reason: the starting_xi slice's tests are colocated with the
-# harness code they guard (decisions/README.md — a decision folder holds its own artefacts).
-testpaths = ["tests", "model", "decisions", "warehouse"]
+testpaths = ["tests"]
 markers = [
     "integration: marks tests that require a live database (deselect with '-m not integration')",
     "unit: marks tests that run without any external dependencies",
@@ -95,10 +89,9 @@ select = ["E", "F", "I", "UP", "RUF"]
 python_version = "3.12"
 # Scope: production modules + examples/ (kept lint-clean so the quickstart can't silently rot). archive/ excluded.
 # `operational` is the composition root above the layer graph (ADR-012) — type-checked though not import-linted.
-# `decisions` carries harness code and its COLOCATED tests, so both are gated here; `tests/` is not in
-# scope, so a decision folder's tests are the only tests mypy checks. That asymmetry is deliberate —
+# `tests/decisions` and `tests/warehouse` are the only tests mypy checks. That asymmetry is deliberate —
 # the slice's tests are its specification (decisions/README.md), not coverage around it.
-files = ["dal", "serve", "domain", "examples", "research", "operational", "decisions", "warehouse"]
+files = ["dal", "serve", "domain", "examples", "research", "operational", "decisions", "warehouse", "tests/decisions", "tests/warehouse"]
 explicit_package_bases = true
 ignore_missing_imports = true
 disallow_untyped_defs = true

@@ -1,6 +1,6 @@
 """Acceptance tests for the served-publish loader (#29).
 
-The fixture under `fixtures/39064033745/` is a real sample of fpl-warehouse publish run
+The fixture under `warehouse/fixtures/39064033745/` is a real sample of fpl-warehouse publish run
 39064033745: its `_manifest.json` verbatim, and the `fct_player_fixture`, `fct_player_gameweek`
 and `dim_player` rows of two players, both seasons, written with the publish's own arrow schema.
 
@@ -23,7 +23,7 @@ import pytest
 
 from warehouse import served
 
-FIXTURE_ROOT = Path(__file__).parent / "fixtures"
+FIXTURE_ROOT = Path(__file__).resolve().parents[2] / "warehouse" / "fixtures"
 RUN_ID = "39064033745"
 SEASON = "2025-26"
 LOAN_AND_RETURN = 149

@@ -1,6 +1,6 @@
 """Tests for the naive greedy construction candidates -- `DESIGN.md` §4.
 
-Builds a small synthetic mart (mirroring `decisions/starting_xi/test_sampler.py`'s `_mart`
+Builds a small synthetic mart (mirroring `tests/decisions/starting_xi/test_sampler.py`'s `_mart`
 helper) so registration filtering, NaN-score handling, and the infeasibility exception are
 exercised without the live DB. `test_candidates_integration.py` runs all three policies against
 the real mart across every one of the 32 qualifying gameweeks (`DESIGN.md` §2's 33, less

@@ -98,7 +98,7 @@ forbidden_modules =
 #   one, which `sampler` legitimately violates. The Tier B half is covered by the Tier A -> Tier B
 #   contract; `formations` -> `sampler` / `harness` / `results` is not expressible without
 #   forbidding those modules to the other Tier A sources, which 5.1 permits, so it stays in
-#   decisions/starting_xi/test_formations.py.
+#   tests/decisions/starting_xi/test_formations.py.
 # * `results` needs neither `dal` nor `model` (DESIGN.md 7.8). That is a claim about the module's
 #   shape rather than an entry in 5.1's forbidden column, so it is not written as a contract; the
 #   subprocess test in test_results.py enforces both halves and carries a falsification case

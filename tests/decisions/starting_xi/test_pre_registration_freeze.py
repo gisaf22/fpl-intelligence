@@ -37,7 +37,7 @@ from operational import starting_xi
 
 pytestmark = pytest.mark.unit
 
-PRE_REGISTRATION_PATH = Path(__file__).parent / "PRE_REGISTRATION.yaml"
+PRE_REGISTRATION_PATH = Path(__file__).resolve().parents[3] / "decisions" / "starting_xi" / "PRE_REGISTRATION.yaml"
 
 
 @pytest.fixture(scope="module")

@@ -14,6 +14,7 @@ import pandas as pd
 import pytest
 
 from decisions.starting_xi import report
+from decisions.starting_xi.formations import LEGAL_FORMATIONS
 from decisions.starting_xi.uncertainty import gameweek_block_ci
 
 pytestmark = pytest.mark.unit
@@ -329,3 +330,130 @@ def test_both_squad_modes_are_reported_side_by_side_in_one_table() -> None:
 def test_two_artefacts_with_the_same_squad_mode_raise() -> None:
     with pytest.raises(ValueError, match="squad_mode"):
         report.build([_artefact(_two_rule_panel()), _artefact(_two_rule_panel())])
+
+
+# ---------------------------------------------------------------------------
+# Paired differences and outfield-only regret (results notebook, (b) and (d))
+# ---------------------------------------------------------------------------
+
+
+def test_a_rule_one_point_below_random_everywhere_differs_by_exactly_minus_one_with_a_zero_width_range() -> None:
+    difference = report.paired_difference(pd.DataFrame(_two_rule_panel()), "D1_season", "random")
+    assert difference == pytest.approx({"mean_diff": -1.0, "ci_lo": -1.0, "ci_hi": -1.0})
+
+
+def test_the_difference_range_bootstraps_the_per_gameweek_difference_series() -> None:
+    panel = pd.DataFrame(_two_rule_panel())
+    panel.loc[(panel["ranker"] == "D1_season") & (panel["gw"] % 2 == 0), "regret"] += 3.0
+    per_gw = panel.pivot_table(index="gw", columns="ranker", values="regret", aggfunc="mean")
+    series = (per_gw["D1_season"] - per_gw["random"]).to_numpy()
+    expected = gameweek_block_ci(series, n_scoreable_gw=len(series))
+    difference = report.paired_difference(panel, "D1_season", "random")
+    assert (difference["ci_lo"], difference["ci_hi"]) == pytest.approx(expected)
+
+
+def test_differences_compare_every_rule_with_random_and_with_the_reference_rule() -> None:
+    rows = _two_rule_panel()
+    rows += [
+        r | {"ranker": report.REFERENCE_RULE, "regret": float(r["regret"]) - 0.5}  # type: ignore[arg-type]
+        for r in rows
+        if r["ranker"] == "D1_season"
+    ]
+    differences = report.build([_artefact(rows)]).differences
+    assert set(differences.index) == {
+        ("uniform", "random", "D1_season"),
+        ("uniform", "random", report.REFERENCE_RULE),
+        ("uniform", report.REFERENCE_RULE, "D1_season"),
+        ("uniform", report.REFERENCE_RULE, "random"),
+    }
+    assert differences.loc[("uniform", report.REFERENCE_RULE, "D1_season"), "mean_diff"] == pytest.approx(0.5)
+
+
+def test_without_the_reference_rule_only_random_is_compared_with() -> None:
+    differences = report.build([_artefact(_two_rule_panel())]).differences
+    assert set(differences.index.get_level_values("versus")) == {"random"}
+
+
+def test_outfield_regret_leaves_out_the_goalkeeper_slot() -> None:
+    rows = [_row("s0", gw, "random", 5.0, positions=(2.0, 1.0, 1.0, 1.0)) for gw in range(4, 8)]
+    rules = report.build([_artefact(rows)]).rules
+    assert rules.loc[("uniform", "random"), "outfield_mean"] == pytest.approx(3.0)
+
+
+# ---------------------------------------------------------------------------
+# Squad diagnostics (results notebook, (e) and caveats)
+# ---------------------------------------------------------------------------
+
+SQUAD_POSITIONS = ["GK"] * 2 + ["DEF"] * 5 + ["MID"] * 5 + ["FWD"] * 3
+
+
+def _squad(squad_id: str, gw: int, points: Sequence[float], played: Sequence[bool]) -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "squad_id": squad_id,
+            "gw": gw,
+            "player_id": range(15),
+            "position": SQUAD_POSITIONS,
+            "points": points,
+            "played": played,
+        }
+    )
+
+
+def test_the_ideal_formation_takes_the_best_players_within_the_limits() -> None:
+    # Strong DEFs and MIDs, weak FWDs: 5 DEF + 4 MID + 1 FWD (5-4-1) beats every other formation.
+    points = [5, 0] + [9] * 5 + [8, 8, 8, 8, 0] + [1, 0, 0]
+    assert report.formation_name(report.ideal_formation(SQUAD_POSITIONS, points)) == "5-4-1"
+
+
+def test_a_tied_ideal_takes_the_first_formation_in_legal_order() -> None:
+    assert report.ideal_formation(SQUAD_POSITIONS, [0.0] * 15) == LEGAL_FORMATIONS[0]
+
+
+def test_squad_diagnostics_count_players_who_played_and_two_playing_keepers() -> None:
+    squads = pd.concat(
+        [
+            _squad("s0", 4, [0.0] * 15, [True, True] + [True] * 10 + [False] * 3),  # 12 played, both GKs
+            _squad("s1", 4, [0.0] * 15, [True, False] + [True] * 5 + [False] * 8),  # 6 played
+        ]
+    )
+    rows = [_row("s0", 4, "random", 1.0, xi=_xi(0)), _row("s1", 4, "random", 1.0, xi=_xi(0))]
+    diagnostics = report.diagnose([(_artefact(rows), squads)]).squads.loc["uniform"]
+    assert diagnostics["squad_weeks"] == 2
+    assert diagnostics["played_mean"] == pytest.approx(9.0)
+    assert diagnostics["share_played_at_most_11"] == pytest.approx(0.5)
+    assert diagnostics["share_both_keepers_played"] == pytest.approx(0.5)
+
+
+def test_formation_shares_cover_each_rules_chosen_xi_and_the_hindsight_ideal() -> None:
+    # The chosen XI: GK 0, DEF 2-6, MID 7-10, FWD 12 -> 5-4-1, which is also the ideal here.
+    points = [5, 0] + [9] * 5 + [8, 8, 8, 8, 0] + [1, 0, 0]
+    squads = _squad("s0", 4, points, [True] * 15)
+    xi_541 = ",".join(str(p) for p in [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12])
+    rows = [_row("s0", 4, "random", 1.0, xi=xi_541)]
+    formations = report.diagnose([(_artefact(rows), squads)]).formations
+    assert formations.loc[("uniform", "random", "5-4-1"), "share"] == pytest.approx(1.0)
+    assert formations.loc[("uniform", "hindsight_ideal", "5-4-1"), "share"] == pytest.approx(1.0)
+
+
+def test_zero_information_squad_weeks_are_left_out_of_the_squad_diagnostics() -> None:
+    squads = pd.concat([_squad("s0", 4, [0.0] * 15, [True] * 15), _squad("s0", 5, [0.0] * 15, [False] * 15)])
+    rows = [_row("s0", 4, "random", 1.0), _row("s0", 5, "random", 1.0, flagged=True)]
+    diagnostics = report.diagnose([(_artefact(rows), squads)]).squads.loc["uniform"]
+    assert diagnostics["squad_weeks"] == 1
+    assert diagnostics["played_mean"] == pytest.approx(15.0)
+
+
+def test_squads_that_do_not_re_draw_to_the_runs_set_raise(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _Sample:
+        squad_set_id = "other"
+        squads = pd.DataFrame(columns=["squad_id", "gw", "player_id"])
+
+    monkeypatch.setattr(report.sampler, "sample_squads", lambda *args, **kwargs: _Sample())
+    artefact = {
+        "manifest": {
+            "identity": {"build_gameweeks": [4], "master_seed": 0, "squad_mode": "uniform", "squad_set_id": "run"}
+        }
+    }
+    with pytest.raises(ValueError, match="not the run's"):
+        report.squad_facts(None, artefact)  # type: ignore[arg-type]

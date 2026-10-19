@@ -1,6 +1,6 @@
 # DECISION.md — Free Hit Squad Construction & Selection
 
-Sibling to `decisions/starting_xi/archive/DECISION.md`. Follows the same structure.
+Sibling to starting_xi's retired decision doc. Follows the same structure.
 Status: Specified in conversation, revised after a five-expert stress-test
 pass. Not yet built.
 

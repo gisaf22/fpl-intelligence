@@ -6,7 +6,7 @@
 `decisions/free_hit/DECISION.md` §7 names as blocking `DESIGN.md`, and states facts only. Every
 claim below is cited to a real file/line or to a query run directly against the live mart
 (`~/.fpl/fpl.mart.parquet`) or the live raw sqlite DB (`~/.fpl/fpl.db`); nothing here is inferred
-from `decisions/starting_xi/archive/INVENTORY.md` without being re-verified against current repo state,
+from starting_xi's retired inventory without being re-verified against current repo state,
 though that document is cited directly where it is the fact of record (e.g. registration-prefix
 semantics) and re-derivation would just repeat its own verification.
 
@@ -22,7 +22,7 @@ the choice is flagged as `DESIGN.md`'s rather than made here.
 ## 1. Gameweek population availability
 
 **The mart, verified directly (2026-08-29):** 31,958 rows, 841 unique `player_id`, `gw` ∈ {1..38}
-(38 gameweeks), 64 columns. This is the same figure `decisions/starting_xi/archive/INVENTORY.md`'s header
+(38 gameweeks), 64 columns. This is the same figure starting_xi's retired inventory's header
 records, re-run rather than assumed current. There is no `season` or `year` column on the mart, and
 `dal/config.py:4` resolves a single `DB_PATH` (`~/.fpl/fpl.db`, one SQLite file) with no
 season-selection parameter anywhere in `dal/pipeline.py`. `CONTEXT.md:8-9` and
@@ -46,7 +46,7 @@ same way, verified rather than assumed.
 depending on definition, and the repository does not itself pick one.**
 
 Row-level `is_bgw` is contaminated by the pre-registration prefix, not just genuine blanks.
-`decisions/starting_xi/archive/INVENTORY.md` §2.5 (independently re-verified above: `is_bgw` ⟺ `minutes`
+starting_xi's retired inventory (independently re-verified above: `is_bgw` ⟺ `minutes`
 NULL, exact) already established that most NULL-`minutes` rows are a player not yet having
 debuted, not a real fixture blank. Counting **any** `is_bgw=True` row in a gameweek as
 disqualifying gives:
@@ -77,7 +77,7 @@ carries the flag — gives a different, club-schedule-level count:
 **Neither definition is implemented anywhere in the repository as a reusable "is this calendar
 gameweek a DGW/BGW gameweek" classifier.** `decisions/starting_xi/sampler.py`, `harness.py`,
 `formations.py` and `orderings.py` were grepped for `is_dgw`, `is_bgw`, `fixture_context` and
-`fixture_count`: zero matches in all four. `decisions/starting_xi/archive/INVENTORY.md`'s own citations for
+`fixture_count`: zero matches in all four. starting_xi's retired inventory's own citations for
 these flags (§2.1, §2.6, §2.10) are all **row-level** filters inside `model/` terms
 (`PlayModel.population`, `build_baseline_features`), never a whole-gameweek classification. The
 33-gameweek figure above is therefore a fact this pass computed directly against the mart to answer
@@ -96,7 +96,7 @@ repository today — flagged for `DESIGN.md`.
 **Not on the mart.** The mart's full 64-column list (enumerated directly from the live parquet)
 contains no `bank`, `team_value`, `squad_value`, or `entry`-prefixed column of any kind. The only
 value-shaped column is `purchase_price` — a **per-player** price index (`player_histories.value ÷
-10`, per `decisions/starting_xi/archive/INVENTORY.md` §2.7, re-verified: 600/841 players carry more than
+10`, per starting_xi's retired inventory, re-verified: 600/841 players carry more than
 one distinct price across the season) — not a team-level or manager-level aggregate.
 
 **Not in the staging contracts or `domain/`.** `grep -rln "bank\|team_value\|entry_history\|
@@ -193,7 +193,7 @@ more than the remaining budget. Nothing in the repository computes a "cheapest N
 position" query or a running per-club count against a partial selection; both would be new.
 
 **Where it could live, given the existing Tier structure — this pass does not decide, but the
-options are concrete.** `decisions/starting_xi/DESIGN.md` §3.5 records the precedent the repository
+options are concrete.** starting_xi's retired design records the precedent the repository
 already used for an analogous constants-vs-routine split: squad-legality constants
 (`SQUAD_SELECT`, `MAX_PER_CLUB`, `BUDGET_CAP`, etc.) went to `domain/fpl_squad.py` because
 `domain/` is model-free by `.importlinter` enforcement (`no_domain_to_anything`, `.importlinter:10-19`)
@@ -275,7 +275,7 @@ already blocks anything.
   establishing that pattern for this exact column.
 
 **A directly relevant precedent that was already decided once — for a different reason that does
-not carry over.** `decisions/starting_xi/DESIGN.md` §3.4 records that relocating
+not carry over.** starting_xi's retired design records that relocating
 `expanding_prior_mean` out of `model/eval/baselines.py` (to avoid a `model/` dependency) was
 considered and rejected for that slice — but the stated reason was that `rankers.py`'s F1 ranker
 (`p_play`, a fitted GLM at `model/terms/p_play/p_play.py:40`) already forces a real, unavoidable
@@ -295,7 +295,7 @@ validate/study.py:342-350`). It is **not** achievable by importing the existing 
 `expanding_prior_mean` helper, because of `model/eval/__init__.py`'s fan-out. Which of those two
 paths (reimplement locally vs. import and accept a `model/` edge) the constructor should take, and
 where the resulting module should live (per the same `domain/`-vs-in-slice placement precedent
-`decisions/starting_xi/DESIGN.md` §3.5 sets, cited in §3 above — no literal "decision-vs-wiring
+starting_xi's retired design sets, cited in §3 above — no literal "decision-vs-wiring
 placement test" of that name was found anywhere in the repository by that search string; §3.5's
 constants-vs-routine reasoning is the closest actual precedent and is cited as such rather than
 under an invented name), is `DESIGN.md`'s decision, not this document's.

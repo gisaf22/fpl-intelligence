@@ -1,12 +1,12 @@
-"""Tests for the 8-formation routine -- `DESIGN.md` §5.1, §0.8, §0.6.
+"""Tests for the 8-formation routine.
 
-The XI space is small enough that "exhaustive" is available where the squad space (§2.8) forced
+The XI space is small enough that "exhaustive" is available where the squad space forced
 the sampler's tests onto reduced universes, so it is used:
 
 * **Legality is checked over every position multiset**, not over examples. Every non-negative
   (GK, DEF, MID, FWD) count vector summing to 0-15 is put to `is_legal_xi` and compared against
   the XI bounds read independently from `domain/fpl_squad.py`. Nothing is sampled.
-* **The maximum is checked against brute force over every legal XI.** `archive/INVENTORY.md` §2.4's
+* **The maximum is checked against brute force over every legal XI.** The
   prefix-sum shortcut is the claim under test, so the reference is all 1,365 11-subsets of the
   15, filtered and maximised directly. If the shortcut is wrong for any arrangement of points,
   a seeded sweep of squads finds it.
@@ -32,11 +32,11 @@ from domain.fpl_squad import POSITIONS, SQUAD_SELECT, SQUAD_SIZE, XI_MAX_PLAY, X
 pytestmark = pytest.mark.unit
 
 
-# `archive/INVENTORY.md` §2.4's measured formation set, written out here and nowhere in the module. This
+# The measured formation set, written out here and nowhere in the module. This
 # is the drift test for `domain/fpl_squad.py`'s XI bounds: the module derives the set from those
-# bounds, so a bound that moved without the document moving fails here rather than silently
+# bounds, so a bound that moved without this list moving fails here rather than silently
 # changing what the counterfactual maximises over.
-INVENTORY_FORMATIONS = (
+EXPECTED_FORMATIONS = (
     (1, 3, 4, 3),
     (1, 3, 5, 2),
     (1, 4, 3, 3),
@@ -120,7 +120,7 @@ def _brute_force(positions: list[str], points: list[float]) -> tuple[float, floa
 def _formation_gap_runner_up(positions: list[str], points: list[float]) -> float:
     """The **superseded** computation: the second-largest of the 8 formation totals.
 
-    Kept as a live counterfactual rather than a comment. §0.8 rejected this quantity, and the
+    Kept as a live counterfactual rather than a comment. The decision rejected this quantity, and the
     tests below assert that the routine does not return it -- so a rewrite that quietly regresses
     to the cheaper computation fails rather than passes quietly.
     """
@@ -133,12 +133,12 @@ def _formation_gap_runner_up(positions: list[str], points: list[float]) -> float
 
 
 # ---------------------------------------------------------------------------
-# The formation set -- derived from `domain/`, pinned against `archive/INVENTORY.md` §2.4
+# The formation set -- derived from `domain/`, pinned against the measured set
 # ---------------------------------------------------------------------------
 
 
 def test_the_derived_formation_set_is_the_eight_inventory_measured() -> None:
-    assert LEGAL_FORMATIONS == INVENTORY_FORMATIONS
+    assert LEGAL_FORMATIONS == EXPECTED_FORMATIONS
 
 
 def test_every_derived_formation_sits_inside_the_domain_bounds() -> None:
@@ -149,7 +149,7 @@ def test_every_derived_formation_sits_inside_the_domain_bounds() -> None:
 
 
 # ---------------------------------------------------------------------------
-# §0.6 legality -- exhaustive over every position multiset
+# Legality -- exhaustive over every position multiset
 # ---------------------------------------------------------------------------
 
 
@@ -171,7 +171,7 @@ def test_legality_agrees_with_the_domain_bounds_on_every_position_multiset() -> 
 
 
 def test_legality_ignores_the_order_the_positions_arrive_in() -> None:
-    """§4.3.1: legality is a property of the multiset, which is why the replay may fill vacancies
+    """Legality is a property of the multiset, which is why the replay may fill vacancies
     in a pinned order without that order entering the constraint."""
     rng = np.random.default_rng(0)
     xi = _spell((1, 4, 4, 2))
@@ -186,7 +186,7 @@ def test_a_short_or_long_candidate_is_not_a_legal_xi() -> None:
 
 
 def test_an_unrecognised_position_raises_rather_than_reporting_an_illegal_xi() -> None:
-    """§8.4 normalises `position_label` (GKP) at the harness boundary. A GKP reaching here means
+    """The harness normalises `position_label` (GKP) at the harness boundary. A GKP reaching here means
     that was missed, and a `False` would show up as every substitution silently failing to fire
     rather than as an error -- so the same XI is asserted legal under the normalised vocabulary."""
     unnormalised = ["GKP", *_spell((0, 4, 4, 2))]
@@ -196,7 +196,7 @@ def test_an_unrecognised_position_raises_rather_than_reporting_an_illegal_xi() -
 
 
 # ---------------------------------------------------------------------------
-# §0.1/§0.8 -- the two totals, against brute force over every legal XI
+# The two totals, against brute force over every legal XI
 # ---------------------------------------------------------------------------
 
 
@@ -216,10 +216,10 @@ def _sweep_squad(seed: int) -> tuple[list[str], list[float]]:
 def test_both_totals_match_brute_force_over_every_legal_xi() -> None:
     """The whole claim, against the only reference that shares no arithmetic with it.
 
-    `archive/INVENTORY.md` §2.4's prefix-sum shortcut supplies the maximum; §0.8's demotion rule supplies
+    The prefix-sum shortcut supplies the maximum; the demotion rule supplies
     the second-best. `_brute_force` supplies both by enumerating every legal XI directly. Run over
-    `SWEEP_SQUADS` squads, which is the validation the design's cost claim rests on -- §0.8 states
-    the second-best legal XI is either another formation's best or a single demotion within the
+    `SWEEP_SQUADS` squads, which is the validation the design's cost claim rests on -- the
+    second-best legal XI is either another formation's best or a single demotion within the
     winning one, and if that is wrong for any arrangement of points this is what finds it.
     """
     for seed in range(SWEEP_SQUADS):
@@ -229,7 +229,7 @@ def test_both_totals_match_brute_force_over_every_legal_xi() -> None:
 
 
 def test_the_formation_gap_would_fail_the_sweep_above() -> None:
-    """The counterfactual, executed at sweep scale: §0.8's rejected computation must **not** pass.
+    """The counterfactual, executed at sweep scale: the rejected computation must **not** pass.
 
     Without this, `test_both_totals_match_brute_force_over_every_legal_xi` could be passing on
     squads where the two quantities happen to coincide, and a rewrite that regressed to the
@@ -239,7 +239,7 @@ def test_the_formation_gap_would_fail_the_sweep_above() -> None:
     order of magnitude below that -- it exists to catch a regression to the formation gap, not to
     pin a property of the point distribution these squads are drawn from.
 
-    The one-directional relation `archive/INVENTORY.md` §2.4 records is asserted on every squad, not just
+    The one-directional relation is asserted on every squad, not just
     on the ones that disagree: the formation gap never exceeds the XI gap.
     """
     disagreed = 0
@@ -253,7 +253,7 @@ def test_the_formation_gap_would_fail_the_sweep_above() -> None:
 
 
 def test_the_demotion_search_stays_within_four_candidates() -> None:
-    """§0.8's cost claim, checked rather than asserted: at most one demotion per position, and only
+    """The design's cost claim, checked rather than asserted: at most one demotion per position, and only
     where the 15 leaves a spare. The bound is what keeps this inside a `formations.py`-shaped pure
     function, so a formation admitting more would be a finding, not a slow path."""
     sizes = {
@@ -292,9 +292,9 @@ def test_the_maximum_is_the_best_of_the_eight_combinations() -> None:
 
 
 def test_the_second_best_total_is_the_second_best_xi_not_the_second_best_formation() -> None:
-    """Which of two quantities §0.8's C1 is, pinned on the squad the decision was taken on.
+    """Which of two quantities C1 is, pinned on the squad the decision was taken on.
 
-    §0.8 selects the **XI** gap: the second-best legal XI, which within the winning formation may
+    C1 is the **XI** gap: the second-best legal XI, which within the winning formation may
     be one starter demoted rather than a different formation entirely. The formation gap -- the
     second-largest of the 8 combinations -- is the rejected candidate, and this squad separates
     them by 15 points. All three values are asserted, so the two quantities cannot silently
@@ -319,7 +319,7 @@ def test_the_second_best_total_is_the_second_best_xi_not_the_second_best_formati
 
 
 def test_two_formations_tied_at_the_top_give_an_equal_pair() -> None:
-    """§0.8's zero-gap squad-week, which is excluded and counted at the conditioning step rather
+    """A zero-gap squad-week, which is excluded and counted at the conditioning step rather
     than signalled here: the routine reports the two totals and nothing else."""
     positions, points = _quota_squad([1.0] * SQUAD_SIZE)
     result = best_legal_xi(positions, points)
@@ -335,7 +335,7 @@ def test_the_totals_do_not_depend_on_the_order_the_squad_arrives_in() -> None:
 
 
 def test_a_player_who_scored_nothing_is_still_selectable_when_the_bounds_require_it() -> None:
-    """§0.2 applies no substitutions to the counterfactual side, so a blanked player is a 0 in
+    """CARD.md §1 applies no substitutions to the counterfactual side, so a blanked player is a 0 in
     the enumeration rather than an omission: with only three forwards and a `>= 1 FWD` minimum,
     every legal XI carries one however he scored."""
     positions, points = _quota_squad([9.0] * 12 + [0.0] * 3)
@@ -375,13 +375,13 @@ def test_mismatched_positions_and_points_raise() -> None:
 
 
 # ---------------------------------------------------------------------------
-# §3.5/§5.1 -- the most constrained module in the slice, and it stays that way
+# The most constrained module in the slice, and it stays that way
 # ---------------------------------------------------------------------------
 
 
 def test_importing_the_routine_pulls_in_no_layer_below_domain_and_no_sibling() -> None:
-    """§5.1 forbids `formations.py` everything project-internal except `domain/` -- `dal/`
-    included, and every sibling slice module included. Run in a subprocess for §5.6's reason: the
+    """The import contract forbids `formations.py` everything project-internal except `domain/` -- `dal/`
+    included, and every sibling slice module included. Run in a subprocess because the
     session has already imported `model` via `testpaths`, so an in-process `sys.modules` check
     could not tell this module's closure from what was already loaded."""
     program = (

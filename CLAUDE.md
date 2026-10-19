@@ -95,5 +95,5 @@ where this section and that file disagree, that file wins.
   them and never copies them.
 - **Superseded docs move to `archive/`** with the header `Superseded by CARD.md on <date>.`
   Archived docs are provenance, not authority; cite them by path (`archive/METRIC.md` §5).
-- Docs the code still governs from (e.g. `starting_xi/DESIGN.md`, `PRE_REGISTRATION.yaml`) stay in
+- Docs the code still governs from (e.g. `starting_xi/PRE_REGISTRATION.yaml`) stay in
   place, with a one-line pointer to the card at the top.

@@ -1,22 +1,22 @@
-"""Tests for the replay engine -- `DESIGN.md` §4.3, §6.7, §6.8, §5.1.
+"""Tests for the replay engine.
 
 The design supplies three references this suite uses instead of examples, and each is executed
 rather than described:
 
-* **§6.7's equivalence is re-proved by exhaustion, not cited.** Every score profile drawable from
+* **The selection equivalence is re-proved by exhaustion, not cited.** Every score profile drawable from
   a 3-valued alphabet -- 26,460 of them, ties everywhere -- is put to `select_xi`, to a greedy
   scan down the ranking, and to brute force over all 550 legal XIs of a 2/5/5/3 squad. The
-  agreement §6.7 proves is the assertion, and the counterfactual is executed: a plain top-11 that
+  agreement the design proves is the assertion, and the counterfactual is executed: a plain top-11 that
   ignores legality fails the same sweep.
-* **§4.3.1's vacancy-order invariance obligation is discharged here, and it fails.** The minimal
+* **The vacancy-order invariance obligation is discharged here, and it fails.** The minimal
   counterexample is pinned, and the failure's scope is swept over every permutation of the
-  vacancy order on seeded multi-blank squad-weeks. §4.3.1 carries the cost measured over all
-  11,100 squad-weeks and the slackest-first rule that replaced the fixed DEF-first order; these
+  vacancy order on seeded multi-blank squad-weeks. The cost measured over all
+  11,100 squad-weeks led to the slackest-first rule that replaced the fixed DEF-first order; these
   tests assert that rule's behaviour on the case that broke the old one.
-* **§4.3's worked example is replayed**, and the priority-queue reading is separated from the
+* **The worked multi-substitution example is replayed**, and the priority-queue reading is separated from the
   consume-on-skip alternative by running both -- so the test knows it has something to fail
-  against, per `archive/METRIC.md` §2.5.
-* **§0.10's absolute counterfactual is checked by exhaustion**, which is available because there
+  against.
+* **The absolute counterfactual is checked by exhaustion**, which is available because there
   are only 3! = 6 orderings of the outfield bench: `best_permutation_total` is re-derived from an
   independent enumeration on every squad-week of the fixture, and the relative form it replaced is
   computed alongside it and asserted to differ, so the suite cannot pass by being blind to which
@@ -58,8 +58,8 @@ pytestmark = pytest.mark.unit
 _ID_BY_POSITION = {label: position_id for position_id, label in POSITION_BY_ID.items()}
 
 
-# `DESIGN.md` §7.2's T2 and T5 column sets, written out here and nowhere in the module. A column
-# added, removed or renamed in the module without the document moving fails here. The harness's T2
+# The T2 and T5 column sets, written out here and nowhere in the module. A column
+# added, removed or renamed in the module without this set moving fails here. The harness's T2
 # lacks `is_zero_information`, which the composition root adds across rules (#31).
 T2_COLUMNS = (
     "squad_id",
@@ -122,7 +122,7 @@ def _brute_force_best_total(value: dict[int, float]) -> float:
 
 
 def _greedy_xi(ranking: Sequence[int]) -> frozenset[int]:
-    """§6.7's Reading B: scan the ranking, take a player if a legal XI stays reachable.
+    """Reading B: scan the ranking, take a player if a legal XI stays reachable.
 
     Written independently of the module -- this is the *other* reading, and the point of the
     sweep below is that it and `select_xi` return the same total.
@@ -166,16 +166,16 @@ def _profiles(alphabet: Sequence[int]) -> Iterator[list[float]]:
 
 
 # ---------------------------------------------------------------------------
-# §6.7 -- the selection rule, and the equivalence it rests on
+# The selection rule, and the equivalence it rests on
 # ---------------------------------------------------------------------------
 
 
 def test_selection_matches_brute_force_and_the_greedy_reading_on_every_three_valued_profile() -> None:
-    """§6.7's claim, exhaustively: Reading A, Reading B and brute force agree on the total.
+    """The equivalence, exhaustively: Reading A, Reading B and brute force agree on the total.
 
-    26,460 profiles, ties throughout -- which is the case that matters, since §6.7 records that
+    26,460 profiles, ties throughout -- which is the case that matters, since the design records that
     the two readings agree on membership only when scores are distinct. The sweep is over the
-    *total*, which is what the equivalence covers and what §0.1's regret is built from.
+    *total*, which is what the equivalence covers and what regret is built from.
     """
     checked = 0
     for scores in _profiles(range(3)):
@@ -212,7 +212,7 @@ def test_a_selection_ignoring_legality_would_fail_that_sweep() -> None:
 
 
 def test_every_selected_xi_is_a_legal_formation() -> None:
-    """Legality is a precondition of §0.1's lower bound (§0.6), so it is checked on the sweep."""
+    """Legality is a precondition of regret's lower bound, so it is checked on the sweep."""
     for scores in _profiles(range(3)):
         chosen = select_xi(rank_squad(_records(scores)), POSITION_OF)
         assert len(chosen) == XI_SIZE
@@ -220,7 +220,7 @@ def test_every_selected_xi_is_a_legal_formation() -> None:
 
 
 def test_membership_is_unique_under_distinct_scores_and_matches_the_greedy_reading() -> None:
-    """§6.7 records the membership half of the equivalence: the two readings agree exactly when
+    """The design records the membership half of the equivalence: the two readings agree exactly when
     the scores are distinct, where the maximum-weight basis is unique."""
     rng = np.random.default_rng(0)
     for _ in range(2_000):
@@ -230,7 +230,7 @@ def test_membership_is_unique_under_distinct_scores_and_matches_the_greedy_readi
 
 
 def test_membership_agrees_with_the_greedy_reading_on_every_three_valued_profile() -> None:
-    """§6.7's equivalence covers membership too, not only the total -- because the maximisation is
+    """The equivalence covers membership too, not only the total -- because the maximisation is
     over the **ranking**, whose values are distinct, so the maximiser is unique. Exhaustive over
     the same 26,460 profiles, ties included, since ties are where a non-unique maximiser would
     show up."""
@@ -240,12 +240,12 @@ def test_membership_agrees_with_the_greedy_reading_on_every_three_valued_profile
 
 
 def test_maximising_the_raw_score_column_would_break_that_membership_agreement() -> None:
-    """The executed counterfactual for §6.7's "what is maximised" paragraph.
+    """The executed counterfactual for "what is maximised".
 
     Without it, `test_membership_agrees_...` could be passing because membership is insensitive to
     the maximised quantity, in which case naming that quantity would be pointless. Reading A run on
     the raw score column instead of on rank position must select a *different* XI somewhere -- it
-    does, on 19,602 of the 26,460 profiles -- which is exactly why §6.7 fixes the quantity rather
+    does, on 19,602 of the 26,460 profiles -- which is exactly why the design fixes the quantity rather
     than leaving "maximise the score" to be read the obvious way.
     """
 
@@ -269,7 +269,7 @@ def test_maximising_the_raw_score_column_would_break_that_membership_agreement()
 
 
 def test_the_maximising_formation_is_unique_so_no_formation_tie_break_can_fire() -> None:
-    """§6.7 records this as measured: enumerating all 7,567,560 assignments of the fifteen
+    """Recorded as measured: enumerating all 7,567,560 assignments of the fifteen
     distinct rank values to the 2/5/5/3 quota finds no case where two formations tie on the
     rank-value sum. That full enumeration is too slow for this suite, so the property is checked
     over every 3-valued score profile plus a seeded sweep of distinct-score rankings -- and it is
@@ -293,7 +293,7 @@ def test_the_maximising_formation_is_unique_so_no_formation_tie_break_can_fire()
 
 
 # ---------------------------------------------------------------------------
-# §6.8 / §6.5 / §0.4 -- the ranking's three tiers and its tie-break
+# The ranking's three tiers and its tie-break
 # ---------------------------------------------------------------------------
 
 
@@ -302,7 +302,7 @@ def test_equal_scores_are_broken_by_ascending_player_id() -> None:
 
 
 def test_a_descending_tie_break_would_give_a_different_xi() -> None:
-    """§6.8's counterfactual. The rule only matters if the direction changes the answer, so the
+    """The tie-break counterfactual. The rule only matters if the direction changes the answer, so the
     reversed convention is executed and must select a different XI."""
     scores = [0.0] * SQUAD_SIZE
     ascending = select_xi(rank_squad(_records(scores)), POSITION_OF)
@@ -313,7 +313,7 @@ def test_a_descending_tie_break_would_give_a_different_xi() -> None:
 
 
 def test_the_tie_break_consumes_no_randomness() -> None:
-    """§6.8 forbids a live draw, including a seeded one: two runs sharing a seed must select the
+    """A live draw is forbidden, including a seeded one: two runs sharing a seed must select the
     same XI. Repeated calls with an independently shuffled input must return one answer."""
     rng = np.random.default_rng(7)
     scores = [0.0] * SQUAD_SIZE
@@ -326,8 +326,8 @@ def test_the_tie_break_consumes_no_randomness() -> None:
 
 
 def test_a_scored_player_outranks_an_unrankable_one_who_outranks_a_no_fixture_one() -> None:
-    """§6.7 fixes the tier order and §6.6 records that reversing the last two would reintroduce
-    §0.4's asymmetry. Each tier is given the *best* possible score so only the tier can be doing
+    """The tier order is fixed (CARD.md §3), and reversing the last two would reintroduce the
+    no-fixture asymmetry. Each tier is given the *best* possible score so only the tier can be doing
     the work."""
     records = [
         BenchPlayer(player_id=0, position="GK", score=-99.0, no_fixture=False),
@@ -351,9 +351,9 @@ def rank_squad_index(records: Sequence[BenchPlayer], record: BenchPlayer) -> int
 
 
 def test_a_no_fixture_player_is_ranked_last_however_high_his_score() -> None:
-    """§0.4: the rule is the harness's and applies identically to every ranker. `archive/METRIC.md` §2.3
-    records that a PPG ranker scores such a player at 0, which is not last -- so a raw-score
-    ranking would not implement the rule and the demotion has to be explicit."""
+    """The rule is the harness's and applies identically to every ranker. A PPG ranker
+    scores such a player at 0, which is not last -- so a raw-score ranking would not implement the
+    rule and the demotion has to be explicit."""
     scores = [1.0] * SQUAD_SIZE
     flags = [False] * SQUAD_SIZE
     scores[3], flags[3] = 100.0, True  # a DEF with the best score in the squad, but no fixture
@@ -362,7 +362,7 @@ def test_a_no_fixture_player_is_ranked_last_however_high_his_score() -> None:
 
 
 def test_an_unrankable_player_sits_below_every_scored_player() -> None:
-    """§6.5's rule, and it never invents a score."""
+    """The unrankable rule, and it never invents a score."""
     scores: list[float | None] = [-50.0] * SQUAD_SIZE
     scores[7] = None
     ranking = rank_squad(_records(scores))
@@ -370,7 +370,7 @@ def test_an_unrankable_player_sits_below_every_scored_player() -> None:
 
 
 # ---------------------------------------------------------------------------
-# §4.3 -- the replay
+# The replay
 # ---------------------------------------------------------------------------
 
 
@@ -379,7 +379,7 @@ def _uniform(value: float) -> dict[int, float]:
 
 
 def test_the_worked_example_from_section_4_3_replays_as_the_document_states() -> None:
-    """§4.3's worked multi-substitution case, replayed exactly as written.
+    """The worked multi-substitution case, replayed exactly as written.
 
     Chosen XI is 1-3-5-2; a DEF and a MID both blank; the outfield bench in priority order is
     [FWD_a, DEF_b, MID_c]. FWD_a is skipped at the DEF vacancy (1-2-5-3 breaks the 3-DEF
@@ -401,8 +401,8 @@ def test_the_worked_example_from_section_4_3_replays_as_the_document_states() ->
 
 
 def test_a_consume_on_skip_rule_would_replay_the_worked_example_differently() -> None:
-    """`archive/METRIC.md` §2.5 says a rule treating a skipped player as spent measures a *different*
-    bench order, and §0.6 selects the priority-queue reading over it. Both are run here, so the
+    """A rule treating a skipped player as spent measures a *different* bench order, so the
+    priority-queue reading is selected over it. Both are run here, so the
     test above is known to be distinguishing them rather than passing on a case where they agree.
     """
     xi = frozenset([0, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13])
@@ -428,17 +428,17 @@ def test_a_consume_on_skip_rule_would_replay_the_worked_example_differently() ->
 
 
 def test_the_final_total_is_NOT_invariant_to_the_vacancy_order() -> None:
-    """§4.3.1's test obligation, discharged -- and it **fails**, which is why the rule changed.
+    """The invariance test obligation, discharged -- and it **fails**, which is why the rule changed.
 
-    §4.3.1 formerly pinned DEF-then-MID-then-FWD, stated the invariance "as a test obligation and
+    The design pinned DEF-then-MID-then-FWD, stated the invariance "as a test obligation and
     not as a premise", and said that "if the test fails, the pinned order is still the rule and
-    the failure is a finding to report". It failed on this case; §4.3.1 then measured the cost of
+    the failure is a finding to report". It failed on this case; the cost of
     the fixed order over all 11,100 squad-weeks -- 143 points against 2 for serving the slackest
     position first -- and replaced it. The case is kept as the regression on the mechanism.
 
     **The counterexample, in full.** Chosen XI is 1-3-5-2 -- GK 0, DEF 4/5/6, MID 7-11, FWD 12/13.
     DEF 5 and MID 7 blank. The bench is GK 1, DEF 2, DEF 3, FWD 14, and **both bench defenders
-    blanked too**, so §0.5 leaves FWD 14 as the only eligible substitute.
+    blanked too**, so the featured-substitute rule leaves FWD 14 as the only eligible substitute.
 
     * **DEF vacancy first** (the retired order). Removing DEF 5 leaves 1-2-5-2; FWD 14 would give
       1-2-5-3, which breaks the 3-DEF minimum, so he is skipped and the vacancy goes **unfilled**.
@@ -451,11 +451,11 @@ def test_the_final_total_is_NOT_invariant_to_the_vacancy_order() -> None:
     every vacancy behind it.** Leaving a slot empty drops the XI below a positional minimum, and
     the minimum can then never be restored, so each later substitution is illegal for a reason
     created by the ordering rather than by the squad. It therefore bites only where an uncovered
-    blank (§4.6) is already present -- and the retired order served DEF vacancies first, which is
+    blank is already present -- and the retired order served DEF vacancies first, which is
     where the binding 3-DEF minimum makes an unfilled vacancy most likely.
 
     **What the module now does on it.** DEF has zero slack here (3 live against a 3-minimum) and
-    MID has three, so §4.3.1's rule serves MID first and reaches the better of the two totals.
+    MID has three, so the slack rule serves MID first and reaches the better of the two totals.
     """
     xi = frozenset([0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
     assert sorted(POSITION_OF[p] for p in xi) == sorted(["GK"] + ["DEF"] * 3 + ["MID"] * 5 + ["FWD"] * 2)
@@ -469,9 +469,9 @@ def test_the_final_total_is_NOT_invariant_to_the_vacancy_order() -> None:
     mid_first = _replay_with_vacancy_order(xi, minutes, points, outfield, [7, 5])
     assert def_first == float(XI_SIZE - 2), "FWD 14 is stranded behind the unfilled DEF vacancy"
     assert mid_first == float(XI_SIZE - 1), "served the other way round, FWD 14 comes on"
-    assert def_first != mid_first, "if these agreed, §4.3.1's invariance would hold after all"
+    assert def_first != mid_first, "if these agreed, vacancy-order invariance would hold after all"
 
-    # And the module implements §4.3.1's slack order, so it defers the tight DEF vacancy and
+    # And the module implements the slack order, so it defers the tight DEF vacancy and
     # produces the second of the two -- not the first, as the retired rule did.
     result = replay(xi, SQUAD, POSITION_OF, minutes, points, outfield)
     assert result.realised_total == mid_first
@@ -480,16 +480,16 @@ def test_the_final_total_is_NOT_invariant_to_the_vacancy_order() -> None:
 
 
 def test_the_slack_order_beats_the_retired_fixed_order_and_reaches_the_bound() -> None:
-    """§4.3.1's selection, on its own terms rather than on the pinned case alone.
+    """The slack-order selection, on its own terms rather than on the pinned case alone.
 
-    §4.3.1 measures slack ordering over the gameweek as never worse than the retired DEF-then-MID-
+    Slack ordering was measured over the gameweek as never worse than the retired DEF-then-MID-
     then-FWD order on any of the 11,100 squad-weeks, strictly better on 105, and 2 points short
     of the best-over-orderings bound in one. That measurement needs the gameweek; what is checkable
     here is the same comparison over seeded multi-vacancy squad-weeks, at a blank rate high
     enough to exercise the poisoning case often.
 
-    The GK is held featuring throughout, because `_replay_with_vacancy_order` implements §4.3's
-    outfield loop only. Comparing it against `replay`, which also runs §0.6's GK slot, would
+    The GK is held featuring throughout, because `_replay_with_vacancy_order` implements the
+    outfield loop only. Comparing it against `replay`, which also runs the GK slot, would
     compare two different quantities and the sweep would assert nothing about the vacancy order.
     """
     rng = np.random.default_rng(7)
@@ -560,7 +560,7 @@ def _replay_with_vacancy_order(
     outfield: Sequence[int],
     order: Sequence[int],
 ) -> float:
-    """§4.3's loop with the vacancy order supplied, so the pinned order can be varied."""
+    """The replay loop with the vacancy order supplied, so the pinned order can be varied."""
     live = dict.fromkeys(sorted(xi), True)
     queue = list(outfield)
     for vacancy in order:
@@ -576,7 +576,7 @@ def _replay_with_vacancy_order(
 
 
 def test_an_incoming_substitute_must_himself_have_featured() -> None:
-    """§0.5, under §0.3's two-state predicate -- `minutes = 0` and `minutes` NULL alike."""
+    """The featured-substitute rule, under the two-state predicate -- `minutes = 0` and `minutes` NULL alike."""
     xi = frozenset([0, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13])
     minutes: dict[int, float | None] = _uniform(90.0)  # type: ignore[assignment]
     minutes[12] = 0.0  # a starting FWD blanks
@@ -588,7 +588,7 @@ def test_an_incoming_substitute_must_himself_have_featured() -> None:
 
 
 def test_a_blank_the_bench_cannot_cover_is_an_uncovered_blank_not_a_quiet_zero() -> None:
-    """§4.6's third quantity. §7.5 turns on the distinction between this and "no substitution
+    """The third quantity, `uncovered_blank`. Assembly turns on the distinction between this and "no substitution
     fired", so both are constructed and asserted to differ."""
     xi = frozenset([0, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13])
     blanked: dict[int, float | None] = _uniform(90.0)  # type: ignore[assignment]
@@ -605,7 +605,7 @@ def test_a_blank_the_bench_cannot_cover_is_an_uncovered_blank_not_a_quiet_zero()
 
 
 def test_the_gk_slot_is_a_separate_process_and_no_ordering_can_change_it() -> None:
-    """§4.2: a 15 holds exactly 2 goalkeepers and every legal XI starts 1, so the GK ordering is
+    """A 15 holds exactly 2 goalkeepers and every legal XI starts 1, so the GK ordering is
     degenerate. Every permutation of the outfield bench must leave `entered_gk` identical."""
     xi = frozenset([0, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13])
     minutes: dict[int, float | None] = _uniform(90.0)  # type: ignore[assignment]
@@ -618,7 +618,7 @@ def test_the_gk_slot_is_a_separate_process_and_no_ordering_can_change_it() -> No
 
 
 def test_a_replay_never_lets_the_chosen_side_out_score_its_own_counterfactual() -> None:
-    """§0.1's lower bound, which §0.6's legality requirement exists to protect. Checked as a
+    """Regret's lower bound, which the legality requirement exists to protect. Checked as a
     property over seeded squad-weeks rather than on one case."""
     from decisions.starting_xi.formations import best_legal_xi
 
@@ -636,7 +636,7 @@ def test_a_replay_never_lets_the_chosen_side_out_score_its_own_counterfactual() 
 
 
 # ---------------------------------------------------------------------------
-# §0.9 / §8.3 -- the as-of statistic
+# The as-of statistic
 # ---------------------------------------------------------------------------
 
 
@@ -654,7 +654,7 @@ def _gameweek(rows: Sequence[tuple[int, int, str, float | None, float | None]]) 
 
 
 def test_the_as_of_statistic_matches_an_independent_per_player_reference() -> None:
-    """§0.9's definition, computed the slow way and compared: total points before *t* over
+    """The CARD.md §3 D1 definition, computed the slow way and compared: total points before *t* over
     gameweeks before *t* since registration, blanks and no-fixture at 0, prefix excluded."""
     rng = np.random.default_rng(5)
     rows: list[tuple[int, int, str, float | None, float | None]] = []
@@ -682,25 +682,25 @@ def test_the_as_of_statistic_matches_an_independent_per_player_reference() -> No
 
 
 def test_an_appearance_denominated_statistic_would_differ() -> None:
-    """§8.3 names this as the silent-wrong-answer risk: a rolling mean that skips nulls yields
-    an *appearance*-denominated rate, which §0.9 rejects. The wrong quantity is computed here so
+    """The silent-wrong-answer risk: a rolling mean that skips nulls yields
+    an *appearance*-denominated rate, which is rejected. The wrong quantity is computed here so
     the test above is known to be pinning the right one."""
     gameweek = _gameweek(
         [
             (1, 1, "MID", 90.0, 10.0),
-            (1, 2, "MID", None, None),  # a blank -- counts at 0 under §0.9
+            (1, 2, "MID", None, None),  # a blank -- counts at 0 (DATA.md)
             (1, 3, "MID", 90.0, 2.0),
             (1, 4, "MID", 90.0, 0.0),
         ]
     )
     got = as_of_points(gameweek).set_index("gw")["as_of_points"].to_dict()
     assert got[4] == pytest.approx(12 / 3), "gameweeks elapsed"
-    assert got[4] != pytest.approx(12 / 2), "appearances -- the quantity §0.9 rejects"
+    assert got[4] != pytest.approx(12 / 2), "appearances -- the rejected quantity"
 
 
 def test_pre_registration_weeks_do_not_count() -> None:
-    """§0.9: charging a GW20 entrant with nineteen zeros would score the DAL's cartesian spine
-    (`archive/INVENTORY.md` §2.5), not the player. The counting version is computed and must differ."""
+    """Charging a GW20 entrant with nineteen zeros would score the cartesian spine's pre-entry rows
+    (DATA.md), not the player. The counting version is computed and must differ."""
     rows: list[tuple[int, int, str, float | None, float | None]] = [(1, gw, "MID", None, None) for gw in range(1, 5)]
     rows += [(1, gw, "MID", 90.0, 6.0) for gw in range(5, 8)]
     got = as_of_points(_gameweek(rows)).set_index("gw")["as_of_points"].to_dict()
@@ -710,7 +710,7 @@ def test_pre_registration_weeks_do_not_count() -> None:
 
 
 def test_a_player_registering_at_the_squad_week_itself_scores_zero_not_a_nan() -> None:
-    """The empty-denominator case, which §0.9 does not reach and `harness.py` resolves at 0. A
+    """The empty-denominator case, which the definition does not reach and `harness.py` resolves at 0. A
     NaN here would reach `best_legal_xi`, which rejects non-finite values -- so the case has to
     be answered, and the answer is asserted rather than left to a docstring."""
     got = as_of_points(_gameweek([(1, 1, "MID", 90.0, 7.0), (1, 2, "MID", 90.0, 3.0)]))
@@ -719,13 +719,13 @@ def test_a_player_registering_at_the_squad_week_itself_scores_zero_not_a_nan() -
 
 
 # ---------------------------------------------------------------------------
-# §5.1 / §7.2 -- the run, and the two calls it must not conflate
+# The run, and the two calls it must not conflate
 # ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class _Ranker:
-    """A stand-in for §6.1's `RankerOutput`, satisfying the protocol structurally."""
+    """A stand-in for `RankerOutput`, satisfying the protocol structurally."""
 
     name: str
     window: tuple[int, int]
@@ -793,7 +793,7 @@ def test_the_two_frames_carry_exactly_the_columns_section_7_2_specifies() -> Non
 
 
 def test_t5_carries_one_row_per_squad_week_per_ordering_with_one_primary() -> None:
-    """§7.2's T5 grain includes `ranker`, and §5.4 makes element 0 the primary."""
+    """T5 grain includes `ranker`, and element 0 is the primary."""
     frames, squads, ranker = _fixture()
     order = [("by_rank", _by_rank), ("reversed", _reversed)]
     result = run(squads, lambda _: ranker, order, frames, (2, 4))
@@ -805,7 +805,7 @@ def test_t5_carries_one_row_per_squad_week_per_ordering_with_one_primary() -> No
 
 
 def test_t2_carries_the_primary_orderings_replay_and_no_other() -> None:
-    """§7.2: "Every figure in T2 is the *primary* ordering's." Checked by running the same
+    """Every figure in T2 is the *primary* ordering's. Checked by running the same
     fixture with the two policies swapped and asserting T2 follows element 0."""
     frames, squads, ranker = _fixture()
     forward = run(squads, lambda _: ranker, [("a", _by_rank), ("b", _reversed)], frames, (2, 4))
@@ -819,7 +819,7 @@ def test_t2_carries_the_primary_orderings_replay_and_no_other() -> None:
 
 
 def test_the_realised_and_as_of_pairs_are_not_the_same_call() -> None:
-    """§0.8's correction, asserted rather than trusted: the closeness gap is the **as-of** pair's,
+    """The C1 correction, asserted rather than trusted: the closeness gap is the **as-of** pair's,
     and computing it from realised points gives a different number. If the two calls were
     conflated this test fails, and the columns' names would be lying."""
     frames, squads, ranker = _fixture()
@@ -834,7 +834,7 @@ def test_the_realised_and_as_of_pairs_are_not_the_same_call() -> None:
 
 
 def test_regret_is_the_realised_pair_and_is_never_negative() -> None:
-    """§0.1, and §0.2's asymmetric option: the counterfactual has no substitutions applied."""
+    """Regret (CARD.md §1), and the asymmetric option: the counterfactual has no substitutions applied."""
     frames, squads, ranker = _fixture()
     result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
     expected = result.squad_weeks["best_legal_xi_points"] - result.squad_weeks["chosen_xi_points"]
@@ -843,7 +843,7 @@ def test_regret_is_the_realised_pair_and_is_never_negative() -> None:
 
 
 def test_zero_gap_is_flagged_where_the_two_leading_as_of_xis_tie() -> None:
-    """§0.8's zero-gap squad-weeks -- excluded and counted at assembly, flagged here."""
+    """The zero-gap squad-weeks -- excluded and counted at assembly, flagged here."""
     frames, squads, ranker = _fixture()
     result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
     pd.testing.assert_series_equal(
@@ -852,7 +852,7 @@ def test_zero_gap_is_flagged_where_the_two_leading_as_of_xis_tie() -> None:
 
 
 def test_the_no_fixture_rule_is_measured_and_actually_bites() -> None:
-    """§0.4's measurement, stored per squad-week (§7.6). A fixture in which the rule never
+    """The no-fixture rule's measurement, stored per squad-week. A fixture in which the rule never
     changed an XI would make the column untested, so the flag must fire somewhere."""
     frames, squads, ranker = _fixture(seed=4)
     result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
@@ -860,7 +860,7 @@ def test_the_no_fixture_rule_is_measured_and_actually_bites() -> None:
 
 
 def test_a_window_outside_the_rankers_declared_span_raises() -> None:
-    """§0.7 makes the declared window the ranker's own claim; §6.3 has a caller narrow to the
+    """The declared window is the ranker's own claim; a caller narrows to the
     intersection. Scoring outside it would be the harness inventing coverage."""
     frames, squads, ranker = _fixture()
     narrow = _Ranker(name=ranker.name, window=(3, 4), scores=ranker.scores)
@@ -869,8 +869,8 @@ def test_a_window_outside_the_rankers_declared_span_raises() -> None:
 
 
 def test_the_run_is_deterministic() -> None:
-    """§7.3 makes `run_id` a hash of the identifying fields, which is only sound if identical
-    inputs replay identically. §6.8's tie-break is the part that could break this."""
+    """`run_id` is a hash of the identifying fields, which is only sound if identical
+    inputs replay identically. The tie-break is the part that could break this."""
     frames, squads, ranker = _fixture()
     first = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
     second = run(squads.sample(frac=1, random_state=2), lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
@@ -884,7 +884,7 @@ def test_an_empty_bench_order_raises() -> None:
 
 
 def test_a_policy_that_drops_or_invents_a_bench_player_raises() -> None:
-    """A policy is a callable supplied by the caller (§5.4), so its output is validated rather
+    """A policy is a callable supplied by the caller, so its output is validated rather
     than trusted -- a dropped player would silently shorten the queue and change the replay."""
     frames, squads, ranker = _fixture()
     with pytest.raises(ValueError, match="exactly the outfield bench"):
@@ -892,7 +892,7 @@ def test_a_policy_that_drops_or_invents_a_bench_player_raises() -> None:
 
 
 def test_unrankable_rows_are_the_absent_ones_as_well_as_the_null_ones() -> None:
-    """§6.5: a ranker "emits it as unrankable rather than as a number", which on a frame is
+    """A ranker "emits it as unrankable rather than as a number", which on a frame is
     either a null score or an absent row. Both must reach the same tier."""
     frames, squads, ranker = _fixture()
     dropped = ranker.scores.loc[ranker.scores["gw"] != 3]
@@ -905,7 +905,7 @@ def test_unrankable_rows_are_the_absent_ones_as_well_as_the_null_ones() -> None:
 
 
 def test_run_returns_the_result_type_and_build_is_the_loading_entry_point() -> None:
-    """§5.1's shape. `build` is the one function that reads, on the sampler's `build_squads`
+    """The run's shape. `build` is the one function that reads, on the sampler's `build_squads`
     pattern; `run` is the same computation over frames already in hand."""
     frames, squads, ranker = _fixture()
     result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
@@ -914,7 +914,7 @@ def test_run_returns_the_result_type_and_build_is_the_loading_entry_point() -> N
 
 
 # ---------------------------------------------------------------------------
-# §0.10 / §7.2.1 -- the absolute counterfactual
+# The absolute counterfactual
 # ---------------------------------------------------------------------------
 
 
@@ -925,7 +925,7 @@ def _enumerate_best_total(
     minutes: dict[int, float | None],
     points: dict[int, float],
 ) -> float:
-    """An independent enumeration of §0.10's sigma*: replay all 6 orderings, take the best.
+    """An independent enumeration of sigma*: replay all 6 orderings, take the best.
 
     Written out here rather than imported, so the assertion compares the module's value against a
     reference this file computes rather than against the module's own arithmetic restated.
@@ -960,10 +960,10 @@ def _squad_week_inputs(
 
 
 def test_best_permutation_total_is_the_max_over_all_six_orderings_on_every_squad_week() -> None:
-    """§0.10's sigma*, checked exhaustively rather than sampled -- there are only 6 orderings.
+    """sigma*, checked exhaustively rather than sampled -- there are only 6 orderings.
 
     The XI is rebuilt through the module's own selection so the bench is the one sigma* ranges
-    over (§4.4 conditions the bench on the ranker's XI), and the maximum is then re-derived from
+    over (the bench is conditioned on the ranker's XI), and the maximum is then re-derived from
     the independent enumeration above.
     """
     frames, squads, ranker = _fixture()
@@ -981,11 +981,11 @@ def test_best_permutation_total_is_the_max_over_all_six_orderings_on_every_squad
 
 
 def test_the_absolute_counterfactual_is_not_the_relative_one_the_document_withdrew() -> None:
-    """§0.10 withdrew the relative form -- sigma* over the *policies compared*. That form is
+    """The design withdrew the relative form -- sigma* over the *policies compared*. That form is
     computed here alongside the emitted one, so this suite cannot pass by being blind to which of
     the two the module emits.
 
-    The one-policy run is the sharpest separator and §5.4 permits it: under the relative form
+    The one-policy run is the sharpest separator and is permitted: under the relative form
     sigma* = sigma, so ordering regret is identically 0 and the single policy examined is reported
     perfect. Both halves are asserted -- that the relative form degenerates, and that the emitted
     one does not.
@@ -1004,7 +1004,7 @@ def test_the_absolute_counterfactual_is_not_the_relative_one_the_document_withdr
 
 
 def test_ordering_regret_is_non_negative_for_every_candidate_ordering() -> None:
-    """§4.4: ordering regret is >= 0, and 0 only for an ordering that achieved the best total
+    """Ordering regret is >= 0, and 0 only for an ordering that achieved the best total
     available. Every candidate is one of the 6 sigma* ranges over, so the bound is structural."""
     frames, squads, ranker = _fixture()
     order = [("by_rank", _by_rank), ("reversed", _reversed)]
@@ -1021,11 +1021,11 @@ def test_ordering_regret_is_non_negative_for_every_candidate_ordering() -> None:
 
 
 def test_sigma_star_cancels_from_the_paired_difference_and_is_the_same_stored_cell() -> None:
-    """§4.5, and §7.2.1's claim that under the selected shape the cancellation is *structural*.
+    """The paired-difference cancellation, and the claim that under the selected shape the cancellation is *structural*.
 
     Two things are asserted, not one. That the paired difference of mean ordering regrets equals
     the paired difference of realised totals with the sign reversed -- the algebraic cancellation
-    §0.10 states. And that it holds **cell-wise**: because `best_permutation_total` carries no
+    the absolute form gives. And that it holds **cell-wise**: because `best_permutation_total` carries no
     ordering dimension, both regrets at a squad-week read the same T2 cell, so sigma* is gone from
     the difference per squad-week and not merely on average.
     """
@@ -1046,7 +1046,7 @@ def test_sigma_star_cancels_from_the_paired_difference_and_is_the_same_stored_ce
 def test_a_counterfactual_carrying_an_ordering_dimension_would_not_cancel_cell_wise() -> None:
     """The counterfactual to the test above, executed rather than asserted in its docstring.
 
-    Had sigma* been stored per ordering -- the T5 shape §7.2.1 declined -- each regret would read
+    Had sigma* been stored per ordering -- the T5 shape declined -- each regret would read
     its own value and the cancellation would not be structural. A per-ordering counterfactual is
     constructed here and its cell-wise difference does **not** reduce to the totals' difference,
     which is what makes the assertion above load-bearing rather than a tautology of subtraction.
@@ -1064,9 +1064,9 @@ def test_a_counterfactual_carrying_an_ordering_dimension_would_not_cancel_cell_w
 
 
 def test_no_substitution_leaves_sigma_star_defined_and_equal_to_the_chosen_total() -> None:
-    """§7.5's first degenerate case. Where no substitution fires all 6 orderings return the same
+    """The first degenerate case. Where no substitution fires all 6 orderings return the same
     total, so sigma* is well defined and equals the chosen total -- and the *derived* regret is 0.
-    §7.5 gates that derivation on `substitution_fired` so it reads null rather than 0 at assembly;
+    Assembly gates that derivation on `substitution_fired` so it reads null rather than 0 at assembly;
     the column itself is always populated, which is what this asserts."""
     frames, squads, ranker = _fixture()
     result = run(squads, lambda _: ranker, [("primary", _by_rank)], frames, (2, 4))
@@ -1077,7 +1077,7 @@ def test_no_substitution_leaves_sigma_star_defined_and_equal_to_the_chosen_total
 
 
 def test_sigma_star_does_not_depend_on_which_policies_the_run_compares() -> None:
-    """The defect §0.10 removed, asserted directly rather than argued: under the relative form,
+    """The defect the absolute form removed, asserted directly rather than argued: under the relative form,
     adding a policy to a comparison moved every other policy's already-computed score. Under the
     absolute form the counterfactual is a fact about the squad-week, so it is identical across two
     runs comparing different policy sets -- while the relative form demonstrably is not."""
@@ -1096,9 +1096,9 @@ def test_sigma_star_does_not_depend_on_which_policies_the_run_compares() -> None
 
 
 def test_t5_is_untouched_by_the_new_column_so_b2_stays_comparison_relative() -> None:
-    """§7.2.1's third reason for the T2 shape. Six permutation rows on T5 would have redefined the
-    group §4.6's ordering-relevance derivation runs over, converting B2 into the
-    permutation-relevant count §4.10 forbids. T5's rows must stay one per candidate ordering."""
+    """The third reason for the T2 shape. Six permutation rows on T5 would have redefined the
+    group the ordering-relevance derivation runs over, converting B2 into the
+    permutation-relevant count that is forbidden. T5's rows must stay one per candidate ordering."""
     frames, squads, ranker = _fixture()
     order = [("by_rank", _by_rank), ("reversed", _reversed)]
     result = run(squads, lambda _: ranker, order, frames, (2, 4))
@@ -1107,15 +1107,15 @@ def test_t5_is_untouched_by_the_new_column_so_b2_stays_comparison_relative() -> 
 
 
 # ---------------------------------------------------------------------------
-# §3.5/§5.1 -- the import contract
+# The import contract
 # ---------------------------------------------------------------------------
 
 
 def test_importing_the_harness_pulls_in_no_tier_b_module_and_no_ranker() -> None:
-    """§5.1 forbids `harness.py` `model/`, `research/`, `serve/` and `rankers.py`; §3.6's
+    """`harness.py` is forbidden `model/`, `research/`, `serve/` and `rankers.py`; the
     transitivity guarantee rests on that closure. `warehouse/` and `domain/` are permitted and expected.
 
-    Run in a subprocess for §5.6's reason: the session has already imported `model` via
+    Run in a subprocess for a reason: the session has already imported `model` via
     `testpaths`, so an in-process check could not tell this module's closure from what was
     already loaded. The `.importlinter` contract covers the first three; the sibling half --
     `rankers.py` -- cannot be written as a `forbidden` contract until that module exists, so it

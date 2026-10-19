@@ -17,7 +17,7 @@ Each constant is annotated STAGED, VERIFIED or UNVERIFIED:
 Last reviewed: season 2025/26.
 
 Position vocabulary: these constants are keyed on ``position`` (GK/DEF/MID/FWD), the mart
-column ``DESIGN.md`` §8.4 fixes for the slice — *not* on ``position_label`` (GKP/DEF/MID/FWD),
+column the slice uses — *not* on ``position_label`` (GKP/DEF/MID/FWD),
 which is what ``element_types`` itself declares. The two differ only at goalkeeper. The drift
 test performs the GKP→GK mapping explicitly rather than leaving it implicit here.
 """
@@ -70,15 +70,15 @@ XI_SIZE: Final[int] = 11
 
 # UNVERIFIED — FPL's squad rules cap a squad at three players from any one club. The value is
 # not staged: `element_types` does not carry it and no other table in this repository does.
-# Recorded in decisions/starting_xi/archive/INVENTORY.md §2.2 as one of the four feasibility conditions.
+# One of the four squad feasibility conditions.
 MAX_PER_CLUB: Final[int] = 3
 
 # UNVERIFIED — the initial squad budget, in FPL price units (millions). Not staged for the same
-# reason as MAX_PER_CLUB. decisions/starting_xi/archive/INVENTORY.md §2.2 measures the cheapest legal
-# 2/5/5/3 at GW1 as 64.0 against this cap, which is the only cross-check available in-repo.
+# reason as MAX_PER_CLUB. The cheapest legal 2/5/5/3 at GW1 costs 64.0 against this cap, the only
+# cross-check available in-repo.
 #
-# This is the *ceiling only*. There is no floor: DESIGN.md §0.16 draws squads uniformly over the
-# feasible set, and a squad costing less than the cap is feasible.
+# This is the *ceiling only*. There is no floor: the sampler draws squads over the feasible set,
+# and a squad costing less than the cap is feasible.
 BUDGET_CAP: Final[float] = 100.0
 
 # FPL prices are quoted in tenths (`player_histories.value ÷ 10`), so the budget test is exact in

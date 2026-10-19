@@ -1,9 +1,7 @@
 # Starting XI — Stage 3 data mapping
 
-Status and decisions: [`CARD.md`](CARD.md). This file is the Gate 2 (Data) answer for Stage 3.
-It supersedes, for the warehouse path, the local-mart column assumptions in
-[`archive/INVENTORY.md`](archive/INVENTORY.md) §2.1, §2.2, §2.5 and §2.7, and the measurements in
-[`archive/METRIC.md`](archive/METRIC.md) Appendix A.
+Status and decisions: [`CARD.md`](CARD.md). This file is the Gate 2 (Data) answer for Stage 3,
+for the warehouse path.
 
 **Season:** 2025-26. Every read filters on `season`; no query relies on a table holding one season.
 

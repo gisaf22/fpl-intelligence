@@ -1,25 +1,25 @@
-"""The results writer -- `DESIGN.md` §5.1, §7.2, §7.3, §7.4, §7.8.
+"""The results writer: the run's tables, its manifest and its `run_id`.
 
-**It serialises and it does not compute.** §7.8 states the boundary: this module writes frames it
+**It serialises and it does not compute.** The boundary: this module writes frames it
 is handed and reads no data of its own, so it needs neither `dal/` nor `model/`. Nothing here
 re-derives a quantity `harness.py` or `formations.py` already produced, and nothing here computes
 one that assembly derives.
 
-**The one exception, and §7.3 assigns it here explicitly.** `run_id` is a deterministic hash of the
+**The one exception, assigned here explicitly.** `run_id` is a deterministic hash of the
 run's identifying fields, and `harness.py` deliberately emits neither it nor the column that carries
 it. Computing that hash and stamping the column onto every table is this module's job and the whole
 of what it computes.
 
-**Import closure: stdlib and pandas.** Tier A (§5.1), so no `model/`, no `research/`, no `serve/`,
-and never `rankers.py`. **No `dal/` either** -- §7.8 makes that a property of the module's shape
-rather than of §5.1's forbidden list, and `test_results.py` asserts it in a subprocess.
+**Import closure: stdlib and pandas.** Tier A, so no `model/`, no `research/`, no `serve/`,
+and never `rankers.py`. **No `dal/` either** -- a property of the module's shape
+rather than of the Tier A forbidden list, and `test_results.py` asserts it in a subprocess.
 
-**No sibling slice module is imported, and one candidate was declined on merit.** §5.1.1 permits
-this module its Tier A siblings and records that none is needed. The tempting edge is
-`sampler.MartPin`, since §7.3 makes the pin an identity field -- but `sampler.py` imports `dal/`,
-so taking the pin as a typed sibling object would pull `dal/` into this module's closure and
-contradict §7.8. The pin is taken as a mapping of its own fields instead, which is the shape §5.1.1
-says each module is built against: "the specified shape rather than the other module's code".
+**No sibling slice module is imported, and one candidate was declined on merit.** This module
+may import its Tier A siblings and needs none. The tempting edge is
+`sampler.MartPin`, since the manifest makes the pin an identity field -- but `sampler.py` imports
+`warehouse/`, so taking the pin as a typed sibling object would pull data access into this module's
+closure and contradict that boundary. The pin is taken as a mapping of its own fields instead: each module is
+built against the specified shape rather than the other module's code.
 """
 
 from __future__ import annotations
@@ -34,12 +34,12 @@ from typing import Final
 import pandas as pd
 
 # ---------------------------------------------------------------------------
-# §7.2's schemas, written out here because this module is where they become files
+# T2 and T5 schemas, written out here because this module is where they become files
 # ---------------------------------------------------------------------------
 
-# Column order is §7.2's, `run_id` first, and it is a contract rather than a preference: §7.1
-# requires the results document be producible from the artefact alone, which is only true if the
-# artefact carries the columns §7.2 names. A frame missing one is rejected at this boundary rather
+# Column order is fixed, `run_id` first, and it is a contract rather than a preference: the
+# results document must be producible from the artefact alone, which is only true if the
+# artefact carries the columns named here. A frame missing one is rejected at this boundary rather
 # than written and discovered later.
 T2_COLUMNS: Final[tuple[str, ...]] = (
     "run_id",
@@ -78,19 +78,19 @@ T5_COLUMNS: Final[tuple[str, ...]] = (
     "entered_outfield",
 )
 
-# §7.4: T2 and T5 as parquet, T4 as JSON. The stems are §7.2's table names.
+# T2 and T5 as parquet, T4 as JSON. The stems are the tables' names.
 T2_FILE: Final[str] = "squad_weeks.parquet"
 T5_FILE: Final[str] = "ordering_replays.parquet"
 T4_FILE: Final[str] = "manifest.json"
 
 # ---------------------------------------------------------------------------
-# §7.3's manifest -- T4
+# The run manifest -- T4
 # ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class GameweekIntervalParams:
-    """§8.2's interval: `n`, `block`, `ci_level`, `seed`."""
+    """The gameweek interval's parameters: `n`, `block`, `ci_level`, `seed`."""
 
     n: int
     block: int
@@ -106,7 +106,7 @@ class RunProvenance:
     byte. `canonical` is False when the run was forced past a dirty tree or off-registration
     parameters, and `non_canonical_reasons` says which. Only `canonical` enters `run_id` (see
     `identity_fields`); the rest is provenance rather than identity, because a commit sha in the
-    hash would give identical inputs at two commits two ids, which §7.3's determinism forbids.
+    hash would give identical inputs at two commits two ids, which `run_id`'s determinism forbids.
     """
 
     git_sha: str
@@ -127,7 +127,7 @@ class RunProvenance:
 
 @dataclass(frozen=True)
 class Manifest:
-    """§7.3's run manifest, split into what identifies a run and what merely accompanies it.
+    """The run manifest, split into what identifies a run and what merely accompanies it.
 
     **The identity half** is what `run_id` hashes: the mart pin, the whole ordered bench-ordering policy
     set with element 0 primary, the master seed, the squad mode (CARD.md §3), the squad-set id, the
@@ -135,7 +135,7 @@ class Manifest:
     provenance** (`RunProvenance`) is written alongside, not hashed. **The metadata half** -- ranker
     windows, sampler diagnostics, the count of zero-information squad-weeks (every rule picked the same
     XI; flagged in T2, never dropped), the gameweek interval's parameters -- is carried "for
-    completeness rather than identity" (§7.3) and is excluded from the hash.
+    completeness rather than identity" and is excluded from the hash.
     """
 
     mart_pin: Mapping[str, object]
@@ -153,23 +153,23 @@ class Manifest:
 
     def __post_init__(self) -> None:
         if not self.bench_order:
-            raise ValueError("bench_order must be non-empty; element 0 is the primary ordering (DESIGN.md §5.4)")
+            raise ValueError("bench_order must be non-empty; element 0 is the primary ordering")
         if len(set(self.bench_order)) != len(self.bench_order):
             raise ValueError(f"bench_order carries duplicate policy names: {list(self.bench_order)}")
         if not self.build_gameweeks:
-            raise ValueError("build_gameweeks must be non-empty (DESIGN.md §7.3)")
+            raise ValueError("build_gameweeks must be non-empty")
 
 
 def identity_fields(manifest: Manifest) -> dict[str, object]:
-    """§7.3's identity half, as the exact structure `run_id` hashes.
+    """The manifest's identity half, as the exact structure `run_id` hashes.
 
     Separated from the hash itself so a caller -- and `test_results.py` -- can see what went into
     an id without recomputing it, and so the metadata half is visibly absent rather than absent by
     omission somewhere inside a digest.
 
-    `bench_order` keeps its **order**: §7.3 makes the whole ordered set identity, element 0 named
+    `bench_order` keeps its **order**: the whole ordered set is identity, element 0 named
     as primary, so two runs comparing the same policies in a different order are different runs.
-    `build_gameweeks` is sorted and deduplicated, because it is a *set* in §7.3's sense and the
+    `build_gameweeks` is sorted and deduplicated, because it is a *set* in the manifest's sense and the
     order a caller happens to list it in is not a property of the run.
     """
     return {
@@ -187,9 +187,9 @@ def identity_fields(manifest: Manifest) -> dict[str, object]:
 
 
 def run_id(manifest: Manifest) -> str:
-    """§7.3's deterministic hash of the identifying fields.
+    """The deterministic hash of the identifying fields.
 
-    Deterministic in the sense §7.3 requires -- re-running identical inputs yields the same id --
+    Deterministic in the sense the manifest requires -- re-running identical inputs yields the same id --
     which needs a canonical serialisation and not merely a stable hash function: `json.dumps` with
     sorted keys and no whitespace variance, digested with SHA-256 and truncated to 16 hex
     characters. Truncation is presentational; 64 bits is far beyond the collision exposure of a
@@ -218,7 +218,7 @@ def _canonical(value: object) -> object:
 def manifest_document(manifest: Manifest, identifier: str) -> dict[str, object]:
     """T4's JSON body: the id, the identity half, and the metadata half, kept apart.
 
-    §7.4 makes T4 "the thing a human reads first and a reviewer diffs", which is the reason the two
+    T4 is "the thing a human reads first and a reviewer diffs", which is the reason the two
     halves are nested under separate keys rather than flattened: a diff then shows at a glance
     whether what moved was identity -- in which case `run_id` moved too -- or merely accompanying
     detail.
@@ -255,17 +255,17 @@ def manifest_document(manifest: Manifest, identifier: str) -> dict[str, object]:
 
 
 def stamp(frame: pd.DataFrame, identifier: str, columns: Sequence[str]) -> pd.DataFrame:
-    """Add `run_id` and put the frame in §7.2's column order.
+    """Add `run_id` and put the frame in its schema's column order.
 
-    §7.2 keys every table on `run` and `harness.py` emits neither the value nor the column -- §7.3
-    makes the id a hash of the run's identifying fields, which this module owns. Stamping it here
-    is the one computation §7.8's boundary admits.
+    Every table is keyed on `run` and `harness.py` emits neither the value nor the column -- the
+    id is a hash of the run's identifying fields, which this module owns. Stamping it here
+    is the one computation this module's boundary admits.
 
     Raises:
-        ValueError: if the frame does not carry exactly §7.2's columns for its table, `run_id`
+        ValueError: if the frame does not carry exactly its table's schema columns, `run_id`
             aside. Extra columns fail as loudly as missing ones: a column the schema does not name
-            is a quantity the results document has no definition for, and §7.1's guarantee is that
-            the artefact is readable from §7.2 alone.
+            is a quantity the results document has no definition for, and the guarantee is that
+            the artefact is readable from its schema alone.
     """
     expected = tuple(column for column in columns if column != "run_id")
     got = tuple(frame.columns)
@@ -273,9 +273,9 @@ def stamp(frame: pd.DataFrame, identifier: str, columns: Sequence[str]) -> pd.Da
         missing = [column for column in expected if column not in got]
         extra = [column for column in got if column not in expected]
         detail = "column order differs" if not missing and not extra else f"missing={missing}, extra={extra}"
-        raise ValueError(f"frame does not match DESIGN.md §7.2's schema: {detail}")
+        raise ValueError(f"frame does not match its table's schema: {detail}")
     if "run_id" in got:  # pragma: no cover - unreachable while `expected` excludes it
-        raise ValueError("frame already carries run_id; results.py stamps it (DESIGN.md §7.3)")
+        raise ValueError("frame already carries run_id; results.py stamps it")
     stamped = frame.copy()
     stamped.insert(0, "run_id", identifier)
     return stamped
@@ -287,27 +287,26 @@ def write(
     manifest: Manifest,
     root: Path,
 ) -> str:
-    """Write the run's artefact under `root` and return its `run_id` (§5.1, §7.4).
+    """Write the run's artefact under `root` and return its `run_id`.
 
     Args:
-        squad_weeks: §7.2's T2, as `harness.py` returns it -- without `run_id`.
-        ordering_replays: §7.2's T5, likewise.
-        manifest: §7.3's fields. `run_id` is hashed from the identity half.
-        root: the results directory, `decisions/starting_xi/results/` in the repository (§7.4).
+        squad_weeks: T2, as `harness.py` returns it -- without `run_id`.
+        ordering_replays: T5, likewise.
+        manifest: the run manifest. `run_id` is hashed from the identity half.
+        root: the results directory, `decisions/starting_xi/results/` in the repository.
 
     Returns:
-        The `run_id`, per §5.1's row.
+        The `run_id`.
 
     Raises:
-        ValueError: if any frame departs from §7.2's schema.
+        ValueError: if any frame departs from its table's schema.
 
-    **The per-run subdirectory is this module's reading of §7.4, and §7.4 does not state it.**
-    §7.4 fixes the directory and the formats and is silent on whether two runs share files. The id
-    is used as a subdirectory because §7.3 makes it deterministic *so that re-running identical
+    **The per-run subdirectory is this module's choice.** The directory and the formats are fixed;
+    whether two runs share files was left open. The id
+    is used as a subdirectory because it is deterministic *so that re-running identical
     inputs yields the same id*, which is only useful if identical inputs land in the same place and
     different inputs cannot overwrite each other. A flat layout would make a second run either
-    destroy the first or silently accumulate rows into a file §7.2 describes as one run's. Flagged
-    in this module's report as a §7.4 question.
+    destroy the first or silently accumulate rows into a file that describes one run.
     """
     identifier = run_id(manifest)
 
@@ -326,14 +325,14 @@ def write(
 
 
 def read(root: Path, identifier: str) -> dict[str, object]:
-    """Read one run's artefact back -- the other half of §7.1's requirement.
+    """Read one run's artefact back -- the other half of the reproducibility requirement.
 
-    §7.1 requires the results document be producible from the artefact **alone**, without
+    The results document must be producible from the artefact **alone**, without
     re-running the harness. A writer alone cannot demonstrate that; a reader that touches neither
     `dal/` nor the harness can, and `test_results.py` uses this to reconstruct every quantity the
     results document reports in a subprocess that never imports either.
 
-    Returns the two frames under their §7.2 table names and the manifest document, as read.
+    Returns the two frames under their table names and the manifest document, as read.
     """
     directory = root / identifier
     return {

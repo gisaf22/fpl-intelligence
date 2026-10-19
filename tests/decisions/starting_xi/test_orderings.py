@@ -9,11 +9,11 @@ executed rather than described:
   two agree. Both are run through `harness.run` over the same fixture and every replay compared.
 * **"A function of the records alone."** The property is only worth having if it is real, so the
   policy's input is permuted -- exhaustively, all 3! of them -- and the output asserted invariant.
-* **"Tier A, and the tier is forced."** Asserted as an import closure in a subprocess, for §5.6's
-  reason: this session has already imported `model` via `testpaths`, so an in-process `sys.modules`
+* **"Tier A, and the tier is forced."** Asserted as an import closure in a subprocess, because
+  this session has already imported `model` via `testpaths`, so an in-process `sys.modules`
   check could not tell this module's closure from what was already loaded.
 
-And the contract §5.4 states, since the composition root is what consumes it: the set is non-empty,
+And the `bench_order` contract, since the composition root is what consumes it: the set is non-empty,
 its names are unique, element 0 is the primary, and `harness.run` accepts it as it stands.
 """
 
@@ -47,7 +47,7 @@ _ID_BY_POSITION = {label: position_id for position_id, label in POSITION_BY_ID.i
 
 @dataclass(frozen=True)
 class _Ranker:
-    """A stand-in for §6.1's `RankerOutput`, satisfying the protocol structurally."""
+    """A stand-in for `RankerOutput`, satisfying the protocol structurally."""
 
     name: str
     window: tuple[int, int]
@@ -55,7 +55,7 @@ class _Ranker:
 
 
 def _identity(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
-    """The argument untouched -- what §5.4 would let a caller pass instead of a named policy.
+    """The argument untouched -- what the signature would let a caller pass instead of a named policy.
 
     Kept in the tests and not in the module: it is the thing `order_by_rank` is asserted equal to,
     not a second pre-registered ordering.
@@ -118,14 +118,14 @@ def _fixture(
 
 
 # ---------------------------------------------------------------------------
-# The claims the module's prose makes (§5.4.1)
+# The claims the module's prose makes
 # ---------------------------------------------------------------------------
 
 
 def test_ordering_by_rank_agrees_with_the_bench_the_harness_hands_it() -> None:
     """The module derives the order rather than returning its argument, and says the two agree.
 
-    Asserted on **every bench `harness.run` actually passes** -- §4.12's induced order over the
+    Asserted on **every bench `harness.run` actually passes** -- the induced order over the
     non-selected outfield players -- rather than through the replays those benches produce. The
     replay route was tried and is vacuous: two different orderings frequently bring on the same
     player, so a policy sorting by `player_id` produces replay records identical to this one's
@@ -151,7 +151,7 @@ def test_the_equivalence_is_not_vacuous() -> None:
     The ordering must be **consumed** -- an ordering no substitution ever reaches would make the
     comparison above true of any policy at all. And it must be a **real** ordering: if every bench
     happened to arrive in ascending `player_id` order, agreeing with it would say nothing about
-    §6.7's tiers or §6.8's tie-break, since the identity and a bare id-sort would coincide.
+    CARD.md §3's tiers or tie-break, since the identity and a bare id-sort would coincide.
     """
     frames, squads, ranker = _fixture()
     seen: list[tuple[BenchPlayer, ...]] = []
@@ -168,7 +168,7 @@ def test_the_equivalence_is_not_vacuous() -> None:
 
 
 def test_the_policy_is_a_function_of_the_records_and_not_of_their_order() -> None:
-    """§6.7's tiers and §6.8's tie-break make the ranking a total order on records, so every
+    """CARD.md §3's tiers and tie-break make the ranking a total order on records, so every
     permutation of one bench must give one answer. Swept exhaustively over 3! inputs."""
     bench = (
         BenchPlayer(player_id=7, position="MID", score=2.0, no_fixture=False),
@@ -180,7 +180,7 @@ def test_the_policy_is_a_function_of_the_records_and_not_of_their_order() -> Non
 
 
 def test_equal_scores_break_on_ascending_player_id_and_not_on_arrival_order() -> None:
-    """§6.8's direction, asserted rather than inherited: a tie-break that reversed, or that took
+    """The tie-break's direction, asserted rather than inherited: a tie-break that reversed, or that took
     the argument's order, would give (9, 3) here and the wrong version is computed to prove it."""
     bench = [
         BenchPlayer(player_id=9, position="MID", score=4.0, no_fixture=False),
@@ -191,7 +191,7 @@ def test_equal_scores_break_on_ascending_player_id_and_not_on_arrival_order() ->
 
 
 # ---------------------------------------------------------------------------
-# The second naive candidate (§5.4.1's open item -- not pre-registered)
+# The second naive candidate (an open item -- not pre-registered)
 # ---------------------------------------------------------------------------
 
 
@@ -213,7 +213,7 @@ def test_weighted_score_produces_a_different_order_than_by_rank_where_the_weight
 
 
 def test_weighted_score_still_demotes_no_fixture_and_unrankable_players() -> None:
-    """§6.7's tier order is not something a naive alternative relitigates -- only the ranking
+    """CARD.md §3's tier order is not something a naive alternative relitigates -- only the ranking
     inside the scored tier changes. A high-weighted FWD with no fixture still sinks below a
     lower-scored, in-tier DEF."""
     bench = [
@@ -268,22 +268,22 @@ def test_weighted_score_is_consumed_by_the_harness_and_is_not_vacuously_equal_to
 
 
 # ---------------------------------------------------------------------------
-# The contract the composition root consumes (§5.4, §5.4.1, §7.3)
+# The contract the composition root consumes
 # ---------------------------------------------------------------------------
 
 
-def test_the_pre_registered_set_satisfies_section_5_4s_contract() -> None:
-    """Non-empty, uniquely named, element 0 primary. §7.3 makes the whole ordered set run
+def test_the_pre_registered_set_satisfies_the_ordering_contract() -> None:
+    """Non-empty, uniquely named, element 0 primary. The whole ordered set is run
     identity, so the *order* is asserted and not only the membership."""
     names = [name for name, _ in PRE_REGISTERED_ORDERINGS]
-    assert names, "bench_order must be non-empty (DESIGN.md §5.4)"
+    assert names, "bench_order must be non-empty"
     assert len(set(names)) == len(names), names
     assert names[0] == BY_RANK
 
 
 def test_the_pre_registered_set_is_what_it_is_frozen_as() -> None:
-    """§5.4.1 pre-registers exactly one policy and §7.4 freezes it. A second policy added without
-    a `archive/METRIC.md` pass characterising the comparison set fails here, which is the point: the set
+    """Exactly one policy is pre-registered and `PRE_REGISTRATION.yaml` freezes it. A second policy
+    added without a metric pass characterising the comparison set fails here, which is the point: the set
     is a pre-registration, not a convenience list."""
     assert [name for name, _ in PRE_REGISTERED_ORDERINGS] == [BY_RANK]
 
@@ -299,16 +299,16 @@ def test_the_harness_accepts_the_pre_registered_set_unmodified() -> None:
 
 
 # ---------------------------------------------------------------------------
-# The tier (§3.3, §5.1, §5.6)
+# The tier
 # ---------------------------------------------------------------------------
 
 
 def test_importing_the_orderings_pulls_in_no_downstream_layer_and_no_tier_b_module() -> None:
-    """§5.1 forbids a Tier A module `model/`, `research/`, `serve/` and both Tier B siblings.
+    """The import contract forbids a Tier A module `model/`, `research/`, `serve/` and both Tier B siblings.
 
-    `.importlinter` covers all of it; this asserts the runtime closure as well, because §5.6
-    records that a re-export in a parent `__init__.py` would break the closure while every
-    contract still passed. `harness.py` is expected: it is where §5.4's policy type lives, and
+    `.importlinter` covers all of it; this asserts the runtime closure as well, because a
+    re-export in a parent `__init__.py` would break the closure while every
+    contract still passed. `harness.py` is expected: it is where the policy type lives, and
     that edge is why this module is Tier A rather than Tier B.
     """
     program = (

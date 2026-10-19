@@ -1,16 +1,16 @@
-"""Tests for the results writer -- `DESIGN.md` §7.1, §7.2, §7.3, §7.4, §7.8, §5.1.
+"""Tests for the results writer.
 
 Three of this suite's obligations come from the design rather than from the code, and each is
 executed rather than described:
 
-* **§7.1's "producible from the artefact alone" is tested as a subprocess.** The claim is about
+* **"Producible from the artefact alone" is tested as a subprocess.** The claim is about
   what a reader needs, so an in-process assertion cannot make it: the session has already imported
   `dal` and `model`. A child interpreter reads the written artefact, reconstructs every quantity
-  the results document reports -- §0.1's regret distribution, §4.4's ordering regret against
-  §0.10's absolute counterfactual -- and asserts it never imported the harness, the
+  the results document reports -- the XI regret distribution, the bench-order regret against
+  its absolute counterfactual (CARD.md §1) -- and asserts it never imported the harness, the
   sampler or `dal`.
-* **§7.3's determinism is checked by exhaustion over the identity fields.** Every single-field
-  perturbation of §7.3's identity half must move `run_id`, and every perturbation of the metadata
+* **`run_id`'s determinism is checked by exhaustion over the identity fields.** Every single-field
+  perturbation of the manifest's identity half must move `run_id`, and every perturbation of the metadata
   half must not. Both directions are swept, so a hash that ignored a field and a hash that swept in
   metadata both fail.
 * **Where a test could pass while blind, the wrong version runs beside the right one.** The
@@ -51,10 +51,10 @@ from decisions.starting_xi.results import (
 pytestmark = pytest.mark.unit
 
 
-# `DESIGN.md` §7.2's two schemas, written out here and nowhere in the module. A column added,
-# removed, renamed or reordered in `results.py` without §7.2 moving fails here. T2's list is the
-# one §7.2 carries after this week's two corrections -- the realised/as-of split for C1, and
-# `best_permutation_total` for §0.10's absolute counterfactual.
+# The two specified schemas, written out here and nowhere in the module. A column added,
+# removed, renamed or reordered in `results.py` without the specification moving fails here. T2's
+# list is the one carried after this week's two corrections -- the realised/as-of split for C1, and
+# `best_permutation_total` for the absolute counterfactual.
 DESIGN_T2 = (
     "run_id",
     "squad_id",
@@ -94,15 +94,15 @@ DESIGN_T5 = (
 
 
 # ---------------------------------------------------------------------------
-# Fixtures -- frames in §7.2's shape, built here and not by the harness
+# Fixtures -- frames in the specified shape, built here and not by the harness
 # ---------------------------------------------------------------------------
 
 
 def _t2(n_squads: int = 4, gameweeks: Sequence[int] = (4, 5)) -> pd.DataFrame:
-    """T2 as `harness.py` returns it: §7.2's columns, `run_id` absent.
+    """T2 as `harness.py` returns it: the specified columns, `run_id` absent.
 
     Built from arithmetic rather than by calling the harness, so this suite tests the writer
-    against §7.2's *specified shape* -- which is what §5.1.1 says each module is built against.
+    against its *specified shape* -- which is what each module is built against.
     """
     rows = []
     for gw in gameweeks:
@@ -170,9 +170,9 @@ def _manifest() -> Manifest:
         bench_order=("by_rank", "reversed"),
         master_seed=0,
         squad_mode="uniform",
-        # §5.3.2 fixes the id as the sampler's content hash of the drawn squads, so the fixture
+        # The id is the sampler's content hash of the drawn squads, so the fixture
         # carries a digest-shaped value rather than a version label -- the earlier "squads-v1"
-        # invited exactly the reading §5.3.2 rejects. This module treats it as an opaque string.
+        # invited exactly the reading a content hash rules out. This module treats it as an opaque string.
         squad_set_id="b" * 64,
         build_gameweeks=(4, 5),
         ranker_windows={"F1": (4, 38), "F2": (2, 38)},
@@ -199,22 +199,22 @@ def _provenance(**overrides: object) -> RunProvenance:
 
 
 # ---------------------------------------------------------------------------
-# §7.2 -- the schemas
+# The schemas
 # ---------------------------------------------------------------------------
 
 
 def test_the_module_carries_exactly_the_columns_section_7_2_specifies() -> None:
-    """The drift test. §7.2's schemas are written out in this file and compared to the
+    """The drift test. The specified schemas are written out in this file and compared to the
     module's, so a column that moves in one without moving in the other fails here."""
     assert T2_COLUMNS == DESIGN_T2
     assert T5_COLUMNS == DESIGN_T5
 
 
 def test_t2_carries_this_weeks_two_corrections() -> None:
-    """§0.8's realised/as-of split for C1 and §0.10's absolute counterfactual, named explicitly so
+    """The realised/as-of split for C1 and the absolute counterfactual, named explicitly so
     a revert of either fails on a test that says why rather than on a column-order diff."""
     assert "best_legal_xi_asof" in T2_COLUMNS and "second_best_xi_asof" in T2_COLUMNS
-    assert "second_best_xi_points" not in T2_COLUMNS, "§7.2 supersedes the realised-points runner-up"
+    assert "second_best_xi_points" not in T2_COLUMNS, "the as-of pair supersedes the realised-points runner-up"
     assert "best_permutation_total" in T2_COLUMNS
 
 
@@ -228,13 +228,13 @@ def test_stamp_puts_run_id_first_and_preserves_section_7_2_order() -> None:
 
 @pytest.mark.parametrize("table", ["t2", "t5"])
 def test_a_frame_missing_a_column_is_rejected_rather_than_written(table: str, tmp_path: Path) -> None:
-    """The schema check is shown to reject a real violation before it is trusted. §7.1's guarantee
-    is that the artefact is readable from §7.2 alone, which is false the moment a column is
+    """The schema check is shown to reject a real violation before it is trusted. The guarantee
+    is that the artefact is readable from its schema alone, which is false the moment a column is
     missing -- so this fails at the boundary rather than producing an unreadable artefact."""
     t2 = _t2()
     frames = {"t2": t2, "t5": _t5(t2)}
     frames[table] = frames[table].drop(columns=[frames[table].columns[-1]])
-    with pytest.raises(ValueError, match=r"§7\.2's schema"):
+    with pytest.raises(ValueError, match="its table's schema"):
         write(frames["t2"], frames["t5"], _manifest(), tmp_path)
     assert not list(tmp_path.iterdir()), "a rejected write left files behind"
 
@@ -248,7 +248,7 @@ def test_an_extra_column_is_rejected_as_loudly_as_a_missing_one(tmp_path: Path) 
 
 
 def test_a_reordered_frame_is_rejected_so_the_stored_order_is_section_7_2s() -> None:
-    """Column *order* is part of the schema: §7.2 lists T2's columns in an order, and an artefact
+    """Column *order* is part of the schema: T2's columns are specified in an order, and an artefact
     that reordered them would diff against a reviewer's expectation for no substantive reason."""
     t2 = _t2()
     shuffled = t2.loc[:, [t2.columns[1], t2.columns[0], *t2.columns[2:]]]
@@ -257,14 +257,14 @@ def test_a_reordered_frame_is_rejected_so_the_stored_order_is_section_7_2s() -> 
 
 
 # ---------------------------------------------------------------------------
-# §7.3 -- run identity
+# Run identity
 # ---------------------------------------------------------------------------
 
 
 def test_run_id_is_deterministic_across_calls_and_across_processes() -> None:
-    """§7.3: re-running identical inputs yields the same `run_id`. Across processes as well as
+    """Re-running identical inputs yields the same `run_id`. Across processes as well as
     within one, because Python's `hash` is salted per interpreter and a `run_id` built on it would
-    pass an in-process check while failing the property §7.3 actually states."""
+    pass an in-process check while failing the property actually required."""
     manifest = _manifest()
     assert run_id(manifest) == run_id(_manifest())
     program = (
@@ -287,7 +287,7 @@ def test_run_id_is_deterministic_across_calls_and_across_processes() -> None:
 
 
 def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> None:
-    """§7.3's table, swept in both directions rather than spot-checked.
+    """The manifest's identity/metadata split, swept in both directions rather than spot-checked.
 
     A hash that silently ignored an identity field would let two genuinely different runs share an
     id; a hash that swept in a metadata field would give one run two ids across cosmetic changes.
@@ -308,7 +308,7 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
         "canonical": replace(base, provenance=_provenance(canonical=False, non_canonical_reasons=("dirty_tree",))),
     }
     for field, perturbed in identity_perturbations.items():
-        assert run_id(perturbed) != baseline, f"{field} is identity per §7.3 but did not move run_id"
+        assert run_id(perturbed) != baseline, f"{field} is identity but did not move run_id"
 
     metadata_perturbations = {
         "ranker_windows": replace(base, ranker_windows={"F1": (2, 38)}),
@@ -323,12 +323,12 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
         "pre_registration_sha256": replace(base, provenance=_provenance(pre_registration_sha256="2" * 64)),
     }
     for field, perturbed in metadata_perturbations.items():
-        assert run_id(perturbed) == baseline, f"{field} is metadata per §7.3 but moved run_id"
+        assert run_id(perturbed) == baseline, f"{field} is metadata but moved run_id"
 
 
 def test_the_bench_orders_order_is_identity_not_just_its_membership() -> None:
-    """§7.3 makes "the whole ordered policy set, with element 0 named as primary" identity, and
-    §4.9 gives the reason: primary regret is a function of element 0. Every permutation of a
+    """ "The whole ordered policy set, with element 0 named as primary" is identity, because
+    primary regret is a function of element 0. Every permutation of a
     three-policy set must therefore produce a distinct id -- checked exhaustively, six of six."""
     base = replace(_manifest(), bench_order=("a", "b", "c"))
     ids = {run_id(replace(base, bench_order=order)) for order in permutations(("a", "b", "c"))}
@@ -336,7 +336,7 @@ def test_the_bench_orders_order_is_identity_not_just_its_membership() -> None:
 
 
 def test_build_gameweeks_is_a_set_so_listing_order_does_not_move_the_id() -> None:
-    """The counterpart to the test above, and the contrast is the point: §7.3 calls the build
+    """The counterpart to the test above, and the contrast is the point: the manifest calls the build
     gameweeks a *set*, so the order a caller lists them in is not a property of the run, while the
     bench ordering's order is. A hash treating both the same way fails one of the two tests."""
     base = _manifest()
@@ -353,7 +353,7 @@ def test_the_mart_pin_hashes_the_same_whether_its_sequences_are_tuples_or_lists(
 
 
 def test_identity_fields_holds_the_identity_half_and_nothing_from_the_metadata_half() -> None:
-    """§7.3 splits the manifest and the split is asserted, not trusted: nothing carried "for
+    """The manifest is split and the split is asserted, not trusted: nothing carried "for
     completeness rather than identity" may appear in what the id hashes."""
     fields = identity_fields(_manifest())
     assert set(fields) == {
@@ -385,7 +385,7 @@ def test_the_manifest_document_records_run_provenance_outside_the_identity_half(
     sha256s, the pre-registration's sha256 and the canonical flag are written to T4 under their
     own key. Only `canonical` is identity (so a forced run can never overwrite a canonical run's
     directory); the rest would make identical inputs at two commits two different runs, which
-    §7.3's determinism forbids."""
+    `run_id`'s determinism forbids."""
     manifest = replace(_manifest(), provenance=_provenance(canonical=False, non_canonical_reasons=("dirty_tree",)))
     document = manifest_document(manifest, "abc123")
     assert document["provenance"] == {
@@ -411,7 +411,7 @@ def test_a_canonical_run_cannot_carry_non_canonical_reasons() -> None:
 
 
 def test_an_empty_or_duplicated_bench_order_is_rejected() -> None:
-    """§5.4 makes `bench_order` non-empty with element 0 primary; duplicate names would make
+    """`bench_order` is non-empty with element 0 primary; duplicate names would make
     T5's `ordering_name` ambiguous and the id's ordered set unreadable."""
     with pytest.raises(ValueError, match="non-empty"):
         replace(_manifest(), bench_order=())
@@ -422,7 +422,7 @@ def test_an_empty_or_duplicated_bench_order_is_rejected() -> None:
 
 
 # ---------------------------------------------------------------------------
-# §7.4 -- what is written
+# What is written
 # ---------------------------------------------------------------------------
 
 
@@ -435,7 +435,7 @@ def test_write_emits_the_three_files_and_returns_the_run_id(tmp_path: Path) -> N
 
 
 def test_writing_the_same_run_twice_is_idempotent(tmp_path: Path) -> None:
-    """§7.3's determinism is only useful if identical inputs land in the same place. Re-running
+    """`run_id`'s determinism is only useful if identical inputs land in the same place. Re-running
     rewrites the same directory rather than creating a second one."""
     t2 = _t2()
     first = write(t2, _t5(t2), _manifest(), tmp_path)
@@ -445,7 +445,7 @@ def test_writing_the_same_run_twice_is_idempotent(tmp_path: Path) -> None:
 
 
 def test_two_different_runs_cannot_overwrite_each_other(tmp_path: Path) -> None:
-    """The property the per-run subdirectory buys, and the reason for choosing it (§7.4 is silent).
+    """The property the per-run subdirectory buys, and the reason for choosing it.
     A flat layout would have the second run destroy the first's files under the same names."""
     t2 = _t2()
     first = write(t2, _t5(t2), _manifest(), tmp_path)
@@ -484,7 +484,7 @@ def test_the_artefact_round_trips_every_frame_including_nulls_and_list_columns(t
 
 
 def test_the_manifest_is_json_a_reviewer_can_diff(tmp_path: Path) -> None:
-    """§7.4: T4 is JSON "because it is the thing a human reads first and a reviewer diffs"."""
+    """T4 is JSON "because it is the thing a human reads first and a reviewer diffs"."""
     identifier = write(_t2(), _t5(_t2()), _manifest(), tmp_path)
     text = (tmp_path / identifier / T4_FILE).read_text(encoding="utf-8")
     document = json.loads(text)
@@ -495,18 +495,18 @@ def test_the_manifest_is_json_a_reviewer_can_diff(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# §7.1 -- producible from the artefact alone
+# Producible from the artefact alone
 # ---------------------------------------------------------------------------
 
 
 def test_the_results_document_is_producible_from_the_artefact_without_the_harness(tmp_path: Path) -> None:
-    """§7.1's requirement, executed as the constraint it is: a *reader* obligation, so it is tested
+    """The reproducibility requirement, executed as the constraint it is: a *reader* obligation, so it is tested
     in a child interpreter that reconstructs the reported quantities and then asserts it never
     imported `dal`, the harness or the sampler.
 
-    What the child reconstructs is not a token read -- it is every quantity §7.1 names plus the two
-    this week's corrections added: §0.1's regret and its distribution from T2, §0.8's closeness gap
-    from the **as-of** pair, §4.4's ordering regret against §0.10's absolute counterfactual by
+    What the child reconstructs is not a token read -- it is every quantity the results document
+    reports plus the two this week's corrections added: XI regret and its distribution from T2, the
+    closeness gap from the **as-of** pair, bench-order regret against its absolute counterfactual by
     joining T5 to T2's `best_permutation_total`. If any of those needed
     the harness or the mart, the child fails.
     """
@@ -521,20 +521,20 @@ from decisions.starting_xi.results import read
 art = read(Path({str(tmp_path)!r}), {identifier!r})
 t2, t5 = art["squad_weeks"], art["ordering_replays"]
 
-# §0.1 -- regret and its distribution (P3 is the worst weeks, not a mean).
+# XI regret and its distribution (P3 is the worst weeks, not a mean).
 assert (t2["regret"] == t2["best_legal_xi_points"] - t2["chosen_xi_points"]).all()
 assert t2["regret"].max() >= t2["regret"].median()
 
-# §0.8 -- the closeness gap is the as-of pair's, and the realised pair is a different number.
+# The closeness gap is the as-of pair's, and the realised pair is a different number.
 assert (t2["best_legal_xi_asof"] != t2["best_legal_xi_points"]).any()
 
-# §4.4 / §0.10 -- ordering regret against the absolute counterfactual, T5 joined to T2.
+# Bench-order regret against the absolute counterfactual, T5 joined to T2.
 joined = t5.merge(t2[["run_id", "squad_id", "gw", "ranker", "best_permutation_total"]],
                   on=["run_id", "squad_id", "gw", "ranker"], validate="many_to_one")
 regret = joined["best_permutation_total"] - joined["realised_total"]
 assert (regret >= -1e-9).all()
 
-# §7.3 -- the manifest reads back and names the run.
+# The manifest reads back and names the run.
 assert art["manifest"]["run_id"] == {identifier!r}
 
 leaked = [m for m in sys.modules
@@ -547,9 +547,9 @@ assert not leaked, leaked
 
 
 def test_that_reconstruction_would_fail_without_the_column_this_week_added(tmp_path: Path) -> None:
-    """The counterfactual to the test above, executed. §0.10's ordering-regret *level* is derivable
-    from the artefact only because `best_permutation_total` is in it -- §9.2 recorded exactly this
-    as blocked before the column existed. Dropping it breaks the join, which is what makes the
+    """The counterfactual to the test above, executed. The bench-order regret *level* is derivable
+    from the artefact only because `best_permutation_total` is in it -- it was
+    blocked before the column existed. Dropping it breaks the join, which is what makes the
     reconstruction above evidence rather than decoration."""
     t2 = _t2()
     identifier = write(t2, _t5(t2), _manifest(), tmp_path)
@@ -563,25 +563,25 @@ def test_that_reconstruction_would_fail_without_the_column_this_week_added(tmp_p
     joined = replays.merge(stored[[*key, "best_permutation_total"]], on=key, validate="many_to_one")
     assert ((joined["best_permutation_total"] - joined["realised_total"]) >= -1e-9).all()
 
-    # Without it: the same derivation is unavailable from the artefact -- §9.2's blocked state.
+    # Without it: the same derivation is unavailable from the artefact -- the blocked state.
     without = stored.drop(columns=["best_permutation_total"])
     with pytest.raises(KeyError):
         replays.merge(without[[*key, "best_permutation_total"]], on=key, validate="many_to_one")
 
 
 # ---------------------------------------------------------------------------
-# §7.8 / §5.1 -- the import contract
+# The import contract
 # ---------------------------------------------------------------------------
 
 
 def test_importing_the_results_writer_pulls_in_no_dal_no_tier_b_and_no_sibling() -> None:
-    """§5.1 forbids this module `model/`, `research/`, `serve/` and `rankers.py`; §7.8 adds that it
+    """Tier A forbids this module `model/`, `research/`, `serve/` and `rankers.py`; its boundary adds that it
     "needs neither `dal/` nor `model/`" because it reads no data of its own.
 
     The `model`/`research`/`serve` half is an import-linter contract. The rest is not expressible
-    there today -- `rankers` is not in the graph, and §5.1 does not forbid this module `dal`, so a
-    `dal` contract would be asserting §7.8's shape claim as if §5.1 had stated it. Both are
-    enforced here instead. Run in a subprocess for §5.6's reason: the session has already imported
+    there today -- `rankers` is not in the graph, and Tier A does not forbid this module `dal`, so a
+    `dal` contract would be asserting the shape claim as if Tier A had stated it. Both are
+    enforced here instead. Run in a subprocess because the session has already imported
     `model` via `testpaths`, so an in-process check could not tell this module's closure from what
     was already loaded.
     """
@@ -609,9 +609,9 @@ def test_that_closure_check_can_actually_fail() -> None:
 
 
 def test_the_package_init_still_re_exports_nothing() -> None:
-    """§5.6's rule, re-asserted from this module's side: a re-export in the package `__init__.py`
-    would give every importer of any slice module this one's dependencies, and `archive/INVENTORY.md`
-    §2.11 records that import-linter cannot catch it."""
+    """The no-re-export rule, re-asserted from this module's side: a re-export in the package `__init__.py`
+    would give every importer of any slice module this one's dependencies, and
+    import-linter cannot catch it."""
     init = Path(__file__).resolve().parents[3] / "decisions" / "starting_xi" / "__init__.py"
     source = init.read_text(encoding="utf-8")
     body = [line for line in source.splitlines() if line.strip() and not line.lstrip().startswith("#")]

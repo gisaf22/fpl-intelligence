@@ -13,8 +13,7 @@ consumer of the layers below it and reuses them in place rather than copying the
 not — `expanding_prior_mean` stays in `model/eval/`, `p_play` stays in `model/terms/`, and the
 squad quota and legal formations live in `domain/` so a second squad-family decision inherits
 them without a new dependency edge. The rule that governs which of those a given module may
-reach is the folder's own import contract
-([`starting_xi/DESIGN.md`](starting_xi/DESIGN.md) §3), not this principle.
+reach is the folder's own import contract (`.importlinter`), not this principle.
 
 ## Relationship to ADR-012
 
@@ -34,8 +33,8 @@ repository already carries one document pointing at work that was never done (AD
 ## Current contents
 
 - `starting_xi/` — [`CARD.md`](starting_xi/CARD.md) holds the status and current decisions.
-  `DESIGN.md` and `PRE_REGISTRATION.yaml` still govern the harness code. The superseded
-  `DECISION.md`, `METRIC.md` and `INVENTORY.md` are in `starting_xi/archive/`. Code: `starting_xi/*.py`, wired by the composition root
+  `PRE_REGISTRATION.yaml` still governs the harness code; [`DATA.md`](starting_xi/DATA.md) maps the
+  data. Code: `starting_xi/*.py`, wired by the composition root
   `operational/starting_xi.py`.
 
 No other decision folder exists yet.

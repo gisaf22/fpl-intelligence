@@ -1,33 +1,33 @@
-"""The pre-registered bench-ordering policy set -- `DESIGN.md` §5.4.1, §4.12, §6.7, §6.8, §7.4.
+"""The pre-registered bench-ordering policy set (`PRE_REGISTRATION.yaml`'s `bench_ordering`).
 
-**One policy, and the reason it is one is a gap rather than a selection.** §5.4 fixes
-`bench_order`'s *shape* -- a non-empty ordered sequence of named policies, element 0 primary --
-and names no policy. The only ordering `DESIGN.md` commits to is §4.12's: "the bench ordering is
-the induced order over the 4 non-selected players, GK separated", with §6.7 and §6.8 fixing how
-a score panel induces it. :data:`PRE_REGISTERED_ORDERINGS` is that ordering and nothing else.
-Which *further* policies belong in the comparison set is an open decision `archive/METRIC.md` carries no
-candidates for -- §5.4.1 states it, and §1.5 lists it -- so no second policy is invented here.
+**One policy, and the reason it is one is a gap rather than a selection.** `bench_order`'s
+*shape* is fixed -- a non-empty ordered sequence of named policies, element 0 primary -- but no
+policy is named by it. The one committed ordering is the induced order over the 4 non-selected
+players, GK separated, with CARD.md §3's ranking fixing how a score panel induces it.
+:data:`PRE_REGISTERED_ORDERINGS` is that ordering and nothing else. Which *further* policies
+belong in the comparison set is an open decision with no candidates yet, so no second policy is
+invented here.
 
-**The consequence is named rather than discovered on the first run.** §4.6 defines B2, the
-ordering-relevant count, over the orderings *actually compared*, and §4.7 makes B2 the
-denominator for every bench-order claim. Under a one-policy set no two orderings can differ, so
-**B2 = 0 and no bench-order figure is reportable**. The primary arc is unaffected: §5.4 permits a
-one-policy run explicitly, primary regret is well defined under element 0, and §0.10's absolute
+**The consequence is named rather than discovered on the first run.** B2, the ordering-relevant
+count, is defined over the orderings *actually compared*, and it is the denominator for every
+bench-order claim. Under a one-policy set no two orderings can differ, so
+**B2 = 0 and no bench-order figure is reportable**. The primary arc is unaffected: a one-policy run
+is permitted explicitly, primary regret is well defined under element 0, and the absolute
 counterfactual -- `best_permutation_total`, over all 6 permutations -- is a squad-week property
 the harness emits whatever the policy count. What a one-policy run cannot do is measure
-`archive/DECISION.md` §1's *secondary* decision.
+the *secondary* bench-order decision (CARD.md §1).
 
-**Tier A, and the tier is forced rather than chosen.** §5.4's `OrderingPolicy` takes a
+**Tier A, and the tier is forced rather than chosen.** `OrderingPolicy` takes a
 `Sequence[BenchPlayer]` and `BenchPlayer` is defined in `harness.py`, so any module importing the
-policy type is importing a Tier A module -- which §3.3 forbids Tier B. Tier A permits `domain/`,
-`dal/` and Tier A siblings, all this module needs. The forward constraint that follows is recorded
-at §5.4.1: an ordering policy that needed `model/` could not be written against this signature.
+policy type is importing a Tier A module -- which the import contract forbids Tier B. Tier A
+permits `domain/`, `dal/` and Tier A siblings, all this module needs. The forward constraint that
+follows: an ordering policy that needed `model/` could not be written against this signature.
 
 **Why a named identity policy rather than nothing at all.** `harness.run` hands each policy the
 outfield bench already in ranking order, so a caller could get this ordering by passing a policy
-that returns its input untouched. That is exactly the implicit default §5.4 exists to prevent: the
+that returns its input untouched. That is exactly the implicit default the signature exists to prevent: the
 whole argument for `bench_order` having no default is that "the primary number" must always read
-as "the primary number *under this ordering*", and §7.3 makes the named policy set part of run
+as "the primary number *under this ordering*", and the named policy set is part of run
 identity. An ordering nobody named would be reproducible from the code and not from the manifest.
 
 **And it derives the order rather than trusting the argument's.** :func:`order_by_rank` calls
@@ -36,9 +36,9 @@ identity. An ordering nobody named would be reproducible from the code and not f
 the property `rank_squad`'s own docstring claims and the one that makes this policy independent of
 how the harness happened to sort its argument.
 
-**Import closure: `harness.py`, stdlib.** Tier A (§3.3, §5.1), so no `model/`, no `research/`, no
+**Import closure: `harness.py`, stdlib.** Tier A, so no `model/`, no `research/`, no
 `serve/`, and neither Tier B sibling -- `rankers.py`, `uncertainty.py`. `test_orderings.py` asserts
-the closure in a subprocess, for §5.6's reason.
+the closure in a subprocess.
 """
 
 from __future__ import annotations
@@ -49,23 +49,23 @@ from typing import Final
 from decisions.starting_xi.harness import BenchOrder, BenchPlayer, rank_squad
 
 # ---------------------------------------------------------------------------
-# The policies (§4.12, §6.7, §6.8)
+# The policies
 # ---------------------------------------------------------------------------
 
 BY_RANK: Final[str] = "by_rank"
-"""§4.12's induced order. The name is run identity (§7.3) and §7.4 freezes it."""
+"""The induced order. The name is run identity and `PRE_REGISTRATION.yaml` freezes it."""
 
 
 def order_by_rank(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
-    """§4.12's ordering: the bench in the ranker's own induced order, best first.
+    """The induced ordering: the bench in the ranker's own induced order, best first.
 
     Args:
-        bench: the outfield bench -- §4.2's three players, the GK slot having no policy because
+        bench: the outfield bench -- three players, the GK slot having no policy because
             an ordering over one element carries no information.
 
     Returns:
         Their `player_id`s in priority order. Strict, and a function of the records alone:
-        `rank_squad` keys on (§6.7's tier, negated score, `player_id`), and §6.8's ascending
+        `rank_squad` keys on (tier, negated score, `player_id`) per CARD.md §3, and ascending
         `player_id` breaks every remaining tie without consuming randomness.
 
     **Restricting the 15's ranking to the bench and ranking the bench directly give the same
@@ -78,10 +78,10 @@ def order_by_rank(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
 
 
 BY_WEIGHTED_SCORE: Final[str] = "by_weighted_score"
-"""A second naive floor-candidate for the bench-order comparison set (§5.4.1's open item).
+"""A second naive floor-candidate for the bench-order comparison set (an open item).
 
-Not pre-registered: §5.4.1 records that closing "which ordering policies form the comparison set"
-takes a `archive/METRIC.md` pass, which has not run. Defined and tested here so that pass has a second
+Not pre-registered: closing "which ordering policies form the comparison set" takes a metric
+pass, which has not run. Defined and tested here so that pass has a second
 naive candidate to characterise against `by_rank`, which should not be the sole naive baseline.
 """
 
@@ -90,7 +90,7 @@ _POSITION_WEIGHT: Final[dict[str, float]] = {"DEF": 1.00, "MID": 1.05, "FWD": 1.
 
 **The rule.** Within the scored tier, sort on `score * _POSITION_WEIGHT[position]` descending
 instead of on `score` alone; the no-fixture and unrankable tiers are unchanged from `order_by_rank`
-because §6.7 fixes that demotion and a naive alternative has no basis to relitigate it. **Why these
+because CARD.md §3 fixes that demotion and a naive alternative has no basis to relitigate it. **Why these
 three numbers and this direction:** FPL's biggest hauls cluster in the most advanced positions
 (one attacking return is worth more to a FWD's week than a defensive one is to a DEF's), so a
 bench-caller who trusts nothing but position tendency nudges an advanced player above an
@@ -108,7 +108,7 @@ def order_by_weighted_score(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
     Returns:
         Their `player_id`s in priority order. Strict: ties inside the scored tier -- on
         `score * _POSITION_WEIGHT[position]`, not on `score` -- break on ascending `player_id`,
-        the same tie-break §6.8 fixes for `order_by_rank`, so the two policies differ only on the
+        the same tie-break CARD.md §3 fixes for `order_by_rank`, so the two policies differ only on the
         weighting and never on how a remaining tie resolves.
 
     A function of the records alone, by the same sort-is-a-total-order argument `order_by_rank`'s
@@ -132,15 +132,15 @@ def order_by_weighted_score(bench: Sequence[BenchPlayer]) -> tuple[int, ...]:
 
 
 # ---------------------------------------------------------------------------
-# The pre-registered set (§5.4.1, §7.4)
+# The pre-registered set
 # ---------------------------------------------------------------------------
 
 PRE_REGISTERED_ORDERINGS: Final[BenchOrder] = ((BY_RANK, order_by_rank),)
-"""§5.4's `bench_order` argument, as §5.4.1 pre-registers it: one policy, `by_rank`, primary.
+"""The `bench_order` argument, as pre-registered: one policy, `by_rank`, primary.
 
-A tuple rather than a mapping because **order is meaning**: §5.4 makes element 0 the primary --
-the ordering behind every figure T2 carries -- and §7.3 makes the whole ordered set, primary named
-as such, part of `run_id`. A mapping would carry the same members and lose the fact that decides
+A tuple rather than a mapping because **order is meaning**: element 0 is the primary --
+the ordering behind every reported figure -- and the whole ordered set, primary named
+as such, is part of `run_id`. A mapping would carry the same members and lose the fact that decides
 which of them the headline number was computed under.
 
 Like `rankers.rules`, it is a pre-registered set of callables the composition root passes into the

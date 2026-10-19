@@ -4,8 +4,7 @@
 
 Process: [ANALYSIS_WORKFLOW](https://github.com/gisaf22/.github/blob/main/ANALYSIS_WORKFLOW.md).
 Decisions and their reasons are recorded on the Epic issue; this card summarises them.
-Still governing the harness code: [`DESIGN.md`](DESIGN.md) and [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yaml). Data mapping: [`DATA.md`](DATA.md).
-Superseded docs: [`archive/`](archive/).
+Still governing the harness code: [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yaml) and the modules' docstrings. Data mapping: [`DATA.md`](DATA.md).
 
 ## 0 Decision
 

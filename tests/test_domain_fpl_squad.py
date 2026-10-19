@@ -1,13 +1,13 @@
 """Drift guard: domain/fpl_squad.py's STAGED constants match FPL's own element_types declaration.
 
-`DESIGN.md` §3.5 puts the squad constants in `domain/` "sourced from element_types with a drift
-test rather than hardcoded in the slice". This is that test. It reads the staged frame through
+The squad constants live in `domain/`, sourced from element_types with a drift test rather than
+hardcoded in the slice. This is that test. It reads the staged frame through
 `dal/staging` rather than the YAML contract, because the contract maps columns while the *values*
 live in the database.
 
 The GKP→GK mapping is performed here, explicitly: `element_types` declares `position_label`
 (GKP/DEF/MID/FWD) while the constants are keyed on `position` (GK/DEF/MID/FWD), the vocabulary
-`DESIGN.md` §8.4 fixes for the slice. Doing the mapping in the test rather than in the module
+the slice uses. Doing the mapping in the test rather than in the module
 keeps the module's keys the ones its consumers use.
 
 MAX_PER_CLUB and BUDGET_CAP are not asserted: no table in this repository carries either, which
@@ -56,7 +56,7 @@ def test_sizes_are_consistent_with_the_quota_and_bounds() -> None:
     assert set(fpl_squad.POSITIONS) == set(fpl_squad.SQUAD_SELECT)
     assert sum(fpl_squad.XI_MIN_PLAY.values()) <= fpl_squad.XI_SIZE <= sum(fpl_squad.XI_MAX_PLAY.values())
     # Every 2/5/5/3 squad admits at least one legal XI, which is why the sampler needs no
-    # formation check at draw time (DESIGN.md §2.9).
+    # formation check at draw time.
     for position, quota in fpl_squad.SQUAD_SELECT.items():
         assert quota >= fpl_squad.XI_MIN_PLAY[position]
 

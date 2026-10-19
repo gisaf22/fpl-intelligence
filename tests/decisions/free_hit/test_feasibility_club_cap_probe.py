@@ -21,8 +21,8 @@ Every `can_complete` call made during a real construction run is intercepted; ev
 returns `False`, an all-position-orderings brute force independently re-derives whether a
 different order finds a cheaper, still-affordable completion -- the same "try every ordering"
 method `decisions/starting_xi/harness.py`'s vacancy-order investigation used to size that sibling
-slice's fixed-order approximation before deciding whether it mattered (`decisions/starting_xi/
-DESIGN.md` §4.3.1: measured over all 11,100 squad-weeks before the fixed order was replaced). The
+slice's fixed-order approximation before deciding whether it mattered (measured over all 11,100
+squad-weeks before the fixed order was replaced). The
 brute force's check (a) (presence) is reused unmodified from `can_complete`'s own logic -- it is
 order-independent by construction (whether enough eligible players with club-room remain per
 position does not depend on which position is considered first) and so cannot itself be the

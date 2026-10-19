@@ -27,18 +27,18 @@ def test_the_signature_defaults_are_the_pre_registered_values() -> None:
 
 
 def test_g4_fires_on_a_flattened_squad_week_panel() -> None:
-    """§10.6's named case: "A flattened panel has `n_squads x n_gw` entries and fails that assertion
-    rather than silently producing a number." §10.10.3 turns on this being the only check that
-    catches it, since such a series is a 1-D array the input shapes do not distinguish."""
+    """The named case: a flattened panel has `n_squads x n_gw` entries and fails the length
+    assertion rather than silently producing a number. This is the only check that catches it,
+    since such a series is a 1-D array the input shapes do not distinguish."""
     flattened = np.arange(300 * 35, dtype=float)
     with pytest.raises(ValueError, match="G4"):
         gameweek_block_ci(flattened, n_scoreable_gw=35, n=N_TEST)
 
 
 def test_g4_fires_on_a_punctured_series() -> None:
-    """`archive/METRIC.md` §6.4.3's A2: a gameweek with no surviving row has no per-gameweek mean, so an
-    ordering sample's series is shorter than the window. §10.10 keeps the assertion and gives that
-    sample its own entry point rather than relaxing it."""
+    """A gameweek with no surviving row has no per-gameweek mean, so an ordering sample's series
+    is shorter than the window. The assertion is kept, and that sample gets its own entry point
+    rather than relaxing it."""
     with pytest.raises(ValueError, match="G4"):
         gameweek_block_ci(np.arange(9, dtype=float), n_scoreable_gw=35, n=N_TEST)
 
@@ -50,8 +50,8 @@ def test_g4_does_not_fire_on_a_full_length_series() -> None:
     assert lo < hi
 
 
-def test_the_gameweek_interval_delegates_to_the_call_site_8_2_selects() -> None:
-    """§8.2 fixes the call site as `model/eval/metrics.py:79` and requires every argument passed
+def test_the_gameweek_interval_delegates_to_the_selected_call_site() -> None:
+    """The call site is `model/eval/metrics.py:79`, with every argument passed
     explicitly. Asserted as equality with a direct call rather than by patching, so a future
     re-implementation inside this module fails here."""
     rng = np.random.default_rng(5)
@@ -62,7 +62,7 @@ def test_the_gameweek_interval_delegates_to_the_call_site_8_2_selects() -> None:
 
 
 def test_the_gameweek_interval_rejects_a_non_finite_entry() -> None:
-    """This module's own check, flagged as an addition rather than one of §10's four.
+    """This module's own check, flagged as an addition to the pre-registered guards.
     `block_bootstrap_draws` strips NaN before resampling, so without it a series could pass G4's
     length check and still present the estimator with fewer values than the window has."""
     series = np.arange(35, dtype=float)
@@ -77,8 +77,8 @@ def test_a_two_dimensional_input_is_rejected_before_g4() -> None:
 
 
 def test_the_import_closure_is_tier_bs() -> None:
-    """§5.1's row forbids `research/`, `serve/`, `operational/` and every Tier A sibling, and §8.2
-    permits `model/` because the gameweek interval needs it. Run as a subprocess on
+    """The import contract forbids `research/`, `serve/`, `operational/` and every Tier A sibling,
+    and permits `model/` because the gameweek interval needs it. Run as a subprocess on
     `test_results.py`'s precedent: this session has already imported all of them, so an in-process
     check would pass against any module."""
     program = (

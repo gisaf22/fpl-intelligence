@@ -1,7 +1,7 @@
-"""Tests for the squad sampler — `DESIGN.md` §2.8.
+"""Tests for the squad sampler.
 
-§2.8 calls the four constraint tests "the floor, not the ceiling", and orders the rest of the
-suite around what a wrong implementation would still pass:
+The four constraint tests are "the floor, not the ceiling", and the rest of the
+suite is ordered around what a wrong implementation would still pass:
 
 * Each constraint is asserted **against the squad's own gameweek**. Three of the four have a
   wrong version that passes: keyed on GW2, the price and club tests pass squads that are over
@@ -10,7 +10,7 @@ suite around what a wrong implementation would still pass:
   reviewing, so they are written once, explicitly, in `_joined`.
 * Uniformity is tested on a **reduced universe** small enough to enumerate F exactly. This
   verifies the algorithm, not any real artefact: |F_g| on a real universe is unknown and
-  unenumerable (§2.1), so uniformity of a real 300-squad set is inherited from §2.4's proof plus
+  unenumerable, so uniformity of a real 300-squad set is inherited from the rejection proof plus
   this test of the implementation.
 * Determinism is tested as a property in both of its parts — same seed reproduces, and building
   a *subset* of the gameweeks reproduces those gameweeks exactly, which is what makes a partial
@@ -60,7 +60,7 @@ SEED_SWEEP_ENV = "FPL_SEED_SWEEP"
 # ---------------------------------------------------------------------------
 # Synthetic marts. Small enough to run a real pilot over, shaped like the real one:
 # a full cartesian (player_id, gw) spine, NULL minutes before a player's debut, and a
-# forward-filled price on those pre-registration rows (archive/INVENTORY.md §2.5, §2.7).
+# forward-filled price on those pre-registration rows (DATA.md).
 # ---------------------------------------------------------------------------
 
 
@@ -116,7 +116,7 @@ def _joined(sample: SquadSample, gameweek: pd.DataFrame) -> pd.DataFrame:
     """Join each drawn player to his row **at his own squad's gameweek**.
 
     This join is the test. Keying it on a fixed gameweek instead would silently pass three of
-    §2.8's four constraint tests.
+    the four constraint tests.
     """
     joined = sample.squads.merge(gameweek, on=["player_id", "gw"], how="left", validate="many_to_one")
     joined["position"] = joined["position_id"].map(POSITION_BY_ID)
@@ -125,7 +125,7 @@ def _joined(sample: SquadSample, gameweek: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# §2.8 — the four constraint tests, each against the squad's own gameweek
+# The four constraint tests, each against the squad's own gameweek
 # ---------------------------------------------------------------------------
 
 
@@ -151,7 +151,7 @@ def test_budget_cap_holds_at_each_squads_own_gameweek(gameweek: pd.DataFrame) ->
 
 
 def test_every_drawn_player_is_in_his_own_gameweeks_universe(gameweek: pd.DataFrame) -> None:
-    """Set membership in U_g, per §2.8 — cheaper and stricter than re-deriving the prefix rule."""
+    """Set membership in U_g — cheaper and stricter than re-deriving the prefix rule."""
     sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform")
     universes = _universes(gameweek, [2, 4, 6], "uniform")
     for gw, drawn in sample.squads.groupby("gw"):
@@ -171,7 +171,7 @@ def test_a_gw2_keyed_membership_test_would_be_the_wrong_test(gameweek: pd.DataFr
 
 
 # ---------------------------------------------------------------------------
-# §2.1/§2.8 — entry restricts the pool, it never rejects a draw
+# Entry restricts the pool, it never rejects a draw
 # ---------------------------------------------------------------------------
 
 
@@ -182,7 +182,7 @@ def test_no_squad_contains_a_player_before_his_entry_gameweek(gameweek: pd.DataF
 
 
 def test_a_pre_entry_row_carries_a_price_and_is_still_excluded(gameweek: pd.DataFrame) -> None:
-    """The trap §2.1 names: a prefix row fails no null check on price, so a leak would be silent."""
+    """The trap: a prefix row fails no null check on price, so a leak would be silent."""
     prefix = gameweek.loc[gameweek["minutes"].isna()]
     assert not prefix.empty and prefix["price"].notna().all()
 
@@ -193,14 +193,14 @@ def test_a_pre_entry_row_carries_a_price_and_is_still_excluded(gameweek: pd.Data
 
 
 # ---------------------------------------------------------------------------
-# §2.8 — a squad belongs to exactly one gameweek
+# A squad belongs to exactly one gameweek
 # ---------------------------------------------------------------------------
 
 
 def test_each_squad_id_appears_at_exactly_one_gameweek(gameweek: pd.DataFrame) -> None:
-    """Not a tidiness check: §10.3's estimator is valid because a squad contributes one row, and
+    """Not a tidiness check: the stratified estimator is valid because a squad contributes one row, and
     an id reused across weeks would resample correctly by its own lights while reintroducing the
-    dependence §0.14's U3 rejection is about."""
+    cross-week dependence weekly resampling avoids."""
     sample = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform")
     assert (sample.squads.groupby("squad_id")["gw"].nunique() == 1).all()
     assert sample.squads.groupby("squad_id").size().eq(SQUAD_SIZE).all()
@@ -213,7 +213,7 @@ def test_no_player_is_drawn_twice_within_one_squad(gameweek: pd.DataFrame) -> No
 
 
 # ---------------------------------------------------------------------------
-# §2.8 — determinism, in both of its parts
+# Determinism, in both of its parts
 # ---------------------------------------------------------------------------
 
 
@@ -227,7 +227,7 @@ def test_same_seed_reproduces_the_squad_table_exactly(gameweek: pd.DataFrame) ->
 
 
 def test_building_a_subset_of_gameweeks_reproduces_those_gameweeks_exactly(gameweek: pd.DataFrame) -> None:
-    """§2.9's per-week streams, asserted rather than assumed: a partial re-run is auditable only
+    """Per-week streams, asserted rather than assumed: a partial re-run is auditable only
     if the derivation is independent of build order and of what other weeks consumed."""
     whole = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0, squad_mode="uniform")
     part = sample_squads(_frames(gameweek), [5, 3], 40, 0, squad_mode="uniform")
@@ -251,14 +251,14 @@ def test_week_seed_is_a_function_of_the_master_seed_and_the_gameweek_only() -> N
 
 
 def test_the_seed_is_required(gameweek: pd.DataFrame) -> None:
-    """§2.9: no default, deliberately — so a run cannot inherit either of the repository's two
+    """No default, deliberately — so a run cannot inherit either of the repository's two
     competing seed constants by accident."""
     with pytest.raises(TypeError):
         sample_squads(_frames(gameweek), [2], 40, squad_mode="uniform")  # type: ignore[call-arg]
 
 
 def test_the_sampler_holds_no_state_between_calls(gameweek: pd.DataFrame) -> None:
-    """§2.8: no module-level RNG, no cached index, no accumulated counters."""
+    """No module-level RNG, no cached index, no accumulated counters."""
     first = sample_squads(_frames(gameweek), [2], 40, 0, squad_mode="uniform")
     _ = sample_squads(_frames(gameweek), [4, 6], 40, 3, squad_mode="uniform")
     again = sample_squads(_frames(gameweek), [2], 40, 0, squad_mode="uniform")
@@ -267,7 +267,7 @@ def test_the_sampler_holds_no_state_between_calls(gameweek: pd.DataFrame) -> Non
 
 
 # ---------------------------------------------------------------------------
-# §2.8 — uniformity, on a universe small enough to enumerate F
+# Uniformity, on a universe small enough to enumerate F
 # ---------------------------------------------------------------------------
 
 
@@ -275,7 +275,7 @@ def test_the_sampler_holds_no_state_between_calls(gameweek: pd.DataFrame) -> Non
 class _Pool:
     """One enumerable universe for the uniformity test, with its own pinned arithmetic.
 
-    Two are declared. §2.8 fixes the parameters of both, so the values here are specification
+    Two are declared. Their parameters are fixed, so the values here are specification
     rather than fixture convenience: `q` and `f_bounds` are pinned so a later edit to the prices
     or clubs cannot silently move the fixture to one where F is empty, or is all of Q, without
     failing.
@@ -323,9 +323,9 @@ POOL_19 = _Pool(
 POOL_21 = _Pool(
     # 4 GK / 7 DEF / 6 MID / 4 FWD — |Q| = 6 x 21 x 6 x 4 = 3,024, |F| = 1,076. The second
     # measured point: it grows two of the four pools and multiplies |Q| by seven, which is what
-    # turns §2.8's one-point assertion into a two-point pattern. Both constraints bite here too,
+    # turns a one-point assertion into a two-point pattern. Both constraints bite here too,
     # and the split runs the *other* way — the budget admits 1,471 of the 3,024 and the club limit
-    # 2,349 — which is why §2.8 records the binding profile as a property of a fixture's prices
+    # 2,349 — which is why the binding profile is read as a property of a fixture's prices
     # and clubs rather than of its pool size.
     label="21-players",
     counts={"GK": 4, "DEF": 7, "MID": 6, "FWD": 4},
@@ -348,7 +348,7 @@ POOL_21 = _Pool(
 POOLS = [POOL_19, POOL_21]
 
 DRAWS_PER_FEASIBLE_SQUAD = 200
-"""§2.8's pinned per-cell expected count. Held at both pool sizes, so the draw count scales with
+"""The pinned per-cell expected count. Held at both pool sizes, so the draw count scales with
 |F| and the two points stay comparable."""
 
 UNIFORMITY_ALPHA = 0.001
@@ -389,7 +389,7 @@ def _observed_counts(sample: SquadSample, feasible: list[frozenset[int]]) -> np.
 def _cheap_squad_tilt(gameweek: pd.DataFrame, feasible: list[frozenset[int]], n_draws: int) -> np.ndarray:
     """Frequencies a sampler tilted toward cheap squads would produce, at the same draw count.
 
-    This is §2.2's failure mode made concrete — the bias a repair or constructive scheme produces,
+    This is the repair schemes' failure mode made concrete — the bias a repair or constructive scheme produces,
     running along price, which is the axis the rankers are separated by. Weighting by 1/cost^4 is
     a stand-in for that family rather than a model of any particular scheme; what it buys is a
     definite alternative for the chi-square to have power *against*, so the test's sensitivity is
@@ -407,12 +407,12 @@ def _cheap_squad_tilt(gameweek: pd.DataFrame, feasible: list[frozenset[int]], n_
 def test_draws_are_uniform_over_the_enumerated_feasible_set(pool: _Pool) -> None:
     """Method A's uniformity, measured where it can be: conditioning a uniform proposal over Q on
     membership in F gives the uniform distribution on F, so every member of F must come up equally
-    often. Verifies the algorithm; the real artefact inherits the property from the proof (§2.8).
+    often. Verifies the algorithm; the real artefact inherits the property from the proof.
 
     Run at **two** pool sizes. One measured point cannot distinguish "the sampler is uniform" from
-    "the sampler is uniform at the one size anyone checked", and §2.8's generalisation from a
+    "the sampler is uniform at the one size anyone checked", and the generalisation from a
     19-player fixture to an 841-player universe otherwise rests entirely on the argument that no
-    branch in the sampler reads pool size. Two points do not reach 841 — §2.8 records why no
+    branch in the sampler reads pool size. Two points do not reach 841 — no
     enumerable test can — but they turn a one-point assertion into a two-point pattern.
     """
     gameweek = pool.gameweek()
@@ -449,10 +449,10 @@ def test_uniformity_p_values_are_uniform_across_seeds(pool: _Pool, n_seeds: int)
     they are ordinary draws: 20 seeds at 19 players give KS-vs-uniform p = 0.734, and 12 seeds at
     21 give 0.262.
 
-    **Opt-in, and why.** At §2.8's pinned 200-per-cell count this is ~35 seconds — half again the
+    **Opt-in, and why.** At the pinned 200-per-cell count this is ~35 seconds — half again the
     whole slice suite — and CI runs `pytest -m unit`, which the module-level mark would collect.
     Running it at a lower per-cell count would make it affordable but would no longer be the
-    configuration §2.8 pins and reports. So it is gated on an environment variable rather than
+    configuration that is pinned and reported. So it is gated on an environment variable rather than
     thinned, and the cost of that choice is that nothing runs it automatically:
 
         FPL_SEED_SWEEP=1 pytest decisions/starting_xi/test_sampler.py -k across_seeds
@@ -473,7 +473,7 @@ def test_uniformity_p_values_are_uniform_across_seeds(pool: _Pool, n_seeds: int)
 
 
 # ---------------------------------------------------------------------------
-# §2.6 — the acceptance ladder, its red line, and the per-gameweek cap
+# The acceptance ladder, its red line, and the per-gameweek cap
 # ---------------------------------------------------------------------------
 
 
@@ -487,8 +487,8 @@ def test_the_pilot_is_recorded_for_every_gameweek(gameweek: pd.DataFrame) -> Non
 
 
 def test_a_red_line_in_one_week_stops_the_whole_build() -> None:
-    """A budget so tight that a uniform draw almost never fits. §2.6 stops the entire build — a
-    rate this far below §2.3's expectation is more likely a predicate bug than a real feasible
+    """A budget so tight that a uniform draw almost never fits. The ladder stops the entire build — a
+    rate this far below the expected rate is more likely a predicate bug than a real feasible
     set, and skipping the week would silently change the population."""
     tight = _gameweek(
         counts={"GK": 12, "DEF": 20, "MID": 20, "FWD": 10},
@@ -510,7 +510,7 @@ def test_the_per_gameweek_proposal_cap_names_the_week(gameweek: pd.DataFrame, mo
 
 
 # ---------------------------------------------------------------------------
-# §2.9 — the run record and the gameweek pin
+# The run record and the gameweek pin
 # ---------------------------------------------------------------------------
 
 
@@ -541,7 +541,7 @@ def test_the_entrant_diagnostic_counts_players_outside_the_gw2_universe(gameweek
 
 
 def test_the_mart_pin_covers_every_gameweek_in_scope(gameweek: pd.DataFrame) -> None:
-    """§2.8: under weekly resampling a gameweek rebuild touching *any* gameweek in scope invalidates
+    """Under weekly resampling a gameweek rebuild touching *any* gameweek in scope invalidates
     the whole frozen set, so a pin keyed on one week would understate the exposure."""
     baseline = sample_squads(_frames(gameweek), [2, 4, 6], 40, 0, squad_mode="uniform").mart_pin
 
@@ -560,14 +560,14 @@ def test_the_mart_pin_covers_every_gameweek_in_scope(gameweek: pd.DataFrame) -> 
 
 
 # ---------------------------------------------------------------------------
-# §5.3.2 — the squad-set id
+# The squad-set id
 # ---------------------------------------------------------------------------
 
 
 def test_the_squad_set_id_is_a_content_hash_of_the_drawn_squads(gameweek: pd.DataFrame) -> None:
-    """§5.3.2 selects a function of the *squads* over an encoding of the inputs that drew them,
-    because §2.8 establishes the seed does not determine the squads — so only a content hash can
-    carry the assertion §7.3 attaches to the field.
+    """The id is a function of the *squads* rather than an encoding of the inputs that drew them,
+    because the seed does not determine the squads — so only a content hash can carry the
+    assertion the manifest attaches to the field.
 
     The last assertion is the check a reader of two results directories actually performs: the
     per-week digests are recomputable from the returned squad table alone.
@@ -591,10 +591,10 @@ def test_the_squad_set_id_is_a_content_hash_of_the_drawn_squads(gameweek: pd.Dat
 
 
 def test_a_partial_rebuild_is_checkable_week_by_week(gameweek: pd.DataFrame) -> None:
-    """§7.3's second clause, and the reason the digest is per gameweek rather than one flat hash
+    """The id's second job, and the reason the digest is per gameweek rather than one flat hash
     over the set: rebuilding two weeks reproduces exactly those weeks' digests, and checking them
     needs neither the other weeks nor a re-run of them. A flat whole-set digest would satisfy the
-    row's first clause and fail this one."""
+    first job and fail this one."""
     whole = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0, squad_mode="uniform").run_record.set_index("gw")[
         "squad_sha256"
     ]
@@ -607,7 +607,7 @@ def test_a_partial_rebuild_is_checkable_week_by_week(gameweek: pd.DataFrame) -> 
 
 def test_the_run_level_id_covers_the_whole_set_and_not_one_week(gameweek: pd.DataFrame) -> None:
     """The counterpart to the test above, and the contrast is the point: matching per-week digests
-    do not make two runs the same run. §7.3 has the id cover all 37 weeks' squads, so a build over a
+    do not make two runs the same run. The id covers all 37 weeks' squads, so a build over a
     different gameweek set carries a different id even where every shared week reproduces
     exactly."""
     whole = sample_squads(_frames(gameweek), [2, 3, 4, 5, 6], 40, 0, squad_mode="uniform")
@@ -616,10 +616,10 @@ def test_the_run_level_id_covers_the_whole_set_and_not_one_week(gameweek: pd.Dat
 
 
 def test_the_week_digest_reads_the_key_and_not_the_emitted_row_order(gameweek: pd.DataFrame) -> None:
-    """§5.3.2 hashes the `(squad_id, player_id)` pairs, not the row order: §2.9 makes the key the
+    """The digest hashes the `(squad_id, player_id)` pairs, not the row order: the key is the
     identity of the set, so a digest that moved when players were re-ordered *within* a squad would
     raise a false alarm on a change that altered no squad. `squad_id` is the different question with
-    the opposite answer — T1, T2 and T5 all key on it (§7.2), so the same squads under permuted ids
+    the opposite answer — T1, T2 and T5 all key on it, so the same squads under permuted ids
     are a different artefact."""
     week = sample_squads(_frames(gameweek), [4], 40, 0, squad_mode="uniform").squads
     shuffled = week.sample(frac=1.0, random_state=7).reset_index(drop=True)
@@ -632,14 +632,14 @@ def test_the_week_digest_reads_the_key_and_not_the_emitted_row_order(gameweek: p
 
 
 # ---------------------------------------------------------------------------
-# §3.5/§5.6 — the sampler is Tier A, and stays Tier A
+# The sampler is Tier A, and stays Tier A
 # ---------------------------------------------------------------------------
 
 
 def test_importing_the_sampler_pulls_in_no_downstream_layer() -> None:
     """Run in a subprocess, and it has to be: `pyproject.toml`'s `testpaths` imports `model` — and
     through it `statsmodels` — before this test runs, so an in-process `sys.modules` assertion
-    could not tell the module under test from what the session already imported (§5.6)."""
+    could not tell the module under test from what the session already imported."""
     program = (
         "import sys; import decisions.starting_xi.sampler; "
         "leaked = [m for m in sys.modules if m.split('.')[0] in {'model', 'research', 'serve', 'statsmodels'}]; "

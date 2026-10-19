@@ -1,6 +1,6 @@
 # DESIGN.md — Free Hit Squad Construction & Selection
 
-Sibling to `decisions/starting_xi/DESIGN.md`. Pure prose describing what to
+Sibling to starting_xi's retired design. Pure prose describing what to
 build given DECISION.md + INVENTORY.md's evidence. Does not write back to
 INVENTORY.md. No code in this pass.
 
@@ -27,8 +27,7 @@ the stress-test pass — figures confirmed current).
 in a gameweek as disqualifying gives only 1 clean gameweek (GW38), because
 early-season rows are saturated with not-yet-debuted players whose rows
 carry the flag regardless of whether their club had a real fixture that
-week — the same registration-prefix artifact `starting_xi/archive/INVENTORY.md`
-§2.5 already characterized for NULL-minutes semantics. The row-level count
+week — the same registration-prefix artifact starting_xi's retired inventory already characterized for NULL-minutes semantics. The row-level count
 answers "does any row look flagged," not "did this gameweek have a real
 scheduling anomaly," which is the question DECISION.md §3 actually needs
 answered.
@@ -86,7 +85,7 @@ than left ambiguous, because no second real consumer of a shared primitive
 exists yet to justify building shared infrastructure ahead of need. If a
 second squad-family slice is ever built, promotion becomes a live question
 again, to be decided then with an actual second caller in hand — matching
-`starting_xi/DESIGN.md` §3.5's own stated default for exactly this
+starting_xi's retired design's own stated default for exactly this
 situation.
 
 **Interface, matching `_Pool`'s actual shape (not a `Player`/`Pool`
@@ -213,7 +212,7 @@ ILP formulation) can extend the shape without hitting `BenchPlayer`'s
 dead end.
 
 **Second, separate risk, distinct from typing style — flagged, not
-resolved here.** `starting_xi/DESIGN.md` §5.4.2 documents that the Markov
+resolved here.** starting_xi's retired design documents that the Markov
 ordering-policy rejection was **not** a Tier A/B or typing problem at all —
 it was that `OrderingPolicy`'s argument shape structurally excludes XI
 context (only sees the outfield bench), an information-completeness

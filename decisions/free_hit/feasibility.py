@@ -51,7 +51,7 @@ brute force confirmed every one was a genuine rejection, 0 artifacts of the fixe
 `test_feasibility_club_cap_probe.py::test_the_club_cap_approximation_never_rejects_a_completable_squad_on_the_real_mart`
 for the measurement and its method. The algorithm is unchanged; both tests are pinned as
 regressions so this is re-checked automatically if the mart or the constructors change, mirroring
-`decisions/starting_xi/DESIGN.md` §4.3.1's vacancy-fill-order investigation, which resolved the
+starting_xi's retired design's vacancy-fill-order investigation, which resolved the
 same class of fixed-order-approximation question the same way.
 
 No RNG anywhere in this module -- `can_complete` is a pure function of its arguments.

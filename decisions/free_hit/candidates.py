@@ -36,7 +36,7 @@ target gameweek (first non-null `minutes` row, mirroring `decisions.starting_xi.
 predicate, re-derived rather than imported for the same self-containment reason
 `gameweek_population.py` gives). Confirmed directly against the live mart: a not-yet-debuted
 player's `purchase_price` is a flat value identical to his eventual debut-gw price, held across
-every pre-debut row -- the same phantom-pricing risk `decisions/starting_xi/archive/INVENTORY.md`
+every pre-debut row -- the same phantom-pricing risk starting_xi's retired inventory
 documents for the sibling slice's sampler, and not specific to that slice's sampling method.
 Without this filter a greedy constructor could pick a player who is not yet a real FPL asset that
 gameweek, priced from data that does not exist yet.

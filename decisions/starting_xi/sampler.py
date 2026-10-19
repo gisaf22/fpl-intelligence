@@ -1,8 +1,8 @@
-"""Synthetic squad sampler — `DESIGN.md` §2, Method A (whole-draw rejection).
+"""Synthetic squad sampler — whole-draw rejection.
 
 Draws `n_squads` synthetic FPL squads **per gameweek** from that gameweek's feasible set F_g, in
 one of two squad modes (CARD.md §3), and returns them with a per-gameweek run record and a
-run-level mart pin. Nothing is written to disk and no state is held between calls (§2.8/§2.9); storage is §7's.
+run-level mart pin. Nothing is written to disk and no state is held between calls; storage is `results.py`'s.
 
 The construction, and where each part is decided:
 
@@ -11,10 +11,10 @@ The construction, and where each part is decided:
   the price rule, as `warehouse.served` derives it) and keeps the same whole-draw rejection, so its
   target is that weighted proposal distribution conditioned on F_g -- a realism assumption, read
   only alongside the uniform view, and not uniform on anything.
-* **Target** (§2.1, uniform mode). Uniform on F_g — the 15-player subsets of the gameweek-*g* universe U_g that
+* **Target** (uniform mode). Uniform on F_g — the 15-player subsets of the gameweek-*g* universe U_g that
   satisfy the 2/5/5/3 quota, the ≤3-per-club limit and the 100.0 budget cap *at gameweek g's
   prices and clubs*. Not uniform on U_g, not uniform per position, not uniform on Q_g.
-* **Method** (§2.4/§2.5). Propose uniformly without replacement within each position — which is
+* **Method**. Propose uniformly without replacement within each position — which is
   uniform on Q_g, the quota-satisfying supersets — then accept the whole 15 or discard the whole
   15 and redraw independently. Conditioning a uniform distribution on a subset gives the uniform
   distribution on that subset, so uniformity on F_g is a theorem here rather than a diagnostic.
@@ -22,31 +22,31 @@ The construction, and where each part is decided:
   draw is without replacement (`_propose`); entry restricts the pool rather than rejecting
   a draw (`_universes`); and rejection discards the entire 15 (`_build_week` keeps whole rows and
   never repairs one).
-* **Entry** (§2.1). A player is in U_g iff his `entry_gw` (the loader's first gameweek with a
+* **Entry**. A player is in U_g iff his `entry_gw` (the loader's first gameweek with a
   fixture, DATA.md) is at or before *g*. It is applied by building U_g before drawing, never as a
   rejection test: a pre-entry row can carry a price, so a leaked one would not fail a null check
   — it would silently price a phantom against the cap.
-* **Weekly resampling** (§0.16). Each gameweek in scope draws its own squads from its own
+* **Weekly resampling**. Each gameweek in scope draws its own squads from its own
   universe at its own prices and clubs. A squad exists for exactly one gameweek; `squad_id` is
-  unique across the whole set and belongs to exactly one `gw`, which is what §10.3's stratified
+  unique across the whole set and belongs to exactly one `gw`, which is what a per-gameweek stratified
   estimator is valid under.
-* **Acceptance measurement** (§2.6). Every gameweek runs a seeded pilot of `PILOT_PROPOSALS`
+* **Acceptance measurement**. Every gameweek runs a seeded pilot of `PILOT_PROPOSALS`
   before any gameweek's squads are built, and the ladder is applied per week. A red line in any
-  one week stops the whole build — the rate is a falsification threshold for §2.3's slack-budget
+  one week stops the whole build — the rate is a falsification threshold for the slack-budget
   and slack-club arguments, and the first hypothesis for a rate that low is a bug in the
   feasibility predicate, not a surprising feasible set.
-* **Seeding** (§2.9). `np.random.default_rng`, master seed required with no default, and one
+* **Seeding**. `np.random.default_rng`, master seed required with no default, and one
   stream per gameweek derived from the master seed *and* the gameweek number. Building one
   gameweek in isolation reproduces exactly the squads that building all of them produces, and
   rebuilding GW7 does not perturb GW8.
-* **Squad-set identity** (§5.3.2). The returned set carries a content hash of itself — one digest
-  per gameweek in the run record, folded into a run-level `squad_set_id`. It is what §7.3's
+* **Squad-set identity**. The returned set carries a content hash of itself — one digest
+  per gameweek in the run record, folded into a run-level `squad_set_id`. It is what the run
   manifest lets a later run assert a replay against, and it catches what neither the mart pin nor
   the seed can: a change to `PROPOSAL_BATCH` or to the per-week derivation moves every squad in
   every week while every recorded *input* stays identical.
 
-Import closure: `warehouse/`, `domain/`, `numpy`, `pandas` (§2.9). Tier A — never `model/`,
-`research/`, `serve/`, `operational/` or `rankers.py` (§3.5).
+Import closure: `warehouse/`, `domain/`, `numpy`, `pandas`. Tier A — never `model/`,
+`research/`, `serve/`, `operational/` or `rankers.py`.
 """
 
 from __future__ import annotations
@@ -72,22 +72,22 @@ from domain.fpl_squad import (
 from warehouse import served
 
 # ---------------------------------------------------------------------------
-# Constants fixed by DESIGN.md §2.6
+# Acceptance-ladder constants
 # ---------------------------------------------------------------------------
 
 PILOT_PROPOSALS: int = 100_000
-"""Proposals in each gameweek's pilot. Fixed by §2.6, not a parameter: p̂_g is only comparable
+"""Proposals in each gameweek's pilot. Fixed, not a parameter: p̂_g is only comparable
 against the ladder — and only reproducible — at a fixed proposal count."""
 
 LADDER_PROCEED: float = 1e-2
-"""p̂_g at or above this needs no further record beyond the run record itself (§2.6)."""
+"""p̂_g at or above this needs no further record beyond the run record itself."""
 
 LADDER_RED_LINE: float = 1e-4
-"""p̂_g below this stops the entire build (§2.6). It is a falsification threshold for §2.3, not a
+"""p̂_g below this stops the entire build. It is a falsification threshold for the slack arguments, not a
 cost threshold: uniformity holds at any positive rate."""
 
 PROPOSAL_CAP_PER_GW: int = 100_000_000
-"""Cumulative proposals (pilot + build) allowed for one gameweek before the run aborts (§2.6).
+"""Cumulative proposals (pilot + build) allowed for one gameweek before the run aborts.
 Per-gameweek rather than shared across the season so the abort names the week that failed."""
 
 PROPOSAL_BATCH: int = 4096
@@ -100,7 +100,7 @@ gameweek's stream is consumed. The *squads* are batch-size independent — they 
 changing this constant changes every seeded artefact. It is fixed here for that reason."""
 
 _PIN_COLUMNS: tuple[str, ...] = ("player_id", "gw", "position_id", "price", "team_id", "entry_gw")
-"""The gameweek-frame columns the uniform mode reads, and therefore the columns its pin covers (§5.3)."""
+"""The gameweek-frame columns the uniform mode reads, and therefore the columns its pin covers."""
 
 SQUAD_MODES: tuple[str, ...] = ("uniform", "ownership")
 """CARD.md §3's two squad mixes. Required on every entry point, with no default: which view a run
@@ -116,16 +116,16 @@ def _read_columns(squad_mode: str) -> tuple[str, ...]:
 
 
 _ENTRANT_REFERENCE_GW: int = 2
-"""The universe the cross-week diagnostic in §2.9 is stated against: U_2, the pool a build-once
+"""The universe the cross-week entrant diagnostic is stated against: U_2, the pool a build-once
 construction would have frozen. Entrants are the players in U_g but not in U_2."""
 
 
 class AcceptanceRedLine(RuntimeError):
-    """Raised when any gameweek's pilot measures p̂_g < `LADDER_RED_LINE` (§2.6).
+    """Raised when any gameweek's pilot measures p̂_g < `LADDER_RED_LINE`.
 
     Carries the full pilot series on `.pilots` so the shape across the season is readable
-    without a re-run. §2.6 requires the feasibility predicate be audited before anything else;
-    §2.7's Method C fallback is reached only if the predicate is confirmed correct and the rate
+    without a re-run. The feasibility predicate is audited before anything else; a
+    fallback sampler is reached only if the predicate is confirmed correct and the rate
     still stands, and it would then apply to every gameweek rather than the offending one.
     """
 
@@ -135,17 +135,17 @@ class AcceptanceRedLine(RuntimeError):
 
 
 class ProposalCapExceeded(RuntimeError):
-    """Raised when one gameweek's cumulative proposals reach `PROPOSAL_CAP_PER_GW` (§2.6)."""
+    """Raised when one gameweek's cumulative proposals reach `PROPOSAL_CAP_PER_GW`."""
 
 
 @dataclass(frozen=True)
 class MartPin:
-    """What the frozen squad set is reproducible against (§5.3).
+    """What the frozen squad set is reproducible against.
 
     Rejection consumes a data-dependent number of RNG draws, so the same seed against a different
     mart yields a different squad set. Under weekly resampling the exposure covers every gameweek
     in scope, not one slice: a mart rebuild touching any gameweek in scope invalidates the whole
-    set (§2.8).
+    set.
     """
 
     slice_sha256: str
@@ -158,18 +158,18 @@ class MartPin:
 
 @dataclass(frozen=True)
 class SquadSample:
-    """The sampler's return value (§2.9): squads, the run record, the pin and the set's own id.
+    """The sampler's return value: squads, the run record, the pin and the set's own id.
 
     `squads` is the frozen squad table at (`gw`, `squad_id`, `player_id`) — 15 rows per squad,
     `squad_id` unique across the set and belonging to exactly one `gw`. Everything else about a
     drawn player (position, price, club) is a join back onto the pinned mart rather than a
-    denormalised column, which is what keeps the key the thing under test in §2.8.
+    denormalised column, which is what keeps the key the thing under test in the constraint tests.
 
     `run_record` is one row per build gameweek, and carries that week's `squad_sha256`.
 
     `mart_pin` and `squad_set_id` are both run-level and carried once, and they identify opposite
-    ends of the same contract (§5.3.2): the pin says what the set is reproducible *against*, the
-    id says what was *produced*. §7.3 makes both identity fields of a run, and neither substitutes
+    ends of the same contract: the pin says what the set is reproducible *against*, the
+    id says what was *produced*. The run manifest makes both identity fields of a run, and neither substitutes
     for the other — when two ids differ, only the pin says whether the mart moved.
     """
 
@@ -211,7 +211,7 @@ class _Universe:
 
 
 # ---------------------------------------------------------------------------
-# Universe construction (§2.1)
+# Universe construction
 # ---------------------------------------------------------------------------
 
 
@@ -235,7 +235,7 @@ def _universes(mart: pd.DataFrame, gameweeks: Sequence[int], squad_mode: str) ->
 
     Entry enters **here and only here**. Every member of the returned pools is
     entry-legal at its own gameweek, so every proposal drawn from them is too, and no
-    rejection test ever has to consider entry (§2.1).
+    rejection test ever has to consider entry.
     """
     universes: dict[int, _Universe] = {}
 
@@ -269,7 +269,7 @@ def _universes(mart: pd.DataFrame, gameweeks: Sequence[int], squad_mode: str) ->
 
 
 # ---------------------------------------------------------------------------
-# The draw (§2.4 Method A)
+# The draw (whole-draw rejection)
 # ---------------------------------------------------------------------------
 
 
@@ -306,13 +306,13 @@ def _propose(rng: np.random.Generator, universe: _Universe, size: int) -> tuple[
 
 
 def _feasible(price_tenths: np.ndarray, team_id: np.ndarray) -> np.ndarray:
-    """The two rejectable conditions, per proposal (§2.1).
+    """The two rejectable conditions, per proposal.
 
     The quota holds by construction and entry holds by construction of the pools, so only
     the budget cap and the club limit are tested here. The club test sorts each row and looks for
     any value repeated `MAX_PER_CLUB + 1` times: in a sorted row that is exactly the condition
     `s[j + 3] == s[j]` for some j. It is a per-*squad* test over all 15, not a per-position one —
-    applying it per position is one of the predicate bugs §2.6's red line exists to catch.
+    applying it per position is one of the predicate bugs the acceptance red line exists to catch.
     """
     within_budget = price_tenths.sum(axis=1) <= BUDGET_CAP_TENTHS
     ordered = np.sort(team_id, axis=1)
@@ -323,7 +323,7 @@ def _feasible(price_tenths: np.ndarray, team_id: np.ndarray) -> np.ndarray:
 def _pilot_week(rng: np.random.Generator, universe: _Universe) -> int:
     """Run one gameweek's pilot: `PILOT_PROPOSALS` proposals, returning the accepted count k_g.
 
-    The pilot's squads are discarded; its *count* is the artefact (§2.6). The stream continues
+    The pilot's squads are discarded; its *count* is the artefact. The stream continues
     into that gameweek's build, so the pilot is not a separate draw from the build — it is the
     first `PILOT_PROPOSALS` proposals of the one stream the gameweek owns.
     """
@@ -350,9 +350,9 @@ def _build_week(
 
     **Whole draws only.** An accepted proposal is kept as an entire row and a rejected one is
     discarded as an entire row; nothing resamples the offending position, swaps the expensive
-    player, or conditions the next draw on the last. That is condition 3 of §2.4, and it is the
+    player, or conditions the next draw on the last. That is the third uniformity condition, and it is the
     single line whose violation would cost the uniformity claim while still producing squads that
-    pass every constraint test in §2.8.
+    pass every constraint test.
     """
     kept_ids: list[np.ndarray] = []
     kept_cost: list[np.ndarray] = []
@@ -385,21 +385,21 @@ def _build_week(
 
 
 # ---------------------------------------------------------------------------
-# Diagnostics (§2.9)
+# Diagnostics
 # ---------------------------------------------------------------------------
 
 
 def _diversity(squads: np.ndarray, cost_tenths: np.ndarray, universe: _Universe, entrants: np.ndarray) -> dict:
-    """The four diagnostics §2.9 puts in the run record.
+    """The four diagnostics the run record carries.
 
-    They describe the *set*, where the acceptance fields describe the *sampler*. §2.1 disposes of
-    exact duplicates; what these answer is near-copies — 300 squads differing in two or three
+    They describe the *set*, where the acceptance fields describe the *sampler*. Exact duplicates are
+    disposed of by the target; what these answer is near-copies — 300 squads differing in two or three
     slots would pass every constraint test, report a healthy acceptance rate, and still carry
     roughly one squad's worth of information about how rankers behave across squad composition.
 
-    **They gate nothing** (§2.9). No threshold is attached to any of them, §0 selects no diversity
+    **They gate nothing.** No threshold is attached to any of them, the decision selects no diversity
     criterion, and a number invented here would be a criterion smuggled in as reporting. A value
-    that looks wrong is a finding to route through `archive/DECISION.md` and `archive/METRIC.md`.
+    that looks wrong is a finding to route through the decision and its metric (CARD.md §0, §1).
     """
     selected, counts = np.unique(squads, return_counts=True)
     most_selected = int(np.argmax(counts))  # ties resolve to the lowest player_id — np.unique sorts
@@ -421,11 +421,11 @@ def _diversity(squads: np.ndarray, cost_tenths: np.ndarray, universe: _Universe,
 
 
 def _mart_pin(mart: pd.DataFrame, gameweeks: Sequence[int], columns: tuple[str, ...]) -> MartPin:
-    """Hash the slice actually read, and record what it was read from (§5.3).
+    """Hash the slice actually read, and record what it was read from.
 
     Emitted as data rather than noted in prose beside the artefact, so a later run can *verify*
     it is reproducing against the same input rather than assume it. The hash covers every
-    gameweek in scope — §2.8's statement of the exposure under weekly resampling — over exactly
+    gameweek in scope — the exposure under weekly resampling — over exactly
     the columns the sampler reads.
     """
     read = (
@@ -445,30 +445,30 @@ def _mart_pin(mart: pd.DataFrame, gameweeks: Sequence[int], columns: tuple[str, 
 
 
 def _week_digest(week: pd.DataFrame) -> str:
-    """One gameweek's squads, as a content digest (§5.3.2).
+    """One gameweek's squads, as a content digest.
 
     Taken over the `(squad_id, player_id)` pairs in ascending order, **not** over the emitted row
-    order. §2.9 keys the squad table on those two plus `gw` and states that everything else about a
+    order. The squad table is keyed on those two plus `gw` and everything else about a
     drawn player is a join, so the identity of the set *is* the key; a digest sensitive to the order
     players happen to appear in within a squad would move on a change that altered no squad — the
-    same false alarm §5.3 rejects when it restricts the mart pin to the columns actually read.
+    same false alarm the mart pin avoids by restricting itself to the columns actually read.
 
     `squad_id` is hashed, which is a different question with the opposite answer: T1, T2 and T5 all
-    key on it (§7.2), so the same squads under permuted ids are a different artefact.
+    key on it, so the same squads under permuted ids are a different artefact.
     """
     canonical = week.loc[:, ["squad_id", "player_id"]].sort_values(["squad_id", "player_id"])
     return hashlib.sha256(canonical.to_csv(index=False).encode("utf-8")).hexdigest()
 
 
 def _squad_set_id(run_record: pd.DataFrame) -> str:
-    """Fold the run record's per-week digests into the run-level squad-set id (§5.3.2, §7.3).
+    """Fold the run record's per-week digests into the run-level squad-set id.
 
-    A fold rather than one pass over the whole squad table, because §7.3 asks the id to do two
+    A fold rather than one pass over the whole squad table, because the manifest asks the id to do two
     things and only the second constrains its shape. A flat digest covers all 37 weeks and cannot be
     checked week by week: a rebuild of GW7 alone yields nothing from which one can be recovered, so
     the check would mean rebuilding the other 36 — the re-run the id exists to avoid. Composing it
     out of the per-week digests makes that check the recomputation of a single digest, which is what
-    §5.3.1's order-independent derivation is worth in the artefact rather than only in a test.
+    an order-independent derivation is worth in the artefact rather than only in a test.
 
     Each digest carries its gameweek, so two weeks' digests cannot be swapped without moving the id,
     and the weeks are sorted here rather than inherited from the caller's ordering.
@@ -481,7 +481,7 @@ def _squad_set_id(run_record: pd.DataFrame) -> str:
 
 
 def _ladder(acceptance_rate: float) -> str:
-    """§2.6's ladder, applied to one gameweek's measured p̂_g."""
+    """The acceptance ladder, applied to one gameweek's measured p̂_g."""
     if acceptance_rate >= LADDER_PROCEED:
         return "proceed"
     if acceptance_rate >= LADDER_RED_LINE:
@@ -490,7 +490,7 @@ def _ladder(acceptance_rate: float) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Public interface (§2.9, §5.1)
+# Public interface
 # ---------------------------------------------------------------------------
 
 
@@ -508,13 +508,13 @@ def sample_squads(
         frames: the pinned warehouse frames — `build_squads` is the entry point that loads them.
             Only the gameweek frame is read: price (in tenths), club, `position_id` and `entry_gw`.
             The whole season is needed rather than one gameweek's slice, because U_g's prefix
-            definition needs the history (§2.9).
+            definition needs the history.
         gameweeks: the build gameweeks, **explicitly**. Not inferred from the frame's span: the
-            scope is §0.7's and the sampler must not silently widen or narrow it by taking
+            scope is the caller's and the sampler must not silently widen or narrow it by taking
             whatever the frame happens to hold.
-        n_squads: squads per gameweek (300 per §0.16).
-        seed: the master seed. **Required, no default** (§2.9) — which of the repository's two
-            competing seed constants a run uses is the call site's decision (§8.4), and a default
+        n_squads: squads per gameweek (300 in the canonical runs, CARD.md §3).
+        seed: the master seed. **Required, no default** — which of the repository's two
+            competing seed constants a run uses is the call site's decision, and a default
             here would inherit one by accident.
         squad_mode: one of `SQUAD_MODES`. **Required, no default**, for the seed's reason.
 
@@ -524,7 +524,7 @@ def sample_squads(
     Raises:
         AcceptanceRedLine: if any gameweek's pilot measures p̂_g below `LADDER_RED_LINE`. Every
             pilot runs before any gameweek's squads are built, so a red line anywhere stops the
-            whole build with nothing half-built (§2.6).
+            whole build with nothing half-built.
         ProposalCapExceeded: if one gameweek's cumulative proposals reach the per-week cap.
     """
     if squad_mode not in SQUAD_MODES:
@@ -550,7 +550,7 @@ def sample_squads(
     # The entrant reference is a membership set, so it is built unweighted in either mode.
     reference = _universes(gameweek, [_ENTRANT_REFERENCE_GW], "uniform")[_ENTRANT_REFERENCE_GW].player_ids
 
-    # Every pilot first, then the ladder, then the builds. §2.6 stops the entire build on a red
+    # Every pilot first, then the ladder, then the builds. The ladder stops the entire build on a red
     # line in any one week, so measuring all 37 before building any is what makes that stop clean:
     # nothing is built, rather than every week before the offending one.
     streams = {gw: np.random.default_rng(week_seed(seed, gw)) for gw in weeks}
@@ -572,8 +572,8 @@ def sample_squads(
     red = pilots.loc[pilots["ladder"] == "red_line", "gw"].tolist()
     if red:
         raise AcceptanceRedLine(
-            f"pilot acceptance rate below {LADDER_RED_LINE:g} at gameweek(s) {red}. §2.6: audit the "
-            f"feasibility predicate before anything else — a rate this far below §2.3's expectation is "
+            f"pilot acceptance rate below {LADDER_RED_LINE:g} at gameweek(s) {red}. Audit the "
+            f"feasibility predicate before anything else — a rate this far below the expected rate is "
             f"more likely a bug in the predicate than a surprising feasible set. The whole build is "
             f"stopped, not just the offending week(s).",
             pilots=pilots,
@@ -608,7 +608,7 @@ def sample_squads(
         )
 
     # The id is folded from the record's own column rather than recomputed from the squad table, so
-    # the two can never disagree about what a week's squads were (§5.3.2).
+    # the two can never disagree about what a week's squads were.
     run_record = pd.DataFrame(records)
     return SquadSample(
         squads=pd.concat(week_squads, ignore_index=True),
@@ -628,10 +628,10 @@ def build_squads(
     pin: served.Pin | None = None,
     snapshot_root: Path = served.SNAPSHOT_ROOT,
 ) -> SquadSample:
-    """Load the pinned warehouse frames and sample squads from them (§2.9, §5.1).
+    """Load the pinned warehouse frames and sample squads from them.
 
     The one line of the sampler that reads data. `sample_squads` is the same construction over
-    frames already in hand — which is what the §2.8 tests exercise, against universes small
+    frames already in hand — which is what the constraint tests exercise, against universes small
     enough to enumerate F.
     """
     frames = served.load(season, pin=pin, snapshot_root=snapshot_root)

@@ -30,22 +30,22 @@ _SCORE_COLUMNS: Final[tuple[str, ...]] = ("player_id", "gw", "score")
 
 
 # ---------------------------------------------------------------------------
-# The interface (§6.1)
+# The interface
 # ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class RankerOutput:
-    """§6.1's panel-producing output: a name, a declared window, and a score panel.
+    """The panel-producing output: a name, a declared window, and a score panel.
 
     Structural, not nominal. `harness.py` consumes this shape as a `Protocol` and never imports
-    this module (§3.5, §5.1) -- the composition root is the only place the two meet. The class is
+    this module -- the composition root is the only place the two meet. The class is
     declared here so the ranker side has a concrete type; `test_rankers.py` asserts it satisfies
     the harness's protocol, so the two cannot drift apart unnoticed.
 
     `scores` carries exactly (`player_id`, `gw`, `score`), one row per player-gameweek the ranker
     covers inside `window`, sorted by (`player_id`, `gw`). Higher `score` = more preferred. A row
-    the ranker cannot score is emitted with a **null** `score` rather than a number (§6.5); a row
+    the ranker cannot score is emitted with a **null** `score` rather than a number; a row
     the ranker's population never contained is absent, which the harness reads identically.
     """
 
@@ -60,7 +60,7 @@ class RankerOutput:
 
 
 def _assert_lag_safe(rolled: pd.DataFrame, column: str, *, rule: str | None = None) -> None:
-    """§6.2's leakage assertion, written against the column actually used.
+    """The leakage assertion, written against the column actually used.
 
     The property is the one `model/features/build.py:190` enforces for governed features: a
     strictly-prior column is **NaN on each player's first row**, because that row has no legitimate
@@ -68,16 +68,13 @@ def _assert_lag_safe(rolled: pd.DataFrame, column: str, *, rule: str | None = No
     bleeding across the player boundary -- is forced to surface a non-null value there.
 
     `assert_lag_safe` itself is not called: it takes a `FeaturePool`, and this column is not a
-    governed feature and must not be given a spec that suggests it is (`archive/INVENTORY.md` §2.1 records
-    the mart's exclusion of `points_roll*`). §6.2 asks for an assertion over the columns the ranker
-    uses, which is this.
+    governed feature and must not be given a spec that suggests it is (the mart excludes
+    `points_roll*`). The assertion belongs over the columns the ranker uses, which is this.
     """
     first_rows = rolled.groupby("player_id", sort=False).head(1)
     if bool(first_rows[column].notna().any()):
         owner = f"rule {rule!r}: " if rule else ""
-        raise AssertionError(
-            f"leakage: {owner}{column!r} is defined on a player's first population row (DESIGN.md §6.2)"
-        )
+        raise AssertionError(f"leakage: {owner}{column!r} is defined on a player's first population row")
 
 
 # ---------------------------------------------------------------------------

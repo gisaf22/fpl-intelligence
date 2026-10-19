@@ -1,35 +1,34 @@
-"""The shared 8-formation routine -- `DESIGN.md` §5.1, §3.5.
+"""The shared 8-formation routine.
 
 Two things, and nothing else:
 
-* **`best_legal_xi`** -- the best legal XI total over a 15, and the second-best. §0.1's
-  counterfactual regret is the gap between the chosen XI's total and the first; §0.8's C1
-  closeness gap is the gap between the first and the second. `archive/INVENTORY.md` §2.4 measures the
-  search for the maximum: sort each position's points descending and take the best of 8
-  prefix-sum combinations, no solver and no new dependency. **The second-best XI is not the
-  second-best of those 8** -- `archive/INVENTORY.md` §2.4 records that the enumeration's runner-up is the
-  best total achievable by a *different* formation, and §0.8 selects the XI gap over that
-  formation gap. It costs the same 8 combinations plus at most four subtractions; the derivation
-  is on `best_legal_xi`.
-* **`is_legal_xi`** -- §0.6's legality predicate, which §4.3's replay evaluates at every vacancy
+* **`best_legal_xi`** -- the best legal XI total over a 15, and the second-best. XI regret
+  (CARD.md §1) is the gap between the first and the chosen XI's total; the C1 closeness gap is
+  the gap between the first and the second. The search for the maximum: sort each position's
+  points descending and take the best of 8 prefix-sum combinations, no solver and no new
+  dependency. **The second-best XI is not the second-best of those 8** -- the enumeration's
+  runner-up is the best total achievable by a *different* formation, and the XI gap is used
+  rather than that formation gap. It costs the same 8 combinations plus at most four
+  subtractions; the derivation is on `best_legal_xi`.
+* **`is_legal_xi`** -- the legality predicate, which the auto-sub replay evaluates at every vacancy
   before a substitution is allowed to fire. It is what holds regret at or above 0: an XI that
   left the set the counterfactual maximises over could out-score its own counterfactual.
 
 **The formation set is derived, never listed.** `LEGAL_FORMATIONS` is enumerated at import from
 `domain/fpl_squad.py`'s `XI_MIN_PLAY`, `XI_MAX_PLAY` and `XI_SIZE` -- the bounds FPL declares and
-`dal/staging/contracts/element_types.yaml` stages (`archive/INVENTORY.md` §2.2). Writing the eight tuples
+`dal/staging/contracts/element_types.yaml` stages. Writing the eight tuples
 out here would put a second copy of a staged rule in a decision slice, where nothing checks it
 against the source.
 
-**The routine reads no data and holds no state.** That is what keeps it at `domain/`-only
-(§3.5): a version that loaded its own frame would need `dal/`, and one that scored its own
-candidates would need `model/`. It takes the points as an argument (§5.2). Import closure:
+**The routine reads no data and holds no state.** That is what keeps it at `domain/`-only:
+a version that loaded its own frame would need `dal/`, and one that scored its own
+candidates would need `model/`. It takes the points as an argument. Import closure:
 `domain/` and the standard library. Tier A, and the most constrained module in the slice --
-`DESIGN.md` §5.1 forbids it everything project-internal except `domain/`, **including every
+the import contract forbids it everything project-internal except `domain/`, **including every
 sibling slice module**, so it imports neither `sampler` nor anything else in this package.
 
 **Nulls are rejected rather than filled.** A missing points value sorts unpredictably and would
-propagate silently into a maximum, which is the shape of failure §8.3 guards the PPG population
+propagate silently into a maximum, which is the shape of failure the PPG population is guarded
 against at its own call site. Whether a blank is a 0 or an exclusion is the harness's question,
 not this routine's, so the precondition is asserted here and the policy stays with the caller.
 """
@@ -51,10 +50,10 @@ Formation = tuple[int, ...]
 def _enumerate_formations() -> tuple[Formation, ...]:
     """Every per-position count vector inside the XI bounds that sums to a full XI.
 
-    `archive/INVENTORY.md` §2.4 measures this at 8 for the staged 2025/26 bounds. The count is not
+    This is 8 for the staged 2025/26 bounds. The count is not
     asserted here: it is a consequence of the bounds, and pinning it in the module would make a
     changed bound fail in the wrong place. `test_formations.py` pins it against the eight tuples
-    `archive/INVENTORY.md` records, which is where a drift should surface.
+    written out there, which is where a drift should surface.
     """
     per_position = [range(XI_MIN_PLAY[position], XI_MAX_PLAY[position] + 1) for position in POSITIONS]
     return tuple(sorted(counts for counts in product(*per_position) if sum(counts) == XI_SIZE))
@@ -68,11 +67,11 @@ _LEGAL: Final[frozenset[Formation]] = frozenset(LEGAL_FORMATIONS)
 
 @dataclass(frozen=True)
 class BestXI:
-    """What §5.1 has the routine return: the two totals, and not their difference.
+    """What the routine returns: the two totals, and not their difference.
 
-    Field names are `DESIGN.md` §7.2's T2 column names, so the harness carries them through to
-    the artefact without a rename. §7.6 records why both are stored rather than the gap alone --
-    #4's signed-error metric is named as required and left undefined (§0.1), and storing the
+    Field names are the artefact's column names, so the harness carries them through without a
+    rename. Both are stored rather than the gap alone because #4's signed-error metric is named
+    as required and left undefined, and storing the
     inputs rather than the difference keeps whatever definition is eventually fixed derivable
     without re-running the harness.
     """
@@ -88,7 +87,7 @@ def _position_counts(positions: Sequence[str]) -> Formation:
     """Count a candidate's players per position, in `POSITIONS` order.
 
     An unrecognised position raises rather than counting as "not GK/DEF/MID/FWD" and quietly
-    making the XI illegal. §8.4 fixes `position` (GK/DEF/MID/FWD) as the slice's vocabulary and
+    making the XI illegal. The slice fixes `position` (GK/DEF/MID/FWD) as the slice's vocabulary and
     normalises any `position_label` value (GKP/...) at the harness boundary; a `GKP` arriving
     here means that boundary was missed, and returning `False` would turn it into every
     substitution silently failing to fire.
@@ -96,22 +95,22 @@ def _position_counts(positions: Sequence[str]) -> Formation:
     counts = dict.fromkeys(POSITIONS, 0)
     for position in positions:
         if position not in counts:
-            raise ValueError(f"unrecognised position {position!r}; expected one of {POSITIONS} (DESIGN.md §8.4)")
+            raise ValueError(f"unrecognised position {position!r}; expected one of {POSITIONS}")
         counts[position] += 1
     return tuple(counts[position] for position in POSITIONS)
 
 
 def is_legal_xi(positions: Sequence[str]) -> bool:
-    """Is a candidate XI a legal formation? -- §0.6's condition, as §4.3's replay applies it.
+    """Is a candidate XI a legal formation? -- as the auto-sub replay applies it.
 
     Args:
         positions: the positions of the candidate's players, in any order. Legality is a property
-            of the position multiset alone (§4.3.1), so the caller's ordering is irrelevant and
+            of the position multiset alone, so the caller's ordering is irrelevant and
             no player identity is needed.
 
     Returns:
         True iff the counts sit inside the XI bounds and total a full XI. A candidate of any other
-        size is not a legal XI and is reported as such: §4.3 fills one vacancy at a time precisely
+        size is not a legal XI and is reported as such: the replay fills one vacancy at a time precisely
         so that every state this is asked about is a complete 11, and the formation constraints
         define nothing about a partial XI.
 
@@ -125,9 +124,9 @@ def best_legal_xi(positions: Sequence[str], points: Sequence[float]) -> BestXI:
     """The best legal XI total over a 15, and the second-best legal XI total.
 
     Sorting each position's points descending makes the best XI *for a given formation* a sum of
-    per-position prefixes, so the maximum is 8 prefix-sum combinations (`archive/INVENTORY.md` §2.4).
+    per-position prefixes, so the maximum is 8 prefix-sum combinations.
 
-    **The second-best XI is not the second-best of those 8**, and §0.8 selects the XI gap over the
+    **The second-best XI is not the second-best of those 8**, and the XI gap is used rather than the
     formation gap for that reason. Any legal XI other than the best either has a different
     formation -- and is then at most that formation's own best, one of the other 7 -- or shares the
     winning formation, in which case it differs from the best by demoting at least one starter. A
@@ -142,12 +141,12 @@ def best_legal_xi(positions: Sequence[str], points: Sequence[float]) -> BestXI:
     Returns:
         A `BestXI`. `best_legal_xi_points` is the maximum over the 8 combinations;
         `second_best_xi_points` is the best total over every legal XI *except* the maximising one
-        -- so two legal XIs tied at the top give an equal pair, which is §0.8's zero-gap squad-week
+        -- so two legal XIs tied at the top give an equal pair, which is a zero-gap squad-week
         and is excluded from the conditioned sample there rather than here.
 
     Raises:
         ValueError: if the two arguments differ in length; if the squad is not the 2/5/5/3 quota
-            §5.1 states the input as; if a position is outside the slice's vocabulary; or if any
+            the input is stated as; if a position is outside the slice's vocabulary; or if any
             points value is not finite.
     """
     if len(positions) != len(points):

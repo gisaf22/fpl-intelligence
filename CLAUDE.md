@@ -68,6 +68,8 @@ probe; establish provenance with `git diff` / `git status` / `git log` on specif
 Run `ruff check . && ruff format --check . && mypy` before pushing — `pytest` does not catch
 lint, formatting or type errors, and CI gates on all three
 
+Register the notebook kernel once with: uv run python -m ipykernel install --user --name fpl-intelligence --display-name 'fpl-intelligence (3.12)'
+
 ---
 
 ## 10. How to start a new session

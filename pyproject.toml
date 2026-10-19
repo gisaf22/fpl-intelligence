@@ -39,6 +39,7 @@ markers = [
 dev = [
     "hatchling>=1.29.0",
     "import-linter>=2.0",
+    "ipykernel>=7.4.0",
     "mypy>=1.10.0",
     "pre-commit>=3.7.0",
     "pytest>=9.0.3",

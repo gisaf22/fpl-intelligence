@@ -39,9 +39,10 @@ CHIPS: Final[tuple[str, ...]] = ("3xc", "bboost", "freehit", "wildcard")
 TRANSFER_BUCKET_CAP: Final = 4
 #: Gameweeks the activity screen looks back over.
 ACTIVITY_WINDOW: Final = 3
-#: The first gameweek screened: GW1 has no measurable change (there is no GW0 to compare with), so
-#: GW2-4 is the first full window and it screens GW5. Earlier gameweeks count every manager.
-FIRST_SCREENED_GW: Final = ACTIVITY_WINDOW + 2
+#: The first gameweek of a manager's own tenure that is screened: their first gameweek has no
+#: measurable change (no earlier team to compare with), so tenure weeks 2-4 are the first full
+#: window and they screen tenure week 5. A manager's first four gameweeks count as they are.
+FIRST_SCREENED_TENURE: Final = ACTIVITY_WINDOW + 2
 #: Overall-rank cut-offs the rank screen counts at. Counts only: no cut-off is chosen here.
 RANK_SCREEN_THRESHOLDS: Final[tuple[int, ...]] = (10_000, 100_000, 1_000_000)
 DECILES: Final = 10
@@ -277,19 +278,19 @@ def picked_xi(picks: pd.DataFrame) -> pd.Series:
 def activity_screen(gameweeks: pd.DataFrame, picks: pd.DataFrame, scored_gw: int) -> pd.DataFrame:
     """Per manager with picks in `scored_gw`: are they active for that gameweek?
 
-    The window is the `ACTIVITY_WINDOW` gameweeks before `scored_gw`, never `scored_gw` itself:
-    including it would screen on the choice being scored. A change in week g means g's team differs
-    from g-1's. A manager passes if, in any window gameweek g, they made a transfer, played a chip,
-    or their picked XI (`picked_xi`, before auto-subs) or captain (`is_captain`, which stays with
-    the picked captain when the vice takes the armband) differs from g-1's. A Free Hit's reversion
-    shows as a changed XI the week after, which counts: the screen asks whether anything changed,
-    not why.
+    The screen runs on each manager's own clock. `tenure` is `scored_gw`'s place among the
+    gameweeks since the manager's first picks (1 in that first gameweek). Before
+    `FIRST_SCREENED_TENURE` the manager is not `screened`: they pass and every flag is False.
 
-    Before `FIRST_SCREENED_GW` nothing is `screened`: every manager passes and every flag is False.
-    From it on, a manager is `evaluable` only with a capture in every gameweek from the one before
-    the window to `scored_gw`; every flag of one who is not is False.
+    From it on, the window is the `ACTIVITY_WINDOW` gameweeks before `scored_gw`, never `scored_gw`
+    itself: including it would screen on the choice being scored. A change in week g means g's team
+    differs from g-1's. A manager passes if, in any window gameweek g, they made a transfer, played
+    a chip, or their picked XI (`picked_xi`, before auto-subs) or captain (`is_captain`, which stays
+    with the picked captain when the vice takes the armband) differs from g-1's. A Free Hit's
+    reversion shows as a changed XI the week after, which counts: the screen asks whether anything
+    changed, not why. A screened manager is `evaluable` only with a capture in every gameweek from
+    the one before the window to `scored_gw`; every flag of one who is not is False.
     """
-    screened = scored_gw >= FIRST_SCREENED_GW
     first_gw = scored_gw - ACTIVITY_WINDOW
     needed = set(range(first_gw - 1, scored_gw + 1))
     window = range(first_gw, scored_gw)
@@ -303,6 +304,8 @@ def activity_screen(gameweeks: pd.DataFrame, picks: pd.DataFrame, scored_gw: int
 
     rows = []
     for entry_id, gws in seen.items():
+        tenure = scored_gw - min(gws) + 1
+        screened = tenure >= FIRST_SCREENED_TENURE
         flags = dict(changed_xi=False, changed_captain=False, transferred=False, chip=False)
         evaluable = not screened or needed <= gws
         if screened and evaluable:
@@ -312,7 +315,14 @@ def activity_screen(gameweeks: pd.DataFrame, picks: pd.DataFrame, scored_gw: int
                 flags["transferred"] |= bool(week.at[(entry_id, g), "event_transfers"] > 0)
                 flags["chip"] |= pd.notna(week.at[(entry_id, g), "active_chip"])
         rows.append(
-            {"entry_id": entry_id, "cohort": cohort[entry_id], "screened": screened, "evaluable": evaluable, **flags}
+            {
+                "entry_id": entry_id,
+                "cohort": cohort[entry_id],
+                "tenure": tenure,
+                "screened": screened,
+                "evaluable": evaluable,
+                **flags,
+            }
         )
     out = pd.DataFrame(rows)
     changed = out[["changed_xi", "changed_captain", "transferred", "chip"]].any(axis=1)
@@ -321,11 +331,16 @@ def activity_screen(gameweeks: pd.DataFrame, picks: pd.DataFrame, scored_gw: int
 
 
 def activity_counts(screen: pd.DataFrame) -> pd.Series:
-    """Counts from `activity_screen`: managers, evaluable, each component, and passing."""
-    evaluable = screen[screen["evaluable"]]
+    """Counts from `activity_screen` by tenure group: managers, those in their first four gameweeks
+    (`first_four`, unscreened) and from their fifth (`fifth_onward`); then, of `fifth_onward`, the
+    evaluable, each component, and passing."""
+    screened = screen[screen["screened"]]
+    evaluable = screened[screened["evaluable"]]
     return pd.Series(
         {
             "managers": len(screen),
+            "first_four": len(screen) - len(screened),
+            "fifth_onward": len(screened),
             "evaluable": len(evaluable),
             "changed_xi": int(evaluable["changed_xi"].sum()),
             "changed_captain": int(evaluable["changed_captain"].sum()),

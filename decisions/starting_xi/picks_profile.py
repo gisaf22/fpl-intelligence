@@ -39,6 +39,9 @@ CHIPS: Final[tuple[str, ...]] = ("3xc", "bboost", "freehit", "wildcard")
 TRANSFER_BUCKET_CAP: Final = 4
 #: Gameweeks the activity screen looks back over.
 ACTIVITY_WINDOW: Final = 3
+#: The first gameweek screened: GW1 has no measurable change (there is no GW0 to compare with), so
+#: GW2-4 is the first full window and it screens GW5. Earlier gameweeks count every manager.
+FIRST_SCREENED_GW: Final = ACTIVITY_WINDOW + 2
 #: Overall-rank cut-offs the rank screen counts at. Counts only: no cut-off is chosen here.
 RANK_SCREEN_THRESHOLDS: Final[tuple[int, ...]] = (10_000, 100_000, 1_000_000)
 DECILES: Final = 10
@@ -271,39 +274,49 @@ def picked_xi(picks: pd.DataFrame) -> pd.Series:
     return picks[in_xi | picks["is_auto_sub_out"]].groupby(["entry_id", "gameweek"])["fpl_id"].agg(frozenset)
 
 
-def activity_screen(gameweeks: pd.DataFrame, picks: pd.DataFrame, last_gw: int) -> pd.DataFrame:
-    """Per manager: did they change anything in the `ACTIVITY_WINDOW` gameweeks to `last_gw`?
+def activity_screen(gameweeks: pd.DataFrame, picks: pd.DataFrame, scored_gw: int) -> pd.DataFrame:
+    """Per manager with picks in `scored_gw`: are they active for that gameweek?
 
-    A manager passes if, in any window gameweek g, they made a transfer, played a chip, or their
-    picked XI (`picked_xi`, before auto-subs) or captain (`is_captain`, which stays with the picked
-    captain when the vice takes the armband) differs from g-1's. A manager is
-    `evaluable` only with a capture in every gameweek from the one before the window to `last_gw`;
-    every flag of one who is not is False. A Free Hit's reversion shows as a changed XI the week
-    after, which counts: the screen asks whether anything changed, not why.
+    The window is the `ACTIVITY_WINDOW` gameweeks before `scored_gw`, never `scored_gw` itself:
+    including it would screen on the choice being scored. A change in week g means g's team differs
+    from g-1's. A manager passes if, in any window gameweek g, they made a transfer, played a chip,
+    or their picked XI (`picked_xi`, before auto-subs) or captain (`is_captain`, which stays with
+    the picked captain when the vice takes the armband) differs from g-1's. A Free Hit's reversion
+    shows as a changed XI the week after, which counts: the screen asks whether anything changed,
+    not why.
+
+    Before `FIRST_SCREENED_GW` nothing is `screened`: every manager passes and every flag is False.
+    From it on, a manager is `evaluable` only with a capture in every gameweek from the one before
+    the window to `scored_gw`; every flag of one who is not is False.
     """
-    first_gw = last_gw - ACTIVITY_WINDOW + 1
-    needed = set(range(first_gw - 1, last_gw + 1))
-    window = range(first_gw, last_gw + 1)
+    screened = scored_gw >= FIRST_SCREENED_GW
+    first_gw = scored_gw - ACTIVITY_WINDOW
+    needed = set(range(first_gw - 1, scored_gw + 1))
+    window = range(first_gw, scored_gw)
 
     xi = picked_xi(picks)
     captain = picks[picks["is_captain"]].set_index(["entry_id", "gameweek"])["fpl_id"]
     week = gameweeks.set_index(["entry_id", "gameweek"])
     cohort = gameweeks.groupby("entry_id")["cohort"].first()
     seen = gameweeks.groupby("entry_id")["gameweek"].agg(set)
+    seen = seen[seen.map(lambda gws: scored_gw in gws)]
 
     rows = []
     for entry_id, gws in seen.items():
         flags = dict(changed_xi=False, changed_captain=False, transferred=False, chip=False)
-        evaluable = needed <= gws
-        if evaluable:
+        evaluable = not screened or needed <= gws
+        if screened and evaluable:
             for g in window:
                 flags["changed_xi"] |= xi[(entry_id, g)] != xi[(entry_id, g - 1)]
                 flags["changed_captain"] |= captain[(entry_id, g)] != captain[(entry_id, g - 1)]
                 flags["transferred"] |= bool(week.at[(entry_id, g), "event_transfers"] > 0)
                 flags["chip"] |= pd.notna(week.at[(entry_id, g), "active_chip"])
-        rows.append({"entry_id": entry_id, "cohort": cohort[entry_id], "evaluable": evaluable, **flags})
+        rows.append(
+            {"entry_id": entry_id, "cohort": cohort[entry_id], "screened": screened, "evaluable": evaluable, **flags}
+        )
     out = pd.DataFrame(rows)
-    out["passes"] = out[["changed_xi", "changed_captain", "transferred", "chip"]].any(axis=1)
+    changed = out[["changed_xi", "changed_captain", "transferred", "chip"]].any(axis=1)
+    out["passes"] = ~out["screened"] | changed
     return out
 
 

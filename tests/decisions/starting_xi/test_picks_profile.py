@@ -232,14 +232,12 @@ def test_an_auto_sub_alone_is_not_an_xi_change(picks: pd.DataFrame, gameweeks: p
 
 
 def test_activity_screen_components(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
-    # Scoring GW7 looks at the changes made in GW4-6.
+    # Scoring GW7 for a GW1 entrant (tenure 7) looks at the changes made in GW4-6.
     screen = pp.activity_screen(gameweeks, picks, scored_gw=7).set_index("entry_id")
     flags = ["changed_xi", "changed_captain", "transferred", "chip"]
     assert screen.loc[MOVED_BENCH, flags].tolist() == [True, False, False, False]
     assert screen.loc[CAPTAIN_ONLY, flags].tolist() == [True, True, False, False]
     assert screen.loc[SELF, "passes"]
-    assert screen.loc[JOINED_GW3, "evaluable"]
-    assert not screen.loc[JOINED_GW5, ["evaluable", "passes"]].any()
 
 
 def test_a_change_only_in_the_scored_week_is_not_counted(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
@@ -254,9 +252,9 @@ def test_a_change_only_in_the_scored_week_is_not_counted(picks: pd.DataFrame, ga
     assert (row["screened"], row["evaluable"], row["passes"], row["transferred"]) == (True, True, False, False)
 
 
-def test_gameweeks_one_to_four_are_not_screened(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
-    # GW1 has no measurable change, so GW2-4 is the first full window of three and it scores GW5.
-    assert pp.FIRST_SCREENED_GW == 5
+def test_a_managers_first_four_gameweeks_are_not_screened(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
+    # Tenure, not the calendar: a GW1 entrant's first four weeks are GW1-4, so no one is screened.
+    assert pp.FIRST_SCREENED_TENURE == 5
     for gw in range(1, 5):
         screen = pp.activity_screen(gameweeks, picks, scored_gw=gw)
         captured = set(gameweeks.loc[gameweeks["gameweek"] == gw, "entry_id"])
@@ -264,14 +262,30 @@ def test_gameweeks_one_to_four_are_not_screened(picks: pd.DataFrame, gameweeks: 
         assert not screen["screened"].any()
         assert screen["passes"].all()
     gw5 = pp.activity_screen(gameweeks, picks, scored_gw=5).set_index("entry_id")
-    assert gw5["screened"].all()
     assert not gw5.loc[[SUBBED_ONLY, ALWAYS_UNRANKED], "passes"].any()
-    # GW5 needs a capture in GW1-4; GW3 is too late.
-    assert not gw5.loc[[JOINED_GW3, JOINED_GW5], "evaluable"].any()
 
 
-def test_activity_counts_add_up(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
+def test_a_late_joiner_is_screened_from_their_fifth_gameweek(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
+    # JOINED_GW3: first picks GW3, nothing changes but GW4 (XI and Triple Captain). Tenure 1-4 is
+    # GW3-6, counted as they are; tenure 5 is GW7, screened on tenure 2-4 (GW4-6).
+    for gw in range(3, 7):
+        row = pp.activity_screen(gameweeks, picks, scored_gw=gw).set_index("entry_id").loc[JOINED_GW3]
+        assert (row["tenure"], row["screened"], row["passes"]) == (gw - 2, False, True)
+    row = pp.activity_screen(gameweeks, picks, scored_gw=7).set_index("entry_id").loc[JOINED_GW3]
+    assert (row["tenure"], row["screened"], row["evaluable"]) == (5, True, True)
+    assert row[["changed_xi", "changed_captain", "transferred", "chip", "passes"]].tolist() == [
+        True,
+        False,
+        False,
+        True,
+        True,
+    ]
+    joined_gw5 = pp.activity_screen(gameweeks, picks, scored_gw=7).set_index("entry_id").loc[JOINED_GW5]
+    assert (joined_gw5["tenure"], joined_gw5["screened"], joined_gw5["passes"]) == (3, False, True)
+
+
+def test_activity_counts_split_by_tenure_group(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
     counts = pp.activity_counts(pp.activity_screen(gameweeks, picks, scored_gw=7))
-    assert (counts["managers"], counts["evaluable"]) == (13, 12)
+    assert counts[["managers", "first_four", "fifth_onward", "evaluable"]].tolist() == [13, 1, 12, 12]
     assert counts["passes"] + counts["fails"] == counts["evaluable"]
     assert counts["passes"] <= counts[["changed_xi", "changed_captain", "transferred", "chip"]].sum()

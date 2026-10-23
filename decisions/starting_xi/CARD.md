@@ -17,7 +17,14 @@ Still governing the harness code: [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yam
 
 ## 1 Metric
 
+- **Primary in Stage 3 (synthetic squads, against a random XI) — XI regret:** points from the best legal 11 in the same 15, without auto-subs, minus points from the chosen XI with our own auto-subs. Minimising regret is the same as maximising points.
+- **Primary in Stage 5 (real managers) — win share** (amended 2026-10-23, [#55](https://github.com/gisaf22/fpl-intelligence/issues/55) decisions 8–12): the share of evaluation-panel manager-weeks in which D2's chosen eleven outscores the manager's chosen eleven, ties as half, with a per-manager share beside it. Both elevens are scored with plain player points and no auto-subs, so it measures the selection of the starting eleven, not the outcome after FPL's substitutions.
+
+<details><summary>Superseded 2026-10-23</summary>
+
 - **Primary — XI regret:** points from the best legal 11 in the same 15, without auto-subs, minus points from the chosen XI with auto-subs. Minimising regret is the same as maximising points.
+</details>
+
 - **Secondary — bench-order regret,** given the chosen XI. Reported separately and never folded into the primary.
 - **Sensitivity:** both sides scored without subs.
 
@@ -60,7 +67,14 @@ Still governing the harness code: [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yam
 ## 5 Confirm (next; to pre-register before 2026-27)
 
 - **Squads:** real managers, a random sample by manager ID, excluding Free Hit and Bench Boost weeks. Captured through an fpl-ingest story (not yet created).
+- **Human baseline** (amended 2026-10-23): each manager's own chosen eleven, compared with D2's chosen eleven from the same 15 by the Stage 5 win share (§1).
+- **Auto-subs** (amended 2026-10-23): not applied to either eleven, so matching FPL's `automatic_subs` is not a requirement of this comparison; kept only as a validation of our own substitution logic, if one is built.
+
+<details><summary>Superseded 2026-10-23</summary>
+
 - **Human baseline:** each manager's own XI regret.
+</details>
+
 - **Data profile (2026-10-22, [#55](https://github.com/gisaf22/fpl-intelligence/issues/55)):** [`picks_profile.ipynb`](picks_profile.ipynb) describes the captured 2026-27 panel (GW1–7) and scores nothing; the comparison's definitions are recorded on #55 before it is run.
 - **To write and commit before looking:** reference, threshold, power simulation (sample size), Holm correction, guardrails, and the decision rule per outcome.
 

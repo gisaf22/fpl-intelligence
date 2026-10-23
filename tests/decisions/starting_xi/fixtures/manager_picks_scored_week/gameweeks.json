@@ -1,0 +1,115 @@
+[
+ {
+  "season": "2026-27",
+  "entry_id": 4008439,
+  "gameweek": 1,
+  "cohort": "random",
+  "active_chip": null,
+  "event_transfers": 0,
+  "event_transfers_cost": 0,
+  "automatic_subs": [
+   {
+    "fpl_id_out": 503,
+    "fpl_id_in": 148
+   },
+   {
+    "fpl_id_out": 452,
+    "fpl_id_in": 372
+   }
+  ]
+ },
+ {
+  "season": "2026-27",
+  "entry_id": 4008439,
+  "gameweek": 2,
+  "cohort": "random",
+  "active_chip": null,
+  "event_transfers": 0,
+  "event_transfers_cost": 0,
+  "automatic_subs": [
+   {
+    "fpl_id_out": 527,
+    "fpl_id_in": 148
+   }
+  ]
+ },
+ {
+  "season": "2026-27",
+  "entry_id": 4008439,
+  "gameweek": 3,
+  "cohort": "random",
+  "active_chip": null,
+  "event_transfers": 0,
+  "event_transfers_cost": 0,
+  "automatic_subs": [
+   {
+    "fpl_id_out": 452,
+    "fpl_id_in": 148
+   },
+   {
+    "fpl_id_out": 527,
+    "fpl_id_in": 372
+   }
+  ]
+ },
+ {
+  "season": "2026-27",
+  "entry_id": 4008439,
+  "gameweek": 4,
+  "cohort": "random",
+  "active_chip": null,
+  "event_transfers": 0,
+  "event_transfers_cost": 0,
+  "automatic_subs": [
+   {
+    "fpl_id_out": 527,
+    "fpl_id_in": 148
+   }
+  ]
+ },
+ {
+  "season": "2026-27",
+  "entry_id": 4008439,
+  "gameweek": 5,
+  "cohort": "random",
+  "active_chip": null,
+  "event_transfers": 0,
+  "event_transfers_cost": 0,
+  "automatic_subs": [
+   {
+    "fpl_id_out": 527,
+    "fpl_id_in": 372
+   }
+  ]
+ },
+ {
+  "season": "2026-27",
+  "entry_id": 4008439,
+  "gameweek": 6,
+  "cohort": "random",
+  "active_chip": null,
+  "event_transfers": 0,
+  "event_transfers_cost": 0,
+  "automatic_subs": [
+   {
+    "fpl_id_out": 527,
+    "fpl_id_in": 372
+   }
+  ]
+ },
+ {
+  "season": "2026-27",
+  "entry_id": 4008439,
+  "gameweek": 7,
+  "cohort": "random",
+  "active_chip": null,
+  "event_transfers": 1,
+  "event_transfers_cost": 0,
+  "automatic_subs": [
+   {
+    "fpl_id_out": 480,
+    "fpl_id_in": 148
+   }
+  ]
+ }
+]

@@ -61,6 +61,7 @@ Still governing the harness code: [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yam
 
 - **Squads:** real managers, a random sample by manager ID, excluding Free Hit and Bench Boost weeks. Captured through an fpl-ingest story (not yet created).
 - **Human baseline:** each manager's own XI regret.
+- **Data profile (2026-10-22, [#55](https://github.com/gisaf22/fpl-intelligence/issues/55)):** [`picks_profile.ipynb`](picks_profile.ipynb) describes the captured 2026-27 panel (GW1–7) and scores nothing; the comparison's definitions are recorded on #55 before it is run.
 - **To write and commit before looking:** reference, threshold, power simulation (sample size), Holm correction, guardrails, and the decision rule per outcome.
 
 ## 6–8

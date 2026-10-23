@@ -3,8 +3,10 @@
 Two kinds of input. Hand-built frames pin the arithmetic: decile edges, the chi-square, transfer
 buckets. The real sample (`fixtures/manager_picks_sample/`, 13 panel managers, GW1-7, IDs only)
 pins the semantics the captured data forces: an unranked team reported as 0 as well as null, and
-a `slot` that is the lineup after auto-subs. Every expectation on the sample was read off the raw
-entry-picks payloads, not off this module's output.
+a `slot` that is the lineup after auto-subs. `fixtures/manager_picks_scored_week/` adds one more
+panel manager, kept apart so the sample's counts stay put: nothing changes in GW1-6, one transfer
+in GW7. Every expectation on the sample was read off the raw entry-picks payloads, not off this
+module's output.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from decisions.starting_xi import picks_profile as pp
 pytestmark = pytest.mark.unit
 
 SAMPLE = Path(__file__).parent / "fixtures" / "manager_picks_sample"
+SCORED_WEEK = Path(__file__).parent / "fixtures" / "manager_picks_scored_week"
 
 ALWAYS_UNRANKED = 1471061  # overall_rank 0 in all seven gameweeks
 NULL_RANK = 1276382  # ranked at GW1, null at GW4, 0 in every other week
@@ -31,8 +34,9 @@ JOINED_GW3 = 9955594
 JOINED_GW5 = 10712305
 SUBBED_ONLY = 340315  # no transfer, chip or lineup change; one auto-sub at GW6
 MOVED_BENCH = 65461  # swapped 260 and 115 between XI and bench GW5 -> GW6, nothing else
-CAPTAIN_ONLY = 6024858
+CAPTAIN_ONLY = 6024858  # GW5's only change is the captain; XI changed at GW3-4, nothing after GW5
 SELF = 8450051
+CHANGED_ONLY_GW7 = 4008439  # in SCORED_WEEK: one transfer at GW7, auto-subs only before it
 
 
 @pytest.fixture(scope="module")
@@ -223,22 +227,51 @@ def test_an_auto_sub_alone_is_not_an_xi_change(picks: pd.DataFrame, gameweeks: p
     served = picks[(picks["entry_id"] == SUBBED_ONLY) & (picks["slot"] <= 11)].groupby("gameweek")["fpl_id"]
     assert set(served.get_group(5)) != set(served.get_group(6))
 
-    screen = pp.activity_screen(gameweeks, picks, last_gw=7).set_index("entry_id")
+    screen = pp.activity_screen(gameweeks, picks, scored_gw=7).set_index("entry_id")
     assert screen.loc[SUBBED_ONLY, ["evaluable", "passes", "changed_xi"]].tolist() == [True, False, False]
 
 
 def test_activity_screen_components(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
-    screen = pp.activity_screen(gameweeks, picks, last_gw=7).set_index("entry_id")
+    # Scoring GW7 looks at the changes made in GW4-6.
+    screen = pp.activity_screen(gameweeks, picks, scored_gw=7).set_index("entry_id")
     flags = ["changed_xi", "changed_captain", "transferred", "chip"]
     assert screen.loc[MOVED_BENCH, flags].tolist() == [True, False, False, False]
-    assert screen.loc[CAPTAIN_ONLY, flags].tolist() == [False, True, False, False]
+    assert screen.loc[CAPTAIN_ONLY, flags].tolist() == [True, True, False, False]
     assert screen.loc[SELF, "passes"]
     assert screen.loc[JOINED_GW3, "evaluable"]
     assert not screen.loc[JOINED_GW5, ["evaluable", "passes"]].any()
 
 
+def test_a_change_only_in_the_scored_week_is_not_counted(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
+    extra_gw = pd.DataFrame(json.loads((SCORED_WEEK / "gameweeks.json").read_text()))
+    extra_picks = pd.read_csv(SCORED_WEEK / "picks.csv")
+    gameweeks = pd.concat([gameweeks, extra_gw], ignore_index=True)
+    picks = pd.concat([picks, extra_picks], ignore_index=True)
+    assert extra_gw.set_index("gameweek")["event_transfers"].gt(0).tolist() == [False] * 6 + [True]
+
+    screen = pp.activity_screen(gameweeks, picks, scored_gw=7).set_index("entry_id")
+    row = screen.loc[CHANGED_ONLY_GW7]
+    assert (row["screened"], row["evaluable"], row["passes"], row["transferred"]) == (True, True, False, False)
+
+
+def test_gameweeks_one_to_four_are_not_screened(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
+    # GW1 has no measurable change, so GW2-4 is the first full window of three and it scores GW5.
+    assert pp.FIRST_SCREENED_GW == 5
+    for gw in range(1, 5):
+        screen = pp.activity_screen(gameweeks, picks, scored_gw=gw)
+        captured = set(gameweeks.loc[gameweeks["gameweek"] == gw, "entry_id"])
+        assert set(screen["entry_id"]) == captured
+        assert not screen["screened"].any()
+        assert screen["passes"].all()
+    gw5 = pp.activity_screen(gameweeks, picks, scored_gw=5).set_index("entry_id")
+    assert gw5["screened"].all()
+    assert not gw5.loc[[SUBBED_ONLY, ALWAYS_UNRANKED], "passes"].any()
+    # GW5 needs a capture in GW1-4; GW3 is too late.
+    assert not gw5.loc[[JOINED_GW3, JOINED_GW5], "evaluable"].any()
+
+
 def test_activity_counts_add_up(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> None:
-    counts = pp.activity_counts(pp.activity_screen(gameweeks, picks, last_gw=7))
+    counts = pp.activity_counts(pp.activity_screen(gameweeks, picks, scored_gw=7))
     assert (counts["managers"], counts["evaluable"]) == (13, 12)
     assert counts["passes"] + counts["fails"] == counts["evaluable"]
     assert counts["passes"] <= counts[["changed_xi", "changed_captain", "transferred", "chip"]].sum()

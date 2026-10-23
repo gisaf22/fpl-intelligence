@@ -68,6 +68,7 @@ Still governing the harness code: [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yam
 
 - **Squads:** real managers, a random sample by manager ID, excluding Free Hit and Bench Boost weeks. Captured through an fpl-ingest story (not yet created).
 - **Human baseline** (amended 2026-10-23): each manager's own chosen eleven, compared with D2's chosen eleven from the same 15 by the Stage 5 win share (§1).
+- **Stage 3 vs Stage 5** (2026-10-23): Stage 3 selected the rule on XI regret against synthetic squads; Stage 5 tests it on win share against real managers, a different statistic against different opponents.
 - **Auto-subs** (amended 2026-10-23): not applied to either eleven, so matching FPL's `automatic_subs` is not a requirement of this comparison; kept only as a validation of our own substitution logic, if one is built.
 
 <details><summary>Superseded 2026-10-23</summary>

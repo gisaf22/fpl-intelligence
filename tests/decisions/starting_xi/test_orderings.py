@@ -88,7 +88,8 @@ def _fixture(
         {"minutes": "Float64", "total_points": "Float64"}
     )
     gameweek["position_id"] = gameweek.pop("position").map(_ID_BY_POSITION)
-    gameweek["fixture_count"] = gameweek["minutes"].notna().astype(int)
+    gameweek["deadline_fixture_count"] = gameweek["minutes"].notna().astype(int)
+    gameweek["deadline_count_is_realised"] = False
     gameweek["entry_gw"] = gameweek["player_id"].map(
         gameweek.loc[gameweek["minutes"].notna()].groupby("player_id")["gw"].min()
     )

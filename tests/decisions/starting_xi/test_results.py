@@ -78,6 +78,7 @@ DESIGN_T2 = (
     "uncovered_blank",
     "no_fixture_rule_changed_xi",
     "best_permutation_total",
+    "deadline_count_is_realised",
 )
 DESIGN_T5 = (
     "run_id",
@@ -179,6 +180,7 @@ def _manifest() -> Manifest:
         sampler_diagnostics=[{"gw": 4, "acceptance_rate": 0.21}, {"gw": 5, "acceptance_rate": 0.19}],
         zero_information_squad_weeks=2,
         gameweek_interval=GameweekIntervalParams(n=10000, block=4, ci_level=0.95, seed=1),
+        deadline_fallback_gameweeks=(1, 2),
         construction="weekly",
         provenance=_provenance(),
     )
@@ -278,6 +280,7 @@ def test_run_id_is_deterministic_across_calls_and_across_processes() -> None:
         f" sampler_diagnostics={list(manifest.sampler_diagnostics)!r},"
         f" zero_information_squad_weeks={manifest.zero_information_squad_weeks!r},"
         " gameweek_interval=GameweekIntervalParams(n=10000, block=4, ci_level=0.95, seed=1),"
+        f" deadline_fallback_gameweeks={tuple(manifest.deadline_fallback_gameweeks)!r},"
         f" construction={manifest.construction!r},"
         f" provenance=RunProvenance(**{dict(vars(manifest.provenance))!r}));"
         "print(run_id(m))"
@@ -315,6 +318,7 @@ def test_every_identity_field_moves_the_run_id_and_no_metadata_field_does() -> N
         "sampler_diagnostics": replace(base, sampler_diagnostics=[{"gw": 4, "acceptance_rate": 0.99}]),
         "zero_information_squad_weeks": replace(base, zero_information_squad_weeks=5),
         "gameweek_interval": replace(base, gameweek_interval=GameweekIntervalParams(5, 8, 0.9, 99)),
+        "deadline_fallback_gameweeks": replace(base, deadline_fallback_gameweeks=(1, 2, 3)),
         "git_sha": replace(base, provenance=_provenance(git_sha="0" * 40)),
         "warehouse_pin": replace(
             base,

@@ -3,7 +3,7 @@
 Definitions: `CARD.md` §3 and #30's Design decisions. Every rule is called as
 `rankers.rules(seed)[name](frames)` on the pinned warehouse frames (`warehouse.served.Frames`).
 
-Real sample: `warehouse/fixtures/39064033745`, season 2025-26 (described in `tests/warehouse/test_served.py`).
+Real sample: `warehouse/fixtures/40289379567`, season 2025-26 (described in `tests/warehouse/test_served.py`).
 
 - `fpl_id` 691, MID, enters GW2. Doubles in GW33 (8 points, 2 appearances, 2 starts) and blanks in GW34.
   No appearance in GW2 or GW26.
@@ -28,7 +28,7 @@ from warehouse import served
 pytestmark = pytest.mark.unit
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[3] / "warehouse" / "fixtures"
-RUN_ID = "39064033745"
+RUN_ID = "40289379567"
 SEASON = "2025-26"
 SEED = 20261017
 LATE_ENTRANT = 691
@@ -91,6 +91,8 @@ def _synthetic(players: dict[int, tuple[int, dict[int, list[tuple[int, int, int]
                     "player_id": player_id,
                     "gw": gw,
                     "fixture_count": len(fixtures),
+                    "deadline_fixture_count": len(fixtures),
+                    "deadline_count_is_realised": False,
                     "team_id": 1,
                     "position_id": position_id,
                     "price": 5.0,
@@ -194,7 +196,9 @@ def test_plain_ppg_counts_a_past_double_once_and_a_past_blank_as_zero(frames: se
 
 
 def _tampered(frames: served.Frames, from_gw: int) -> served.Frames:
-    """Outcomes at gw >= `from_gw` changed. `fixture_count` stays: it is known before the deadline."""
+    """Outcomes at gw >= `from_gw` changed. The fixture counts stay: #59's tests own them, because the
+    realised `fixture_count` is not known before the deadline and the rules multiply by the count
+    scheduled at it."""
     fixture, gameweek = frames.fixture.copy(), frames.gameweek.copy()
     for frame in (fixture, gameweek):
         late = frame["gw"] >= from_gw

@@ -54,6 +54,7 @@ RELIED_ON: Mapping[str, Mapping[str, str]] = {
         "starts": "int32",
         "value": "int32",
         "selected": "int32",
+        "fixture_count_at_deadline": "int32",
     },
     "dim_player": {
         "season": "string",
@@ -84,7 +85,14 @@ class Frames:
     minutes, starts, total_points.
     `gameweek`: one row per (player_id, gw) from the player's entry gameweek on — season,
     player_id, gw, fixture_count, total_points, minutes, starts (the gameweek's sums, null on a
-    blank), team_id, position_id, price, ownership, entry_gw.
+    blank), team_id, position_id, price, ownership, entry_gw, deadline_fixture_count,
+    deadline_count_is_realised.
+
+    `fixture_count` is the realised count (fixtures played); `deadline_fixture_count` is the count
+    scheduled at the gameweek's deadline. A gameweek with no at-deadline count for any player had
+    no capture before its deadline, so it carries the realised count and `deadline_count_is_realised`
+    (today: 2026-27 GW1-2 and all of 2025-26). Elsewhere a NULL stays NULL: a player not
+    registered at the deadline, or a defect the harness refuses for a squad player (#59 D6).
     """
 
     fixture: pd.DataFrame
@@ -193,6 +201,13 @@ def load(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_
     fixture = fixture.sort_values(["player_id", "gw", "fixture_id"], ignore_index=True)
 
     gameweek = _read(snapshot_dir, "fct_player_gameweek", season).sort_values(["player_id", "gw"], ignore_index=True)
+    # Decided over the whole season's rows, before entry trims them: a gameweek is uncaptured when
+    # no player has a count as at its deadline.
+    captured = gameweek.groupby("gw")["fixture_count_at_deadline"].transform(lambda counts: counts.notna().any())
+    gameweek["deadline_count_is_realised"] = ~captured.astype(bool)
+    gameweek["deadline_fixture_count"] = gameweek["fixture_count_at_deadline"].where(
+        captured.astype(bool), gameweek["fixture_count"]
+    )
     # Entry is the first gameweek with a fixture: before it the publish holds pre-entry rows that
     # look like blanks (fixture_count 0, nulls), so they are dropped rather than carried.
     entry = fixture.groupby("player_id")["gw"].min().rename("entry_gw")
@@ -229,6 +244,8 @@ def load(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_
             "price",
             "ownership",
             "entry_gw",
+            "deadline_fixture_count",
+            "deadline_count_is_realised",
         ]
     ]
     return Frames(fixture=fixture, gameweek=gameweek, pin=pin)

@@ -82,6 +82,7 @@ T2_COLUMNS = (
     "uncovered_blank",
     "no_fixture_rule_changed_xi",
     "best_permutation_total",
+    "deadline_count_is_realised",
 )
 T5_COLUMNS = (
     "squad_id",
@@ -642,13 +643,14 @@ def test_a_replay_never_lets_the_chosen_side_out_score_its_own_counterfactual() 
 
 def _gameweek(rows: Sequence[tuple[int, int, str, float | None, float | None]]) -> pd.DataFrame:
     """A gameweek frame in `served.Frames` shape from (player_id, gw, position, minutes, points)
-    rows. A null `minutes` row is a blank: `fixture_count` 0. `entry_gw` is the player's first
-    gameweek with minutes; rows before it are pre-entry."""
+    rows. A null `minutes` row is a blank: `deadline_fixture_count` 0, as scheduled at a captured
+    deadline. `entry_gw` is the player's first gameweek with minutes; rows before it are pre-entry."""
     frame = pd.DataFrame(rows, columns=["player_id", "gw", "position", "minutes", "total_points"]).astype(
         {"minutes": "Float64", "total_points": "Float64"}
     )
     frame["position_id"] = frame.pop("position").map(_ID_BY_POSITION)
-    frame["fixture_count"] = frame["minutes"].notna().astype(int)
+    frame["deadline_fixture_count"] = frame["minutes"].notna().astype(int)
+    frame["deadline_count_is_realised"] = False
     frame["entry_gw"] = frame["player_id"].map(frame.loc[frame["minutes"].notna()].groupby("player_id")["gw"].min())
     return frame
 

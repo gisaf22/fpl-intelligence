@@ -64,6 +64,7 @@ T2_COLUMNS: Final[tuple[str, ...]] = (
     "uncovered_blank",
     "no_fixture_rule_changed_xi",
     "best_permutation_total",
+    "deadline_count_is_realised",
 )
 T5_COLUMNS: Final[tuple[str, ...]] = (
     "run_id",
@@ -134,8 +135,11 @@ class Manifest:
     build gameweek set and the squad construction, plus the provenance's `canonical` flag. **The
     provenance** (`RunProvenance`) is written alongside, not hashed. **The metadata half** -- ranker
     windows, sampler diagnostics, the count of zero-information squad-weeks (every rule picked the same
-    XI; flagged in T2, never dropped), the gameweek interval's parameters -- is carried "for
-    completeness rather than identity" and is excluded from the hash.
+    XI; flagged in T2, never dropped), the gameweek interval's parameters, and the gameweeks whose
+    fixture count fell back to the realised one (no count as at the deadline for any player, #59;
+    flagged per squad-week in T2's `deadline_count_is_realised`) -- is carried "for completeness
+    rather than identity" and is excluded from the hash. The fallback gameweeks follow from the
+    warehouse pin, which the provenance already records.
     """
 
     mart_pin: Mapping[str, object]
@@ -148,6 +152,7 @@ class Manifest:
     sampler_diagnostics: Sequence[Mapping[str, object]]
     zero_information_squad_weeks: int
     gameweek_interval: GameweekIntervalParams
+    deadline_fallback_gameweeks: Sequence[int]
     construction: str
     provenance: RunProvenance
 
@@ -245,6 +250,7 @@ def manifest_document(manifest: Manifest, identifier: str) -> dict[str, object]:
                 "ci_level": manifest.gameweek_interval.ci_level,
                 "seed": manifest.gameweek_interval.seed,
             },
+            "deadline_fallback_gameweeks": sorted(int(gw) for gw in manifest.deadline_fallback_gameweeks),
         },
     }
 

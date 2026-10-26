@@ -37,6 +37,14 @@ RESULTS_ROOT: Final[Path] = REPO_ROOT / "decisions" / "starting_xi" / "results"
 # A structural property of the sampler: each gameweek draws its own squads.
 CONSTRUCTION: Final[str] = "weekly"
 
+DEADLINE_FALLBACK_SENSITIVITY: Final[Mapping[str, object]] = {
+    "run": "excluding_deadline_fallback_weeks",
+    "excludes": "deadline_count_is_realised",
+    "holm_family": False,
+}
+"""Stage 5's sensitivity run beside the headline (#59 D3): it drops exactly the manager-weeks T2
+flags in `excludes`, is reported with its interval, and is not one of the Holm family's tests."""
+
 
 class RunRefused(RuntimeError):
     """The pre-run check failed and the caller did not force past it."""
@@ -127,6 +135,10 @@ def pre_registration_mismatches(
             },
             dict(reg["gameweek_interval"]),
         ),
+        "deadline_fallback_sensitivity": (
+            dict(DEADLINE_FALLBACK_SENSITIVITY),
+            dict(reg["deadline_fallback_sensitivity"]),
+        ),
     }
     return [
         f"{field}: run={ran!r} registered={registered!r}"
@@ -197,6 +209,15 @@ def preflight(
 # ---------------------------------------------------------------------------
 # The run (§5.1.2)
 # ---------------------------------------------------------------------------
+
+
+def deadline_fallback_gameweeks(frames: served.Frames) -> list[int]:
+    """The frames' gameweeks with no fixture count as at the deadline for any player, ascending.
+
+    Their fixture count is the realised one (`served.Frames`, #59 D3); the run manifest lists them.
+    """
+    gameweek = frames.gameweek
+    return sorted(int(gw) for gw in gameweek.loc[gameweek["deadline_count_is_realised"], "gw"].unique())
 
 
 def run_study(
@@ -282,6 +303,7 @@ def run_study(
         gameweek_interval=results.GameweekIntervalParams(
             n=uncertainty.N_RESAMPLES, block=uncertainty.BLOCK_GWS, ci_level=uncertainty.CI_LEVEL, seed=uncertainty.SEED
         ),
+        deadline_fallback_gameweeks=deadline_fallback_gameweeks(frames),
         construction=CONSTRUCTION,
         provenance=provenance,
     )

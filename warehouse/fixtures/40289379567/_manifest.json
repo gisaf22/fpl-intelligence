@@ -1,30 +1,32 @@
 {
-  "run_id": "39064033745",
-  "built_at": "2026-10-17T19:50:51+00:00",
-  "git_sha": "e3bb40b55c04e24dd747c4dee03a5a4ede3a14de",
+  "run_id": "40289379567",
+  "built_at": "2026-10-26T08:05:01+00:00",
+  "git_sha": "86536e536caa07f089df3dda7f1e94fb5c776ed7",
   "seasons": [
     "2025-26",
     "2026-27"
   ],
   "row_counts": {
-    "fct_player_fixture": 34297,
-    "fct_player_gameweek": 35960,
+    "fct_player_fixture": 34967,
+    "fct_player_gameweek": 36641,
     "dim_team": 40,
-    "dim_player": 1508,
+    "dim_player": 1510,
     "dim_fixture": 760,
-    "dim_player_status_history": 2229,
-    "fct_player_market_snapshot": 159180,
-    "dim_fixture_schedule_history": 956,
-    "dim_gameweek": 76
+    "dim_player_status_history": 2436,
+    "fct_player_market_snapshot": 181228,
+    "dim_fixture_schedule_history": 985,
+    "dim_gameweek": 76,
+    "fct_manager_pick": 196350,
+    "fct_manager_gameweek": 13090
   },
   "row_counts_by_season": {
     "fct_player_fixture": {
       "2025-26": 29747,
-      "2026-27": 4550
+      "2026-27": 5220
     },
     "fct_player_gameweek": {
       "2025-26": 31958,
-      "2026-27": 4002
+      "2026-27": 4683
     },
     "dim_team": {
       "2025-26": 20,
@@ -32,7 +34,7 @@
     },
     "dim_player": {
       "2025-26": 841,
-      "2026-27": 667
+      "2026-27": 669
     },
     "dim_fixture": {
       "2025-26": 380,
@@ -40,19 +42,25 @@
     },
     "dim_player_status_history": {
       "2025-26": 841,
-      "2026-27": 1388
+      "2026-27": 1595
     },
     "fct_player_market_snapshot": {
       "2025-26": 841,
-      "2026-27": 158339
+      "2026-27": 180387
     },
     "dim_fixture_schedule_history": {
       "2025-26": 380,
-      "2026-27": 576
+      "2026-27": 605
     },
     "dim_gameweek": {
       "2025-26": 38,
       "2026-27": 38
+    },
+    "fct_manager_pick": {
+      "2026-27": 196350
+    },
+    "fct_manager_gameweek": {
+      "2026-27": 13090
     }
   },
   "restated_seasons": [],
@@ -409,6 +417,10 @@
       [
         "transfers_balance",
         "INTEGER"
+      ],
+      [
+        "fixture_count_at_deadline",
+        "INTEGER"
       ]
     ],
     "dim_team": [
@@ -670,6 +682,86 @@
       ],
       [
         "state_age_seconds",
+        "INTEGER"
+      ],
+      [
+        "ranked_count",
+        "INTEGER"
+      ]
+    ],
+    "fct_manager_pick": [
+      [
+        "season",
+        "VARCHAR"
+      ],
+      [
+        "entry_id",
+        "INTEGER"
+      ],
+      [
+        "gameweek",
+        "INTEGER"
+      ],
+      [
+        "slot",
+        "INTEGER"
+      ],
+      [
+        "fpl_id",
+        "INTEGER"
+      ],
+      [
+        "is_captain",
+        "BOOLEAN"
+      ],
+      [
+        "is_vice_captain",
+        "BOOLEAN"
+      ],
+      [
+        "is_auto_sub_in",
+        "BOOLEAN"
+      ],
+      [
+        "is_auto_sub_out",
+        "BOOLEAN"
+      ]
+    ],
+    "fct_manager_gameweek": [
+      [
+        "season",
+        "VARCHAR"
+      ],
+      [
+        "entry_id",
+        "INTEGER"
+      ],
+      [
+        "gameweek",
+        "INTEGER"
+      ],
+      [
+        "cohort",
+        "VARCHAR"
+      ],
+      [
+        "active_chip",
+        "VARCHAR"
+      ],
+      [
+        "event_transfers",
+        "INTEGER"
+      ],
+      [
+        "event_transfers_cost",
+        "INTEGER"
+      ],
+      [
+        "automatic_subs",
+        "STRUCT(fpl_id_out INTEGER, fpl_id_in INTEGER)[]"
+      ],
+      [
+        "overall_rank",
         "INTEGER"
       ]
     ]

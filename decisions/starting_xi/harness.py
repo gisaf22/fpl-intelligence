@@ -66,7 +66,8 @@ _GAMEWEEK_COLUMNS: Final[tuple[str, ...]] = (
     "player_id",
     "gw",
     "position_id",
-    "fixture_count",
+    "deadline_fixture_count",
+    "deadline_count_is_realised",
     "minutes",
     "total_points",
 )
@@ -140,7 +141,9 @@ class HarnessResult:
     `squad_weeks` is T2, one row per (squad, gameweek, ranker), carrying the **primary**
     ordering's replay and no other -- plus the two counterfactual columns, `best_legal_xi_points`
     and `best_permutation_total`, which are properties of the squad-week rather than of any
-    ordering. `chosen_xi` is the XI's player ids, ascending and comma-joined. T2's
+    ordering. `chosen_xi` is the XI's player ids, ascending and comma-joined.
+    `deadline_count_is_realised` flags a squad-week whose gameweek had no fixture count as at the
+    deadline, so its no-fixture tier and the rule's multiplier read the realised count (#59). T2's
     `is_zero_information` is not emitted: it compares XIs *across* rules, so the composition root
     derives it at assembly, as it does ordering-relevance. `ordering_replays` is T5, one row per (squad, gameweek,
     ranker, ordering).
@@ -469,6 +472,28 @@ def _realised_points(value: object) -> float:
     return 0.0 if value is None or pd.isna(value) else float(cast(SupportsFloat, value))
 
 
+def assert_deadline_counts_known(squads: pd.DataFrame, gameweek: pd.DataFrame) -> None:
+    """Refuse a squad player with no count as at the deadline in a gameweek that has them (#59 D6).
+
+    A NULL `deadline_fixture_count` is legitimate for a player not registered at the deadline, who
+    cannot be in a squad, and the loader has already filled every gameweek without a capture from
+    the realised count (`deadline_count_is_realised`). One left on a squad player is a publish defect
+    (gisaf22/fpl-warehouse#221 AC9 guards it upstream); this is the backstop, so it never reaches a
+    selection as an unrankable player.
+
+    Raises:
+        warehouse.served.ServedContractError: listing every affected `(squad_id, gw)`.
+    """
+    counts = gameweek.loc[:, ["player_id", "gw", "deadline_fixture_count"]]
+    joined = squads.loc[:, ["squad_id", "gw", "player_id"]].merge(counts, on=["player_id", "gw"], how="inner")
+    unknown = joined.loc[joined["deadline_fixture_count"].isna(), ["squad_id", "gw"]].drop_duplicates()
+    if not unknown.empty:
+        weeks = sorted((str(squad_id), int(gw)) for squad_id, gw in unknown.itertuples(index=False))
+        raise served.ServedContractError(
+            f"{len(weeks)} squad-week(s) hold a player with no fixture count as at the deadline: {weeks}"
+        )
+
+
 def run(
     squads: pd.DataFrame,
     rank_fn: RankFn,
@@ -490,7 +515,8 @@ def run(
             that could not be reconstructed from its stated inputs.
         frames: the pinned warehouse frames (`build` is the entry point that loads them). Only
             the gameweek frame is read here: realised points are its per-gameweek totals, a
-            no-fixture week is `fixture_count == 0`, and the position is `position_id`'s label.
+            no-fixture week is `deadline_fixture_count == 0` (the schedule at the deadline, not
+            the fixtures played, #59), and the position is `position_id`'s label.
             The whole season is needed, not the window's slice: the as-of statistic's
             denominator runs from each player's entry gameweek.
         window: the comparison window, inclusive. The caller computes it from the declared windows of
@@ -502,6 +528,8 @@ def run(
     Raises:
         ValueError: on a malformed squad table, a squad that is not 15 players, a bench order
             that is empty, or a `window` the ranker's declared window does not cover.
+        warehouse.served.ServedContractError: a squad player with no count as at the deadline
+            (`assert_deadline_counts_known`).
     """
     if not bench_order:
         raise ValueError("bench_order must be non-empty; element 0 is the primary ordering")
@@ -519,6 +547,7 @@ def run(
     first_gw, last_gw = int(window[0]), int(window[1])
     if first_gw > last_gw:
         raise ValueError(f"window is empty: {window}")
+    assert_deadline_counts_known(squads, gameweek)
 
     output = rank_fn(frames)
     declared_first, declared_last = output.window
@@ -540,14 +569,17 @@ def run(
     facts = gameweek.loc[:, list(_GAMEWEEK_COLUMNS)]
     # `minutes` keeps its NULL state; `total_points` is filled to 0 here, once, at the
     # boundary -- see `_realised_points` for why that fill is this module's to make.
-    fact_lookup: dict[tuple[int, int], tuple[str, bool, float | None, float]] = {
+    fact_lookup: dict[tuple[int, int], tuple[str, bool, bool, float | None, float]] = {
         (int(player_id), int(gw)): (
             POSITION_BY_ID[int(position_id)],
-            int(fixture_count) == 0,
+            bool(deadline_count == 0),
+            bool(count_is_realised),
             _optional_float(minutes),
             _realised_points(points),
         )
-        for player_id, gw, position_id, fixture_count, minutes, points in facts.itertuples(index=False)
+        for player_id, gw, position_id, deadline_count, count_is_realised, minutes, points in facts.itertuples(
+            index=False
+        )
     }
     as_of_lookup: dict[tuple[int, int], float] = {
         (int(player_id), int(gw)): float(value)
@@ -571,11 +603,14 @@ def run(
 
         positions = {player_id: fact_lookup[(player_id, gw)][0] for player_id in squad}
         # A player whose club has no fixture is ranked last by the harness, identically for
-        # every ranker. `fixture_count == 0` is that state; the loader drops pre-entry rows, so
-        # every zero reaching here is a blank rather than a prefix (DATA.md).
+        # every ranker. `deadline_fixture_count == 0` is that state, as scheduled at the deadline:
+        # a fixture postponed after it must not demote anyone (#59). The loader drops pre-entry
+        # rows, so every zero reaching here is a blank rather than a prefix (DATA.md).
         no_fixture = {player_id: fact_lookup[(player_id, gw)][1] for player_id in squad}
-        minutes: dict[int, float | None] = {player_id: fact_lookup[(player_id, gw)][2] for player_id in squad}
-        points = {player_id: fact_lookup[(player_id, gw)][3] for player_id in squad}
+        # Uncaptured gameweeks are uncaptured for every player, so one squad member answers it.
+        deadline_count_is_realised = fact_lookup[(squad[0], gw)][2]
+        minutes: dict[int, float | None] = {player_id: fact_lookup[(player_id, gw)][3] for player_id in squad}
+        points = {player_id: fact_lookup[(player_id, gw)][4] for player_id in squad}
 
         records = [
             BenchPlayer(
@@ -682,6 +717,7 @@ def run(
                 "uncovered_blank": primary.uncovered_blank,
                 "no_fixture_rule_changed_xi": xi != without_rule,
                 "best_permutation_total": best_permutation_total,
+                "deadline_count_is_realised": deadline_count_is_realised,
             }
         )
         replay_rows.extend(

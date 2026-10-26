@@ -7,7 +7,9 @@ scored ones.
 
 **What a rule must not do:** read any row at gameweek >= *t* when scoring *t*, read realised
 outcomes for the gameweek being scored, or mutate the frames it is handed -- the same frames go
-to every rule. :func:`_assert_lag_safe` enforces the first two on every rule's score column.
+to every rule. :func:`_assert_lag_safe` enforces the first two on every rule's score column. It
+cannot see the coming gameweek's own fixture count, which is why that count is the one scheduled
+at the deadline (`deadline_fixture_count`), never the realised one (#59).
 """
 
 from __future__ import annotations
@@ -97,8 +99,14 @@ def _spine(frames: served.Frames) -> pd.DataFrame:
     Outcomes are the gameweek frame's sums, 0 on a blank. Appearances (fixtures with minutes > 0)
     are counted from the fixture frame, because summed minutes cannot tell one appearance in a
     double from two; gisaf22/fpl-warehouse#215 moves the count onto the gameweek table.
+
+    `fixture_count` is the realised count, a unit of the past gameweeks a rate sums over.
+    `deadline_fixture_count` is the coming gameweek's count as scheduled at its deadline, the only
+    count a rule may multiply by: the realised one moves when a fixture is postponed after the
+    deadline (#59).
     """
-    spine = frames.gameweek.loc[:, ["player_id", "gw", "fixture_count", "total_points", "starts"]].copy()
+    columns = ["player_id", "gw", "fixture_count", "deadline_fixture_count", "total_points", "starts"]
+    spine = frames.gameweek.loc[:, columns].copy()
     fixture = frames.fixture
     appearances = (fixture["minutes"] > 0).groupby([fixture["player_id"], fixture["gw"]]).sum().rename("appearances")
     spine = spine.join(appearances, on=["player_id", "gw"])
@@ -106,6 +114,7 @@ def _spine(frames: served.Frames) -> pd.DataFrame:
     for column in ("total_points", "starts", "appearances"):
         spine[column] = spine[column].fillna(0).astype(float)
     spine["fixture_count"] = spine["fixture_count"].astype(float)
+    spine["deadline_fixture_count"] = spine["deadline_fixture_count"].astype(float)
     spine["gameweek"] = 1.0
     return spine
 
@@ -159,25 +168,25 @@ def _per_gameweek_rule(name: str, window: str) -> RuleFn:
 
 
 def _per_unit_rule(name: str, unit: str, window: str) -> RuleFn:
-    """D2-D4: points per team fixture, appearance or start, times the coming gameweek's fixtures."""
+    """D2-D4: points per team fixture, appearance or start, times the coming gameweek's fixtures
+    as scheduled at its deadline."""
 
     def rank(frames: served.Frames) -> RankerOutput:
         spine = _spine(frames)
         rate = (_season_rate if window == "season" else _last_n_rate)(spine, "total_points", unit)
-        return _rule_panel(name, spine, rate * spine["fixture_count"])
+        return _rule_panel(name, spine, rate * spine["deadline_fixture_count"])
 
     return rank
 
 
 def _starts_rate_x_points_per_appearance(frames: served.Frames) -> RankerOutput:
     """Starts per team fixture (last 3 gameweeks with a fixture) times season points per appearance,
-    times the coming gameweek's fixtures. NULL if either half is."""
+    times the coming gameweek's fixtures as scheduled at its deadline. NULL if either half is."""
     spine = _spine(frames)
     starts_rate = _last_n_rate(spine, "starts", "fixture_count")
     points_per_appearance = _season_rate(spine, "total_points", "appearances")
-    return _rule_panel(
-        "starts_rate_x_points_per_appearance", spine, starts_rate * points_per_appearance * spine["fixture_count"]
-    )
+    score = starts_rate * points_per_appearance * spine["deadline_fixture_count"]
+    return _rule_panel("starts_rate_x_points_per_appearance", spine, score)
 
 
 def _random_rule(seed: int) -> RuleFn:

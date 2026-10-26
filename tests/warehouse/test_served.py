@@ -1,13 +1,15 @@
 """Acceptance tests for the served-publish loader (#29).
 
-The fixture under `warehouse/fixtures/39064033745/` is a real sample of fpl-warehouse publish run
-39064033745: its `_manifest.json` verbatim, and the `fct_player_fixture`, `fct_player_gameweek`
+The fixture under `warehouse/fixtures/40289379567/` is a real sample of fpl-warehouse publish run
+40289379567: its `_manifest.json` verbatim, and the `fct_player_fixture`, `fct_player_gameweek`
 and `dim_player` rows of two players, both seasons, written with the publish's own arrow schema.
 
 - `fpl_id` 149 (2025-26): starts at club 6, loans to club 19 from GW4, returns to club 6 from GW24;
   blank in GW34; double in GW33.
 - `fpl_id` 691 (2025-26): enters at GW2; GW1 is a pre-entry row (`fixture_count` 0, nulls).
-- Both ids also carry 2026-27 rows, so a season filter that leaks shows up.
+- `fpl_id` 149 also carries 2026-27 rows (GW1-7), so a season filter that leaks shows up. Their
+  `fixture_count_at_deadline` is NULL at GW1-2 (no capture before those deadlines) and 1 from GW3;
+  every 2025-26 row's is NULL.
 """
 
 from __future__ import annotations
@@ -24,7 +26,7 @@ import pytest
 from warehouse import served
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[2] / "warehouse" / "fixtures"
-RUN_ID = "39064033745"
+RUN_ID = "40289379567"
 SEASON = "2025-26"
 LOAN_AND_RETURN = 149
 LATE_ENTRANT = 691

@@ -60,6 +60,8 @@ def _small_frames(n_gw: int = 8, seed: int = 3) -> served.Frames:
                         "player_id": player_id,
                         "gw": gw,
                         "fixture_count": 1,
+                        "deadline_fixture_count": 1,
+                        "deadline_count_is_realised": False,
                         "total_points": float(rng.integers(0, 12)),
                         "minutes": 90.0,
                         "team_id": team,

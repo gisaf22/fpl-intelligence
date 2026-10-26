@@ -10,6 +10,8 @@ tests write a synthetic pinned snapshot in the publish's own schema and read it 
 - `DOUBLE_DEFENDER` has a double in GW4: two fixture rows of 25, a gameweek total of 50. A
   realised total read per fixture, or a mart that does not hold him, cannot reach 50.
 - `BLANK_KEEPER` blanks in GW5: no fixture row, `fixture_count` 0, null outcomes.
+- Every `fixture_count_at_deadline` is NULL, as for every 2025-26 row of the live publish (no capture
+  precedes a 2025-26 deadline), so every gameweek falls back to the realised count (#59).
 """
 
 from __future__ import annotations
@@ -97,6 +99,7 @@ def snapshot(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, served.Pin
                     "starts": len(fixtures) if fixtures else None,
                     "value": 45 if fixtures else None,
                     "selected": 1000 if fixtures else None,
+                    "fixture_count_at_deadline": None,
                 }
             )
 
@@ -117,7 +120,15 @@ def snapshot(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, served.Pin
             [
                 ("season", pa.string()),
                 *_int32(
-                    "fpl_id", "gameweek", "fixture_count", "total_points", "minutes", "starts", "value", "selected"
+                    "fpl_id",
+                    "gameweek",
+                    "fixture_count",
+                    "total_points",
+                    "minutes",
+                    "starts",
+                    "value",
+                    "selected",
+                    "fixture_count_at_deadline",
                 ),
             ]
         ),
@@ -293,7 +304,7 @@ def test_only_gameweeks_4_to_38_are_scored(snapshot: tuple[Path, served.Pin], tm
         assert set(frame["gw"]) == {4, 5}, table
 
 
-REAL_RUN_ID = "39064033745"
+REAL_RUN_ID = "40289379567"
 
 
 @pytest.mark.integration
@@ -343,3 +354,39 @@ def _imports_dal_pipeline(path: Path) -> bool:
 )
 def test_nothing_in_starting_xi_imports_the_local_mart_loader(module: Path) -> None:
     assert not _imports_dal_pipeline(module)
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#59 AC6")
+def test_the_run_manifest_lists_every_gameweek_whose_fixture_count_fell_back(
+    snapshot: tuple[Path, served.Pin], tmp_path: Path
+) -> None:
+    run = starting_xi.build_and_run(
+        gameweeks=[4, 5],
+        n_squads=2,
+        seed=SEED,
+        squad_mode="uniform",
+        results_root=tmp_path,
+        allow_dirty=True,
+        allow_off_registration=True,
+        season=SEASON,
+        pin=snapshot[1],
+        snapshot_root=snapshot[0],
+    )
+
+    manifest = results.read(tmp_path, run.run_id)["manifest"]
+    assert isinstance(manifest, dict)
+    assert manifest["metadata"]["deadline_fallback_gameweeks"] == list(GAMEWEEKS)
+
+
+@pytest.mark.live_db
+@pytest.mark.integration
+@pytest.mark.covers("#59 AC7")
+@pytest.mark.skipif(
+    not (served.SNAPSHOT_ROOT / REAL_RUN_ID).exists(), reason="needs the pinned real snapshot under data/warehouse"
+)
+def test_no_2026_27_gameweek_from_gw3_on_falls_back_on_the_pinned_publish() -> None:
+    frames = served.load("2026-27", pin=served.read_pin())
+    assert frames.pin.run_id == REAL_RUN_ID
+
+    assert starting_xi.deadline_fallback_gameweeks(frames) == [1, 2]

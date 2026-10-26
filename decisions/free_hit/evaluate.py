@@ -166,17 +166,20 @@ _MART_PIN: Final[served.Pin] = served.Pin(run_id="local-mart", sha256={})
 def mart_frames(mart: pd.DataFrame) -> served.Frames:
     """The mart as the harness's gameweek frame -- the #46 bridge.
 
-    `position` becomes `position_id`, a null-`minutes` row becomes a blank (`fixture_count` 0),
-    `entry_gw` is the player's first gameweek with minutes, and `minutes`/`total_points` are kept
-    as they are. The harness reads nothing else, so the fixture frame is empty and the pin names
-    the local mart rather than a publish.
+    `position` becomes `position_id`, a null-`minutes` row becomes a blank (`deadline_fixture_count`
+    0; the mart holds no schedule as at the deadline, so the count is the realised one and every row
+    carries `deadline_count_is_realised`, as the served 2025-26 frames do, #59), `entry_gw` is the
+    player's first gameweek with minutes, and `minutes`/`total_points` are kept as they are. The
+    harness reads nothing else, so the fixture frame is empty and the pin names the local mart
+    rather than a publish.
     """
     unknown = sorted(set(mart["position"].dropna()) - set(_ID_BY_POSITION))
     if unknown:
         raise ValueError(f"mart carries position(s) with no position_id: {unknown}")
     gameweek = mart.loc[:, ["player_id", "gw", "minutes", "total_points"]].copy()
     gameweek["position_id"] = mart["position"].map(_ID_BY_POSITION)
-    gameweek["fixture_count"] = mart["minutes"].notna().astype(int)
+    gameweek["deadline_fixture_count"] = mart["minutes"].notna().astype(int)
+    gameweek["deadline_count_is_realised"] = True
     gameweek["entry_gw"] = mart["player_id"].map(mart.loc[mart["minutes"].notna()].groupby("player_id")["gw"].min())
     return served.Frames(fixture=pd.DataFrame(), gameweek=gameweek, pin=_MART_PIN)
 

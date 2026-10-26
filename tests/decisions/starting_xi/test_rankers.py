@@ -19,7 +19,7 @@ from warehouse import served
 pytestmark = pytest.mark.unit
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[3] / "warehouse" / "fixtures"
-RUN_ID = "39064033745"
+RUN_ID = "40289379567"
 
 
 def test_every_rule_output_satisfies_the_protocol_the_harness_consumes() -> None:

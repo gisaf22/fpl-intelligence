@@ -33,6 +33,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from decisions.starting_xi import harness, orderings, rankers
+from operational import starting_xi
 from warehouse import served
 
 pytestmark = pytest.mark.unit
@@ -332,3 +333,11 @@ def test_the_load_path_runs_the_check(tmp_path: Path) -> None:
             pin=pin,
             snapshot_root=root,
         )
+
+
+@pytest.mark.covers("#59 AC6")
+def test_the_fallback_gameweeks_are_exactly_those_with_no_count_at_the_deadline(tmp_path: Path) -> None:
+    # GW4 has one NULL among counts: a gameweek with only some NULLs is the backstop's, not a fallback.
+    frames = _load(tmp_path, Publish(null_at_deadline=frozenset({(MARGINAL, 4)})), "snapshot")
+
+    assert starting_xi.deadline_fallback_gameweeks(frames) == list(UNCAPTURED_GWS)

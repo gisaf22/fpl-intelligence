@@ -58,6 +58,7 @@ Still governing the harness code: [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yam
 - Ownership squads: the best rule, `ppg_fixture_season`, misses 2.56 points per squad-week (25.8% of the way from random to the hindsight ideal) and beats random by 0.89 [0.40, 1.40]. Season windows beat last-3 windows; among season rules only D4 is clearly worse than D2.
 - Uniform squads are degenerate: ~6 playing players per squad, so every rule fields nearly the same XI.
 - Caveats: synthetic GK regret is inflated (both keepers played in 64% of ownership squad-weeks), weighted squads under-include premiums, and managers see team news.
+- Caveat (2026-10-26, [#59](https://github.com/gisaf22/fpl-intelligence/issues/59) D5): the per-unit rules (D2–D4 and the decomposition) multiply by the coming gameweek's **realised** fixture count, because no capture precedes any 2025-26 deadline, so no as-of-deadline count can exist for 2025-26. A fixture postponed after a deadline therefore demotes its players with hindsight. The leak can only favour those rules, and its size is unmeasured. From 2026-27 GW3 on, the multiplier is the count scheduled at the deadline.
 
 ## 4 Decide — decided 2026-10-18
 

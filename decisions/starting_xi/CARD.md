@@ -78,7 +78,12 @@ Still governing the harness code: [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yam
 </details>
 
 - **Data profile (2026-10-22, [#55](https://github.com/gisaf22/fpl-intelligence/issues/55)):** [`picks_profile.ipynb`](picks_profile.ipynb) describes the captured 2026-27 panel (GW1–7) and scores nothing; the comparison's definitions are recorded on #55 before it is run.
+- **To write and commit before looking** (amended 2026-10-28): reference, threshold, guardrails, and the decision rule per outcome. The Holm-corrected verdict and the power simulation are code ([`verdict.py`](verdict.py), [`power_lab.py`](power_lab.py), [`power_report.py`](power_report.py); [#60](https://github.com/gisaf22/fpl-intelligence/issues/60)), pinned in [`PRE_REGISTRATION.yaml`](PRE_REGISTRATION.yaml) as `stage5_verdict` and `power_lab`; the MDE table is the lab's run output, made once before 2026-27 results are read.
+
+<details><summary>Superseded 2026-10-28</summary>
+
 - **To write and commit before looking:** reference, threshold, power simulation (sample size), Holm correction, guardrails, and the decision rule per outcome.
+</details>
 
 ## 6–8
 

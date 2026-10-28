@@ -155,10 +155,12 @@ forbidden_modules =
     decisions.starting_xi.rankers
     decisions.starting_xi.uncertainty
 
-# The two tiers are exhaustive: Tier B's permitted list is `model`, `dal` and `domain`, so
-# `research` and `serve` are admitted to neither tier (deliberately: no symbol the slice needs
-# comes from `research/`), and Tier B may not be imported by Tier A --
-# which makes importing a Tier A sibling forbidden in this direction too.
+# Tier B's permitted list is `model`, `dal` and `domain`: `research` and `serve` are admitted to
+# neither Tier A nor Tier B, and Tier B may not be imported by Tier A -- which makes importing a Tier A
+# sibling forbidden in this direction too. The slice's one `research` edge is Stage 5's verdict
+# (`verdict`, with `power_lab` and `power_report` above it), which imports
+# `research.kernels.hypothesis.multiplicity.holm_bonferroni` itself rather than a copy (#60 decision 1);
+# its own contract below limits it to `research.kernels`.
 [importlinter:contract:no_starting_xi_tier_b_to_tier_a_or_downstream]
 name = starting_xi Tier B may import model, dal and domain -- not research, serve or a Tier A sibling
 type = forbidden
@@ -173,3 +175,37 @@ forbidden_modules =
     decisions.starting_xi.harness
     decisions.starting_xi.results
     decisions.starting_xi.orderings
+
+# Stage 5's verdict and power lab (#60): `research.kernels` is their only `research` edge (Holm, the
+# research kernel's own function object, #60 AC13). Every other `research` package, `serve`, the
+# data-reading layers and the Stage 3 siblings are forbidden, so the lab cannot reach D2's scores
+# against managers (#60 AC7). `operational.starting_xi_power_lab` is their command line (no
+# contract can name `operational`).
+[importlinter:contract:stage5_verdict_and_lab_reach_only_research_kernels]
+name = Stage 5 verdict and power lab may import research.kernels only -- not the rest of research, serve, data layers or Stage 3 siblings
+type = forbidden
+source_modules =
+    decisions.starting_xi.verdict
+    decisions.starting_xi.power_lab
+    decisions.starting_xi.power_report
+forbidden_modules =
+    research.diagnostic
+    research.families
+    research.findings
+    research.foundation
+    research.registry
+    research.runs
+    serve
+    dal
+    warehouse
+    model
+    decisions.starting_xi.formations
+    decisions.starting_xi.sampler
+    decisions.starting_xi.harness
+    decisions.starting_xi.results
+    decisions.starting_xi.orderings
+    decisions.starting_xi.rankers
+    decisions.starting_xi.uncertainty
+    decisions.starting_xi.report
+    decisions.starting_xi.picks_profile
+    decisions.starting_xi.seeding

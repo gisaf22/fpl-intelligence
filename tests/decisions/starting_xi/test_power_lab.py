@@ -14,6 +14,7 @@ import types
 from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -25,7 +26,7 @@ pytestmark = pytest.mark.unit
 
 # A tiny setting so a cell runs in milliseconds; the verdict's counts are cut to match.
 TINY = replace(power_lab.BASELINE, name="tiny", managers=30, gameweeks=5)
-TINY_VERDICT = {"n_resamples": 100, "seed": 0, "rerun_resamples": 200, "rerun_seed": 1}
+TINY_VERDICT: dict[str, Any] = {"n_resamples": 100, "seed": 0, "rerun_resamples": 200, "rerun_seed": 1}
 
 
 class FakeClock:
@@ -210,7 +211,7 @@ def test_a_fake_study_goes_through_the_resolved_verdict(monkeypatch: pytest.Monk
 
     def spy(table: pd.DataFrame, **kwargs: object) -> verdict.Verdict:
         calls.append(table)
-        return real(table, **kwargs)  # type: ignore[arg-type]
+        return real(table, **kwargs)
 
     monkeypatch.setattr(power_lab, "primary_verdict", spy)
     power_lab.run_fake_study(TINY, 0.55, np.random.default_rng(0), **TINY_VERDICT)
@@ -260,3 +261,72 @@ def test_the_decided_week_win_rate_reaches_each_target_share_exactly_in_expectat
     for setting in power_lab.SETTINGS:
         for share in (power_lab.NULL_SHARE, *power_lab.TRUE_WIN_SHARES):
             assert power_lab.expected_share(setting, share) == pytest.approx(share, abs=1e-9), setting.name
+
+
+# --- AC17 (proposed): the runtime constraint -- tiers, per-tier estimate, re-run counted, parallel ---
+
+
+@pytest.mark.covers("#60 AC17")
+def test_the_three_tiers_partition_the_whole_grid() -> None:
+    tiers = [[power_lab.cell_id(s, w) for s, w in power_lab.tier_cells(t)] for t in power_lab.TIERS]
+    every = [
+        *(power_lab.cell_id(s, w) for s in power_lab.SETTINGS for w in (0.5, *power_lab.TRUE_WIN_SHARES)),
+        power_lab.cell_id(power_lab.WORST_CASE_CORNER, power_lab.SENSITIVITY_SHARE),
+    ]
+    flat = [c for tier in tiers for c in tier]
+    assert len(flat) == len(set(flat)) == len(every) == 155
+    assert set(flat) == set(every)
+
+
+@pytest.mark.covers("#60 AC17")
+def test_tier_1_holds_every_false_alarm_cell_and_both_edges_on_the_gameweek_sweep() -> None:
+    tier1 = {power_lab.cell_id(s, w) for s, w in power_lab.tier_cells(1)}
+    assert {power_lab.cell_id(s, 0.5) for s in power_lab.SETTINGS} <= tier1
+    for setting in power_lab.GAMEWEEK_SWEEP_SETTINGS:
+        assert {power_lab.cell_id(setting, 0.55), power_lab.cell_id(setting, 0.53)} <= tier1
+    assert power_lab.cell_id(power_lab.WORST_CASE_CORNER, 0.65) in tier1
+    assert {s.gameweeks for s in power_lab.GAMEWEEK_SWEEP_SETTINGS} == set(power_lab.GAMEWEEK_SWEEP)
+
+
+@pytest.mark.covers("#60 AC17")
+def test_the_per_tier_estimate_flags_a_tier_over_one_sitting() -> None:
+    sizes = power_lab.pilot_sizes(power_lab.SETTINGS)
+    fast = power_lab.estimate_by_tier(dict.fromkeys(sizes, 0.001), fake_studies=1_000)
+    slow = power_lab.estimate_by_tier(dict.fromkeys(sizes, 0.2), fake_studies=1_000)
+    assert [e.tier for e in fast] == [1, 2, 3]
+    assert not any(e.over_sitting_limit for e in fast)
+    tier1 = slow[0]
+    assert tier1.seconds == pytest.approx(len(power_lab.tier_cells(1)) * 1_000 * 0.2)
+    assert tier1.over_sitting_limit is (tier1.seconds > 90 * 60)
+    assert tier1.over_sitting_limit
+
+
+@pytest.mark.covers("#60 AC17")
+def test_the_lab_counts_a_needed_rerun_and_never_applies_it(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(verdict, "needs_rerun", lambda p_raw, *, n_resamples, alpha: True)
+    study = power_lab.run_fake_study(TINY, 0.55, np.random.default_rng(0), **TINY_VERDICT)
+    assert (study.rerun_needed, study.rerun) == (True, False)
+    assert power_lab.run_cell(TINY, 0.55, 3, TINY_VERDICT).rerun_triggers == 3
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#60 AC17")
+def test_a_parallel_run_gives_the_same_cells_as_a_serial_one(tmp_path: Path) -> None:
+    cells = _cells(3)
+    timings = {(TINY.managers, TINY.gameweeks): 0.0}
+
+    def run(out: str, workers: int) -> power_lab.LabRun:
+        return power_lab.run_lab(
+            cells=cells,
+            fake_studies=2,
+            out_dir=tmp_path / out,
+            budget_seconds=1_000,
+            seconds_per_study=timings,
+            log=lambda _: None,
+            verdict_kwargs=TINY_VERDICT,
+            workers=workers,
+        )
+
+    serial, parallel = run("serial", 1), run("parallel", 2)
+    assert parallel.complete and serial.complete
+    assert parallel.cell_results == serial.cell_results

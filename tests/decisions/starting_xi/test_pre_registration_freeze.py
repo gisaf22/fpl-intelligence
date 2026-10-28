@@ -16,7 +16,7 @@ import pytest
 import yaml
 
 from decisions.starting_xi import orderings, rankers
-from operational import starting_xi
+from operational import starting_xi, starting_xi_power_lab
 
 pytestmark = pytest.mark.unit
 
@@ -220,8 +220,14 @@ def test_changing_the_sensitivity_run_its_exclusion_or_its_holm_place_is_a_named
     ids=lambda part: "/".join(part) if isinstance(part, tuple) else None,
 )
 def test_changing_any_one_stage5_verdict_or_lab_value_is_a_named_mismatch(path: tuple[str, ...], value: object) -> None:
-    mismatches = starting_xi.pre_registration_mismatches(**CANONICAL_RUN, pre_registration=_mutate(path, value))
+    mismatches = starting_xi_power_lab.pre_registration_mismatches(_mutate(path, value))
     assert [m.split(":")[0] for m in mismatches] == [path[0]]
+
+
+@pytest.mark.covers("#60 AC5")
+def test_the_lab_code_matches_its_stage5_entries() -> None:
+    registered = yaml.safe_load(PRE_REGISTRATION_PATH.read_text())
+    assert starting_xi_power_lab.pre_registration_mismatches(registered) == []
 
 
 @pytest.mark.covers("#60 AC5")

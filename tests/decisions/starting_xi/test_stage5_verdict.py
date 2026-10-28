@@ -6,6 +6,8 @@ The one function both the power lab and the real Stage 5 run call. AC14 and AC15
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -16,7 +18,7 @@ from research.kernels.hypothesis import multiplicity
 pytestmark = pytest.mark.unit
 
 
-def _table(outcomes: dict[tuple[int, int], float], bands: dict[int, str | None]) -> pd.DataFrame:
+def _table(outcomes: Mapping[tuple[int, int], float], bands: Mapping[int, str | None]) -> pd.DataFrame:
     return pd.DataFrame(
         [{"manager_id": m, "gameweek": g, "outcome": y, "band": bands[m]} for (m, g), y in sorted(outcomes.items())]
     )

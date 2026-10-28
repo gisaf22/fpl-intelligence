@@ -64,7 +64,7 @@ def _full_grid(**kwargs: object) -> power_lab.PowerResults:
     return _results(power_lab.SETTINGS, lambda s, share: 0.9, **kwargs)  # type: ignore[arg-type]
 
 
-# --- AC3: both acceptance checks gate the table --------------------------------------------------
+# --- AC3 (amended by U5): the false-alarm check gates per gameweek count; sensitivity gates all ----
 
 
 @pytest.mark.covers("#60 AC3")
@@ -74,15 +74,59 @@ def test_the_false_alarm_count_is_63_of_1000() -> None:
 
 @pytest.mark.covers("#60 AC3")
 @pytest.mark.parametrize(("firings", "passes"), [(30, True), (63, True), (64, False), (90, False)])
-def test_a_failed_false_alarm_check_is_named_and_blocks_the_power_table(firings: int, passes: bool) -> None:
+def test_a_failed_false_alarm_check_is_named_and_invalidates_only_its_gameweek_count(
+    firings: int, passes: bool
+) -> None:
     report = power_report.build_report(_full_grid(firings={CORNER.name: firings}), reachable=ALL_REACHABLE)
 
+    assert report.power_table is not None
+    at_5 = [row for row in report.power_table if row.gameweeks == CORNER.gameweeks]
+    elsewhere = [row for row in report.power_table if row.gameweeks != CORNER.gameweeks]
+    assert all(row.power is not None for row in elsewhere)
+    gw5 = next(r for r in report.gameweek_rows if r.gameweeks == CORNER.gameweeks)
     if passes:
         assert report.failed_checks == []
-        assert report.power_table is not None
+        assert all(row.power is not None for row in at_5)
+        assert gw5.label.status != power_report.INVALID
     else:
-        assert report.power_table is None
         assert report.failed_checks == [f"false-alarm check failed: {CORNER.name} fired in {firings} of 1000"]
+        assert all(row.power is None for row in at_5)  # no power claimed at that count
+        assert gw5.label.status == power_report.INVALID
+
+
+@pytest.mark.covers("#60 AC3")
+def test_the_report_still_refuses_a_partial_grid_when_a_count_is_invalid() -> None:
+    partial = _results(power_lab.SETTINGS[:-1], lambda s, share: 0.9, firings={CORNER.name: 90})
+    with pytest.raises(power_report.ReportRefused, match="partial grid"):
+        power_report.build_report(partial, reachable=ALL_REACHABLE)
+
+
+@pytest.mark.covers("#60 AC3")
+def test_an_invalid_count_claims_no_power_and_has_no_mde() -> None:
+    label = power_report.label_row(_rising(0.9, 1.0), threshold_reachable=True, false_alarm_ok=False)
+    assert label.status == power_report.INVALID
+    assert label.status == "verdict procedure invalid at this count (false-alarm check failed)"
+    assert (label.power_at_headline, label.mde, label.mde_beyond_sweep) == (None, "not defined at this count", False)
+    assert power_report.check_row(label) == []
+
+
+@pytest.mark.covers("#60 AC3")
+def test_an_invalid_count_takes_precedence_over_an_unreachable_threshold() -> None:
+    label = power_report.label_row(_rising(0.1, 0.6), threshold_reachable=False, false_alarm_ok=False)
+    assert label.status == power_report.INVALID
+
+
+@pytest.mark.covers("#60 AC3")
+def test_check_row_catches_power_claimed_at_an_invalid_count() -> None:
+    bad = power_report.RowLabel(
+        status=power_report.INVALID,
+        mde=power_report.NOT_DEFINED,
+        mde_beyond_sweep=False,
+        power_at_headline=0.9,
+        headline_detectable=None,
+        secondary_detectable=None,
+    )
+    assert power_report.check_row(bad) == ["power claimed at an invalid count"]
 
 
 @pytest.mark.covers("#60 AC3")
@@ -187,6 +231,14 @@ def test_gameweeks_needed_is_labelled_conditional_on_its_assumptions() -> None:
     results = _corner_sweep({g: _curve(p53=0.9, p55=0.9) for g in power_lab.GAMEWEEK_SWEEP})
     text = power_report.gameweeks_needed(results, HEADLINE).text
     assert "conditional on the assumed edge, shock size, manager effect and tie rate" in text
+
+
+@pytest.mark.covers("#60 AC8")
+def test_gameweeks_needed_skips_a_count_whose_false_alarm_check_failed() -> None:
+    curves = {g: _curve(p55=0.9 if g >= 12 else 0.5) for g in power_lab.GAMEWEEK_SWEEP}
+    results = _corner_sweep(curves)
+    results = replace(results, false_alarm_firings={**results.false_alarm_firings, "corner_gameweeks_12": 64})
+    assert power_report.gameweeks_needed(results, HEADLINE).count == 16
 
 
 # --- AC9: MDE per gameweek count, in U3's order with U4's rules ----------------------------------

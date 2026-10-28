@@ -87,6 +87,7 @@ def test_the_two_sided_p_value_uses_the_one_plus_k_over_one_plus_b_convention() 
         # Sorted ranks get thresholds 0.0125, 0.0167, 0.025, 0.05; SE at B=10,000 is sqrt(p(1-p)/B).
         ([0.0130, 0.30, 0.40, 0.50], True),  # 0.0130 is within 2 SE (~0.0023) of 0.0125
         ([0.0200, 0.30, 0.40, 0.50], False),  # 0.0200 is 3+ SE from 0.0125
+        ([0.0160, 0.30, 0.40, 0.50], False),  # 0.0160 is 2.79 SE from 0.0125: outside 2 SE, inside 3
         ([0.0010, 0.0160, 0.40, 0.50], True),  # second-ranked 0.0160 is near its own threshold 0.0167
         ([0.0010, 0.0020, 0.0030, 0.0510], True),  # largest is near 0.05
     ],

@@ -24,7 +24,12 @@ at a time; every finished cell is saved atomically, so a stop and resume gives t
 (the seed is fixed per cell by its name, not its position). The pilot times each distinct
 (managers, gameweeks) size under the same parallelism, and its verdicts are discarded.
 
-The command line (pilot, run a tier, report) is `operational.starting_xi_power_lab`.
+**The extra-large shock probe (#65).** Before the freeze, one no-edge cell per probed gameweek count
+per anchor runs at a 9-point gameweek shock (an assumption, outside the swept 2, 4 and 6). It sits
+outside `SETTINGS`, so the grid, its tiers and U5's per-count gate are unchanged; its firings are
+reported alongside, never gating a count (`power_report.probe_report`).
+
+The command line (pilot, run a tier, run the probe, report) is `operational.starting_xi_power_lab`.
 """
 
 from __future__ import annotations
@@ -142,6 +147,29 @@ def tier_cells(tier: int) -> list[Cell]:
 
 TIERS: Final[tuple[int, ...]] = (1, 2, 3)
 
+# --- The extra-large shock probe (#65; PRE_REGISTRATION.yaml `power_lab.probe`) --------------------
+
+PROBE_SHOCK: Final[str] = "extra_large"
+PROBE_SHOCK_SD_POINTS: Final[int] = 9
+PROBE_GAMEWEEKS: Final[tuple[int, ...]] = (8, 12, 16)
+PROBE_ANCHORS: Final[tuple[Setting, ...]] = (WORST_CASE_CORNER, BASELINE)
+
+
+def probe_setting(anchor: Setting, gameweeks: int) -> Setting:
+    """`anchor`'s manager effect, tie rate and managers, at the probe's shock and `gameweeks`."""
+    return replace(anchor, name=f"probe_{anchor.name}_gameweeks_{gameweeks}", shock=PROBE_SHOCK, gameweeks=gameweeks)
+
+
+PROBE_SETTINGS: Final[tuple[Setting, ...]] = tuple(
+    probe_setting(anchor, g) for anchor in PROBE_ANCHORS for g in PROBE_GAMEWEEKS
+)
+
+
+def probe_cells() -> list[Cell]:
+    """One no-edge cell per probed count per anchor (today 6)."""
+    return [(s, NULL_SHARE) for s in PROBE_SETTINGS]
+
+
 # --- The fake data -----------------------------------------------------------------------------------
 
 _NODES, _WEIGHTS = np.polynomial.hermite_e.hermegauss(80)
@@ -151,7 +179,8 @@ _WEIGHTS = _WEIGHTS / _WEIGHTS.sum()  # probabilists' Hermite: E[f(Z)], Z ~ N(0,
 def _logit_sds(setting: Setting) -> tuple[float, float]:
     """Share-point SDs -> logit SDs of the decided-week win probability (delta method at 50%)."""
     to_logit = 4.0 / (100.0 * (1.0 - setting.tie_rate))  # d logit / d p = 4 at p = 0.5
-    return SHOCK_SD_POINTS[setting.shock] * to_logit, MANAGER_EFFECT_SD_POINTS[setting.manager_effect] * to_logit
+    shock_points = PROBE_SHOCK_SD_POINTS if setting.shock == PROBE_SHOCK else SHOCK_SD_POINTS[setting.shock]
+    return shock_points * to_logit, MANAGER_EFFECT_SD_POINTS[setting.manager_effect] * to_logit
 
 
 def _decided_win_rate(setting: Setting, share: float) -> float:
@@ -309,13 +338,17 @@ def _seconds_for(seconds_per_study: Mapping[Size, float], setting: Setting) -> f
 
 
 def estimate_grid_seconds(
-    *, cells: Iterable[Cell], fake_studies: int, seconds_per_study: Mapping[Size, float]
+    *, cells: Iterable[Cell], fake_studies: int, seconds_per_study: Mapping[Size, float], workers: int
 ) -> float:
     """Wall-clock for `cells`, each priced at its own (managers, gameweeks) size's measured cost.
 
-    `seconds_per_study` is the pilot's wall-clock per study under the parallelism the run will use.
+    `seconds_per_study` is the pilot's wall-clock per study under `workers`-way parallelism, so the
+    total work over the workers is one bound. A cell runs on one worker, so the run also takes at
+    least its slowest cell's own time (`workers` times its share): with fewer cells than workers,
+    that bound is the larger (#65 AC5).
     """
-    return sum(fake_studies * _seconds_for(seconds_per_study, s) for s, _ in cells)
+    per_cell = [fake_studies * _seconds_for(seconds_per_study, s) for s, _ in cells]
+    return max(sum(per_cell), max(per_cell, default=0.0) * workers)
 
 
 @dataclass(frozen=True)
@@ -327,12 +360,14 @@ class TierEstimate:
     over_sitting_limit: bool
 
 
-def estimate_by_tier(seconds_per_study: Mapping[Size, float], *, fake_studies: int) -> list[TierEstimate]:
+def estimate_by_tier(seconds_per_study: Mapping[Size, float], *, fake_studies: int, workers: int) -> list[TierEstimate]:
     """Each tier's wall-clock at the pilot's parallelism, flagged when over one ~90-minute sitting."""
     estimates = []
     for tier in TIERS:
         cells = tier_cells(tier)
-        seconds = estimate_grid_seconds(cells=cells, fake_studies=fake_studies, seconds_per_study=seconds_per_study)
+        seconds = estimate_grid_seconds(
+            cells=cells, fake_studies=fake_studies, seconds_per_study=seconds_per_study, workers=workers
+        )
         estimates.append(TierEstimate(tier, len(cells), fake_studies, seconds, seconds > SITTING_LIMIT_SECONDS))
     return estimates
 
@@ -417,7 +452,9 @@ def run_lab(
     """
     kwargs = dict(verdict_kwargs or {})
     check_lab_inputs({"cells": cells, "fake_studies": fake_studies, "verdict_kwargs": kwargs})
-    estimate = estimate_grid_seconds(cells=cells, fake_studies=fake_studies, seconds_per_study=seconds_per_study)
+    estimate = estimate_grid_seconds(
+        cells=cells, fake_studies=fake_studies, seconds_per_study=seconds_per_study, workers=workers
+    )
     log(f"{ESTIMATE_PREFIX} {len(cells)} cells, {estimate:,.0f} s ({estimate / 60:.1f} min) with {workers} worker(s)")
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -478,7 +515,10 @@ def run_lab(
 
 @dataclass(frozen=True)
 class PowerResults:
-    """The lab's numbers, ready for `power_report`. `is_pilot` results are refused there (#60 AC4)."""
+    """The lab's numbers, ready for `power_report`. `is_pilot` results are refused there (#60 AC4).
+
+    `probe_firings` holds the probe's no-edge firings by probe setting name, apart from the grid's.
+    """
 
     settings: tuple[Setting, ...]
     power: Mapping[tuple[str, float], float]
@@ -489,6 +529,7 @@ class PowerResults:
     is_pilot: bool
     band_power: Mapping[tuple[str, float], tuple[float, float, float]] = field(default_factory=dict)
     rerun_triggers: Mapping[str, int] = field(default_factory=dict)
+    probe_firings: Mapping[str, int] = field(default_factory=dict)
 
 
 def assemble_results(cell_results: Mapping[str, CellResult], *, fake_studies: int) -> PowerResults:
@@ -496,9 +537,13 @@ def assemble_results(cell_results: Mapping[str, CellResult], *, fake_studies: in
     power: dict[tuple[str, float], float] = {}
     band_power: dict[tuple[str, float], tuple[float, float, float]] = {}
     firings: dict[str, int] = {}
+    probe: dict[str, int] = {}
+    probe_names = {s.name for s in PROBE_SETTINGS}
     sensitivity = float("nan")
     for r in cell_results.values():
-        if r.share == NULL_SHARE:
+        if r.setting in probe_names:
+            probe[r.setting] = r.family_wise_firings
+        elif r.share == NULL_SHARE:
             firings[r.setting] = r.family_wise_firings
         elif r.setting == WORST_CASE_CORNER.name and r.share == SENSITIVITY_SHARE:
             sensitivity = r.overall_favourable / r.studies
@@ -514,5 +559,6 @@ def assemble_results(cell_results: Mapping[str, CellResult], *, fake_studies: in
         inner_resamples=INNER_RESAMPLES,
         is_pilot=False,
         band_power=band_power,
-        rerun_triggers={name: r.rerun_triggers for name, r in cell_results.items()},
+        rerun_triggers={name: r.rerun_triggers for name, r in cell_results.items() if r.setting not in probe_names},
+        probe_firings=probe,
     )

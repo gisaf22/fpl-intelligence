@@ -1,13 +1,16 @@
-"""The Stage 5 power lab's command line (#60): pilot, run one tier, report.
+"""The Stage 5 power lab's command line (#60, #65): pilot, run one tier, run the probe, report.
 
     uv run python -m operational.starting_xi_power_lab pilot
     caffeinate -dimsu uv run python -m operational.starting_xi_power_lab run --tier 1
+    caffeinate -dimsu uv run python -m operational.starting_xi_power_lab probe
     uv run python -m operational.starting_xi_power_lab report
 
 `pilot` times each distinct (managers, gameweeks) size under the run's parallelism, prints each
-tier's wall-clock estimate (flagging any tier over one ~90-minute sitting) and saves the timings; its
-verdicts are discarded. `run` refuses to start without those timings, stops cleanly at its budget
-(default one sitting) and resumes from the saved cells. `report` refuses a partial grid.
+tier's and the probe's wall-clock estimate (flagging any tier over one ~90-minute sitting) and saves
+the timings; its verdicts are discarded. `run` and `probe` refuse to start without those timings,
+stop cleanly at their budget (default one sitting) and resume from the saved cells. `probe` saves its
+cells beside the grid's, keyed by cell name, so it never touches a grid cell, and writes `PROBE.md`.
+`report` refuses a partial grid or a missing probe cell.
 """
 
 from __future__ import annotations
@@ -83,6 +86,12 @@ def _power_lab() -> dict[str, object]:
         "headline_edge": power_report.HEADLINE_EDGE,
         "secondary_edge": power_report.SECONDARY_EDGE,
         "master_seed": power_lab.MASTER_SEED,
+        "probe": {
+            "shock_sd_points": power_lab.PROBE_SHOCK_SD_POINTS,
+            "share": power_lab.NULL_SHARE,
+            "gameweeks": list(power_lab.PROBE_GAMEWEEKS),
+            "anchors": [anchor.name for anchor in power_lab.PROBE_ANCHORS],
+        },
     }
 
 
@@ -117,12 +126,20 @@ def pilot(workers: int) -> None:
     for (managers, gameweeks), seconds in timings.items():
         print(f"  managers={managers:>5} gameweeks={gameweeks:>2}: {seconds:.4f} s wall per study ({workers}-way)")
     for studies in (power_lab.FAKE_STUDIES, power_lab.FAKE_STUDIES // 2):
-        for est in power_lab.estimate_by_tier(timings, fake_studies=studies):
+        for est in power_lab.estimate_by_tier(timings, fake_studies=studies, workers=workers):
             flag = "  ** over 90 minutes **" if est.over_sitting_limit else ""
             print(
                 f"{power_lab.ESTIMATE_PREFIX} tier {est.tier}: {est.cells} cells x {studies} studies "
                 f"= {est.seconds / 60:.1f} min with {workers} workers{flag}"
             )
+    probe = power_lab.probe_cells()
+    seconds = power_lab.estimate_grid_seconds(
+        cells=probe, fake_studies=power_lab.FAKE_STUDIES, seconds_per_study=timings, workers=workers
+    )
+    print(
+        f"{power_lab.ESTIMATE_PREFIX} probe: {len(probe)} cells x {power_lab.FAKE_STUDIES} studies "
+        f"= {seconds / 60:.1f} min with {workers} workers"
+    )
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     TIMINGS_PATH.write_text(
         json.dumps(
@@ -140,32 +157,51 @@ def _timings(workers: int) -> dict[tuple[int, int], float]:
     return {(int(k.split("x")[0]), int(k.split("x")[1])): float(v) for k, v in raw["seconds_per_study"].items()}
 
 
-def run(tier: int, *, budget_minutes: float, workers: int) -> None:
+def _log(line: str) -> None:
+    print(line, flush=True)
+    with LOG_PATH.open("a") as fh:
+        fh.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {line}\n")
+
+
+def _run_cells(name: str, cells: list[power_lab.Cell], *, budget_minutes: float, workers: int) -> bool:
     _refuse_off_registration()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-
-    def log(line: str) -> None:
-        print(line, flush=True)
-        with LOG_PATH.open("a") as fh:
-            fh.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {line}\n")
-
     result = power_lab.run_lab(
-        cells=power_lab.tier_cells(tier),
+        cells=cells,
         fake_studies=power_lab.FAKE_STUDIES,
         out_dir=CELLS_DIR,
         budget_seconds=budget_minutes * 60,
         seconds_per_study=_timings(workers),
-        log=log,
+        log=_log,
         workers=workers,
     )
     state = "complete" if result.complete else "stopped"
-    log(f"tier {tier} {state}: {len(result.finished)} of {len(result.finished) + len(result.not_run)} cells saved")
+    _log(f"{name} {state}: {len(result.finished)} of {len(result.finished) + len(result.not_run)} cells saved")
+    return result.complete
+
+
+def run(tier: int, *, budget_minutes: float, workers: int) -> None:
+    _run_cells(f"tier {tier}", power_lab.tier_cells(tier), budget_minutes=budget_minutes, workers=workers)
+
+
+def _saved_results() -> power_lab.PowerResults:
+    saved = {path.stem: power_lab.load_cell(path) for path in sorted(CELLS_DIR.glob("*.json"))}
+    return power_lab.assemble_results(saved, fake_studies=power_lab.FAKE_STUDIES)
+
+
+def probe(*, budget_minutes: float, workers: int) -> None:
+    """Run the probe's cells (#65), then write and print its report; refused while a cell is missing."""
+    if not _run_cells("probe", power_lab.probe_cells(), budget_minutes=budget_minutes, workers=workers):
+        return
+    text = power_report.render_probe(power_report.probe_report(_saved_results()))
+    (RESULTS_DIR / "PROBE.md").write_text(text)
+    print(text)
+    print(f"wrote {RESULTS_DIR / 'PROBE.md'}")
 
 
 def report() -> None:
     _refuse_off_registration()
-    saved = {path.stem: power_lab.load_cell(path) for path in sorted(CELLS_DIR.glob("*.json"))}
-    results = power_lab.assemble_results(saved, fake_studies=power_lab.FAKE_STUDIES)
+    results = _saved_results()
     resolution = power_report.resolution_table(power_lab.GAMEWEEK_SWEEP, n_resamples=power_lab.INNER_RESAMPLES)
     built = power_report.build_report(results, reachable={r.gameweeks: r.threshold_reachable for r in resolution})
     (RESULTS_DIR / "REPORT.md").write_text(power_report.render(built))
@@ -174,7 +210,7 @@ def report() -> None:
 
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="starting_xi_power_lab", description="Stage 5 power simulation lab (#60)")
-    parser.add_argument("command", choices=["pilot", "run", "report"])
+    parser.add_argument("command", choices=["pilot", "run", "probe", "report"])
     parser.add_argument("--tier", type=int, choices=power_lab.TIERS)
     parser.add_argument("--budget-minutes", type=float, default=power_lab.SITTING_LIMIT_SECONDS / 60)
     parser.add_argument("--workers", type=int, default=_default_workers())
@@ -185,6 +221,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         if args.tier is None:
             parser.error("run needs --tier")
         run(args.tier, budget_minutes=args.budget_minutes, workers=args.workers)
+    elif args.command == "probe":
+        probe(budget_minutes=args.budget_minutes, workers=args.workers)
     else:
         report()
 

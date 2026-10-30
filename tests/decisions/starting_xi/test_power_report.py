@@ -31,6 +31,17 @@ def _rising(low: float, high: float) -> dict[float, float]:
     return {s: round(low + i * step, 4) for i, s in enumerate(SHARES)}
 
 
+def _probe(
+    corner: tuple[int, int, int] = (30, 30, 30), baseline: tuple[int, int, int] = (30, 30, 30)
+) -> dict[str, int]:
+    """Probe firings at 8, 12 and 16 gameweeks, by anchor."""
+    return {
+        power_lab.probe_setting(anchor, g).name: n
+        for anchor, by_count in ((CORNER, corner), (power_lab.BASELINE, baseline))
+        for g, n in zip((8, 12, 16), by_count, strict=True)
+    }
+
+
 def _results(
     settings: tuple[power_lab.Setting, ...],
     power: Callable[[power_lab.Setting, float], float],
@@ -38,6 +49,7 @@ def _results(
     firings: Mapping[str, int] | None = None,
     sensitivity: float = 1.0,
     is_pilot: bool = False,
+    probe_firings: Mapping[str, int] | None = None,
 ) -> power_lab.PowerResults:
     return power_lab.PowerResults(
         settings=settings,
@@ -47,6 +59,7 @@ def _results(
         fake_studies=1_000,
         inner_resamples=10_000,
         is_pilot=is_pilot,
+        probe_firings=_probe() if probe_firings is None else probe_firings,
     )
 
 
@@ -227,13 +240,6 @@ def test_an_edge_no_swept_count_reaches_says_so_and_names_38() -> None:
 
 
 @pytest.mark.covers("#60 AC8")
-def test_gameweeks_needed_is_labelled_conditional_on_its_assumptions() -> None:
-    results = _corner_sweep({g: _curve(p53=0.9, p55=0.9) for g in power_lab.GAMEWEEK_SWEEP})
-    text = power_report.gameweeks_needed(results, HEADLINE).text
-    assert "conditional on the assumed edge, shock size, manager effect and tie rate" in text
-
-
-@pytest.mark.covers("#60 AC8")
 def test_gameweeks_needed_skips_a_count_whose_false_alarm_check_failed() -> None:
     curves = {g: _curve(p55=0.9 if g >= 12 else 0.5) for g in power_lab.GAMEWEEK_SWEEP}
     results = _corner_sweep(curves)
@@ -353,3 +359,225 @@ def test_the_resolution_table_covers_every_swept_count() -> None:
 def test_a_count_whose_resampling_cannot_reach_the_threshold_is_reported_unreachable() -> None:
     row = power_report.resolution(3, n_resamples=10_000)  # smallest step 2/27, above 0.0125
     assert row.threshold_reachable is False
+
+
+# --- #65 AC3: the probe, reported alongside, with the largest tolerable shock per count ----------
+
+FIVE_INVALID = {power_lab.BASELINE.name: 68}  # 5 gameweeks fails the false-alarm check (U5), as on the full grid
+
+
+def _section(text: str, heading: str) -> str:
+    start = text.index(heading)
+    end = text.find("\n## ", start + len(heading))
+    return text[start : end if end != -1 else len(text)]
+
+
+@pytest.mark.covers("#65 AC3")
+def test_each_probe_cell_is_reported_against_63_by_anchor_and_count() -> None:
+    probe = power_report.probe_report(_full_grid(probe_firings=_probe(corner=(64, 40, 20), baseline=(41, 38, 20))))
+
+    assert probe.limit == 63
+    by_cell = {(c.anchor, c.gameweeks): (c.firings, c.over_limit) for c in probe.cells}
+    assert by_cell == {
+        (CORNER.name, 8): (64, True),
+        (CORNER.name, 12): (40, False),
+        (CORNER.name, 16): (20, False),
+        (power_lab.BASELINE.name, 8): (41, False),
+        (power_lab.BASELINE.name, 12): (38, False),
+        (power_lab.BASELINE.name, 16): (20, False),
+    }
+    assert probe.smallest_over == {CORNER.name: 8, power_lab.BASELINE.name: None}
+
+
+@pytest.mark.covers("#65 AC3")
+def test_63_firings_are_not_over_the_limit_and_no_count_over_it_is_stated() -> None:
+    probe = power_report.probe_report(_full_grid(probe_firings=_probe(corner=(63, 63, 63), baseline=(63, 63, 63))))
+    assert not any(c.over_limit for c in probe.cells)
+    assert probe.smallest_over == {CORNER.name: None, power_lab.BASELINE.name: None}
+    assert "no probed count over the limit" in power_report.render_probe(probe)
+
+
+@pytest.mark.covers("#65 AC3")
+def test_each_count_carries_the_largest_shock_level_at_which_it_stays_within_the_limit() -> None:
+    results = _full_grid(firings=FIVE_INVALID, probe_firings=_probe(corner=(64, 40, 20), baseline=(41, 38, 20)))
+    levels = {s.gameweeks: (s.level, s.note) for s in power_report.probe_report(results).shock_levels}
+    assert levels == {
+        5: (None, None),  # invalid under U5: no level
+        8: (6, None),  # a probe cell over 63 at the corner
+        12: (9, None),
+        16: (9, None),
+        24: (6, "not probed at 9"),
+        38: (6, "not probed at 9"),
+    }
+
+
+@pytest.mark.covers("#65 AC3")
+def test_a_count_over_the_limit_at_either_anchor_reads_6_points() -> None:
+    results = _full_grid(probe_firings=_probe(corner=(30, 30, 30), baseline=(30, 70, 30)))
+    levels = {s.gameweeks: s.level for s in power_report.probe_report(results).shock_levels}
+    assert levels[12] == 6
+    assert levels[8] == levels[16] == 9
+
+
+@pytest.mark.covers("#65 AC3")
+def test_a_missing_probe_cell_is_named_and_refused() -> None:
+    firings = _probe()
+    missing = power_lab.probe_setting(power_lab.BASELINE, 16).name
+    del firings[missing]
+    with pytest.raises(power_report.ReportRefused, match=missing):
+        power_report.probe_report(_full_grid(probe_firings=firings))
+    with pytest.raises(power_report.ReportRefused, match=missing):
+        power_report.build_report(_full_grid(probe_firings=firings), reachable=ALL_REACHABLE)
+
+
+@pytest.mark.covers("#65 AC3")
+def test_a_probe_cell_over_the_limit_leaves_the_grids_u5_labels_unchanged() -> None:
+    report = power_report.build_report(_full_grid(probe_firings=_probe(corner=(64, 30, 30))), reachable=ALL_REACHABLE)
+    gw8 = next(r for r in report.gameweek_rows if r.gameweeks == 8)
+    assert gw8.label.status != power_report.INVALID
+    assert report.failed_checks == []
+    assert report.power_table is not None
+    assert all(row.power is not None for row in report.power_table if row.gameweeks == 8)
+
+
+@pytest.mark.covers("#65 AC3")
+def test_the_shock_levels_are_printed_beside_the_gameweeks_needed_lines() -> None:
+    results = _full_grid(firings=FIVE_INVALID, probe_firings=_probe(corner=(64, 40, 20), baseline=(41, 38, 20)))
+    section = _section(
+        power_report.render(power_report.build_report(results, reachable=ALL_REACHABLE)), "## Gameweeks needed"
+    )
+    assert "- 5 gameweeks: no level" in section
+    assert "- 8 gameweeks: 6 points" in section
+    assert "- 12 gameweeks: 9 points" in section
+    assert "- 24 gameweeks: 6 points, not probed at 9" in section
+
+
+@pytest.mark.covers("#65 AC3")
+def test_a_saved_probe_cell_is_read_as_a_probe_firing_not_a_grid_one() -> None:
+    probe = power_lab.probe_setting(CORNER, 8)
+    saved = {
+        "probe": power_lab.CellResult(power_lab.cell_id(probe, 0.5), probe.name, 0.5, 1_000, 0, 64, (0, 0, 0), 0),
+    }
+    results = power_lab.assemble_results(saved, fake_studies=1_000)
+    assert results.probe_firings == {probe.name: 64}
+    assert probe.name not in results.false_alarm_firings
+
+
+# --- #65 AC6: the conditional line, verbatim, on every rendered output ---------------------------
+
+CONDITIONAL_LINE = (
+    "Conditional on assumed settings (shock, manager spread, tie rate, independence beyond the weekly shock); "
+    "not measured from real data."
+)
+RETIRED_LABEL = "conditional on the assumed edge, shock size, manager effect and tie rate"
+
+
+def _every_rendered_output() -> dict[str, str]:
+    probe_results = _full_grid(probe_firings=_probe(corner=(64, 40, 20)))
+    return {
+        "report": power_report.render(power_report.build_report(_full_grid(), reachable=ALL_REACHABLE)),
+        "report stopped by a failed sensitivity check": power_report.render(
+            power_report.build_report(_full_grid(sensitivity=0.95), reachable=ALL_REACHABLE)
+        ),
+        "probe": power_report.render_probe(power_report.probe_report(probe_results)),
+    }
+
+
+@pytest.mark.covers("#65 AC6")
+def test_the_conditional_line_is_the_registered_wording() -> None:
+    assert power_report.CONDITIONAL == CONDITIONAL_LINE
+
+
+@pytest.mark.covers("#65 AC6")
+@pytest.mark.parametrize("output", ["report", "report stopped by a failed sensitivity check", "probe"])
+def test_every_rendered_output_carries_the_conditional_line_verbatim(output: str) -> None:
+    text = _every_rendered_output()[output]
+    assert CONDITIONAL_LINE in text
+    assert RETIRED_LABEL not in text
+
+
+@pytest.mark.covers("#65 AC6")
+def test_a_report_stopped_by_a_failed_sensitivity_check_has_no_table_but_carries_the_line() -> None:
+    text = _every_rendered_output()["report stopped by a failed sensitivity check"]
+    assert "No power table" in text
+    assert CONDITIONAL_LINE in text
+
+
+# --- #65 AC7 (D-GATE): no power in the managers table at a count U5 marks invalid ---------------
+
+
+def _five_invalid_with_marked_power(failing: str = power_lab.BASELINE.name) -> power_lab.PowerResults:
+    # 0.777 marks power at 5 gameweeks, so the test can see whether the managers table prints it.
+    return _results(power_lab.SETTINGS, lambda s, share: 0.777 if s.gameweeks == 5 else 0.9, firings={failing: 68})
+
+
+# The first, a middle and the last setting at 5 gameweeks: the gate reads every setting at the count.
+FAILING_AT_5 = [s.name for s in power_lab.SETTINGS if s.gameweeks == 5]
+
+
+@pytest.mark.covers("#65 AC7")
+@pytest.mark.parametrize("failing", [FAILING_AT_5[0], FAILING_AT_5[len(FAILING_AT_5) // 2], FAILING_AT_5[-1]])
+def test_a_manager_row_at_an_invalid_count_claims_no_power(failing: str) -> None:
+    rows = power_report.build_report(_five_invalid_with_marked_power(failing), reachable=ALL_REACHABLE).managers
+    at_5 = [r for r in rows if r.gameweeks == 5]
+    assert at_5
+    assert all(r.power_at_headline is None for r in at_5)
+    assert all(r.power_at_headline == 0.9 for r in rows if r.gameweeks != 5)
+
+
+@pytest.mark.covers("#65 AC7")
+def test_the_rendered_managers_table_prints_invalid_never_a_power_number_at_an_invalid_count() -> None:
+    text = power_report.render(power_report.build_report(_five_invalid_with_marked_power(), reachable=ALL_REACHABLE))
+    table = _section(text, "## Power against managers")
+    rows_at_5 = [line for line in table.splitlines() if line.startswith("| ") and "| 5 |" in line]
+    assert rows_at_5
+    assert all(line.rstrip().endswith("| invalid |") for line in rows_at_5)
+    assert "0.777" not in table
+    assert any(line.rstrip().endswith("| 0.900 |") for line in table.splitlines())
+
+
+# --- #65 AC8 (D-P10): the headline MDE at the smallest valid count ------------------------------
+
+
+def _five_invalid_and_weakest() -> power_lab.PowerResults:
+    """5 gameweeks invalid and weakest; at 8 the corner is weakest, with an MDE of 55%; 12 is weaker than 8."""
+
+    def power(s: power_lab.Setting, share: float) -> float:
+        if s.gameweeks == 5:
+            return 0.3
+        if s.name == "worst_case_corner_gameweeks_8":
+            return 0.821 if share >= 0.55 else 0.4
+        if s.gameweeks == 12:
+            return 0.85 if share >= 0.55 else 0.35
+        return 0.9
+
+    return _results(power_lab.SETTINGS, power, firings=FIVE_INVALID)
+
+
+@pytest.mark.covers("#65 AC8")
+def test_the_headline_mde_is_read_at_the_smallest_valid_counts_weakest_setting() -> None:
+    reading = power_report.mde_reading(_five_invalid_and_weakest(), ALL_REACHABLE)
+    assert reading.gameweeks == 8
+    assert reading.setting == "worst_case_corner_gameweeks_8"
+    assert reading.label.mde == 0.55
+    assert reading.label.status is None
+
+
+@pytest.mark.covers("#65 AC8")
+def test_the_rendered_headline_mde_is_labelled_with_its_count() -> None:
+    text = power_report.render(power_report.build_report(_five_invalid_and_weakest(), reachable=ALL_REACHABLE))
+    section = _section(text, "## MDE")
+    assert "MDE 55% at 8 gameweeks" in section
+    assert "worst_case_corner_gameweeks_8" in section
+    assert power_report.NOT_DEFINED not in section
+
+
+@pytest.mark.covers("#65 AC8")
+def test_the_headline_mde_is_not_defined_only_when_no_count_is_valid() -> None:
+    every_count_invalid = {s.name: 90 for s in power_lab.SETTINGS}
+    results = _results(power_lab.SETTINGS, lambda s, share: 0.9, firings=every_count_invalid)
+    reading = power_report.mde_reading(results, ALL_REACHABLE)
+    assert reading.gameweeks is None
+    assert reading.label.mde == power_report.NOT_DEFINED
+    text = power_report.render(power_report.build_report(results, reachable=ALL_REACHABLE))
+    assert "MDE not defined: no gameweek count is valid" in _section(text, "## MDE")

@@ -13,7 +13,17 @@ Pure functions over a `PowerResults` -- every one can be called with a hand-buil
    the sweep" (U3, U4).
 
 **The gate (P11, AC3, U5).** The false-alarm check (AC1) gates per gameweek count; the sensitivity
-check (AC2, one cell at the corner) gates the whole table. A partial grid is refused outright.
+check (AC2, one cell at the corner) gates the whole table. A partial grid is refused outright. No
+power is printed at an invalid count anywhere, the managers table included (#65 D-GATE).
+
+**The headline MDE (P10 as amended by D-P10, #65).** The smallest valid count's MDE, read at that
+count's lowest-power setting and labelled with its count; "not defined" only if no count is valid.
+
+**The probe (#65).** The extra-large shock probe is reported alongside: each cell against N2's count,
+and for each count the largest shock (6 or 9 points) at which it stays within it. It never moves a
+U5 label. A missing probe cell refuses the whole report.
+
+Every rendered output carries `CONDITIONAL` (#65 AC6).
 """
 
 from __future__ import annotations
@@ -29,6 +39,10 @@ from decisions.starting_xi.power_lab import (
     GAMEWEEK_SWEEP,
     MANAGER_EFFECT_SD_POINTS,
     NULL_SHARE,
+    PROBE_ANCHORS,
+    PROBE_GAMEWEEKS,
+    PROBE_SETTINGS,
+    PROBE_SHOCK_SD_POINTS,
     SENSITIVITY_SHARE,
     SETTINGS,
     SHOCK_SD_POINTS,
@@ -36,6 +50,7 @@ from decisions.starting_xi.power_lab import (
     WORST_CASE_CORNER,
     PowerResults,
     Setting,
+    probe_setting,
 )
 
 # The pre-registered reading (PRE_REGISTRATION.yaml `power_lab`).
@@ -51,7 +66,12 @@ UNDETERMINED: Final[str] = "undetermined by construction"
 UNDERPOWERED: Final[str] = "underpowered"
 NOT_DEFINED: Final[str] = "not defined at this count"
 U4_VIOLATION: Final[str] = '"MDE beyond the sweep" without "underpowered"'
-CONDITIONAL: Final[str] = "conditional on the assumed edge, shock size, manager effect and tie rate"
+CONDITIONAL: Final[str] = (
+    "Conditional on assumed settings (shock, manager spread, tie rate, independence beyond the weekly shock); "
+    "not measured from real data."
+)
+LARGEST_SWEPT_SHOCK: Final[int] = max(SHOCK_SD_POINTS.values())
+NOT_PROBED: Final[str] = f"not probed at {PROBE_SHOCK_SD_POINTS}"
 
 
 class ReportRefused(ValueError):
@@ -134,20 +154,20 @@ def _lowest_power(results: PowerResults, settings: Sequence[Setting]) -> Setting
 
 @dataclass(frozen=True)
 class MdeReading:
-    setting: str
-    gameweeks: int
+    setting: str | None  # None when no count is valid
+    gameweeks: int | None
     label: RowLabel
 
 
 def mde_reading(results: PowerResults, reachable: Mapping[int, bool]) -> MdeReading:
-    """P10/AC4: the MDE at the lowest-power setting of the whole grid (lowest power at 55%)."""
-    weakest = _lowest_power(results, results.settings)
-    label = label_row(
-        _curve(results, weakest),
-        threshold_reachable=reachable[weakest.gameweeks],
-        false_alarm_ok=_false_alarm_ok(results, _at_count(results, weakest.gameweeks)),
-    )
-    return MdeReading(weakest.name, weakest.gameweeks, label)
+    """P10 as amended by D-P10 (#65 AC8): the smallest valid count's MDE, at its lowest-power setting."""
+    for gameweeks in sorted({s.gameweeks for s in results.settings}):
+        settings = _at_count(results, gameweeks)
+        if _false_alarm_ok(results, settings):
+            weakest = _lowest_power(results, settings)
+            label = label_row(_curve(results, weakest), threshold_reachable=reachable[gameweeks])
+            return MdeReading(weakest.name, gameweeks, label)
+    return MdeReading(None, None, label_row({}, threshold_reachable=False, false_alarm_ok=False))
 
 
 @dataclass(frozen=True)
@@ -189,11 +209,11 @@ def gameweeks_needed(results: PowerResults, edge: float) -> GameweeksNeeded:
         if not settings or not _false_alarm_ok(results, settings):
             continue
         if min(results.power[(s.name, edge)] for s in settings) >= PASS_MARK:
-            text = f"{gameweeks} gameweeks for 80% power at a true {edge:.0%}, {CONDITIONAL}"
+            text = f"{gameweeks} gameweeks for 80% power at a true {edge:.0%}"
             return GameweeksNeeded(edge, gameweeks, largest, text)
     text = (
         f"no swept count reaches 80% power at a true {edge:.0%} with a valid verdict procedure "
-        f"(largest tried: {largest}): more gameweeks than the season has, {CONDITIONAL}"
+        f"(largest tried: {largest}): more gameweeks than the season has"
     )
     return GameweeksNeeded(edge, None, largest, text)
 
@@ -204,15 +224,84 @@ class ManagerRow:
     managers: int
     gameweeks: int
     rows: int
-    power_at_headline: float
+    power_at_headline: float | None  # None where the count's verdict procedure is invalid (U5, D-GATE)
 
 
 def manager_sweep(results: PowerResults) -> list[ManagerRow]:
-    """AC10: power at 55% against the manager count, with the manager-week rows each setting implies."""
+    """AC10: power at 55% against the manager count, with the manager-week rows each setting implies.
+
+    No power at a count U5 marks invalid (#65 AC7, D-GATE).
+    """
+    valid = {g: _false_alarm_ok(results, _at_count(results, g)) for g in {s.gameweeks for s in results.settings}}
     return [
-        ManagerRow(s.name, s.managers, s.gameweeks, s.managers * s.gameweeks, results.power[(s.name, HEADLINE_EDGE)])
+        ManagerRow(
+            s.name,
+            s.managers,
+            s.gameweeks,
+            s.managers * s.gameweeks,
+            results.power[(s.name, HEADLINE_EDGE)] if valid[s.gameweeks] else None,
+        )
         for s in results.settings
     ]
+
+
+# --- The extra-large shock probe (#65 AC3) -------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ProbeCell:
+    anchor: str
+    gameweeks: int
+    firings: int
+    over_limit: bool
+
+
+@dataclass(frozen=True)
+class ShockLevel:
+    gameweeks: int
+    level: int | None  # None at a count U5 marks invalid
+    note: str | None  # NOT_PROBED at a valid count outside the probed counts
+
+
+@dataclass(frozen=True)
+class ProbeReport:
+    fake_studies: int
+    limit: int
+    cells: list[ProbeCell]
+    smallest_over: dict[str, int | None]  # by anchor; None: no probed count over the limit
+    shock_levels: list[ShockLevel]
+
+
+def probe_report(results: PowerResults) -> ProbeReport:
+    """Each probe cell against N2's count, and each count's largest shock within it (#65 decisions 2, 4).
+
+    A count stays within the limit at the probe's shock when every probe cell at it, at every anchor,
+    is at or under the count; U5's labels are read from the grid and never moved by the probe.
+    """
+    missing = [s.name for s in PROBE_SETTINGS if s.name not in results.probe_firings]
+    missing += [s.name for s in results.settings if s.name not in results.false_alarm_firings]
+    if missing:
+        raise ReportRefused(f"probe result refused: missing {', '.join(missing)}")
+    limit = false_alarm_max_firings(results.fake_studies)
+    cells = []
+    for anchor in PROBE_ANCHORS:
+        for gameweeks in PROBE_GAMEWEEKS:
+            firings = results.probe_firings[probe_setting(anchor, gameweeks).name]
+            cells.append(ProbeCell(anchor.name, gameweeks, firings, firings > limit))
+    smallest_over = {
+        a.name: min((c.gameweeks for c in cells if c.anchor == a.name and c.over_limit), default=None)
+        for a in PROBE_ANCHORS
+    }
+    levels = []
+    for gameweeks in GAMEWEEK_SWEEP:
+        if not _false_alarm_ok(results, _at_count(results, gameweeks)):
+            levels.append(ShockLevel(gameweeks, None, None))
+        elif gameweeks not in PROBE_GAMEWEEKS:
+            levels.append(ShockLevel(gameweeks, LARGEST_SWEPT_SHOCK, NOT_PROBED))
+        else:
+            within = not any(c.over_limit for c in cells if c.gameweeks == gameweeks)
+            levels.append(ShockLevel(gameweeks, PROBE_SHOCK_SD_POINTS if within else LARGEST_SWEPT_SHOCK, None))
+    return ProbeReport(results.fake_studies, limit, cells, smallest_over, levels)
 
 
 # --- p-value resolution (AC11) -------------------------------------------------------------------------
@@ -273,6 +362,7 @@ class Report:
     gameweek_rows: list[GameweekRow]
     needed: list[GameweeksNeeded]
     managers: list[ManagerRow]
+    probe: ProbeReport
     resolution: list[Resolution]
     fake_studies: int
     inner_resamples: int
@@ -292,6 +382,7 @@ def _refuse_unreportable(results: PowerResults) -> None:
 
 def build_report(results: PowerResults, *, reachable: Mapping[int, bool]) -> Report:
     _refuse_unreportable(results)
+    probe = probe_report(results)
     limit = false_alarm_max_firings(results.fake_studies)
     failed = [
         f"false-alarm check failed: {s.name} fired in {results.false_alarm_firings[s.name]} of {results.fake_studies}"
@@ -326,6 +417,7 @@ def build_report(results: PowerResults, *, reachable: Mapping[int, bool]) -> Rep
         gameweek_rows=[] if sensitivity_failed else rows,
         needed=[] if sensitivity_failed else [gameweeks_needed(results, e) for e in (HEADLINE_EDGE, SECONDARY_EDGE)],
         managers=[] if sensitivity_failed else manager_sweep(results),
+        probe=probe,
         resolution=resolution_table(GAMEWEEK_SWEEP, n_resamples=results.inner_resamples),
         fake_studies=results.fake_studies,
         inner_resamples=results.inner_resamples,
@@ -341,6 +433,53 @@ def _fmt(value: float | str | bool | None) -> str:
     return value if isinstance(value, str) else f"{value:.0%}" if value in TRUE_WIN_SHARES else f"{value:.3f}"
 
 
+def _shock_level_line(level: ShockLevel) -> str:
+    if level.level is None:
+        return f"- {level.gameweeks} gameweeks: no level (verdict procedure invalid at this count)"
+    note = f", {level.note}" if level.note else ""
+    return f"- {level.gameweeks} gameweeks: {level.level} points{note}"
+
+
+def _probe_lines(probe: ProbeReport) -> list[str]:
+    """The probe's cells against the limit, and the smallest probed count over it at each anchor."""
+    return [
+        f"Probe: a {PROBE_SHOCK_SD_POINTS}-point gameweek shock (an assumption) on no-edge cells (true "
+        f"{NULL_SHARE:.0%}), {probe.fake_studies:,} fake studies each, against N2's count: at most "
+        f"{probe.limit} family-wise firings. Reported alongside; it never invalidates a count.",
+        "",
+        "| Anchor | Gameweeks | Family-wise firings | Over the limit |",
+        "|---|---|---|---|",
+        *(
+            f"| {c.anchor} | {c.gameweeks} | {c.firings:,} of {probe.fake_studies:,} | "
+            f"{'yes' if c.over_limit else 'no'} |"
+            for c in probe.cells
+        ),
+        "",
+        *(
+            f"- {anchor}: smallest probed count over the limit: {g} gameweeks"
+            if g is not None
+            else f"- {anchor}: no probed count over the limit"
+            for anchor, g in probe.smallest_over.items()
+        ),
+    ]
+
+
+def render_probe(probe: ProbeReport) -> str:
+    """The probe's own report (#65 AC3, AC4), with the conditional line (AC6)."""
+    lines = [
+        "# Stage 5 power simulation lab -- extra-large shock probe",
+        "",
+        CONDITIONAL,
+        "",
+        *_probe_lines(probe),
+        "",
+        "## Largest tolerable gameweek shock per count",
+        "",
+        *(_shock_level_line(level) for level in probe.shock_levels),
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def _labels(label: RowLabel) -> str:
     names = [n for n in (label.status, "MDE beyond the sweep" if label.mde_beyond_sweep else None) if n]
     return "; ".join(names) or "none"
@@ -352,6 +491,8 @@ def render(report: Report) -> str:
     manager = ", ".join(f"{k} {v}" for k, v in MANAGER_EFFECT_SD_POINTS.items())
     lines = [
         "# Stage 5 power simulation lab -- report",
+        "",
+        CONDITIONAL,
         "",
         "## Assumptions (not measurements)",
         "",
@@ -374,17 +515,30 @@ def render(report: Report) -> str:
         lines += ["No power table: the sensitivity check failed (P11).", ""]
         return "\n".join(lines)
     assert report.mde is not None
+    headline = (
+        "- MDE not defined: no gameweek count is valid (U5)."
+        if report.mde.gameweeks is None
+        else f"- MDE {_fmt(report.mde.label.mde)} at {report.mde.gameweeks} gameweeks, read at {report.mde.setting} "
+        f"(that count's lowest-power setting); labels: {_labels(report.mde.label)}."
+    )
     lines += [
-        "## MDE at the lowest-power setting (P10)",
+        "## MDE at the smallest valid gameweek count (P10, D-P10)",
         "",
-        f"- Setting: {report.mde.setting} ({report.mde.gameweeks} gameweeks); MDE {_fmt(report.mde.label.mde)}; "
-        f"labels: {_labels(report.mde.label)}.",
+        headline,
         "",
         "## Gameweeks needed (output a)",
         "",
         *(f"- {n.text}." for n in report.needed),
         "",
-        "## MDE per gameweek count (output b), " + CONDITIONAL,
+        "### Largest tolerable gameweek shock per count (#65 probe)",
+        "",
+        *(_shock_level_line(level) for level in report.probe.shock_levels),
+        "",
+        "## Extra-large shock probe (#65)",
+        "",
+        *_probe_lines(report.probe),
+        "",
+        "## MDE per gameweek count (output b)",
         "",
         "| Gameweeks | Read at | Power at 55% | MDE | Label | 55% detectable | 53% detectable |",
         "|---|---|---|---|---|---|---|",
@@ -400,7 +554,8 @@ def render(report: Report) -> str:
         "| Setting | Managers | Gameweeks | Rows | Power at 55% |",
         "|---|---|---|---|---|",
         *(
-            f"| {m.setting} | {m.managers:,} | {m.gameweeks} | {m.rows:,} | {m.power_at_headline:.3f} |"
+            f"| {m.setting} | {m.managers:,} | {m.gameweeks} | {m.rows:,} | "
+            f"{'invalid' if m.power_at_headline is None else f'{m.power_at_headline:.3f}'} |"
             for m in report.managers
         ),
         "",

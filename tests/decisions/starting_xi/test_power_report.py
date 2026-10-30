@@ -529,3 +529,50 @@ def test_the_rendered_managers_table_prints_invalid_never_a_power_number_at_an_i
     assert all(line.rstrip().endswith("| invalid |") for line in rows_at_5)
     assert "0.777" not in table
     assert any(line.rstrip().endswith("| 0.900 |") for line in table.splitlines())
+
+
+# --- #65 AC8 (D-P10): the headline MDE at the smallest valid count ------------------------------
+
+
+def _five_invalid_and_weakest() -> power_lab.PowerResults:
+    """5 gameweeks invalid and weakest; at 8 the corner is weakest, with an MDE of 55%; 12 is weaker than 8."""
+
+    def power(s: power_lab.Setting, share: float) -> float:
+        if s.gameweeks == 5:
+            return 0.3
+        if s.name == "worst_case_corner_gameweeks_8":
+            return 0.821 if share >= 0.55 else 0.4
+        if s.gameweeks == 12:
+            return 0.85 if share >= 0.55 else 0.35
+        return 0.9
+
+    return _results(power_lab.SETTINGS, power, firings=FIVE_INVALID)
+
+
+@pytest.mark.covers("#65 AC8")
+def test_the_headline_mde_is_read_at_the_smallest_valid_counts_weakest_setting() -> None:
+    reading = power_report.mde_reading(_five_invalid_and_weakest(), ALL_REACHABLE)
+    assert reading.gameweeks == 8
+    assert reading.setting == "worst_case_corner_gameweeks_8"
+    assert reading.label.mde == 0.55
+    assert reading.label.status is None
+
+
+@pytest.mark.covers("#65 AC8")
+def test_the_rendered_headline_mde_is_labelled_with_its_count() -> None:
+    text = power_report.render(power_report.build_report(_five_invalid_and_weakest(), reachable=ALL_REACHABLE))
+    section = _section(text, "## MDE")
+    assert "MDE 55% at 8 gameweeks" in section
+    assert "worst_case_corner_gameweeks_8" in section
+    assert power_report.NOT_DEFINED not in section
+
+
+@pytest.mark.covers("#65 AC8")
+def test_the_headline_mde_is_not_defined_only_when_no_count_is_valid() -> None:
+    every_count_invalid = {s.name: 90 for s in power_lab.SETTINGS}
+    results = _results(power_lab.SETTINGS, lambda s, share: 0.9, firings=every_count_invalid)
+    reading = power_report.mde_reading(results, ALL_REACHABLE)
+    assert reading.gameweeks is None
+    assert reading.label.mde == power_report.NOT_DEFINED
+    text = power_report.render(power_report.build_report(results, reachable=ALL_REACHABLE))
+    assert "MDE not defined: no gameweek count is valid" in _section(text, "## MDE")

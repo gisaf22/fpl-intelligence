@@ -30,6 +30,12 @@ PIN_PATH = Path(__file__).resolve().parent / "pin.json"
 SOURCE = "s3://fpl-data-safari/served/"
 MANIFEST = "_manifest.json"
 CONTRACT_VERSION = 2
+# `served/` is overwritten in place, so a pinned publish's files survive only as S3 object versions.
+# Run 40289379567's manager files, for a snapshot of that run taken before they were relied on.
+MANAGER_OBJECT_VERSIONS = {
+    "fct_manager_pick.parquet": "GlIEiW6KrrM3MJlW8plrr4Rg3KI45mpE",
+    "fct_manager_gameweek.parquet": "y1CJo4gbI80smdWfu3nHTWzDcLZ9KntG",
+}
 
 # The columns this loader relies on, with the arrow type the publish writes them as. A column
 # missing or retyped in a publish is refused rather than coerced.
@@ -167,7 +173,10 @@ def refresh(*, source: str = SOURCE, snapshot_root: Path = SNAPSHOT_ROOT, pin_pa
         target = snapshot_root / pin.run_id
         if target.exists():
             if pin_of(target) != pin:
-                raise ServedContractError(f"snapshot {target} exists but differs from publish {pin.run_id} at {source}")
+                raise ServedContractError(
+                    f"snapshot {target} exists but differs from publish {pin.run_id} at {source}; "
+                    f"run 40289379567's manager files are object versions {MANAGER_OBJECT_VERSIONS}"
+                )
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(staging, target)

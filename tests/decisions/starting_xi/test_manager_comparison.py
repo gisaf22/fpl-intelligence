@@ -311,18 +311,21 @@ def test_other_chip_weeks_are_kept(chip: str) -> None:
     assert _feed(chips=_chips(chip))["gameweek"].tolist() == [5, 6]
 
 
-# --- AC10 (proposed): a panel manager-week with no score raises rather than dropping out ---
+# --- AC10 (proposed): a panel manager-week missing a side raises rather than dropping out ---
 
 
 @pytest.mark.unit
 @pytest.mark.covers("#69 AC10")
-@pytest.mark.parametrize("side", ["rule", "manager"])
+@pytest.mark.parametrize("side", ["rule", "manager", "chips"])
 def test_a_panel_manager_week_with_a_side_missing_raises(side: str) -> None:
     rule_weeks = _rule_weeks()
     manager_points = _manager_points()
+    chips = _chips()
     if side == "rule":
         rule_weeks = rule_weeks[rule_weeks["gw"] == 5]
-    else:
+    elif side == "manager":
         manager_points = manager_points[manager_points["gw"] == 5]
+    else:
+        chips = chips[chips["gw"] == 5]
     with pytest.raises(ValueError, match=r"\(1, 6\)"):
-        manager_comparison.paired_feed(rule_weeks, manager_points, _chips(), _panel())
+        manager_comparison.paired_feed(rule_weeks, manager_points, chips, _panel())

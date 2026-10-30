@@ -107,6 +107,12 @@ FROZEN_DESIGN: dict[str, Any] = {
         "headline_edge": 0.55,
         "secondary_edge": 0.53,
         "master_seed": 60,
+        "probe": {
+            "shock_sd_points": 9,
+            "share": 0.5,
+            "gameweeks": [8, 12, 16],
+            "anchors": ["worst_case_corner", "baseline"],
+        },
     },
 }
 
@@ -250,6 +256,28 @@ def test_the_false_alarm_count_is_recomputed_for_the_registered_number_of_fake_s
 
     lab = yaml.safe_load(PRE_REGISTRATION_PATH.read_text())["power_lab"]
     assert power_report.false_alarm_max_firings(lab["fake_studies"]) == lab["false_alarm_max_firings"]
+
+
+@pytest.mark.covers("#65 AC1")
+def test_the_lab_code_registers_the_probe_as_frozen() -> None:
+    # Without this the mismatch cases below would pass on a code mirror that has no probe at all.
+    assert starting_xi_power_lab.pre_registration_mismatches(FROZEN_DESIGN) == []
+
+
+@pytest.mark.covers("#65 AC1")
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("shock_sd_points", 6),
+        ("share", 0.55),
+        ("gameweeks", [8, 12]),
+        ("anchors", ["worst_case_corner"]),
+        ("anchors", ["baseline"]),
+    ],
+)
+def test_changing_any_one_probe_value_is_a_named_power_lab_mismatch(key: str, value: object) -> None:
+    mismatches = starting_xi_power_lab.pre_registration_mismatches(_mutate(("power_lab", "probe", key), value))
+    assert [m.split(":")[0] for m in mismatches] == ["power_lab"]
 
 
 @pytest.mark.covers("#60 AC5")

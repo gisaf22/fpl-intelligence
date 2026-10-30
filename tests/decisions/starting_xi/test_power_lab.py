@@ -91,7 +91,7 @@ def test_the_estimate_prices_each_setting_at_its_own_measured_cost() -> None:
     timings = {(2_000, 5): 0.1, (2_000, 38): 0.76}
 
     estimate = power_lab.estimate_grid_seconds(
-        cells=[(baseline, 0.55), (long_season, 0.55)], fake_studies=1_000, seconds_per_study=timings
+        cells=[(baseline, 0.55), (long_season, 0.55)], fake_studies=1_000, seconds_per_study=timings, workers=1
     )
 
     assert estimate == pytest.approx(1_000 * 0.1 + 1_000 * 0.76)
@@ -101,7 +101,9 @@ def test_the_estimate_prices_each_setting_at_its_own_measured_cost() -> None:
 @pytest.mark.covers("#60 AC12")
 def test_the_estimate_refuses_a_setting_the_pilot_did_not_time() -> None:
     with pytest.raises(KeyError, match="2000"):
-        power_lab.estimate_grid_seconds(cells=[(power_lab.BASELINE, 0.55)], fake_studies=10, seconds_per_study={})
+        power_lab.estimate_grid_seconds(
+            cells=[(power_lab.BASELINE, 0.55)], fake_studies=10, seconds_per_study={}, workers=1
+        )
 
 
 @pytest.mark.covers("#60 AC12")
@@ -291,8 +293,8 @@ def test_tier_1_holds_every_false_alarm_cell_and_both_edges_on_the_gameweek_swee
 @pytest.mark.covers("#60 AC17")
 def test_the_per_tier_estimate_flags_a_tier_over_one_sitting() -> None:
     sizes = power_lab.pilot_sizes(power_lab.SETTINGS)
-    fast = power_lab.estimate_by_tier(dict.fromkeys(sizes, 0.001), fake_studies=1_000)
-    slow = power_lab.estimate_by_tier(dict.fromkeys(sizes, 0.2), fake_studies=1_000)
+    fast = power_lab.estimate_by_tier(dict.fromkeys(sizes, 0.001), fake_studies=1_000, workers=1)
+    slow = power_lab.estimate_by_tier(dict.fromkeys(sizes, 0.2), fake_studies=1_000, workers=1)
     assert [e.tier for e in fast] == [1, 2, 3]
     assert not any(e.over_sitting_limit for e in fast)
     tier1 = slow[0]
@@ -330,3 +332,99 @@ def test_a_parallel_run_gives_the_same_cells_as_a_serial_one(tmp_path: Path) -> 
     serial, parallel = run("serial", 1), run("parallel", 2)
     assert parallel.complete and serial.complete
     assert parallel.cell_results == serial.cell_results
+
+
+# --- #65 AC2: the extra-large shock probe -- one no-edge cell per probed count per anchor -----------
+
+
+@pytest.mark.covers("#65 AC2")
+def test_the_probe_is_one_no_edge_cell_per_probed_count_at_each_anchor() -> None:
+    cells = power_lab.probe_cells()
+    expected = {
+        power_lab.cell_id(power_lab.probe_setting(anchor, g), 0.5)
+        for anchor in (power_lab.WORST_CASE_CORNER, power_lab.BASELINE)
+        for g in (8, 12, 16)
+    }
+    assert len(cells) == 6
+    assert {power_lab.cell_id(s, w) for s, w in cells} == expected
+    assert all(share == power_lab.NULL_SHARE == 0.5 for _, share in cells)
+
+
+@pytest.mark.covers("#65 AC2")
+@pytest.mark.parametrize("anchor", [power_lab.WORST_CASE_CORNER, power_lab.BASELINE], ids=lambda s: s.name)
+def test_a_probe_cell_takes_its_anchors_manager_effect_ties_and_managers_at_a_9_point_shock(
+    anchor: power_lab.Setting,
+) -> None:
+    for gameweeks in (8, 12, 16):
+        probe = power_lab.probe_setting(anchor, gameweeks)
+        assert (probe.manager_effect, probe.tie_rate, probe.managers) == (
+            anchor.manager_effect,
+            anchor.tie_rate,
+            anchor.managers,
+        )
+        assert probe.gameweeks == gameweeks
+        assert probe.shock == power_lab.PROBE_SHOCK
+    # The delta method at 50%: 9 points is 0.9 logit SD at 60% ties, 0.6 at 40% (#65 missing and edge data).
+    shock_sd, _ = power_lab._logit_sds(power_lab.probe_setting(anchor, 8))
+    assert shock_sd == pytest.approx({0.6: 0.9, 0.4: 0.6}[anchor.tie_rate])
+
+
+@pytest.mark.covers("#65 AC2")
+def test_a_probe_cell_hits_exactly_a_50_percent_share() -> None:
+    for setting, share in power_lab.probe_cells():
+        assert power_lab.expected_share(setting, share) == pytest.approx(0.5, abs=1e-9)
+
+
+@pytest.mark.covers("#65 AC2")
+def test_the_probe_leaves_the_grid_its_tiers_and_its_155_cells_unchanged() -> None:
+    probe_names = {s.name for s, _ in power_lab.probe_cells()}
+    assert len(power_lab.SETTINGS) == 22
+    assert not probe_names & {s.name for s in power_lab.SETTINGS}
+    tiered = {power_lab.cell_id(s, w) for t in power_lab.TIERS for s, w in power_lab.tier_cells(t)}
+    assert len(tiered) == 155
+    assert not {power_lab.cell_id(s, w) for s, w in power_lab.probe_cells()} & tiered
+
+
+# --- #65 AC5: the estimate is no less than the slowest cell's own time ---------------------------
+
+
+PILOT_16 = {(2_000, 16): 0.0567}  # the pilot's wall-clock per study at 2,000 x 16, 9-way
+
+
+@pytest.mark.covers("#65 AC5")
+def test_fewer_cells_than_workers_are_estimated_at_the_slowest_cells_own_time() -> None:
+    cells = [(replace(power_lab.BASELINE, name=f"g16_{i}", gameweeks=16), 0.5) for i in range(3)]
+    estimate = power_lab.estimate_grid_seconds(cells=cells, fake_studies=1_000, seconds_per_study=PILOT_16, workers=9)
+    slowest_cell = 1_000 * 0.0567 * 9  # one cell on one worker: about 8.5 min
+    assert estimate >= slowest_cell - 1e-9
+    assert estimate == pytest.approx(slowest_cell)  # not 3 x 1,000 x 0.0567 = about 2.8 min
+
+
+@pytest.mark.covers("#65 AC5")
+def test_more_cells_than_workers_are_still_estimated_from_the_total_work() -> None:
+    cells = [(replace(power_lab.BASELINE, name=f"g16_{i}", gameweeks=16), 0.5) for i in range(30)]
+    estimate = power_lab.estimate_grid_seconds(cells=cells, fake_studies=1_000, seconds_per_study=PILOT_16, workers=9)
+    assert estimate == pytest.approx(30 * 1_000 * 0.0567)
+
+
+@pytest.mark.covers("#65 AC5")
+def test_the_probe_run_logs_an_estimate_no_less_than_its_slowest_cell(tmp_path: Path) -> None:
+    lines: list[str] = []
+    timings = {(2_000, g): 0.0567 for g in (8, 12, 16)}
+    power_lab.run_lab(
+        cells=power_lab.probe_cells(),
+        fake_studies=1_000,
+        out_dir=tmp_path,
+        budget_seconds=0,  # nothing fits, so nothing runs: only the estimate is logged
+        seconds_per_study=timings,
+        log=lines.append,
+        workers=9,
+    )
+    estimate_line = next(line for line in lines if line.startswith(power_lab.ESTIMATE_PREFIX))
+    assert "510 s" in estimate_line  # 1,000 x 0.0567 x 9, not 6 x 1,000 x 0.0567 = 340 s
+
+
+@pytest.mark.covers("#65 AC5")
+def test_the_pilot_times_every_size_the_probe_runs_at() -> None:
+    probe_sizes = {(s.managers, s.gameweeks) for s, _ in power_lab.probe_cells()}
+    assert probe_sizes <= set(power_lab.pilot_sizes(power_lab.SETTINGS))

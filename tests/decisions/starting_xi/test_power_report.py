@@ -506,14 +506,19 @@ def test_a_report_stopped_by_a_failed_sensitivity_check_has_no_table_but_carries
 # --- #65 AC7 (D-GATE): no power in the managers table at a count U5 marks invalid ---------------
 
 
-def _five_invalid_with_marked_power() -> power_lab.PowerResults:
+def _five_invalid_with_marked_power(failing: str = power_lab.BASELINE.name) -> power_lab.PowerResults:
     # 0.777 marks power at 5 gameweeks, so the test can see whether the managers table prints it.
-    return _results(power_lab.SETTINGS, lambda s, share: 0.777 if s.gameweeks == 5 else 0.9, firings=FIVE_INVALID)
+    return _results(power_lab.SETTINGS, lambda s, share: 0.777 if s.gameweeks == 5 else 0.9, firings={failing: 68})
+
+
+# The first, a middle and the last setting at 5 gameweeks: the gate reads every setting at the count.
+FAILING_AT_5 = [s.name for s in power_lab.SETTINGS if s.gameweeks == 5]
 
 
 @pytest.mark.covers("#65 AC7")
-def test_a_manager_row_at_an_invalid_count_claims_no_power() -> None:
-    rows = power_report.build_report(_five_invalid_with_marked_power(), reachable=ALL_REACHABLE).managers
+@pytest.mark.parametrize("failing", [FAILING_AT_5[0], FAILING_AT_5[len(FAILING_AT_5) // 2], FAILING_AT_5[-1]])
+def test_a_manager_row_at_an_invalid_count_claims_no_power(failing: str) -> None:
+    rows = power_report.build_report(_five_invalid_with_marked_power(failing), reachable=ALL_REACHABLE).managers
     at_5 = [r for r in rows if r.gameweeks == 5]
     assert at_5
     assert all(r.power_at_headline is None for r in at_5)

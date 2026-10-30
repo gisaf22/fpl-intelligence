@@ -23,6 +23,7 @@ every player, as on the live publish.
 from __future__ import annotations
 
 import json
+import shutil
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -40,6 +41,7 @@ pytestmark = pytest.mark.unit
 
 SEASON = "2026-27"
 RUN_ID = "synthetic-59"
+MANAGER_FILES = Path(__file__).resolve().parents[3] / "warehouse" / "fixtures" / "40289379567"
 SEED = 0
 SCORED_GW = 5
 UNCAPTURED_GWS = (1, 2)
@@ -163,6 +165,8 @@ def _write(root: Path, publish: Publish, last_gw: int = SCORED_GW) -> served.Pin
         ),
         target / "dim_player.parquet",
     )
+    for name in ("fct_manager_pick.parquet", "fct_manager_gameweek.parquet"):
+        shutil.copy(MANAGER_FILES / name, target / name)
     manifest = {"run_id": RUN_ID, "contract_version": served.CONTRACT_VERSION, "seasons": [SEASON]}
     (target / served.MANIFEST).write_text(json.dumps(manifest), encoding="utf-8")
     return served.pin_of(target)

@@ -30,6 +30,12 @@ PIN_PATH = Path(__file__).resolve().parent / "pin.json"
 SOURCE = "s3://fpl-data-safari/served/"
 MANIFEST = "_manifest.json"
 CONTRACT_VERSION = 2
+# `served/` is overwritten in place, so a pinned publish's files survive only as S3 object versions.
+# Run 40289379567's manager files, for a snapshot of that run taken before they were relied on.
+MANAGER_OBJECT_VERSIONS = {
+    "fct_manager_pick.parquet": "GlIEiW6KrrM3MJlW8plrr4Rg3KI45mpE",
+    "fct_manager_gameweek.parquet": "y1CJo4gbI80smdWfu3nHTWzDcLZ9KntG",
+}
 
 # The columns this loader relies on, with the arrow type the publish writes them as. A column
 # missing or retyped in a publish is refused rather than coerced.
@@ -60,6 +66,21 @@ RELIED_ON: Mapping[str, Mapping[str, str]] = {
         "season": "string",
         "fpl_id": "int32",
         "position_id": "int32",
+    },
+    "fct_manager_pick": {
+        "season": "string",
+        "entry_id": "int32",
+        "gameweek": "int32",
+        "slot": "int32",
+        "fpl_id": "int32",
+        "is_auto_sub_in": "bool",
+        "is_auto_sub_out": "bool",
+    },
+    "fct_manager_gameweek": {
+        "season": "string",
+        "entry_id": "int32",
+        "gameweek": "int32",
+        "active_chip": "string",
     },
 }
 FILES = (MANIFEST, *(f"{table}.parquet" for table in RELIED_ON))
@@ -97,6 +118,20 @@ class Frames:
 
     fixture: pd.DataFrame
     gameweek: pd.DataFrame
+    pin: Pin
+
+
+@dataclass(frozen=True)
+class ManagerFrames:
+    """The panel's two frames for one season, with the pin they came from.
+
+    `picks`: one row per (entry_id, gw, slot) -- season, entry_id, gw, slot, player_id,
+    is_auto_sub_in, is_auto_sub_out. `slot` is the lineup after FPL's automatic substitutions.
+    `gameweeks`: one row per (entry_id, gw) -- season, entry_id, gw, active_chip (null: no chip).
+    """
+
+    picks: pd.DataFrame
+    gameweeks: pd.DataFrame
     pin: Pin
 
 
@@ -138,7 +173,10 @@ def refresh(*, source: str = SOURCE, snapshot_root: Path = SNAPSHOT_ROOT, pin_pa
         target = snapshot_root / pin.run_id
         if target.exists():
             if pin_of(target) != pin:
-                raise ServedContractError(f"snapshot {target} exists but differs from publish {pin.run_id} at {source}")
+                raise ServedContractError(
+                    f"snapshot {target} exists but differs from publish {pin.run_id} at {source}; "
+                    f"run 40289379567's manager files are object versions {MANAGER_OBJECT_VERSIONS}"
+                )
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(staging, target)
@@ -182,6 +220,15 @@ def _read(snapshot_dir: Path, table: str, season: str) -> pd.DataFrame:
     return frame.rename(columns={"fpl_id": "player_id", "gameweek": "gw", "team_fpl_id": "team_id"})
 
 
+def _verified_snapshot(season: str, pin: Pin, snapshot_root: Path) -> Path:
+    snapshot_dir = snapshot_root / pin.run_id
+    manifest = _verify(snapshot_dir, pin)
+    seasons = manifest.get("seasons")
+    if not isinstance(seasons, list) or season not in seasons:
+        raise ServedContractError(f"run_id {pin.run_id}: season {season} not in publish seasons {seasons}")
+    return snapshot_dir
+
+
 def load(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_ROOT) -> Frames:
     """The pinned publish's two frames for one season.
 
@@ -190,11 +237,7 @@ def load(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_
             not v2, a relied-on column is missing or retyped, or the season is not in the publish.
     """
     pin = read_pin() if pin is None else pin
-    snapshot_dir = snapshot_root / pin.run_id
-    manifest = _verify(snapshot_dir, pin)
-    seasons = manifest.get("seasons")
-    if not isinstance(seasons, list) or season not in seasons:
-        raise ServedContractError(f"run_id {pin.run_id}: season {season} not in publish seasons {seasons}")
+    snapshot_dir = _verified_snapshot(season, pin, snapshot_root)
 
     fixture = _read(snapshot_dir, "fct_player_fixture", season)
     fixture = fixture[["season", "player_id", "gw", "fixture_id", "team_id", "minutes", "starts", "total_points"]]
@@ -249,3 +292,22 @@ def load(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_
         ]
     ]
     return Frames(fixture=fixture, gameweek=gameweek, pin=pin)
+
+
+def load_managers(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_ROOT) -> ManagerFrames:
+    """The pinned publish's manager frames for one season, under `load`'s checks.
+
+    Raises:
+        ServedContractError: as `load`, or the season is published with no manager rows.
+    """
+    pin = read_pin() if pin is None else pin
+    snapshot_dir = _verified_snapshot(season, pin, snapshot_root)
+    picks = _read(snapshot_dir, "fct_manager_pick", season)
+    if picks.empty:
+        raise ServedContractError(f"run_id {pin.run_id}: no manager rows for season {season}")
+    gameweeks = _read(snapshot_dir, "fct_manager_gameweek", season)
+    return ManagerFrames(
+        picks=picks.sort_values(["entry_id", "gw", "slot"], ignore_index=True),
+        gameweeks=gameweeks.sort_values(["entry_id", "gw"], ignore_index=True),
+        pin=pin,
+    )

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import ast
 import json
+import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -33,6 +34,7 @@ from warehouse import served
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SEASON = "2025-26"
 RUN_ID = "synthetic-43"
+MANAGER_FILES = Path(__file__).resolve().parents[3] / "warehouse" / "fixtures" / "40289379567"
 SEED = 20261017
 GAMEWEEKS = range(1, 39)
 
@@ -138,6 +140,8 @@ def snapshot(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, served.Pin
         [{"season": SEASON, "fpl_id": p, "position_id": positions[p]} for p in PLAYER_IDS],
         pa.schema([("season", pa.string()), *_int32("fpl_id", "position_id")]),
     )
+    for name in ("fct_manager_pick.parquet", "fct_manager_gameweek.parquet"):
+        shutil.copy(MANAGER_FILES / name, target / name)
     manifest = {"run_id": RUN_ID, "contract_version": served.CONTRACT_VERSION, "seasons": [SEASON]}
     (target / served.MANIFEST).write_text(json.dumps(manifest), encoding="utf-8")
     return root, served.pin_of(target)

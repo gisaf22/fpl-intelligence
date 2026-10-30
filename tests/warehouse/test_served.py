@@ -1,8 +1,9 @@
 """Acceptance tests for the served-publish loader (#29).
 
 The fixture under `warehouse/fixtures/40289379567/` is a real sample of fpl-warehouse publish run
-40289379567: its `_manifest.json` verbatim, and the `fct_player_fixture`, `fct_player_gameweek`
-and `dim_player` rows of two players, both seasons, written with the publish's own arrow schema.
+40289379567: its `_manifest.json` verbatim, the `fct_player_fixture`, `fct_player_gameweek` and
+`dim_player` rows of two players, both seasons, and the `fct_manager_pick` and
+`fct_manager_gameweek` rows of one manager, written with the publish's own arrow schema.
 
 - `fpl_id` 149 (2025-26): starts at club 6, loans to club 19 from GW4, returns to club 6 from GW24;
   blank in GW34; double in GW33.
@@ -10,6 +11,7 @@ and `dim_player` rows of two players, both seasons, written with the publish's o
 - `fpl_id` 149 also carries 2026-27 rows (GW1-7), so a season filter that leaks shows up. Their
   `fixture_count_at_deadline` is NULL at GW1-2 (no capture before those deadlines) and 1 from GW3;
   every 2025-26 row's is NULL.
+- `entry_id` 7254 (2026-27, GW1-7): Bench Boost in GW2, Free Hit in GW3, auto-subs in GW5 and GW6.
 """
 
 from __future__ import annotations
@@ -30,6 +32,8 @@ RUN_ID = "40289379567"
 SEASON = "2025-26"
 LOAN_AND_RETURN = 149
 LATE_ENTRANT = 691
+MANAGER_SEASON = "2026-27"
+SAMPLED_MANAGER = 7254
 
 
 @pytest.fixture
@@ -273,3 +277,66 @@ def test_a_late_entrant_has_no_row_before_entry(frames: served.Frames) -> None:
     rows = frames.gameweek[frames.gameweek["player_id"] == LATE_ENTRANT]
     assert rows["gw"].min() == 2
     assert set(rows["entry_gw"]) == {2}
+
+
+# --- #69 AC6: the manager frames are pinned like the player frames, and keep entry_id ---
+
+
+@pytest.fixture
+def manager_frames(pin: served.Pin) -> served.ManagerFrames:
+    return served.load_managers(MANAGER_SEASON, pin=pin, snapshot_root=FIXTURE_ROOT)
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#69 AC6")
+def test_the_manager_frames_keep_entry_id_on_the_loaders_column_names(manager_frames: served.ManagerFrames) -> None:
+    assert list(manager_frames.picks.columns) == [
+        "season",
+        "entry_id",
+        "gw",
+        "slot",
+        "player_id",
+        "is_auto_sub_in",
+        "is_auto_sub_out",
+    ]
+    assert list(manager_frames.gameweeks.columns) == ["season", "entry_id", "gw", "active_chip"]
+    assert set(manager_frames.picks["entry_id"]) == {SAMPLED_MANAGER}
+    assert len(manager_frames.picks) == 7 * 15
+    assert manager_frames.gameweeks.set_index("gw")["active_chip"].loc[[2, 3]].tolist() == ["bboost", "freehit"]
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#69 AC6")
+@pytest.mark.parametrize("table", ["fct_manager_pick", "fct_manager_gameweek"])
+def test_a_changed_byte_in_a_manager_file_is_refused(pin: served.Pin, tmp_path: Path, table: str) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    path = snapshot / f"{table}.parquet"
+    data = bytearray(path.read_bytes())
+    data[len(data) // 2] ^= 0xFF
+    path.write_bytes(data)
+    with pytest.raises(served.ServedContractError, match=rf"{table}.*sha256"):
+        served.load_managers(MANAGER_SEASON, pin=pin, snapshot_root=tmp_path)
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#69 AC6")
+@pytest.mark.parametrize(
+    ("table", "column"),
+    [
+        ("fct_manager_pick", "entry_id"),
+        ("fct_manager_pick", "is_auto_sub_out"),
+        ("fct_manager_gameweek", "active_chip"),
+    ],
+)
+def test_a_missing_relied_on_manager_column_is_refused(tmp_path: Path, table: str, column: str) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    _rewrite(snapshot / f"{table}.parquet", lambda t: t.drop_columns([column]))
+    with pytest.raises(served.ServedContractError, match=rf"{table}.*{column}"):
+        served.load_managers(MANAGER_SEASON, pin=served.pin_of(snapshot), snapshot_root=tmp_path)
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#69 AC8")
+def test_a_published_season_with_no_manager_rows_is_refused(pin: served.Pin) -> None:
+    with pytest.raises(served.ServedContractError, match=rf"no manager rows.*{SEASON}"):
+        served.load_managers(SEASON, pin=pin, snapshot_root=FIXTURE_ROOT)

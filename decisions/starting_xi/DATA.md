@@ -25,6 +25,8 @@ manifest records both. A run whose input hashes differ from its pin is refused.
 | Price (squad cost) | Per season — **2025-26:** `fct_player_gameweek.value` ÷ 10, the most recent non-null value strictly before gw; with none (GW1, a player's entry week), that gameweek's own value. **2026-27 onward:** the value as of each gameweek's deadline, from served `fct_player_market_snapshot` (exact). | The 2025-26 rule is a season-specific workaround, not the target rule: no pre-deadline snapshots exist for 2025-26. The as-of-deadline rule is the target; the loader does not implement it yet ([#49](https://github.com/gisaf22/fpl-intelligence/issues/49)). A blank's row is null, so the gameweek after a blank carries the last known price and the player stays pickable. The listing price is set before the deadline, so the own-week fallback leaks no outcome. NULL only when the player has no value at all. |
 | Budget | — | £100.0m every gameweek. |
 | Ownership weight | `selected`, by the same per-season rule as price: 2025-26 from `fct_player_gameweek` (workaround), 2026-27 onward as of the deadline from `fct_player_market_snapshot` | A realism assumption, read only alongside the uniform view. |
+| Manager picks (Stage 5, #69) | `fct_manager_pick` (`entry_id`, `gameweek`, `slot`, `fpl_id`, `is_auto_sub_in`, `is_auto_sub_out`) | `warehouse.served.load_managers`: `entry_id` kept, `fpl_id` and `gameweek` renamed as elsewhere. `slot` is the lineup after FPL's automatic substitutions. |
+| Manager chip per gameweek (Stage 5, #69) | `fct_manager_gameweek.active_chip` | Null means no chip. |
 
 ## Naming
 

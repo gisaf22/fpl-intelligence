@@ -501,3 +501,31 @@ def test_a_report_stopped_by_a_failed_sensitivity_check_has_no_table_but_carries
     text = _every_rendered_output()["report stopped by a failed sensitivity check"]
     assert "No power table" in text
     assert CONDITIONAL_LINE in text
+
+
+# --- #65 AC7 (D-GATE): no power in the managers table at a count U5 marks invalid ---------------
+
+
+def _five_invalid_with_marked_power() -> power_lab.PowerResults:
+    # 0.777 marks power at 5 gameweeks, so the test can see whether the managers table prints it.
+    return _results(power_lab.SETTINGS, lambda s, share: 0.777 if s.gameweeks == 5 else 0.9, firings=FIVE_INVALID)
+
+
+@pytest.mark.covers("#65 AC7")
+def test_a_manager_row_at_an_invalid_count_claims_no_power() -> None:
+    rows = power_report.build_report(_five_invalid_with_marked_power(), reachable=ALL_REACHABLE).managers
+    at_5 = [r for r in rows if r.gameweeks == 5]
+    assert at_5
+    assert all(r.power_at_headline is None for r in at_5)
+    assert all(r.power_at_headline == 0.9 for r in rows if r.gameweeks != 5)
+
+
+@pytest.mark.covers("#65 AC7")
+def test_the_rendered_managers_table_prints_invalid_never_a_power_number_at_an_invalid_count() -> None:
+    text = power_report.render(power_report.build_report(_five_invalid_with_marked_power(), reachable=ALL_REACHABLE))
+    table = _section(text, "## Power against managers")
+    rows_at_5 = [line for line in table.splitlines() if line.startswith("| ") and "| 5 |" in line]
+    assert rows_at_5
+    assert all(line.rstrip().endswith("| invalid |") for line in rows_at_5)
+    assert "0.777" not in table
+    assert any(line.rstrip().endswith("| 0.900 |") for line in table.splitlines())

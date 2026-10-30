@@ -113,3 +113,11 @@ power_lab:
   headline_edge: 0.55
   secondary_edge: 0.53
   master_seed: 60
+  # The extra-large shock probe (#65), added 2026-10-29: power_lab.PROBE_*. One no-edge cell per
+  # probed gameweek count per anchor, at a 9-point gameweek shock (an assumption, outside the swept
+  # sizes). Reported alongside the grid; it never invalidates a gameweek count.
+  probe:
+    shock_sd_points: 9
+    share: 0.5
+    gameweeks: [8, 12, 16]
+    anchors: [worst_case_corner, baseline]

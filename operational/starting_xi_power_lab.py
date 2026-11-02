@@ -25,7 +25,7 @@ from typing import Any, Final
 
 import yaml
 
-from decisions.starting_xi import power_lab, power_report, verdict
+from decisions.starting_xi import evaluation_panel, picks_profile, power_lab, power_report, verdict
 
 RESULTS_DIR: Final[Path] = Path(__file__).resolve().parents[1] / "decisions" / "starting_xi" / "power_lab_results"
 CELLS_DIR: Final[Path] = RESULTS_DIR / "cells"
@@ -95,6 +95,16 @@ def _power_lab() -> dict[str, object]:
     }
 
 
+def _evaluation_panel() -> dict[str, object]:
+    """The Stage 5 panel's pre-registered constants, in the file's shape."""
+    return {
+        "activity_window": picks_profile.ACTIVITY_WINDOW,
+        "first_screened_tenure": picks_profile.FIRST_SCREENED_TENURE,
+        "excluded_cohorts": sorted(evaluation_panel.EXCLUDED_COHORTS),
+        "rank_lag_gameweeks": evaluation_panel.RANK_LAG_GAMEWEEKS,
+    }
+
+
 def pre_registration_mismatches(pre_registration: Mapping[str, Any]) -> list[str]:
     """`PRE_REGISTRATION.yaml`'s Stage 5 entries against the code that owns them (#60 AC5).
 
@@ -105,6 +115,7 @@ def pre_registration_mismatches(pre_registration: Mapping[str, Any]) -> list[str
     pairs = {
         "stage5_verdict": (_stage5_verdict(), dict(pre_registration["stage5_verdict"])),
         "power_lab": (_power_lab(), dict(pre_registration["power_lab"])),
+        "evaluation_panel": (_evaluation_panel(), dict(pre_registration["evaluation_panel"])),
     }
     return [f"{name}: code={code!r} registered={reg!r}" for name, (code, reg) in pairs.items() if code != reg]
 

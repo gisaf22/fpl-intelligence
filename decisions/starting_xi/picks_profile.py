@@ -37,12 +37,12 @@ UNLIMITED_TRANSFER_CHIPS: Final[frozenset[str]] = frozenset({"wildcard", "freehi
 CHIPS: Final[tuple[str, ...]] = ("3xc", "bboost", "freehit", "wildcard")
 #: Transfer counts at and above this are pooled into one bucket.
 TRANSFER_BUCKET_CAP: Final = 4
-#: Gameweeks the activity screen looks back over.
+#: Week-over-week comparisons the activity screen reads, ending at the scored gameweek.
 ACTIVITY_WINDOW: Final = 3
 #: The first gameweek of a manager's own tenure that is screened: their first gameweek has no
 #: measurable change (no earlier team to compare with), so tenure weeks 2-4 are the first full
-#: window and they screen tenure week 5. A manager's first four gameweeks count as they are.
-FIRST_SCREENED_TENURE: Final = ACTIVITY_WINDOW + 2
+#: window. A tenure of three gameweeks or less is exempt: not tested, not assumed active.
+FIRST_SCREENED_TENURE: Final = ACTIVITY_WINDOW + 1
 #: Overall-rank cut-offs the rank screen counts at. Counts only: no cut-off is chosen here.
 RANK_SCREEN_THRESHOLDS: Final[tuple[int, ...]] = (10_000, 100_000, 1_000_000)
 DECILES: Final = 10
@@ -280,20 +280,20 @@ def activity_screen(gameweeks: pd.DataFrame, picks: pd.DataFrame, scored_gw: int
 
     The screen runs on each manager's own clock. `tenure` is `scored_gw`'s place among the
     gameweeks since the manager's first picks (1 in that first gameweek). Before
-    `FIRST_SCREENED_TENURE` the manager is not `screened`: they pass and every flag is False.
+    `FIRST_SCREENED_TENURE` the manager is exempt, not `screened`: they pass and every flag is False.
 
-    From it on, the window is the `ACTIVITY_WINDOW` gameweeks before `scored_gw`, never `scored_gw`
-    itself: including it would screen on the choice being scored. A change in week g means g's team
-    differs from g-1's. A manager passes if, in any window gameweek g, they made a transfer, played
-    a chip, or their picked XI (`picked_xi`, before auto-subs) or captain (`is_captain`, which stays
-    with the picked captain when the vice takes the armband) differs from g-1's. A Free Hit's
-    reversion shows as a changed XI the week after, which counts: the screen asks whether anything
-    changed, not why. A screened manager is `evaluable` only with a capture in every gameweek from
-    the one before the window to `scored_gw`; every flag of one who is not is False.
+    From it on, the window is the `ACTIVITY_WINDOW` week-over-week comparisons ending at `scored_gw`,
+    which is in its own window (https://github.com/gisaf22/fpl-intelligence/issues/55 decision 5). A
+    change in week g means g's team differs from g-1's. A manager passes if, in any window gameweek
+    g, they made a transfer, played a chip, or their picked XI (`picked_xi`, before auto-subs) or
+    captain (`is_captain`, which stays with the picked captain when the vice takes the armband)
+    differs from g-1's. A Free Hit's reversion shows as a changed XI the week after, which counts:
+    the screen asks whether anything changed, not why.
+
+    A hole in a manager's history never reaches this screen: the loader refuses one (D-S2 on
+    https://github.com/gisaf22/fpl-intelligence/issues/55). There is no untestable bucket.
     """
-    first_gw = scored_gw - ACTIVITY_WINDOW
-    needed = set(range(first_gw - 1, scored_gw + 1))
-    window = range(first_gw, scored_gw)
+    window = range(scored_gw - ACTIVITY_WINDOW + 1, scored_gw + 1)
 
     xi = picked_xi(picks)
     captain = picks[picks["is_captain"]].set_index(["entry_id", "gameweek"])["fpl_id"]
@@ -307,8 +307,7 @@ def activity_screen(gameweeks: pd.DataFrame, picks: pd.DataFrame, scored_gw: int
         tenure = scored_gw - min(gws) + 1
         screened = tenure >= FIRST_SCREENED_TENURE
         flags = dict(changed_xi=False, changed_captain=False, transferred=False, chip=False)
-        evaluable = not screened or needed <= gws
-        if screened and evaluable:
+        if screened:
             for g in window:
                 flags["changed_xi"] |= xi[(entry_id, g)] != xi[(entry_id, g - 1)]
                 flags["changed_captain"] |= captain[(entry_id, g)] != captain[(entry_id, g - 1)]
@@ -320,7 +319,6 @@ def activity_screen(gameweeks: pd.DataFrame, picks: pd.DataFrame, scored_gw: int
                 "cohort": cohort[entry_id],
                 "tenure": tenure,
                 "screened": screened,
-                "evaluable": evaluable,
                 **flags,
             }
         )
@@ -331,23 +329,21 @@ def activity_screen(gameweeks: pd.DataFrame, picks: pd.DataFrame, scored_gw: int
 
 
 def activity_counts(screen: pd.DataFrame) -> pd.Series:
-    """Counts from `activity_screen` by tenure group: managers, those in their first four gameweeks
-    (`first_four`, unscreened) and from their fifth (`fifth_onward`); then, of `fifth_onward`, the
-    evaluable, each component, and passing."""
-    screened = screen[screen["screened"]]
-    evaluable = screened[screened["evaluable"]]
+    """Counts from `activity_screen` by tenure group: managers, those `exempt` (a tenure of three
+    gameweeks or less) and those `tested` (tenure 4 onward); then, of `tested`, each component,
+    `passed` and `failed`. `exempt` + `passed` + `failed` is every manager."""
+    tested = screen[screen["screened"]]
     return pd.Series(
         {
             "managers": len(screen),
-            "first_four": len(screen) - len(screened),
-            "fifth_onward": len(screened),
-            "evaluable": len(evaluable),
-            "changed_xi": int(evaluable["changed_xi"].sum()),
-            "changed_captain": int(evaluable["changed_captain"].sum()),
-            "transferred": int(evaluable["transferred"].sum()),
-            "chip": int(evaluable["chip"].sum()),
-            "passes": int(evaluable["passes"].sum()),
-            "fails": int((~evaluable["passes"]).sum()),
+            "exempt": len(screen) - len(tested),
+            "tested": len(tested),
+            "changed_xi": int(tested["changed_xi"].sum()),
+            "changed_captain": int(tested["changed_captain"].sum()),
+            "transferred": int(tested["transferred"].sum()),
+            "chip": int(tested["chip"].sum()),
+            "passed": int(tested["passes"].sum()),
+            "failed": int((~tested["passes"]).sum()),
         },
         name="managers",
     )

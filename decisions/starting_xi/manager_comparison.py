@@ -9,9 +9,8 @@ manager's eleven goes through `score_elevens`, tied to the harness's plain-point
 own auto-subs. `verdict.py` reads no points column, so `paired_feed` is the one place that rule can
 hold.
 
-**The evaluation panel and rank bands are the caller's input** (D-R6), built by
-https://github.com/gisaf22/fpl-intelligence/issues/70. The feed adds no population rule beyond the
-Free Hit and Bench Boost exclusion.
+**The evaluation panel and rank bands are the caller's input** (D-R6): `evaluation_panel.py`
+builds them. The feed adds no population rule beyond the Free Hit and Bench Boost exclusion.
 
 **Comparing D2 with a manager on real results waits for the freeze** (#55). Nothing here runs it;
 this module only provides the pieces.

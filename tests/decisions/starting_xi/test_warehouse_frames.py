@@ -140,7 +140,7 @@ def snapshot(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, served.Pin
         [{"season": SEASON, "fpl_id": p, "position_id": positions[p]} for p in PLAYER_IDS],
         pa.schema([("season", pa.string()), *_int32("fpl_id", "position_id")]),
     )
-    for name in ("fct_manager_pick.parquet", "fct_manager_gameweek.parquet"):
+    for name in ("fct_manager_pick.parquet", "fct_manager_gameweek.parquet", "dim_gameweek.parquet"):
         shutil.copy(MANAGER_FILES / name, target / name)
     manifest = {"run_id": RUN_ID, "contract_version": served.CONTRACT_VERSION, "seasons": [SEASON]}
     (target / served.MANIFEST).write_text(json.dumps(manifest), encoding="utf-8")

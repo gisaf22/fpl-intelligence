@@ -2,8 +2,9 @@
 
 The fixture under `warehouse/fixtures/40289379567/` is a real sample of fpl-warehouse publish run
 40289379567: its `_manifest.json` verbatim, the `fct_player_fixture`, `fct_player_gameweek` and
-`dim_player` rows of two players, both seasons, and the `fct_manager_pick` and
-`fct_manager_gameweek` rows of one manager, written with the publish's own arrow schema.
+`dim_player` rows of two players, both seasons, the `fct_manager_pick` and `fct_manager_gameweek`
+rows of one manager, and the `dim_gameweek` rows of 2026-27 GW1-8 and 2025-26 GW1, written with the
+publish's own arrow schema.
 
 - `fpl_id` 149 (2025-26): starts at club 6, loans to club 19 from GW4, returns to club 6 from GW24;
   blank in GW34; double in GW33.
@@ -12,14 +13,18 @@ The fixture under `warehouse/fixtures/40289379567/` is a real sample of fpl-ware
   `fixture_count_at_deadline` is NULL at GW1-2 (no capture before those deadlines) and 1 from GW3;
   every 2025-26 row's is NULL.
 - `entry_id` 7254 (2026-27, GW1-7): Bench Boost in GW2, Free Hit in GW3, auto-subs in GW5 and GW6.
+- `dim_gameweek`: `ranked_count` is set for 2026-27 GW1-7 and null at GW8 and for 2025-26.
 """
 
 from __future__ import annotations
 
 import json
 import shutil
+import subprocess
+from collections.abc import Callable
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -298,8 +303,17 @@ def test_the_manager_frames_keep_entry_id_on_the_loaders_column_names(manager_fr
         "player_id",
         "is_auto_sub_in",
         "is_auto_sub_out",
+        "is_captain",
     ]
-    assert list(manager_frames.gameweeks.columns) == ["season", "entry_id", "gw", "active_chip"]
+    assert list(manager_frames.gameweeks.columns) == [
+        "season",
+        "entry_id",
+        "gw",
+        "active_chip",
+        "cohort",
+        "event_transfers",
+        "overall_rank",
+    ]
     assert set(manager_frames.picks["entry_id"]) == {SAMPLED_MANAGER}
     assert len(manager_frames.picks) == 7 * 15
     assert manager_frames.gameweeks.set_index("gw")["active_chip"].loc[[2, 3]].tolist() == ["bboost", "freehit"]
@@ -307,7 +321,8 @@ def test_the_manager_frames_keep_entry_id_on_the_loaders_column_names(manager_fr
 
 @pytest.mark.integration
 @pytest.mark.covers("#69 AC6")
-@pytest.mark.parametrize("table", ["fct_manager_pick", "fct_manager_gameweek"])
+@pytest.mark.covers("#70 AC6")
+@pytest.mark.parametrize("table", ["fct_manager_pick", "fct_manager_gameweek", "dim_gameweek"])
 def test_a_changed_byte_in_a_manager_file_is_refused(pin: served.Pin, tmp_path: Path, table: str) -> None:
     snapshot = _copy_snapshot(tmp_path)
     path = snapshot / f"{table}.parquet"
@@ -320,12 +335,18 @@ def test_a_changed_byte_in_a_manager_file_is_refused(pin: served.Pin, tmp_path: 
 
 @pytest.mark.integration
 @pytest.mark.covers("#69 AC6")
+@pytest.mark.covers("#70 AC6")
 @pytest.mark.parametrize(
     ("table", "column"),
     [
         ("fct_manager_pick", "entry_id"),
         ("fct_manager_pick", "is_auto_sub_out"),
+        ("fct_manager_pick", "is_captain"),
         ("fct_manager_gameweek", "active_chip"),
+        ("fct_manager_gameweek", "cohort"),
+        ("fct_manager_gameweek", "event_transfers"),
+        ("fct_manager_gameweek", "overall_rank"),
+        ("dim_gameweek", "ranked_count"),
     ],
 )
 def test_a_missing_relied_on_manager_column_is_refused(tmp_path: Path, table: str, column: str) -> None:
@@ -340,3 +361,244 @@ def test_a_missing_relied_on_manager_column_is_refused(tmp_path: Path, table: st
 def test_a_published_season_with_no_manager_rows_is_refused(pin: served.Pin) -> None:
     with pytest.raises(served.ServedContractError, match=rf"no manager rows.*{SEASON}"):
         served.load_managers(SEASON, pin=pin, snapshot_root=FIXTURE_ROOT)
+
+
+# --- #70 AC6: `ranked_count` comes from a pinned `dim_gameweek`, and ranks stay integers ---
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#70 AC6")
+def test_the_pin_names_dim_gameweek_by_its_hash_and_its_s3_version() -> None:
+    pin = served.read_pin()
+    assert pin.run_id == RUN_ID
+    assert pin.sha256["dim_gameweek.parquet"] == "587aaf88cab39f70046189d05180a78c6401741ca67477e77848566d8d5b5161"
+    assert pin.object_versions["dim_gameweek.parquet"] == "u4SH.I4YCDvUIW730jaMNV7eE3GY9xp7"
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#70 AC6")
+def test_ranked_count_is_read_for_the_requested_season_and_a_null_stays_null(
+    manager_frames: served.ManagerFrames,
+) -> None:
+    counts = manager_frames.ranked_counts
+    assert list(counts.columns) == ["season", "gw", "ranked_count"]
+    assert set(counts["season"]) == {MANAGER_SEASON}
+    by_gw = counts.set_index("gw")["ranked_count"]
+    assert by_gw.index.tolist() == list(range(1, 9))
+    assert by_gw.loc[[1, 7]].tolist() == [8903411, 11063261]
+    assert by_gw.loc[8] is pd.NA
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#70 AC3")
+def test_ranks_and_ranked_counts_load_as_integers_with_a_null_rank_kept(tmp_path: Path) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+
+    def null_gw4_rank(table: pa.Table) -> pa.Table:
+        weeks = table["gameweek"].to_pylist()
+        ranks = table["overall_rank"].to_pylist()
+        rank = pa.array([None if gw == 4 else r for gw, r in zip(weeks, ranks, strict=True)], pa.int32())
+        return table.set_column(table.schema.get_field_index("overall_rank"), "overall_rank", rank)
+
+    _rewrite(snapshot / "fct_manager_gameweek.parquet", null_gw4_rank)
+    loaded = served.load_managers(MANAGER_SEASON, pin=served.pin_of(snapshot), snapshot_root=tmp_path)
+    assert loaded.gameweeks["overall_rank"].dtype == "Int64"
+    assert loaded.ranked_counts["ranked_count"].dtype == "Int64"
+    assert loaded.gameweeks.set_index("gw")["overall_rank"].isna().loc[[3, 4]].tolist() == [False, True]
+
+
+# --- #70 AC7: the producer's guarantee of an unbroken history, asserted on load ---
+
+OTHER_MANAGER = 11
+THIRD_MANAGER = 12
+
+
+def _add_manager(snapshot: Path, entry_id: int, weeks: range | list[int], *, cohort: str = "random") -> None:
+    """Copy the sampled manager's rows for `weeks` to a new `entry_id` in both manager tables."""
+
+    def with_copy(table: pa.Table) -> pa.Table:
+        sampled = (table["entry_id"].to_numpy() == SAMPLED_MANAGER) & np.isin(table["gameweek"].to_numpy(), list(weeks))
+        rows = table.filter(pa.array(sampled))
+        ids = pa.array([entry_id] * rows.num_rows, pa.int32())
+        rows = rows.set_column(rows.schema.get_field_index("entry_id"), "entry_id", ids)
+        if "cohort" in rows.schema.names:
+            cohorts = pa.array([cohort] * rows.num_rows, pa.string())
+            rows = rows.set_column(rows.schema.get_field_index("cohort"), "cohort", cohorts)
+        return pa.concat_tables([table, rows])
+
+    _rewrite(snapshot / "fct_manager_pick.parquet", with_copy)
+    _rewrite(snapshot / "fct_manager_gameweek.parquet", with_copy)
+
+
+def _load_managers(snapshot: Path) -> served.ManagerFrames:
+    return served.load_managers(MANAGER_SEASON, pin=served.pin_of(snapshot), snapshot_root=snapshot.parent)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC7")
+def test_a_manager_missing_a_middle_gameweek_is_refused_and_named(tmp_path: Path) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    _add_manager(snapshot, OTHER_MANAGER, [1, 2, 3, 5, 6, 7])
+    with pytest.raises(served.ServedContractError, match=rf"{{{OTHER_MANAGER}: \[4\]}}"):
+        _load_managers(snapshot)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC7")
+def test_a_manager_missing_the_latest_gameweek_is_refused_and_named(tmp_path: Path) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    _add_manager(snapshot, OTHER_MANAGER, range(1, 7))
+    with pytest.raises(served.ServedContractError, match=rf"{{{OTHER_MANAGER}: \[7\]}}"):
+        _load_managers(snapshot)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC7")
+def test_every_broken_manager_is_named_with_all_their_missing_gameweeks(tmp_path: Path) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    _add_manager(snapshot, OTHER_MANAGER, [1, 2, 5, 6, 7])
+    _add_manager(snapshot, THIRD_MANAGER, [3, 4, 6])
+    match = rf"{{{OTHER_MANAGER}: \[3, 4\], {THIRD_MANAGER}: \[5, 7\]}}"
+    with pytest.raises(served.ServedContractError, match=match):
+        _load_managers(snapshot)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC7")
+def test_a_gameweek_short_of_fifteen_picks_counts_as_missing(tmp_path: Path) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    _rewrite(
+        snapshot / "fct_manager_pick.parquet",
+        lambda t: t.filter(pa.array((t["gameweek"].to_numpy() != 2) | (t["slot"].to_numpy() != 15))),
+    )
+    with pytest.raises(served.ServedContractError, match=rf"{{{SAMPLED_MANAGER}: \[2\]}}"):
+        _load_managers(snapshot)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC7")
+def test_a_manager_week_with_picks_and_no_gameweek_row_is_refused_and_named(tmp_path: Path) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    _rewrite(
+        snapshot / "fct_manager_gameweek.parquet",
+        lambda t: t.filter(pa.array(t["gameweek"].to_numpy() != 4)),
+    )
+    with pytest.raises(served.ServedContractError, match=rf"fct_manager_gameweek.*\({SAMPLED_MANAGER}, 4\)"):
+        _load_managers(snapshot)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC7")
+def test_gameweek_rows_with_no_picks_are_refused_and_each_manager_week_named(tmp_path: Path) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    _add_manager(snapshot, OTHER_MANAGER, range(5, 8))
+    _rewrite(
+        snapshot / "fct_manager_pick.parquet",
+        lambda t: t.filter(pa.array(t["entry_id"].to_numpy() != OTHER_MANAGER)),
+    )
+    weeks = rf"\[\({OTHER_MANAGER}, 5\), \({OTHER_MANAGER}, 6\), \({OTHER_MANAGER}, 7\)\]"
+    with pytest.raises(served.ServedContractError, match=rf"fct_manager_pick.*{weeks}"):
+        _load_managers(snapshot)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC7")
+def test_a_self_cohort_manager_is_checked_like_any_other(tmp_path: Path) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    _add_manager(snapshot, OTHER_MANAGER, range(1, 7), cohort="self")
+    with pytest.raises(served.ServedContractError, match=rf"{{{OTHER_MANAGER}: \[7\]}}"):
+        _load_managers(snapshot)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC7")
+def test_a_complete_panel_with_a_late_joiner_loads(tmp_path: Path) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    _add_manager(snapshot, OTHER_MANAGER, range(3, 8))
+    assert set(_load_managers(snapshot).gameweeks["entry_id"]) == {SAMPLED_MANAGER, OTHER_MANAGER}
+
+
+# --- #70 AC9 (proposed): `refresh` records the S3 version of every file it fetches ---
+
+SOURCE = "s3://capture-bucket/served/"
+
+
+def _fake_get_object(version: str | None, commands: list[list[str]] | None = None) -> Callable[..., object]:
+    """`aws s3api get-object`, serving the fixture's files and replying as the CLI does."""
+
+    def run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        name = Path(command[command.index("--key") + 1]).name
+        shutil.copy(FIXTURE_ROOT / RUN_ID / name, command[-1])
+        if commands is not None:
+            commands.append(command)
+        reply = {"VersionId": f"{version}-{name}"} if version else {}
+        return subprocess.CompletedProcess(command, 0, stdout=json.dumps(reply), stderr="")
+
+    return run
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC9 (proposed)")
+def test_refresh_writes_the_s3_version_of_every_file_it_fetched(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commands: list[list[str]] = []
+    monkeypatch.setattr(served.subprocess, "run", _fake_get_object("v1", commands))
+    pin_path = tmp_path / "pin.json"
+    served.refresh(source=SOURCE, snapshot_root=tmp_path / "snapshots", pin_path=pin_path)
+    written = served.read_pin(pin_path)
+    assert written.run_id == RUN_ID
+    assert written.object_versions == {name: f"v1-{name}" for name in served.FILES}
+    assert written.sha256 == served.pin_of(FIXTURE_ROOT / RUN_ID).sha256
+    assert commands[0][:7] == [
+        "aws",
+        "s3api",
+        "get-object",
+        "--bucket",
+        "capture-bucket",
+        "--key",
+        "served/_manifest.json",
+    ]
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC9 (proposed)")
+def test_refreshing_a_run_already_held_still_writes_its_versions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pin_path = tmp_path / "pin.json"
+    monkeypatch.setattr(served.subprocess, "run", _fake_get_object("v1"))
+    served.refresh(source=SOURCE, snapshot_root=tmp_path / "snapshots", pin_path=pin_path)
+    monkeypatch.setattr(served.subprocess, "run", _fake_get_object("v2"))
+    served.refresh(source=SOURCE, snapshot_root=tmp_path / "snapshots", pin_path=pin_path)
+    assert served.read_pin(pin_path).object_versions == {name: f"v2-{name}" for name in served.FILES}
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC9 (proposed)")
+def test_a_fetch_with_no_version_id_raises_and_leaves_the_pin_as_it_was(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pin_path = tmp_path / "pin.json"
+    served.write_pin(served.Pin(run_id="1", sha256={"a": "b"}, object_versions={"a": "v0"}), pin_path)
+    before = pin_path.read_text()
+    monkeypatch.setattr(served.subprocess, "run", _fake_get_object(None))
+    with pytest.raises(served.ServedContractError, match=r"_manifest\.json.*no S3 version"):
+        served.refresh(source=SOURCE, snapshot_root=tmp_path / "snapshots", pin_path=pin_path)
+    assert pin_path.read_text() == before
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC9 (proposed)")
+def test_a_held_snapshot_that_differs_raises_and_names_the_pinned_versions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "snapshots"
+    root.mkdir()
+    snapshot = _copy_snapshot(root)
+    (snapshot / "dim_gameweek.parquet").write_bytes(b"not the publish")
+    pin_path = tmp_path / "pin.json"
+    served.write_pin(served.Pin(run_id=RUN_ID, sha256={"a": "b"}, object_versions={"a": "v0"}), pin_path)
+    monkeypatch.setattr(served.subprocess, "run", _fake_get_object("v1"))
+    with pytest.raises(served.ServedContractError, match=r"differs.*'a': 'v0'"):
+        served.refresh(source=SOURCE, snapshot_root=root, pin_path=pin_path)

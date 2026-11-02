@@ -121,3 +121,20 @@ power_lab:
     share: 0.5
     gameweeks: [8, 12, 16]
     anchors: [worst_case_corner, baseline]
+
+# The Stage 5 evaluation panel (https://github.com/gisaf22/fpl-intelligence/issues/70), added
+# 2026-11-02; the rules are decisions 4, 5 and 12 on
+# https://github.com/gisaf22/fpl-intelligence/issues/55. A manager-week is in the panel at a tenure
+# of three gameweeks or less, or from tenure 4 if the screen passes on the 3 week-over-week
+# comparisons ending at the scored gameweek. Bands are `band_count` equal shares of all ranked teams
+# in integer arithmetic, with r the previous gameweek's overall_rank and N its ranked_count: top if
+# 3r <= N, middle if 3r <= 2N, bottom otherwise, so a rank on a boundary (3r == N, 3r == 2N) goes to
+# the better band. A null or 0 rank gives a null band and the manager stays in the panel.
+evaluation_panel:
+  activity_window: 3 # picks_profile.ACTIVITY_WINDOW
+  first_screened_tenure: 4 # picks_profile.FIRST_SCREENED_TENURE
+  excluded_cohorts: [self] # evaluation_panel.EXCLUDED_COHORTS
+  rank_lag_gameweeks: 1 # evaluation_panel.RANK_LAG_GAMEWEEKS
+  band_count: 3 # evaluation_panel.BAND_COUNT
+  boundary_rank_goes_to: better_band # evaluation_panel.BOUNDARY_RANK_GOES_TO
+  null_or_zero_rank_band: null # evaluation_panel.NULL_OR_ZERO_RANK_BAND

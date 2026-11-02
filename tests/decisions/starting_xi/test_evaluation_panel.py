@@ -219,7 +219,7 @@ def test_a_self_cohort_exempt_week_is_out_of_the_panel_too() -> None:
 @pytest.mark.parametrize("rank", [None, 0])
 def test_a_manager_week_with_no_valid_rank_stays_in_the_panel_with_a_null_band(rank: int | None) -> None:
     panel = ep.evaluation_panel(_table(_manager(1, 5, changed_in=(5,), rank=rank)))
-    assert panel["gw"].tolist() == [4, 5] or panel["gw"].tolist() == [5]
+    assert panel["gw"].tolist() == [5]
     assert panel["band"].isna().all()
 
 
@@ -296,4 +296,6 @@ def test_the_real_sampled_manager_reaches_the_verdict_through_the_loader_and_the
     assert not panel.empty
     table = _feed(panel, frames.gameweeks)
     assert set(table["manager_id"]) == {MANAGER}
-    assert verdict.primary_verdict(table, n_resamples=100, apply_rerun=False).groups == verdict.GROUPS
+    # One manager fills one band, and `primary_verdict` raises on an empty group, so this asks only
+    # whether the table is accepted; the every-label test above runs the whole verdict.
+    assert not np.isnan(verdict.raw_p_values(table, n_resamples=100, seed=0)[0])

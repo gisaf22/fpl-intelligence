@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -475,14 +477,27 @@ def test_a_gameweek_short_of_fifteen_picks_counts_as_missing(tmp_path: Path) -> 
 
 @pytest.mark.unit
 @pytest.mark.covers("#70 AC7")
-def test_a_manager_with_gameweek_rows_and_no_picks_is_refused_and_named(tmp_path: Path) -> None:
+def test_a_manager_week_with_picks_and_no_gameweek_row_is_refused_and_named(tmp_path: Path) -> None:
+    snapshot = _copy_snapshot(tmp_path)
+    _rewrite(
+        snapshot / "fct_manager_gameweek.parquet",
+        lambda t: t.filter(pa.array(t["gameweek"].to_numpy() != 4)),
+    )
+    with pytest.raises(served.ServedContractError, match=rf"fct_manager_gameweek.*\({SAMPLED_MANAGER}, 4\)"):
+        _load_managers(snapshot)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC7")
+def test_gameweek_rows_with_no_picks_are_refused_and_each_manager_week_named(tmp_path: Path) -> None:
     snapshot = _copy_snapshot(tmp_path)
     _add_manager(snapshot, OTHER_MANAGER, range(5, 8))
     _rewrite(
         snapshot / "fct_manager_pick.parquet",
         lambda t: t.filter(pa.array(t["entry_id"].to_numpy() != OTHER_MANAGER)),
     )
-    with pytest.raises(served.ServedContractError, match=rf"{{{OTHER_MANAGER}: \[5, 6, 7\]}}"):
+    weeks = rf"\[\({OTHER_MANAGER}, 5\), \({OTHER_MANAGER}, 6\), \({OTHER_MANAGER}, 7\)\]"
+    with pytest.raises(served.ServedContractError, match=rf"fct_manager_pick.*{weeks}"):
         _load_managers(snapshot)
 
 
@@ -501,3 +516,89 @@ def test_a_complete_panel_with_a_late_joiner_loads(tmp_path: Path) -> None:
     snapshot = _copy_snapshot(tmp_path)
     _add_manager(snapshot, OTHER_MANAGER, range(3, 8))
     assert set(_load_managers(snapshot).gameweeks["entry_id"]) == {SAMPLED_MANAGER, OTHER_MANAGER}
+
+
+# --- #70 AC9 (proposed): `refresh` records the S3 version of every file it fetches ---
+
+SOURCE = "s3://capture-bucket/served/"
+
+
+def _fake_get_object(version: str | None, commands: list[list[str]] | None = None) -> Callable[..., object]:
+    """`aws s3api get-object`, serving the fixture's files and replying as the CLI does."""
+
+    def run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        name = Path(command[command.index("--key") + 1]).name
+        shutil.copy(FIXTURE_ROOT / RUN_ID / name, command[-1])
+        if commands is not None:
+            commands.append(command)
+        reply = {"VersionId": f"{version}-{name}"} if version else {}
+        return subprocess.CompletedProcess(command, 0, stdout=json.dumps(reply), stderr="")
+
+    return run
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC9 (proposed)")
+def test_refresh_writes_the_s3_version_of_every_file_it_fetched(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commands: list[list[str]] = []
+    monkeypatch.setattr(served.subprocess, "run", _fake_get_object("v1", commands))
+    pin_path = tmp_path / "pin.json"
+    served.refresh(source=SOURCE, snapshot_root=tmp_path / "snapshots", pin_path=pin_path)
+    written = served.read_pin(pin_path)
+    assert written.run_id == RUN_ID
+    assert written.object_versions == {name: f"v1-{name}" for name in served.FILES}
+    assert written.sha256 == served.pin_of(FIXTURE_ROOT / RUN_ID).sha256
+    assert commands[0][:7] == [
+        "aws",
+        "s3api",
+        "get-object",
+        "--bucket",
+        "capture-bucket",
+        "--key",
+        "served/_manifest.json",
+    ]
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC9 (proposed)")
+def test_refreshing_a_run_already_held_still_writes_its_versions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pin_path = tmp_path / "pin.json"
+    monkeypatch.setattr(served.subprocess, "run", _fake_get_object("v1"))
+    served.refresh(source=SOURCE, snapshot_root=tmp_path / "snapshots", pin_path=pin_path)
+    monkeypatch.setattr(served.subprocess, "run", _fake_get_object("v2"))
+    served.refresh(source=SOURCE, snapshot_root=tmp_path / "snapshots", pin_path=pin_path)
+    assert served.read_pin(pin_path).object_versions == {name: f"v2-{name}" for name in served.FILES}
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC9 (proposed)")
+def test_a_fetch_with_no_version_id_raises_and_leaves_the_pin_as_it_was(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pin_path = tmp_path / "pin.json"
+    served.write_pin(served.Pin(run_id="1", sha256={"a": "b"}, object_versions={"a": "v0"}), pin_path)
+    before = pin_path.read_text()
+    monkeypatch.setattr(served.subprocess, "run", _fake_get_object(None))
+    with pytest.raises(served.ServedContractError, match=r"_manifest\.json.*no S3 version"):
+        served.refresh(source=SOURCE, snapshot_root=tmp_path / "snapshots", pin_path=pin_path)
+    assert pin_path.read_text() == before
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC9 (proposed)")
+def test_a_held_snapshot_that_differs_raises_and_names_the_pinned_versions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "snapshots"
+    root.mkdir()
+    snapshot = _copy_snapshot(root)
+    (snapshot / "dim_gameweek.parquet").write_bytes(b"not the publish")
+    pin_path = tmp_path / "pin.json"
+    served.write_pin(served.Pin(run_id=RUN_ID, sha256={"a": "b"}, object_versions={"a": "v0"}), pin_path)
+    monkeypatch.setattr(served.subprocess, "run", _fake_get_object("v1"))
+    with pytest.raises(served.ServedContractError, match=r"differs.*'a': 'v0'"):
+        served.refresh(source=SOURCE, snapshot_root=root, pin_path=pin_path)

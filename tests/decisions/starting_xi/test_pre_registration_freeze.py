@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 import yaml
 
-from decisions.starting_xi import orderings, rankers
+from decisions.starting_xi import evaluation_panel, orderings, rankers
 from operational import starting_xi, starting_xi_power_lab
 
 pytestmark = pytest.mark.unit
@@ -119,6 +119,9 @@ FROZEN_DESIGN: dict[str, Any] = {
         "first_screened_tenure": 4,
         "excluded_cohorts": ["self"],
         "rank_lag_gameweeks": 1,
+        "band_count": 3,
+        "boundary_rank_goes_to": "better_band",
+        "null_or_zero_rank_band": None,
     },
 }
 
@@ -232,12 +235,30 @@ def test_changing_the_sensitivity_run_its_exclusion_or_its_holm_place_is_a_named
         pytest.param(("evaluation_panel", "first_screened_tenure"), 5, marks=pytest.mark.covers("#70 AC1")),
         pytest.param(("evaluation_panel", "excluded_cohorts"), [], marks=pytest.mark.covers("#70 AC2")),
         pytest.param(("evaluation_panel", "rank_lag_gameweeks"), 0, marks=pytest.mark.covers("#70 AC3")),
+        pytest.param(("evaluation_panel", "band_count"), 4, marks=pytest.mark.covers("#70 AC3")),
+        pytest.param(("evaluation_panel", "boundary_rank_goes_to"), "worse_band", marks=pytest.mark.covers("#70 AC3")),
+        pytest.param(("evaluation_panel", "null_or_zero_rank_band"), "bottom", marks=pytest.mark.covers("#70 AC4")),
     ],
     ids=lambda part: "/".join(part) if isinstance(part, tuple) else None,
 )
 def test_changing_any_one_stage5_verdict_or_lab_value_is_a_named_mismatch(path: tuple[str, ...], value: object) -> None:
     mismatches = starting_xi_power_lab.pre_registration_mismatches(_mutate(path, value))
     assert [m.split(":")[0] for m in mismatches] == [path[0]]
+
+
+@pytest.mark.covers("#70 AC3")
+@pytest.mark.covers("#70 AC4")
+@pytest.mark.parametrize(
+    ("constant", "value"),
+    [("BAND_COUNT", 4), ("BOUNDARY_RANK_GOES_TO", "worse_band"), ("NULL_OR_ZERO_RANK_BAND", "bottom")],
+)
+def test_changing_a_band_constant_in_the_code_is_a_named_mismatch(
+    monkeypatch: pytest.MonkeyPatch, constant: str, value: object
+) -> None:
+    registered = yaml.safe_load(PRE_REGISTRATION_PATH.read_text())
+    monkeypatch.setattr(evaluation_panel, constant, value)
+    mismatches = starting_xi_power_lab.pre_registration_mismatches(registered)
+    assert [m.split(":")[0] for m in mismatches] == ["evaluation_panel"]
 
 
 @pytest.mark.covers("#60 AC5")

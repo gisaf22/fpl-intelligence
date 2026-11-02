@@ -51,6 +51,52 @@ def test_a_rank_on_a_boundary_takes_the_better_band(count: int, rank: int, band:
 
 @pytest.mark.unit
 @pytest.mark.covers("#70 AC3")
+@pytest.mark.parametrize(
+    ("count", "expected"),
+    [
+        # 3r == N at r=3 and 3r == 2N at r=6: both boundaries are real ranks, and each takes the better band.
+        (9, ["top"] * 3 + ["middle"] * 3 + ["bottom"] * 3),
+        # 10 and 20 are not multiples of 3, so no rank sits on a boundary: 3 and 4, 6 and 7 straddle them.
+        (10, ["top"] * 3 + ["middle"] * 3 + ["bottom"] * 4),
+    ],
+)
+def test_every_rank_takes_the_band_the_integer_cut_gives(count: int, expected: list[str]) -> None:
+    assert [_band_at_gw4(rank, count) for rank in range(1, count + 1)] == expected
+    for rank, band in zip(range(1, count + 1), expected, strict=True):
+        assert band == ("top" if 3 * rank <= count else "middle" if 3 * rank <= 2 * count else "bottom")
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC3")
+def test_the_boundary_constant_decides_the_cut_and_an_unknown_rule_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert ep.BOUNDARY_RANK_GOES_TO == "better_band"
+    monkeypatch.setattr(ep, "BOUNDARY_RANK_GOES_TO", "worse_band")
+    with pytest.raises(KeyError, match="worse_band"):
+        _band_at_gw4(3, 9)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC3")
+def test_the_band_count_decides_the_cut(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert ep.BAND_COUNT == 3
+    monkeypatch.setattr(ep, "BAND_COUNT", 4)
+    assert _band_at_gw4(3, 9) == "middle"
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC4")
+def test_the_null_or_zero_rank_constant_gives_the_band_and_a_first_capture_stays_null(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert ep.NULL_OR_ZERO_RANK_BAND is None
+    monkeypatch.setattr(ep, "NULL_OR_ZERO_RANK_BAND", "bottom")
+    bands = ep.rank_bands(_weeks(1, [3, 4]), _ranks(1, {3: None, 4: 1}), _counts({})).set_index("gw")["band"]
+    assert bands.loc[4] == "bottom"
+    assert pd.isna(bands.loc[3])
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#70 AC3")
 def test_the_cut_is_exact_where_a_float_would_round() -> None:
     # 2**53 + 1 has no float form, so r/N rounds onto the third; 3r > N puts it in the middle band.
     rank = 2**53 + 1

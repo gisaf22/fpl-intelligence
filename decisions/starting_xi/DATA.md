@@ -27,6 +27,9 @@ manifest records both. A run whose input hashes differ from its pin is refused.
 | Ownership weight | `selected`, by the same per-season rule as price: 2025-26 from `fct_player_gameweek` (workaround), 2026-27 onward as of the deadline from `fct_player_market_snapshot` | A realism assumption, read only alongside the uniform view. |
 | Manager picks (Stage 5, #69) | `fct_manager_pick` (`entry_id`, `gameweek`, `slot`, `fpl_id`, `is_auto_sub_in`, `is_auto_sub_out`) | `warehouse.served.load_managers`: `entry_id` kept, `fpl_id` and `gameweek` renamed as elsewhere. `slot` is the lineup after FPL's automatic substitutions. |
 | Manager chip per gameweek (Stage 5, #69) | `fct_manager_gameweek.active_chip` | Null means no chip. |
+| Manager activity (Stage 5, [fpl-intelligence#70](https://github.com/gisaf22/fpl-intelligence/issues/70)) | `fct_manager_gameweek.cohort`, `event_transfers`; `fct_manager_pick.is_captain` | Read by the activity screen. |
+| Manager overall rank (Stage 5, [fpl-intelligence#70](https://github.com/gisaf22/fpl-intelligence/issues/70)) | `fct_manager_gameweek.overall_rank` | Nullable `Int64`: null means no rank. |
+| Ranked teams per gameweek (Stage 5, [fpl-intelligence#70](https://github.com/gisaf22/fpl-intelligence/issues/70)) | `dim_gameweek.ranked_count` | `warehouse.served.load_managers`, as `ranked_counts`. Nullable `Int64`: null means not ranked yet, and every 2025-26 value is null in run 40289379567. |
 
 ## Naming
 

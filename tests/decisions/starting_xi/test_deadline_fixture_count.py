@@ -165,7 +165,7 @@ def _write(root: Path, publish: Publish, last_gw: int = SCORED_GW) -> served.Pin
         ),
         target / "dim_player.parquet",
     )
-    for name in ("fct_manager_pick.parquet", "fct_manager_gameweek.parquet"):
+    for name in ("fct_manager_pick.parquet", "fct_manager_gameweek.parquet", "dim_gameweek.parquet"):
         shutil.copy(MANAGER_FILES / name, target / name)
     manifest = {"run_id": RUN_ID, "contract_version": served.CONTRACT_VERSION, "seasons": [SEASON]}
     (target / served.MANIFEST).write_text(json.dumps(manifest), encoding="utf-8")

@@ -7,7 +7,9 @@ bytes against the pin, the contract version and every relied-on column's type be
 anything, so a run reads exactly one publish, never "whatever was downloaded last".
 
 The mapping from warehouse columns to the frames below is `decisions/starting_xi/DATA.md`. This
-module fetches, verifies, filters, renames and lags; it computes no rule or feature.
+module fetches, verifies, filters, renames and lags; it computes no rule or feature. Its one check
+on the rows themselves is the producer's guarantee of an unbroken manager history: a hole is a
+capture failure the producer owns, so it stops the load rather than being handled here.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import pandas as pd
@@ -30,12 +32,9 @@ PIN_PATH = Path(__file__).resolve().parent / "pin.json"
 SOURCE = "s3://fpl-data-safari/served/"
 MANIFEST = "_manifest.json"
 CONTRACT_VERSION = 2
-# `served/` is overwritten in place, so a pinned publish's files survive only as S3 object versions.
-# Run 40289379567's manager files, for a snapshot of that run taken before they were relied on.
-MANAGER_OBJECT_VERSIONS = {
-    "fct_manager_pick.parquet": "GlIEiW6KrrM3MJlW8plrr4Rg3KI45mpE",
-    "fct_manager_gameweek.parquet": "y1CJo4gbI80smdWfu3nHTWzDcLZ9KntG",
-}
+# One manager-week's picks. `domain.fpl_squad.SQUAD_SIZE` says the same, but this package is an
+# import leaf (`.importlinter`).
+SQUAD_PICKS = 15
 
 # The columns this loader relies on, with the arrow type the publish writes them as. A column
 # missing or retyped in a publish is refused rather than coerced.
@@ -75,12 +74,21 @@ RELIED_ON: Mapping[str, Mapping[str, str]] = {
         "fpl_id": "int32",
         "is_auto_sub_in": "bool",
         "is_auto_sub_out": "bool",
+        "is_captain": "bool",
     },
     "fct_manager_gameweek": {
         "season": "string",
         "entry_id": "int32",
         "gameweek": "int32",
         "active_chip": "string",
+        "cohort": "string",
+        "event_transfers": "int32",
+        "overall_rank": "int32",
+    },
+    "dim_gameweek": {
+        "season": "string",
+        "gameweek": "int32",
+        "ranked_count": "int32",
     },
 }
 FILES = (MANIFEST, *(f"{table}.parquet" for table in RELIED_ON))
@@ -92,10 +100,15 @@ class ServedContractError(Exception):
 
 @dataclass(frozen=True)
 class Pin:
-    """One fpl-warehouse publish: its manifest `run_id` and the sha256 of each file read."""
+    """One fpl-warehouse publish: its manifest `run_id` and the sha256 of each file read.
+
+    `object_versions` names S3 object versions for a file added after its publish was overwritten:
+    `served/` is overwritten in place, so such a file survives only as a version.
+    """
 
     run_id: str
     sha256: Mapping[str, str]
+    object_versions: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -126,12 +139,17 @@ class ManagerFrames:
     """The panel's two frames for one season, with the pin they came from.
 
     `picks`: one row per (entry_id, gw, slot) -- season, entry_id, gw, slot, player_id,
-    is_auto_sub_in, is_auto_sub_out. `slot` is the lineup after FPL's automatic substitutions.
-    `gameweeks`: one row per (entry_id, gw) -- season, entry_id, gw, active_chip (null: no chip).
+    is_auto_sub_in, is_auto_sub_out, is_captain. `slot` is the lineup after FPL's automatic
+    substitutions.
+    `gameweeks`: one row per (entry_id, gw) -- season, entry_id, gw, active_chip (null: no chip),
+    cohort, event_transfers, overall_rank (`Int64`, null: no rank).
+    `ranked_counts`: one row per gw of the season -- season, gw, ranked_count (`Int64`, null: not
+    ranked yet).
     """
 
     picks: pd.DataFrame
     gameweeks: pd.DataFrame
+    ranked_counts: pd.DataFrame
     pin: Pin
 
 
@@ -151,11 +169,17 @@ def pin_of(snapshot_dir: Path) -> Pin:
 
 def read_pin(path: Path = PIN_PATH) -> Pin:
     document = json.loads(path.read_text(encoding="utf-8"))
-    return Pin(run_id=document["run_id"], sha256=dict(document["sha256"]))
+    return Pin(
+        run_id=document["run_id"],
+        sha256=dict(document["sha256"]),
+        object_versions=dict(document.get("object_versions", {})),
+    )
 
 
 def write_pin(pin: Pin, path: Path = PIN_PATH) -> None:
-    document = {"run_id": pin.run_id, "sha256": dict(sorted(pin.sha256.items()))}
+    document: dict[str, object] = {"run_id": pin.run_id, "sha256": dict(sorted(pin.sha256.items()))}
+    if pin.object_versions:
+        document["object_versions"] = dict(sorted(pin.object_versions.items()))
     path.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
 
 
@@ -175,7 +199,7 @@ def refresh(*, source: str = SOURCE, snapshot_root: Path = SNAPSHOT_ROOT, pin_pa
             if pin_of(target) != pin:
                 raise ServedContractError(
                     f"snapshot {target} exists but differs from publish {pin.run_id} at {source}; "
-                    f"run 40289379567's manager files are object versions {MANAGER_OBJECT_VERSIONS}"
+                    f"the pin names object versions {dict(read_pin(pin_path).object_versions)}"
                 )
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -294,11 +318,32 @@ def load(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_
     return Frames(fixture=fixture, gameweek=gameweek, pin=pin)
 
 
+def _missing_gameweeks(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> dict[int, list[int]]:
+    """Each manager without `SQUAD_PICKS` picks in some gameweek from their first captured one
+    through the latest published one, with those gameweeks. Every manager in either frame counts,
+    so a manager with no picks at all, or absent from the latest gameweek, shows up."""
+    captured = pd.concat([picks[["entry_id", "gw"]], gameweeks[["entry_id", "gw"]]])
+    latest = int(captured["gw"].max())
+    counts = picks.groupby(["entry_id", "gw"]).size()
+    complete = set(counts[counts == SQUAD_PICKS].index)
+    missing = {}
+    for entry_id, first in captured.groupby("entry_id")["gw"].min().items():
+        holes = [gw for gw in range(int(first), latest + 1) if (entry_id, gw) not in complete]
+        if holes:
+            missing[int(entry_id)] = holes
+    return missing
+
+
 def load_managers(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_ROOT) -> ManagerFrames:
     """The pinned publish's manager frames for one season, under `load`'s checks.
 
+    Ranks and ranked counts load as nullable `Int64`: a null would otherwise turn the column to
+    float, and the rank bands are integer arithmetic only.
+
     Raises:
-        ServedContractError: as `load`, or the season is published with no manager rows.
+        ServedContractError: as `load`; the season is published with no manager rows; or a manager's
+            history has a hole (D-S2 on https://github.com/gisaf22/fpl-intelligence/issues/55),
+            naming each `entry_id` and its missing gameweeks.
     """
     pin = read_pin() if pin is None else pin
     snapshot_dir = _verified_snapshot(season, pin, snapshot_root)
@@ -306,8 +351,16 @@ def load_managers(season: str, *, pin: Pin | None = None, snapshot_root: Path = 
     if picks.empty:
         raise ServedContractError(f"run_id {pin.run_id}: no manager rows for season {season}")
     gameweeks = _read(snapshot_dir, "fct_manager_gameweek", season)
+    missing = _missing_gameweeks(picks, gameweeks)
+    if missing:
+        raise ServedContractError(
+            f"run_id {pin.run_id}: {len(missing)} manager(s) in {season} lack {SQUAD_PICKS} picks in a "
+            f"gameweek from their first captured gameweek through the latest published one: {missing}"
+        )
+    ranked_counts = _read(snapshot_dir, "dim_gameweek", season)
     return ManagerFrames(
         picks=picks.sort_values(["entry_id", "gw", "slot"], ignore_index=True),
-        gameweeks=gameweeks.sort_values(["entry_id", "gw"], ignore_index=True),
+        gameweeks=gameweeks.astype({"overall_rank": "Int64"}).sort_values(["entry_id", "gw"], ignore_index=True),
+        ranked_counts=ranked_counts.astype({"ranked_count": "Int64"}).sort_values("gw", ignore_index=True),
         pin=pin,
     )

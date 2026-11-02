@@ -22,9 +22,9 @@ import json
 import shutil
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pyarrow as pa
-import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import pytest
 
@@ -393,7 +393,9 @@ def test_ranks_and_ranked_counts_load_as_integers_with_a_null_rank_kept(tmp_path
     snapshot = _copy_snapshot(tmp_path)
 
     def null_gw4_rank(table: pa.Table) -> pa.Table:
-        rank = pc.if_else(pc.equal(table["gameweek"], 4), pa.scalar(None, pa.int32()), table["overall_rank"])
+        weeks = table["gameweek"].to_pylist()
+        ranks = table["overall_rank"].to_pylist()
+        rank = pa.array([None if gw == 4 else r for gw, r in zip(weeks, ranks, strict=True)], pa.int32())
         return table.set_column(table.schema.get_field_index("overall_rank"), "overall_rank", rank)
 
     _rewrite(snapshot / "fct_manager_gameweek.parquet", null_gw4_rank)
@@ -413,7 +415,8 @@ def _add_manager(snapshot: Path, entry_id: int, weeks: range | list[int], *, coh
     """Copy the sampled manager's rows for `weeks` to a new `entry_id` in both manager tables."""
 
     def with_copy(table: pa.Table) -> pa.Table:
-        rows = table.filter(pc.is_in(table["gameweek"], value_set=pa.array(list(weeks), pa.int32())))
+        sampled = (table["entry_id"].to_numpy() == SAMPLED_MANAGER) & np.isin(table["gameweek"].to_numpy(), list(weeks))
+        rows = table.filter(pa.array(sampled))
         ids = pa.array([entry_id] * rows.num_rows, pa.int32())
         rows = rows.set_column(rows.schema.get_field_index("entry_id"), "entry_id", ids)
         if "cohort" in rows.schema.names:
@@ -464,7 +467,7 @@ def test_a_gameweek_short_of_fifteen_picks_counts_as_missing(tmp_path: Path) -> 
     snapshot = _copy_snapshot(tmp_path)
     _rewrite(
         snapshot / "fct_manager_pick.parquet",
-        lambda t: t.filter(pc.or_(pc.not_equal(t["gameweek"], 2), pc.not_equal(t["slot"], 15))),
+        lambda t: t.filter(pa.array((t["gameweek"].to_numpy() != 2) | (t["slot"].to_numpy() != 15))),
     )
     with pytest.raises(served.ServedContractError, match=rf"{{{SAMPLED_MANAGER}: \[2\]}}"):
         _load_managers(snapshot)
@@ -477,7 +480,7 @@ def test_a_manager_with_gameweek_rows_and_no_picks_is_refused_and_named(tmp_path
     _add_manager(snapshot, OTHER_MANAGER, range(5, 8))
     _rewrite(
         snapshot / "fct_manager_pick.parquet",
-        lambda t: t.filter(pc.not_equal(t["entry_id"], OTHER_MANAGER)),
+        lambda t: t.filter(pa.array(t["entry_id"].to_numpy() != OTHER_MANAGER)),
     )
     with pytest.raises(served.ServedContractError, match=rf"{{{OTHER_MANAGER}: \[5, 6, 7\]}}"):
         _load_managers(snapshot)

@@ -20,7 +20,7 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import pandas as pd
@@ -102,8 +102,9 @@ class ServedContractError(Exception):
 class Pin:
     """One fpl-warehouse publish: its manifest `run_id` and the sha256 of each file read.
 
-    `object_versions` names S3 object versions for a file added after its publish was overwritten:
-    `served/` is overwritten in place, so such a file survives only as a version.
+    `object_versions` names each file's S3 version, as far as it is known: `served/` is overwritten
+    in place, so a pinned publish's files survive only as versions. `refresh` records every file's;
+    a pin taken before it did holds the versions fetched since.
     """
 
     run_id: str
@@ -183,20 +184,39 @@ def write_pin(pin: Pin, path: Path = PIN_PATH) -> None:
     path.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
 
 
+def _fetch(source: str, name: str, target: Path) -> str:
+    """Copy one published file to `target` and return the S3 version of the bytes received.
+
+    Raises:
+        ServedContractError: the reply names no version, so the pin could not name this object.
+    """
+    bucket, _, prefix = source.removeprefix("s3://").partition("/")
+    reply = subprocess.run(
+        ["aws", "s3api", "get-object", "--bucket", bucket, "--key", f"{prefix}{name}", str(target)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    version = json.loads(reply.stdout).get("VersionId")
+    if not version:
+        raise ServedContractError(f"{source}{name}: the fetch returned no S3 version, so the pin could not name it")
+    return str(version)
+
+
 def refresh(*, source: str = SOURCE, snapshot_root: Path = SNAPSHOT_ROOT, pin_path: Path = PIN_PATH) -> Pin:
     """Sync the current publish into `<snapshot_root>/<run_id>/` and record it as the new pin.
 
     Reads with the aws CLI under whatever credentials the environment carries. An existing
     snapshot of the same run_id is kept, not overwritten, and must match what was just fetched.
+    The pin names the S3 version of every file fetched. Nothing is written if any fetch fails.
     """
     with tempfile.TemporaryDirectory(dir=snapshot_root.parent if snapshot_root.parent.exists() else None) as tmp:
         staging = Path(tmp)
-        for name in FILES:
-            subprocess.run(["aws", "s3", "cp", f"{source}{name}", str(staging / name)], check=True)
-        pin = pin_of(staging)
+        versions = {name: _fetch(source, name, staging / name) for name in FILES}
+        pin = replace(pin_of(staging), object_versions=versions)
         target = snapshot_root / pin.run_id
         if target.exists():
-            if pin_of(target) != pin:
+            if pin_of(target).sha256 != pin.sha256:
                 raise ServedContractError(
                     f"snapshot {target} exists but differs from publish {pin.run_id} at {source}; "
                     f"the pin names object versions {dict(read_pin(pin_path).object_versions)}"
@@ -318,16 +338,27 @@ def load(season: str, *, pin: Pin | None = None, snapshot_root: Path = SNAPSHOT_
     return Frames(fixture=fixture, gameweek=gameweek, pin=pin)
 
 
-def _missing_gameweeks(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> dict[int, list[int]]:
+def _unmatched_manager_weeks(picks: pd.DataFrame, gameweeks: pd.DataFrame) -> str:
+    """Manager-weeks held by only one of the two manager tables, said per table; empty if none."""
+    with_picks = set(zip(picks["entry_id"].astype(int), picks["gw"].astype(int), strict=True))
+    with_row = set(zip(gameweeks["entry_id"].astype(int), gameweeks["gw"].astype(int), strict=True))
+    parts = []
+    if with_picks - with_row:
+        parts.append(f"no fct_manager_gameweek row for {sorted(with_picks - with_row)}")
+    if with_row - with_picks:
+        parts.append(f"no fct_manager_pick rows for {sorted(with_row - with_picks)}")
+    return "; ".join(parts)
+
+
+def _missing_gameweeks(picks: pd.DataFrame) -> dict[int, list[int]]:
     """Each manager without `SQUAD_PICKS` picks in some gameweek from their first captured one
-    through the latest published one, with those gameweeks. Every manager in either frame counts,
-    so a manager with no picks at all, or absent from the latest gameweek, shows up."""
-    captured = pd.concat([picks[["entry_id", "gw"]], gameweeks[["entry_id", "gw"]]])
-    latest = int(captured["gw"].max())
+    through the latest published one, with those gameweeks, so a manager absent from the latest
+    gameweek shows up."""
+    latest = int(picks["gw"].max())
     counts = picks.groupby(["entry_id", "gw"]).size()
     complete = set(counts[counts == SQUAD_PICKS].index)
     missing = {}
-    for entry_id, first in captured.groupby("entry_id")["gw"].min().items():
+    for entry_id, first in picks.groupby("entry_id")["gw"].min().items():
         holes = [gw for gw in range(int(first), latest + 1) if (entry_id, gw) not in complete]
         if holes:
             missing[int(entry_id)] = holes
@@ -341,9 +372,10 @@ def load_managers(season: str, *, pin: Pin | None = None, snapshot_root: Path = 
     float, and the rank bands are integer arithmetic only.
 
     Raises:
-        ServedContractError: as `load`; the season is published with no manager rows; or a manager's
-            history has a hole (D-S2 on https://github.com/gisaf22/fpl-intelligence/issues/55),
-            naming each `entry_id` and its missing gameweeks.
+        ServedContractError: as `load`; the season is published with no manager rows; a manager-week
+            is in only one of the two manager tables, naming each; or a manager's history has a hole
+            (D-S2 on https://github.com/gisaf22/fpl-intelligence/issues/55), naming each `entry_id`
+            and its missing gameweeks.
     """
     pin = read_pin() if pin is None else pin
     snapshot_dir = _verified_snapshot(season, pin, snapshot_root)
@@ -351,7 +383,10 @@ def load_managers(season: str, *, pin: Pin | None = None, snapshot_root: Path = 
     if picks.empty:
         raise ServedContractError(f"run_id {pin.run_id}: no manager rows for season {season}")
     gameweeks = _read(snapshot_dir, "fct_manager_gameweek", season)
-    missing = _missing_gameweeks(picks, gameweeks)
+    unmatched = _unmatched_manager_weeks(picks, gameweeks)
+    if unmatched:
+        raise ServedContractError(f"run_id {pin.run_id}: the manager tables disagree for {season}: {unmatched}")
+    missing = _missing_gameweeks(picks)
     if missing:
         raise ServedContractError(
             f"run_id {pin.run_id}: {len(missing)} manager(s) in {season} lack {SQUAD_PICKS} picks in a "

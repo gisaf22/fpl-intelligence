@@ -102,6 +102,9 @@ def _evaluation_panel() -> dict[str, object]:
         "first_screened_tenure": picks_profile.FIRST_SCREENED_TENURE,
         "excluded_cohorts": sorted(evaluation_panel.EXCLUDED_COHORTS),
         "rank_lag_gameweeks": evaluation_panel.RANK_LAG_GAMEWEEKS,
+        "band_count": evaluation_panel.BAND_COUNT,
+        "boundary_rank_goes_to": evaluation_panel.BOUNDARY_RANK_GOES_TO,
+        "null_or_zero_rank_band": evaluation_panel.NULL_OR_ZERO_RANK_BAND,
     }
 
 

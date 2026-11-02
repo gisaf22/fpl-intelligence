@@ -33,6 +33,14 @@ from decisions.starting_xi.verdict import BANDS
 EXCLUDED_COHORTS: Final[frozenset[str]] = frozenset({"self"})
 #: Gameweeks between the scored gameweek and the rank its band reads. Same-week would leak the outcome.
 RANK_LAG_GAMEWEEKS: Final = 1
+#: The bands are this many equal shares of all ranked teams.
+BAND_COUNT: Final = len(BANDS)
+#: Where a rank exactly on a cut goes. It selects the comparison in `_AT_OR_ABOVE_CUT`.
+BOUNDARY_RANK_GOES_TO: Final = "better_band"
+#: The band of a real previous gameweek with a null or 0 rank (decision 3). A first capture is a
+#: separate case: it has no previous gameweek and is always null.
+NULL_OR_ZERO_RANK_BAND: Final[str | None] = None
+_AT_OR_ABOVE_CUT: Final = {"better_band": np.less_equal}
 KEYS: Final[list[str]] = ["entry_id", "gw"]
 #: One row per scored manager-week.
 WEEK_COLUMNS: Final[tuple[str, ...]] = ("entry_id", "gw", "cohort", "tenure", "screened", "in_panel", "band")
@@ -73,10 +81,10 @@ def rank_bands(weeks: pd.DataFrame, gameweeks: pd.DataFrame, ranked_counts: pd.D
         raise ValueError(f"no fct_manager_gameweek row for manager-week(s): {_named(absent)}")
 
     previous_rank = gameweeks[[*KEYS, "overall_rank"]].assign(gw=lambda f: f["gw"] + RANK_LAG_GAMEWEEKS)
-    ranked = bands[has_previous].merge(previous_rank, on=KEYS, validate="one_to_one")
-    ranked = ranked[is_ranked(ranked["overall_rank"])]
+    previous = bands[has_previous].merge(previous_rank, on=KEYS, validate="one_to_one")
+    valid_rank = is_ranked(previous["overall_rank"])
     previous_count = ranked_counts[["gw", "ranked_count"]].assign(gw=lambda f: f["gw"] + RANK_LAG_GAMEWEEKS)
-    ranked = ranked.merge(previous_count, on="gw", how="left", validate="many_to_one")
+    ranked = previous[valid_rank].merge(previous_count, on="gw", how="left", validate="many_to_one")
 
     unknown = ranked[ranked["ranked_count"].isna()]
     if not unknown.empty:
@@ -88,8 +96,13 @@ def rank_bands(weeks: pd.DataFrame, gameweeks: pd.DataFrame, ranked_counts: pd.D
     rank = ranked["overall_rank"].to_numpy(dtype="int64")
     count = ranked["ranked_count"].to_numpy(dtype="int64")
     top, middle, bottom = BANDS
-    ranked["band"] = np.select([3 * rank <= count, 3 * rank <= 2 * count], [top, middle], default=bottom)
-    return bands.merge(ranked[[*KEYS, "band"]], on=KEYS, how="left", validate="one_to_one")
+    at_or_above_cut = _AT_OR_ABOVE_CUT[BOUNDARY_RANK_GOES_TO]
+    in_top = at_or_above_cut(BAND_COUNT * rank, count)
+    in_middle = at_or_above_cut(BAND_COUNT * rank, 2 * count)
+    ranked["band"] = np.select([in_top, in_middle], [top, middle], default=bottom)
+    no_rank = previous.loc[~valid_rank, KEYS].assign(band=NULL_OR_ZERO_RANK_BAND)
+    assigned = pd.concat([ranked[[*KEYS, "band"]].astype({"band": object}), no_rank.astype({"band": object})])
+    return bands.merge(assigned, on=KEYS, how="left", validate="one_to_one")
 
 
 def manager_weeks(picks: pd.DataFrame, gameweeks: pd.DataFrame, ranked_counts: pd.DataFrame) -> pd.DataFrame:

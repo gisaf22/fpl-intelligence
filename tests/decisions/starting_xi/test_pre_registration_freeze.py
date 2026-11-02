@@ -114,6 +114,12 @@ FROZEN_DESIGN: dict[str, Any] = {
             "anchors": ["worst_case_corner", "baseline"],
         },
     },
+    "evaluation_panel": {
+        "activity_window": 3,
+        "first_screened_tenure": 4,
+        "excluded_cohorts": ["self"],
+        "rank_lag_gameweeks": 1,
+    },
 }
 
 CANONICAL_RUN: dict[str, Any] = {
@@ -222,6 +228,10 @@ def test_changing_the_sensitivity_run_its_exclusion_or_its_holm_place_is_a_named
         (("power_lab", "pass_mark"), 0.9),
         (("power_lab", "headline_edge"), 0.58),
         (("power_lab", "master_seed"), 0),
+        pytest.param(("evaluation_panel", "activity_window"), 4, marks=pytest.mark.covers("#70 AC1")),
+        pytest.param(("evaluation_panel", "first_screened_tenure"), 5, marks=pytest.mark.covers("#70 AC1")),
+        pytest.param(("evaluation_panel", "excluded_cohorts"), [], marks=pytest.mark.covers("#70 AC2")),
+        pytest.param(("evaluation_panel", "rank_lag_gameweeks"), 0, marks=pytest.mark.covers("#70 AC3")),
     ],
     ids=lambda part: "/".join(part) if isinstance(part, tuple) else None,
 )

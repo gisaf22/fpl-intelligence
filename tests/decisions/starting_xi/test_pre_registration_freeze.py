@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 import yaml
 
-from decisions.starting_xi import evaluation_panel, orderings, rankers
+from decisions.starting_xi import evaluation_panel, orderings, rankers, realism
 from operational import starting_xi, starting_xi_power_lab
 
 pytestmark = pytest.mark.unit
@@ -122,6 +122,13 @@ FROZEN_DESIGN: dict[str, Any] = {
         "band_count": 3,
         "boundary_rank_goes_to": "better_band",
         "null_or_zero_rank_band": None,
+    },
+    "realism_check": {
+        "statistic": "spread_across_gameweeks_of_weekly_win_share",
+        "unit": "win_share_points",
+        "gameweeks": {"first_gw": 4, "last_gw": 15},
+        "prints_mean": False,
+        "label": "per_gameweek_count",
     },
 }
 
@@ -238,6 +245,16 @@ def test_changing_the_sensitivity_run_its_exclusion_or_its_holm_place_is_a_named
         pytest.param(("evaluation_panel", "band_count"), 4, marks=pytest.mark.covers("#70 AC3")),
         pytest.param(("evaluation_panel", "boundary_rank_goes_to"), "worse_band", marks=pytest.mark.covers("#70 AC3")),
         pytest.param(("evaluation_panel", "null_or_zero_rank_band"), "bottom", marks=pytest.mark.covers("#70 AC4")),
+        pytest.param(("realism_check", "statistic"), "sd_of_manager_points", marks=pytest.mark.covers("#66 AC7")),
+        pytest.param(("realism_check", "unit"), "raw_points", marks=pytest.mark.covers("#66 AC7")),
+        pytest.param(
+            ("realism_check", "gameweeks"), {"first_gw": 4, "last_gw": 16}, marks=pytest.mark.covers("#66 AC7")
+        ),
+        pytest.param(
+            ("realism_check", "gameweeks"), {"first_gw": 5, "last_gw": 15}, marks=pytest.mark.covers("#66 AC7")
+        ),
+        pytest.param(("realism_check", "prints_mean"), True, marks=pytest.mark.covers("#66 AC7")),
+        pytest.param(("realism_check", "label"), "whole_table", marks=pytest.mark.covers("#66 AC7")),
     ],
     ids=lambda part: "/".join(part) if isinstance(part, tuple) else None,
 )
@@ -259,6 +276,26 @@ def test_changing_a_band_constant_in_the_code_is_a_named_mismatch(
     monkeypatch.setattr(evaluation_panel, constant, value)
     mismatches = starting_xi_power_lab.pre_registration_mismatches(registered)
     assert [m.split(":")[0] for m in mismatches] == ["evaluation_panel"]
+
+
+@pytest.mark.covers("#66 AC7")
+@pytest.mark.parametrize(
+    ("constant", "value"),
+    [
+        ("STATISTIC", "sd_of_manager_points"),
+        ("UNIT", "raw_points"),
+        ("VERDICT_GAMEWEEKS", tuple(range(4, 17))),
+        ("PRINTS_MEAN", True),
+        ("LABEL", "whole_table"),
+    ],
+)
+def test_changing_a_realism_constant_in_the_code_is_a_named_mismatch(
+    monkeypatch: pytest.MonkeyPatch, constant: str, value: object
+) -> None:
+    registered = yaml.safe_load(PRE_REGISTRATION_PATH.read_text())
+    monkeypatch.setattr(realism, constant, value)
+    mismatches = starting_xi_power_lab.pre_registration_mismatches(registered)
+    assert [m.split(":")[0] for m in mismatches] == ["realism_check"]
 
 
 @pytest.mark.covers("#60 AC5")

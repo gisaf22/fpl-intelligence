@@ -105,6 +105,12 @@ def test_a_spread_within_or_beyond_every_level_labels_every_compared_row_alike(s
 
 
 @pytest.mark.covers("#66 AC1")
+def test_two_levels_for_one_count_are_refused() -> None:
+    with pytest.raises(realism.RealismRefused, match="two levels for 24"):
+        realism.label_rows(7.0, [*LEVELS_65, ShockLevel(24, 9, None)])
+
+
+@pytest.mark.covers("#66 AC1")
 def test_a_spread_equal_to_a_level_is_within_it() -> None:
     # "Beyond" is strictly greater: a count stays within the limit at its level (proposed at pick-up).
     assert _labels(realism.label_rows(6.0, LEVELS_65))[24] is True

@@ -59,7 +59,12 @@ def _window_feed(spread_shares: tuple[float, ...] = (0.4, 0.5, 0.6), managers: i
 def _measurement(
     spread: float, gameweeks: tuple[int, ...] = VERDICT_WINDOW, managers: int = 1_900
 ) -> realism.Measurement:
-    return realism.Measurement(gameweeks=gameweeks, spread_points=spread, panel_managers=managers)
+    return realism.Measurement(
+        gameweeks=gameweeks,
+        spread_points=spread,
+        panel_managers=managers,
+        managers_per_gameweek=(managers,) * len(gameweeks),
+    )
 
 
 def _row_label(text: str, gameweeks: int) -> str:
@@ -308,7 +313,12 @@ def test_writing_realism_md_leaves_the_report_and_probe_untouched(tmp_path: Path
 
 @pytest.mark.covers("#66 AC8")
 def test_the_return_value_holds_the_spread_and_the_counts_and_no_mean() -> None:
-    assert {f.name for f in fields(realism.Measurement)} == {"gameweeks", "spread_points", "panel_managers"}
+    assert {f.name for f in fields(realism.Measurement)} == {
+        "gameweeks",
+        "spread_points",
+        "panel_managers",
+        "managers_per_gameweek",
+    }
 
 
 @pytest.mark.covers("#66 AC8")
@@ -324,20 +334,40 @@ def test_feeds_whose_weekly_shares_differ_by_a_constant_give_the_same_measuremen
 
 
 @pytest.mark.covers("#66 AC8")
-def test_the_panel_manager_count_is_the_distinct_managers_in_the_window() -> None:
+def test_the_counts_are_the_distinct_panel_managers_and_each_gameweeks_own_count() -> None:
     feed = pd.concat([_window_feed(managers=10), _feed({20: 0.5}, managers=30)], ignore_index=True)
+    feed = feed.loc[~((feed["gameweek"] == 4) & (feed["manager_id"] > 6))]  # GW4: 6 managers
     measured = realism.measure(feed, gameweeks=VERDICT_WINDOW)
-    assert measured.panel_managers == 10
     assert measured.gameweeks == VERDICT_WINDOW
+    assert measured.panel_managers == 10
+    assert measured.managers_per_gameweek == (6, *(10,) * 11)
 
 
 # --- AC9: the sampling noise is printed and not subtracted -------------------------------------------
 
 
 @pytest.mark.covers("#66 AC9")
-def test_the_sampling_noise_at_1900_managers_is_about_1_1_points() -> None:
-    assert realism.sampling_noise_points(1_900) == pytest.approx(100 * math.sqrt(0.25 / 1_900))
-    assert round(realism.sampling_noise_points(1_900), 1) == 1.1
+def test_the_sampling_noise_at_1900_managers_a_gameweek_is_about_1_1_points() -> None:
+    assert realism.sampling_noise_points((1_900,) * 12) == pytest.approx(100 * math.sqrt(0.25 / 1_900))
+    assert round(realism.sampling_noise_points((1_900,) * 12), 1) == 1.1
+
+
+@pytest.mark.covers("#66 AC9")
+def test_the_sampling_noise_averages_each_gameweeks_own_variance_not_the_distinct_count() -> None:
+    # 100 x sqrt(mean of 0.25 / n_g): with n_g of 100 and 400, sqrt((0.0025 + 0.000625) / 2) x 100.
+    assert realism.sampling_noise_points((100, 400)) == pytest.approx(100 * math.sqrt((0.25 / 100 + 0.25 / 400) / 2))
+    assert realism.sampling_noise_points((100, 400)) != pytest.approx(100 * math.sqrt(0.25 / 400))
+
+
+@pytest.mark.covers("#66 AC9")
+def test_the_measured_noise_uses_the_feeds_per_gameweek_counts() -> None:
+    feed = _window_feed(managers=10)
+    feed = feed.loc[~((feed["gameweek"] == 4) & (feed["manager_id"] > 5))]  # GW4: 5 managers
+    measured = realism.measure(feed, gameweeks=VERDICT_WINDOW)
+    text = realism.render(measured, LEVELS_65)
+    expected = 100 * math.sqrt((0.25 / 5 + 11 * 0.25 / 10) / 12)
+    assert realism.sampling_noise_points(measured.managers_per_gameweek) == pytest.approx(expected)
+    assert f"{expected:.2f}" in text
 
 
 @pytest.mark.covers("#66 AC9")
@@ -345,9 +375,17 @@ def test_the_sampling_noise_is_printed_and_stated_as_not_subtracted() -> None:
     text = realism.render(_measurement(7.0, managers=1_900), LEVELS_65)
     noise_lines = [line for line in text.splitlines() if "sampling noise" in line.lower()]
     assert len(noise_lines) == 1
-    assert f"{realism.sampling_noise_points(1_900):.2f}" in noise_lines[0]
+    assert f"{realism.sampling_noise_points((1_900,) * 12):.2f}" in noise_lines[0]
     assert "not subtracted" in noise_lines[0]
     assert "1,900" in noise_lines[0]
+
+
+@pytest.mark.covers("#66 AC9")
+def test_the_sampling_noise_gates_no_label() -> None:
+    few = realism.render(_measurement(7.0, managers=20), LEVELS_65)
+    many = realism.render(_measurement(7.0, managers=2_000), LEVELS_65)
+    for gameweeks in power_lab.GAMEWEEK_SWEEP:
+        assert _row_label(few, gameweeks) == _row_label(many, gameweeks)
 
 
 @pytest.mark.covers("#66 AC9")

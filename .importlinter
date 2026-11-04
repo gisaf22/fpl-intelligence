@@ -180,14 +180,16 @@ forbidden_modules =
 # research kernel's own function object, #60 AC13). Every other `research` package, `serve`, the
 # data-reading layers and the Stage 3 siblings are forbidden, so the lab cannot reach D2's scores
 # against managers (#60 AC7). `operational.starting_xi_power_lab` is their command line (no
-# contract can name `operational`).
+# contract can name `operational`). The realism check (#66) is held to the same rule: it reads the
+# lab's levels and is handed the feed table, and reads no data itself.
 [importlinter:contract:stage5_verdict_and_lab_reach_only_research_kernels]
-name = Stage 5 verdict and power lab may import research.kernels only -- not the rest of research, serve, data layers or Stage 3 siblings
+name = Stage 5 verdict, power lab and realism check may import research.kernels only -- not the rest of research, serve, data layers or Stage 3 siblings
 type = forbidden
 source_modules =
     decisions.starting_xi.verdict
     decisions.starting_xi.power_lab
     decisions.starting_xi.power_report
+    decisions.starting_xi.realism
 forbidden_modules =
     research.diagnostic
     research.families

@@ -25,7 +25,7 @@ from typing import Any, Final
 
 import yaml
 
-from decisions.starting_xi import evaluation_panel, picks_profile, power_lab, power_report, verdict
+from decisions.starting_xi import evaluation_panel, picks_profile, power_lab, power_report, realism, verdict
 
 RESULTS_DIR: Final[Path] = Path(__file__).resolve().parents[1] / "decisions" / "starting_xi" / "power_lab_results"
 CELLS_DIR: Final[Path] = RESULTS_DIR / "cells"
@@ -108,6 +108,18 @@ def _evaluation_panel() -> dict[str, object]:
     }
 
 
+def _realism_check() -> dict[str, object]:
+    """The Stage 5 realism check's pre-registered constants, in the file's shape."""
+    return {
+        "statistic": realism.STATISTIC,
+        "spread_ddof": realism.SPREAD_DDOF,
+        "unit": realism.UNIT,
+        "gameweeks": {"first_gw": realism.VERDICT_GAMEWEEKS[0], "last_gw": realism.VERDICT_GAMEWEEKS[-1]},
+        "prints_mean": realism.PRINTS_MEAN,
+        "label": realism.LABEL,
+    }
+
+
 def pre_registration_mismatches(pre_registration: Mapping[str, Any]) -> list[str]:
     """`PRE_REGISTRATION.yaml`'s Stage 5 entries against the code that owns them (#60 AC5).
 
@@ -119,6 +131,7 @@ def pre_registration_mismatches(pre_registration: Mapping[str, Any]) -> list[str
         "stage5_verdict": (_stage5_verdict(), dict(pre_registration["stage5_verdict"])),
         "power_lab": (_power_lab(), dict(pre_registration["power_lab"])),
         "evaluation_panel": (_evaluation_panel(), dict(pre_registration["evaluation_panel"])),
+        "realism_check": (_realism_check(), dict(pre_registration["realism_check"])),
     }
     return [f"{name}: code={code!r} registered={reg!r}" for name, (code, reg) in pairs.items() if code != reg]
 

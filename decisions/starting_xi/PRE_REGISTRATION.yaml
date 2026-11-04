@@ -138,3 +138,14 @@ evaluation_panel:
   band_count: 3 # evaluation_panel.BAND_COUNT
   boundary_rank_goes_to: better_band # evaluation_panel.BOUNDARY_RANK_GOES_TO
   null_or_zero_rank_band: null # evaluation_panel.NULL_OR_ZERO_RANK_BAND
+
+# The Stage 5 realism check (https://github.com/gisaf22/fpl-intelligence/issues/66): the revised
+# D-C3, D-C4 and D-C5 on https://github.com/gisaf22/fpl-intelligence/issues/55. Run after the
+# freeze, never used to change a lab setting.
+realism_check:
+  statistic: spread_across_gameweeks_of_weekly_win_share # realism.STATISTIC
+  spread_ddof: 1 # realism.SPREAD_DDOF
+  unit: win_share_points # realism.UNIT
+  gameweeks: { first_gw: 4, last_gw: 15 } # realism.VERDICT_GAMEWEEKS
+  prints_mean: false # realism.PRINTS_MEAN
+  label: per_gameweek_count # realism.LABEL

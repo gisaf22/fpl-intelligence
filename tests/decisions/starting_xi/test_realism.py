@@ -182,6 +182,14 @@ def test_weekly_shares_of_40_50_and_60_percent_give_a_spread_of_10_points() -> N
 
 
 @pytest.mark.covers("#66 AC3")
+def test_the_spread_follows_the_registered_ddof(monkeypatch: pytest.MonkeyPatch) -> None:
+    feed = _feed({4: 0.4, 5: 0.5, 6: 0.6})
+    assert realism.SPREAD_DDOF == 1
+    monkeypatch.setattr(realism, "SPREAD_DDOF", 0)
+    assert realism.measure(feed, gameweeks=(4, 5, 6)).spread_points == pytest.approx(10 * math.sqrt(2 / 3))
+
+
+@pytest.mark.covers("#66 AC3")
 def test_ties_count_as_the_verdict_counts_them() -> None:
     # Week 4: all ties, a share of 50%. Week 5: half win, half lose, 50%. Week 6: all win, 100%.
     ties = pd.DataFrame(

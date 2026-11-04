@@ -125,6 +125,7 @@ FROZEN_DESIGN: dict[str, Any] = {
     },
     "realism_check": {
         "statistic": "spread_across_gameweeks_of_weekly_win_share",
+        "spread_ddof": 1,
         "unit": "win_share_points",
         "gameweeks": {"first_gw": 4, "last_gw": 15},
         "prints_mean": False,
@@ -246,6 +247,7 @@ def test_changing_the_sensitivity_run_its_exclusion_or_its_holm_place_is_a_named
         pytest.param(("evaluation_panel", "boundary_rank_goes_to"), "worse_band", marks=pytest.mark.covers("#70 AC3")),
         pytest.param(("evaluation_panel", "null_or_zero_rank_band"), "bottom", marks=pytest.mark.covers("#70 AC4")),
         pytest.param(("realism_check", "statistic"), "sd_of_manager_points", marks=pytest.mark.covers("#66 AC7")),
+        pytest.param(("realism_check", "spread_ddof"), 0, marks=pytest.mark.covers("#66 AC7")),
         pytest.param(("realism_check", "unit"), "raw_points", marks=pytest.mark.covers("#66 AC7")),
         pytest.param(
             ("realism_check", "gameweeks"), {"first_gw": 4, "last_gw": 16}, marks=pytest.mark.covers("#66 AC7")
@@ -283,6 +285,7 @@ def test_changing_a_band_constant_in_the_code_is_a_named_mismatch(
     ("constant", "value"),
     [
         ("STATISTIC", "sd_of_manager_points"),
+        ("SPREAD_DDOF", 0),
         ("UNIT", "raw_points"),
         ("VERDICT_GAMEWEEKS", tuple(range(4, 17))),
         ("PRINTS_MEAN", True),

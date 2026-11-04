@@ -37,14 +37,6 @@ RESULTS_ROOT: Final[Path] = REPO_ROOT / "decisions" / "starting_xi" / "results"
 # A structural property of the sampler: each gameweek draws its own squads.
 CONSTRUCTION: Final[str] = "weekly"
 
-DEADLINE_FALLBACK_SENSITIVITY: Final[Mapping[str, object]] = {
-    "run": "excluding_deadline_fallback_weeks",
-    "excludes": "deadline_count_is_realised",
-    "holm_family": False,
-}
-"""Stage 5's sensitivity run beside the headline (#59 D3): it drops exactly the manager-weeks T2
-flags in `excludes`, is reported with its interval, and is not one of the Holm family's tests."""
-
 
 class RunRefused(RuntimeError):
     """The pre-run check failed and the caller did not force past it."""
@@ -134,10 +126,6 @@ def pre_registration_mismatches(
                 "seed": uncertainty.SEED,
             },
             dict(reg["gameweek_interval"]),
-        ),
-        "deadline_fallback_sensitivity": (
-            dict(DEADLINE_FALLBACK_SENSITIVITY),
-            dict(reg["deadline_fallback_sensitivity"]),
         ),
     }
     return [

@@ -38,7 +38,13 @@ from decisions.starting_xi import power_lab, power_report
 from decisions.starting_xi.power_report import ShockLevel
 from decisions.starting_xi.verdict import COLUMNS, OUTCOMES
 
+# The pre-registered check (PRE_REGISTRATION.yaml `realism_check`).
+STATISTIC: Final[str] = "spread_across_gameweeks_of_weekly_win_share"
+SPREAD_DDOF: Final[int] = 1  # the sample standard deviation across gameweeks
+UNIT: Final[str] = "win_share_points"
 VERDICT_GAMEWEEKS: Final[tuple[int, ...]] = tuple(range(4, 16))  # GW4-GW15 (#55 D-N3)
+PRINTS_MEAN: Final[bool] = False  # no return field, line or file carries the weekly shares' mean
+LABEL: Final[str] = "per_gameweek_count"  # each swept count against its own level (D-C4)
 FILENAME: Final[str] = "REALISM.md"
 
 _NULL_VARIANCE: Final[float] = 0.25  # a weekly share's per-manager variance at 50%
@@ -87,7 +93,7 @@ def measure(feed: pd.DataFrame, *, gameweeks: Iterable[int]) -> Measurement:
     shares = 50 * halves.loc[list(wanted)] / counts.loc[list(wanted)]
     return Measurement(
         gameweeks=wanted,
-        spread_points=float(shares.std(ddof=1)),
+        spread_points=float(shares.std(ddof=SPREAD_DDOF)),
         panel_managers=int(rows["manager_id"].nunique()),
         managers_per_gameweek=tuple(int(counts.loc[g]) for g in wanted),
     )

@@ -239,6 +239,7 @@ def test_a_postponement_known_before_the_deadline_changes_d2s_eleven(tmp_path: P
 
 
 @pytest.mark.covers("#59 AC3")
+@pytest.mark.covers("#62 AC3")
 def test_a_gameweek_with_no_count_at_the_deadline_uses_the_realised_count_and_is_flagged(tmp_path: Path) -> None:
     # GW2: the shared club played a double, with no capture before the deadline. GW4: the at-deadline
     # count (2) and the realised one (1) differ, so a fallback applied there would show.
@@ -277,6 +278,7 @@ def _score_every_week(frames: served.Frames) -> _EveryWeek:
 
 
 @pytest.mark.covers("#59 AC3")
+@pytest.mark.covers("#62 AC3")
 @pytest.mark.parametrize(("gw", "flagged"), [(1, True), (2, True), (3, False), (SCORED_GW, False)])
 def test_a_manager_week_with_no_count_at_the_deadline_is_flagged(tmp_path: Path, gw: int, flagged: bool) -> None:
     frames = _load(tmp_path, Publish(), "snapshot")
@@ -293,6 +295,7 @@ def _squads(gw: int) -> pd.DataFrame:
 
 
 @pytest.mark.covers("#59 AC5")
+@pytest.mark.covers("#62 AC3")
 def test_a_squad_player_with_no_count_at_the_deadline_fails_and_names_the_manager_weeks(tmp_path: Path) -> None:
     frames = _load(tmp_path, Publish(null_at_deadline=frozenset({(MARGINAL, 4)})), "snapshot")
     squads = pd.concat([_squads(3), _squads(4)], ignore_index=True)
@@ -306,6 +309,7 @@ def test_a_squad_player_with_no_count_at_the_deadline_fails_and_names_the_manage
 
 
 @pytest.mark.covers("#59 AC5")
+@pytest.mark.covers("#62 AC3")
 def test_a_null_count_for_a_player_in_no_squad_does_not_fail(tmp_path: Path) -> None:
     frames = _load(tmp_path, Publish(null_at_deadline=frozenset({(MARGINAL, 4)})), "snapshot")
     squads = _squad(4)
@@ -315,6 +319,7 @@ def test_a_null_count_for_a_player_in_no_squad_does_not_fail(tmp_path: Path) -> 
 
 
 @pytest.mark.covers("#59 AC5")
+@pytest.mark.covers("#62 AC3")
 @pytest.mark.parametrize("gw", UNCAPTURED_GWS)
 def test_a_null_count_in_a_gameweek_with_no_capture_takes_the_fallback_not_this_check(tmp_path: Path, gw: int) -> None:
     frames = _load(tmp_path, Publish(), "snapshot")
@@ -323,6 +328,7 @@ def test_a_null_count_in_a_gameweek_with_no_capture_takes_the_fallback_not_this_
 
 
 @pytest.mark.covers("#59 AC5")
+@pytest.mark.covers("#62 AC3")
 def test_the_load_path_runs_the_check(tmp_path: Path) -> None:
     root = tmp_path / "snapshot"
     pin = _write(root, Publish(null_at_deadline=frozenset({(MARGINAL, SCORED_GW)})))
@@ -340,6 +346,7 @@ def test_the_load_path_runs_the_check(tmp_path: Path) -> None:
 
 
 @pytest.mark.covers("#59 AC6")
+@pytest.mark.covers("#62 AC3")
 def test_the_fallback_gameweeks_are_exactly_those_with_no_count_at_the_deadline(tmp_path: Path) -> None:
     # GW4 has one NULL among counts: a gameweek with only some NULLs is the backstop's, not a fallback.
     frames = _load(tmp_path, Publish(null_at_deadline=frozenset({(MARGINAL, 4)})), "snapshot")

@@ -362,6 +362,7 @@ def test_nothing_in_starting_xi_imports_the_local_mart_loader(module: Path) -> N
 
 @pytest.mark.integration
 @pytest.mark.covers("#59 AC6")
+@pytest.mark.covers("#62 AC3")
 def test_the_run_manifest_lists_every_gameweek_whose_fixture_count_fell_back(
     snapshot: tuple[Path, served.Pin], tmp_path: Path
 ) -> None:
@@ -386,6 +387,7 @@ def test_the_run_manifest_lists_every_gameweek_whose_fixture_count_fell_back(
 @pytest.mark.live_db
 @pytest.mark.integration
 @pytest.mark.covers("#59 AC7")
+@pytest.mark.covers("#62 AC4")
 @pytest.mark.skipif(
     not (served.SNAPSHOT_ROOT / REAL_RUN_ID).exists(), reason="needs the pinned real snapshot under data/warehouse"
 )

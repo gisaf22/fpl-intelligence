@@ -43,11 +43,6 @@ FROZEN_DESIGN: dict[str, Any] = {
     "master_seed": 0,
     "bench_ordering": ["by_rank"],
     "gameweek_interval": {"n": 10000, "block": 4, "ci_level": 0.95, "seed": 0},
-    "deadline_fallback_sensitivity": {
-        "run": "excluding_deadline_fallback_weeks",
-        "excludes": "deadline_count_is_realised",
-        "holm_family": False,
-    },
     "stage5_verdict": {
         "groups": ["overall", "top", "middle", "bottom"],
         "sides": 2,
@@ -152,6 +147,7 @@ def _mutate(path: tuple[str, ...], value: object) -> dict[str, Any]:
 
 
 @pytest.mark.covers("#33 AC1")
+@pytest.mark.covers("#62 AC1")
 def test_the_file_holds_the_frozen_stage_3_design() -> None:
     assert yaml.safe_load(PRE_REGISTRATION_PATH.read_text()) == FROZEN_DESIGN
 
@@ -188,28 +184,27 @@ def test_changing_any_one_pinned_value_is_a_named_mismatch(path: tuple[str, ...]
     assert [m.split(":")[0] for m in mismatches] == [path[0]]
 
 
-@pytest.mark.covers("#59 AC4a")
-def test_the_file_declares_the_deadline_fallback_sensitivity_run() -> None:
+@pytest.mark.covers("#62 AC1")
+def test_the_file_holds_no_retired_stage5_sensitivity_run() -> None:
+    assert "deadline_fallback_sensitivity" not in yaml.safe_load(PRE_REGISTRATION_PATH.read_text())
+
+
+@pytest.mark.covers("#62 AC2")
+def test_a_registration_without_the_sensitivity_run_is_no_mismatch_and_no_error() -> None:
     registered = yaml.safe_load(PRE_REGISTRATION_PATH.read_text())
-    assert registered["deadline_fallback_sensitivity"] == FROZEN_DESIGN["deadline_fallback_sensitivity"]
+    registered.pop("deadline_fallback_sensitivity", None)
+    assert starting_xi.pre_registration_mismatches(**CANONICAL_RUN, pre_registration=registered) == []
 
 
-@pytest.mark.covers("#59 AC4a")
-@pytest.mark.parametrize(
-    ("key", "value"),
-    [
-        ("run", "headline"),
-        ("excludes", "uncovered_blank"),
-        ("holm_family", True),
-    ],
-)
-def test_changing_the_sensitivity_run_its_exclusion_or_its_holm_place_is_a_named_mismatch(
-    key: str, value: object
-) -> None:
-    mismatches = starting_xi.pre_registration_mismatches(
-        **CANONICAL_RUN, pre_registration=_mutate(("deadline_fallback_sensitivity", key), value)
-    )
-    assert [m.split(":")[0] for m in mismatches] == ["deadline_fallback_sensitivity"]
+@pytest.mark.covers("#62 AC2")
+def test_the_pre_run_check_compares_no_sensitivity_run_field() -> None:
+    # The block put back with any value is the freeze test's to catch (AC1), not the pre-run check's.
+    put_back = {
+        **FROZEN_DESIGN,
+        "deadline_fallback_sensitivity": {"run": "headline", "excludes": "uncovered_blank", "holm_family": True},
+    }
+    mismatches = starting_xi.pre_registration_mismatches(**CANONICAL_RUN, pre_registration=put_back)
+    assert not [m for m in mismatches if m.startswith("deadline_fallback_sensitivity")]
 
 
 @pytest.mark.covers("#60 AC5")

@@ -370,9 +370,9 @@ def test_a_published_season_with_no_manager_rows_is_refused(pin: served.Pin) -> 
 @pytest.mark.covers("#70 AC6")
 def test_the_pin_names_dim_gameweek_by_its_hash_and_its_s3_version() -> None:
     pin = served.read_pin()
-    assert pin.run_id == RUN_ID
-    assert pin.sha256["dim_gameweek.parquet"] == "587aaf88cab39f70046189d05180a78c6401741ca67477e77848566d8d5b5161"
-    assert pin.object_versions["dim_gameweek.parquet"] == "u4SH.I4YCDvUIW730jaMNV7eE3GY9xp7"
+    assert pin.run_id == "41513262675"  # the look pin (#76); the fixture sample stays at RUN_ID
+    assert pin.sha256["dim_gameweek.parquet"] == "8c338c6ed7829cea9cb0145a88bda355520a224c4c2c439e7ad0b9cae66947e2"
+    assert pin.object_versions["dim_gameweek.parquet"] == "2NIXs1AFM1gPnhIeR2NfuCcSJna0kTlo"
 
 
 @pytest.mark.integration

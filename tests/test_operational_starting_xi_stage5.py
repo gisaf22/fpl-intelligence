@@ -34,7 +34,7 @@ VERDICT_ENTRY_POINTS = ("crossed_share", "two_sided_p", "raw_p_values", "needs_r
 # Wording the look must never print: a p-value, an interval, or a pass or fail call.
 VERDICT_WORDING = re.compile(r"p[- ]?value|interval|\bCI\b|confidence|\bpass(es|ed)?\b|\bfail|reject|significan", re.I)
 LOOK_GWS = (4, 5, 6, 7, 8)
-VERDICT_GWS = tuple(range(4, 16))
+VERDICT_GWS = tuple(range(4, 12))
 
 
 def _publish(tmp_path: Path, last_gw: int, **manifest: str | None) -> tuple[served.Pin, Path]:
@@ -42,7 +42,7 @@ def _publish(tmp_path: Path, last_gw: int, **manifest: str | None) -> tuple[serv
     return fx.write(root, last_gw, **manifest), root
 
 
-def _verdict(tmp_path: Path, last_gw: int = 15) -> tuple[Path, Path, served.Pin]:
+def _verdict(tmp_path: Path, last_gw: int = 11) -> tuple[Path, Path, served.Pin]:
     pin, root = _publish(tmp_path, last_gw)
     results, lab = tmp_path / "stage5_results", tmp_path / "power_lab_results"
     results.mkdir()
@@ -106,22 +106,24 @@ def test_the_look_header_does_not_show_the_used_gameweeks_as_the_ratified_ones(t
     assert look.ratified_gameweeks != look.gameweeks_used
 
 
-# --- AC2: the verdict needs 12 scorable ratified gameweeks and uses exactly GW4-GW15 ---
+# --- AC2: the verdict needs 8 scorable ratified gameweeks and uses exactly GW4-GW11 ---
 
 
 @pytest.mark.integration
 @pytest.mark.covers("#73 AC2")
-def test_the_verdict_refuses_a_pin_with_eleven_scorable_gameweeks(tmp_path: Path) -> None:
-    pin, root = _publish(tmp_path, 14)  # GW4-GW14
-    with pytest.raises(ValueError, match="12"):
+@pytest.mark.covers("#76 AC9")
+def test_the_verdict_refuses_a_pin_with_seven_scorable_gameweeks(tmp_path: Path) -> None:
+    pin, root = _publish(tmp_path, 10)  # GW4-GW10
+    with pytest.raises(ValueError, match="the 8 scorable ratified gameweeks"):
         stage5.verdict(pin, snapshot_root=root, results_dir=tmp_path, realism_dir=tmp_path)
     assert not list(tmp_path.glob("*.md")) and not list(tmp_path.glob("*.csv"))
 
 
 @pytest.mark.integration
 @pytest.mark.covers("#73 AC2")
-@pytest.mark.parametrize("last_gw", [15, 16])
-def test_the_verdict_runs_on_exactly_gw4_to_gw15(tmp_path: Path, last_gw: int) -> None:
+@pytest.mark.covers("#76 AC9")
+@pytest.mark.parametrize("last_gw", [11, 12])
+def test_the_verdict_runs_on_exactly_gw4_to_gw11(tmp_path: Path, last_gw: int) -> None:
     results, _, _ = _verdict(tmp_path, last_gw)
     feed = pd.read_csv(results / "FEED.csv")
     assert tuple(sorted(feed["gameweek"].unique())) == VERDICT_GWS
@@ -240,7 +242,7 @@ def test_the_verdict_header_records_the_pins_identity_ratified_gameweeks_and_man
     assert pin.run_id in header
     assert fx.BUILT_AT in header
     assert fx.GIT_SHA in header
-    assert "GW15" in header
+    assert "- Verdict gameweeks: GW4-GW11 (8)\n" in header
     assert str(len(fx.MANAGERS)) in header
 
 
@@ -537,3 +539,19 @@ def test_both_modes_refuse_to_run_off_the_registration(
         else:
             stage5.verdict(pin, snapshot_root=root, results_dir=tmp_path, realism_dir=tmp_path)
     assert not list(tmp_path.glob("*.md")) and not list(tmp_path.glob("*.csv"))
+
+
+# --- #76 AC6: the committed pin and registration clear the runner's pre-run checks ---
+
+
+@pytest.mark.integration
+@pytest.mark.covers("#76 AC6")
+@pytest.mark.parametrize("mode", ["look", "verdict"])
+def test_the_committed_pin_clears_the_registration_and_build_identity_checks(tmp_path: Path, mode: str) -> None:
+    # No snapshot is synced here, so a run past both checks stops at the first file's bytes instead.
+    with pytest.raises(served.ServedContractError, match=r"sha256 None does not match pin"):
+        if mode == "look":
+            stage5.look(snapshot_root=tmp_path)
+        else:
+            stage5.verdict(snapshot_root=tmp_path, results_dir=tmp_path, realism_dir=tmp_path)
+    assert "look_pin" in yaml.safe_load(stage5.PRE_REGISTRATION_PATH.read_text(encoding="utf-8"))

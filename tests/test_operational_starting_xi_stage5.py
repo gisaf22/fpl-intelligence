@@ -412,6 +412,30 @@ def test_the_verdict_header_takes_its_build_time_and_git_sha_from_the_pin(tmp_pa
     assert (header.built_at, header.git_sha) == (pin.built_at, pin.git_sha)
 
 
+@pytest.mark.covers("#73 AC10")
+@pytest.mark.parametrize("field", ["built_at", "git_sha"])
+@pytest.mark.parametrize("mode", ["look", "verdict"])
+def test_the_runner_refuses_a_pin_without_a_build_field_and_names_it(tmp_path: Path, field: str, mode: str) -> None:
+    pin, root = _publish(tmp_path, 15, **{field: None})
+    assert getattr(pin, field) is None
+    results, lab = tmp_path / "results", tmp_path / "lab"
+    results.mkdir()
+    lab.mkdir()
+    with pytest.raises(served.ServedContractError, match=field):
+        if mode == "look":
+            stage5.look(pin, snapshot_root=root)
+        else:
+            stage5.verdict(pin, snapshot_root=root, results_dir=results, realism_dir=lab)
+    assert list(results.iterdir()) == [] and list(lab.iterdir()) == []
+
+
+@pytest.mark.covers("#73 AC10")
+def test_a_pin_without_the_build_fields_still_loads_outside_the_runner(tmp_path: Path) -> None:
+    pin, root = _publish(tmp_path, 15, built_at=None, git_sha=None)
+    assert not served.load(fx.SEASON, pin=pin, snapshot_root=root).gameweek.empty
+    assert not served.load_managers(fx.SEASON, pin=pin, snapshot_root=root).picks.empty
+
+
 # --- AC11: the look stops at GW8 and never pads a shorter pin ---
 
 

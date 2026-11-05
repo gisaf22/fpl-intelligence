@@ -628,14 +628,13 @@ def test_a_pins_build_time_and_git_sha_round_trip_through_its_file(pin: served.P
 
 @pytest.mark.unit
 @pytest.mark.covers("#73 AC10")
-@pytest.mark.parametrize("field", ["built_at", "git_sha"])
-def test_a_pin_file_without_a_build_field_is_refused_and_the_field_named(
-    pin: served.Pin, tmp_path: Path, field: str
-) -> None:
+def test_a_pin_file_without_the_build_fields_still_reads_and_loads(pin: served.Pin, tmp_path: Path) -> None:
+    # The requirement lives on the Stage 5 runner's load path only (D-N12): today's pin lacks both.
     path = tmp_path / "pin.json"
     served.write_pin(pin, path)
     document = json.loads(path.read_text(encoding="utf-8"))
-    del document[field]
+    del document["built_at"], document["git_sha"]
     path.write_text(json.dumps(document), encoding="utf-8")
-    with pytest.raises(served.ServedContractError, match=field):
-        served.read_pin(path)
+    read = served.read_pin(path)
+    assert (read.built_at, read.git_sha) == (None, None)
+    assert not served.load(MANAGER_SEASON, pin=read, snapshot_root=FIXTURE_ROOT).gameweek.empty

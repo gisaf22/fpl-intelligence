@@ -15,8 +15,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from decisions.starting_xi import harness, manager_comparison, orderings, verdict
+from decisions.starting_xi import harness, manager_comparison, orderings, sampler, verdict
 from domain.fpl_squad import POSITION_BY_ID
+from tests import _stage5_publish as stage5_publish
 from warehouse import served
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[3] / "warehouse" / "fixtures"
@@ -329,3 +330,20 @@ def test_a_panel_manager_week_with_a_side_missing_raises(side: str) -> None:
         chips = chips[chips["gw"] == 5]
     with pytest.raises(ValueError, match=r"\(1, 6\)"):
         manager_comparison.paired_feed(rule_weeks, manager_points, chips, _panel())
+
+
+# --- #73 AC9: the real squads reach `harness.run` in the sampler's table shape ---
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#73 AC9")
+def test_the_real_squad_table_has_the_sampler_tables_columns_and_types(tmp_path: Path) -> None:
+    pin = stage5_publish.write(tmp_path, 5)
+    frames = served.load(stage5_publish.SEASON, pin=pin, snapshot_root=tmp_path)
+    managers = served.load_managers(stage5_publish.SEASON, pin=pin, snapshot_root=tmp_path)
+
+    sampled = sampler.sample_squads(frames, [5], 1, 0, squad_mode="uniform").squads
+    real = manager_comparison.real_squads(managers.picks)
+
+    assert list(real.columns) == list(sampled.columns)
+    assert real.dtypes.to_dict() == sampled.dtypes.to_dict()

@@ -126,6 +126,11 @@ FROZEN_DESIGN: dict[str, Any] = {
         "prints_mean": False,
         "label": "per_gameweek_count",
     },
+    "look": {
+        "ceiling_gw": 8,
+        "overlap": {"look": {"first_gw": 4, "last_gw": 8}, "verdict": {"first_gw": 4, "last_gw": 15}},
+        "once_per_purpose": True,
+    },
 }
 
 CANONICAL_RUN: dict[str, Any] = {
@@ -148,6 +153,7 @@ def _mutate(path: tuple[str, ...], value: object) -> dict[str, Any]:
 
 @pytest.mark.covers("#33 AC1")
 @pytest.mark.covers("#62 AC1")
+@pytest.mark.covers("#73 AC12")
 def test_the_file_holds_the_frozen_stage_3_design() -> None:
     assert yaml.safe_load(PRE_REGISTRATION_PATH.read_text()) == FROZEN_DESIGN
 

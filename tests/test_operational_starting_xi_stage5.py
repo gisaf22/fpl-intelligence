@@ -179,7 +179,7 @@ def test_a_realism_error_stops_the_run_and_leaves_no_verdict_results(
 @pytest.mark.covers("#73 AC3")
 def test_a_second_verdict_run_on_the_pin_is_byte_identical(tmp_path: Path) -> None:
     first, first_lab, pin = _verdict(tmp_path / "first")
-    root = tmp_path / "first" / "publish-15"
+    root = tmp_path / "first" / "publish-11"
     second, second_lab = tmp_path / "second", tmp_path / "second_lab"
     second.mkdir()
     second_lab.mkdir()
@@ -196,7 +196,7 @@ def test_a_second_verdict_run_on_the_pin_is_byte_identical(tmp_path: Path) -> No
 @pytest.mark.covers("#73 AC4")
 def test_the_look_and_the_verdict_have_the_same_panel_and_outcomes_in_each_gameweek(tmp_path: Path) -> None:
     results, _, pin = _verdict(tmp_path)
-    look = stage5.look(pin, snapshot_root=tmp_path / "publish-15")
+    look = stage5.look(pin, snapshot_root=tmp_path / "publish-11")
 
     from_verdict = pd.read_csv(results / "FEED.csv")
     from_verdict = from_verdict[from_verdict["gameweek"].isin(LOOK_GWS)].reset_index(drop=True)
@@ -372,7 +372,7 @@ def _look_notebook_with_outputs(tmp_path: Path, text: str) -> Path:
 @pytest.mark.covers("#73 AC8")
 def test_the_committed_outputs_hold_no_manager_id_and_no_per_manager_row(tmp_path: Path) -> None:
     results, lab, pin = _verdict(tmp_path)
-    look = stage5.look(pin, snapshot_root=tmp_path / "publish-15")
+    look = stage5.look(pin, snapshot_root=tmp_path / "publish-11")
     notebook = _look_notebook_with_outputs(tmp_path, look.text)
     outputs = [results / "VERDICT.md", lab / "REALISM.md", notebook]
     assert stage5.scan_outputs(outputs, manager_ids=fx.MANAGERS) == []

@@ -7,8 +7,8 @@
 
 One runner, one shared feed builder, two modes (D-N1 on https://github.com/gisaf22/fpl-intelligence/issues/55).
 `look` prints descriptive numbers per gameweek from GW4 up to `LOOK_CEILING_GW` and never calls
-`verdict.py`'s statistics (D-N2, D-N3 as revised). `verdict` refuses a pin without the 12 gameweeks
-GW4-GW15, and writes `VERDICT.md` and the local, git-ignored `FEED.csv` into `stage5_results/` and
+`verdict.py`'s statistics (D-N2, D-N3 as revised). `verdict` refuses a pin without the 8 gameweeks
+GW4-GW11, and writes `VERDICT.md` and the local, git-ignored `FEED.csv` into `stage5_results/` and
 `REALISM.md` beside the lab's `REPORT.md`, all from one feed and one pin (D-N4, D-N5, D-N6 (revised)).
 
 **Both modes check the registration first** (`look` in `PRE_REGISTRATION.yaml`, D-N10; `verdict`

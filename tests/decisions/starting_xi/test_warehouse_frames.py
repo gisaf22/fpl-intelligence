@@ -308,7 +308,7 @@ def test_only_gameweeks_4_to_38_are_scored(snapshot: tuple[Path, served.Pin], tm
         assert set(frame["gw"]) == {4, 5}, table
 
 
-REAL_RUN_ID = "40289379567"
+REAL_RUN_ID = "41513262675"  # the look pin (#76)
 
 
 @pytest.mark.integration

@@ -29,7 +29,7 @@ PRE_REGISTRATION_PATH = RESULTS_DIR.parent / "PRE_REGISTRATION.yaml"
 # REPORT.md's SHA-256 as recorded in https://github.com/gisaf22/fpl-intelligence/pull/68.
 REPORT_SHA256 = "8db7a7cf5b004a4974cffcaec4df5678935296224d83d2de4b1dc002d8ebf668"
 
-VERDICT_WINDOW = tuple(range(4, 16))  # GW4-GW15, #55 D-N3
+VERDICT_WINDOW = tuple(range(4, 12))  # GW4-GW11, #55 decision 15 as amended 2026-11-05
 # The levels #65 prints: 9 points at 8, 12 and 16 gameweeks; 6 at 24 and 38; none at 5.
 LEVELS_65 = [
     ShockLevel(5, None, None),
@@ -137,8 +137,8 @@ def test_a_not_applicable_row_names_the_spread_and_the_level_it_is_beyond() -> N
 def test_the_rough_uncertainty_is_printed_beside_the_estimate() -> None:
     text = realism.render(_measurement(7.0), LEVELS_65)
     relative = 1 / math.sqrt(2 * (len(VERDICT_WINDOW) - 1))
-    assert realism.relative_uncertainty(12) == pytest.approx(relative)
-    assert f"{relative:.0%}" in text  # about 21% at 12 gameweeks
+    assert realism.relative_uncertainty(len(VERDICT_WINDOW)) == pytest.approx(relative)
+    assert f"{relative:.0%}" in text  # about 27% at the verdict's 8 gameweeks
     assert f"{7.0 * relative:.2f}" in text
     assert "1/sqrt(2(n-1))" in text
 
@@ -152,24 +152,33 @@ def test_the_uncertainty_gates_no_label() -> None:
         assert _row_label(few, gameweeks) == _row_label(many, gameweeks)
 
 
-# --- AC2: the 12-gameweek row is always stated --------------------------------------------------------
+# --- AC2: the row for the verdict's gameweek count is always stated ----------------------------------
 
 
 @pytest.mark.covers("#66 AC2")
 @pytest.mark.parametrize(
     "measurement",
     [_measurement(3.0), _measurement(12.0), _measurement(7.0, gameweeks=(4, 5, 6, 7, 8, 9, 10))],
-    ids=["within_its_level", "beyond_its_level", "fewer_than_12_scored_gameweeks"],
+    ids=["within_its_level", "beyond_its_level", "fewer_than_the_verdicts_scored_gameweeks"],
 )
-def test_the_12_gameweek_row_is_stated_in_every_case(measurement: realism.Measurement) -> None:
-    _row_label(realism.render(measurement, LEVELS_65), 12)
+def test_the_verdict_counts_row_is_stated_in_every_case(measurement: realism.Measurement) -> None:
+    _row_label(realism.render(measurement, LEVELS_65), len(VERDICT_WINDOW))
 
 
 @pytest.mark.covers("#66 AC2")
 def test_levels_without_a_swept_count_are_refused_rather_than_leaving_its_row_out() -> None:
-    without_12 = [level for level in LEVELS_65 if level.gameweeks != 12]
-    with pytest.raises(realism.RealismRefused, match="12"):
-        realism.render(_measurement(7.0), without_12)
+    verdict_count = len(VERDICT_WINDOW)
+    without_it = [level for level in LEVELS_65 if level.gameweeks != verdict_count]
+    with pytest.raises(realism.RealismRefused, match=str(verdict_count)):
+        realism.render(_measurement(7.0), without_it)
+
+
+@pytest.mark.covers("#76 AC10")
+def test_a_verdict_window_whose_length_has_no_row_in_the_sweep_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Seven gameweeks is not a swept count, so the always-stated row could not be stated.
+    monkeypatch.setattr(realism, "VERDICT_GAMEWEEKS", tuple(range(4, 11)))
+    with pytest.raises(realism.RealismRefused, match="7"):
+        realism.render(_measurement(7.0), LEVELS_65)
 
 
 # --- AC3: the weekly win share and its spread across gameweeks, no conversion ------------------------
@@ -235,7 +244,8 @@ def test_the_output_states_the_statistic_in_win_share_points_with_no_conversion(
 
 
 @pytest.mark.covers("#66 AC5")
-def test_the_verdict_window_is_gw4_to_gw15() -> None:
+@pytest.mark.covers("#76 AC9")
+def test_the_verdict_window_is_gw4_to_gw11() -> None:
     assert realism.VERDICT_GAMEWEEKS == VERDICT_WINDOW
 
 
@@ -354,7 +364,7 @@ def test_the_counts_are_the_distinct_panel_managers_and_each_gameweeks_own_count
     measured = realism.measure(feed, gameweeks=VERDICT_WINDOW)
     assert measured.gameweeks == VERDICT_WINDOW
     assert measured.panel_managers == 10
-    assert measured.managers_per_gameweek == (6, *(10,) * 11)
+    assert measured.managers_per_gameweek == (6, *(10,) * (len(VERDICT_WINDOW) - 1))
 
 
 # --- AC9: the sampling noise is printed and not subtracted -------------------------------------------
@@ -379,7 +389,8 @@ def test_the_measured_noise_uses_the_feeds_per_gameweek_counts() -> None:
     feed = feed.loc[~((feed["gameweek"] == 4) & (feed["manager_id"] > 5))]  # GW4: 5 managers
     measured = realism.measure(feed, gameweeks=VERDICT_WINDOW)
     text = realism.render(measured, LEVELS_65)
-    expected = 100 * math.sqrt((0.25 / 5 + 11 * 0.25 / 10) / 12)
+    n = len(VERDICT_WINDOW)
+    expected = 100 * math.sqrt((0.25 / 5 + (n - 1) * 0.25 / 10) / n)
     assert realism.sampling_noise_points(measured.managers_per_gameweek) == pytest.approx(expected)
     assert f"{expected:.2f}" in text
 
@@ -389,7 +400,7 @@ def test_the_sampling_noise_is_printed_and_stated_as_not_subtracted() -> None:
     text = realism.render(_measurement(7.0, managers=1_900), LEVELS_65)
     noise_lines = [line for line in text.splitlines() if "sampling noise" in line.lower()]
     assert len(noise_lines) == 1
-    assert f"{realism.sampling_noise_points((1_900,) * 12):.2f}" in noise_lines[0]
+    assert f"{realism.sampling_noise_points((1_900,) * len(VERDICT_WINDOW)):.2f}" in noise_lines[0]
     assert "not subtracted" in noise_lines[0]
     assert "1,900" in noise_lines[0]
 
@@ -408,7 +419,8 @@ def test_the_noise_is_not_subtracted_from_the_spread() -> None:
     few = realism.measure(_window_feed(managers=10), gameweeks=VERDICT_WINDOW)
     many = realism.measure(_window_feed(managers=40), gameweeks=VERDICT_WINDOW)
     assert few.spread_points == pytest.approx(many.spread_points)
-    assert few.spread_points == pytest.approx(pd.Series([40.0, 50.0, 60.0] * 4).std(ddof=1))
+    shares = pd.Series([(40.0, 50.0, 60.0)[i % 3] for i in range(len(VERDICT_WINDOW))])
+    assert few.spread_points == pytest.approx(shares.std(ddof=1))
 
 
 # --- AC10: a run on other gameweeks is a labelled preview --------------------------------------------

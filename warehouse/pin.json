@@ -1,17 +1,23 @@
 {
-  "run_id": "40289379567",
+  "run_id": "41513262675",
+  "built_at": "2026-11-02T19:53:48+00:00",
+  "git_sha": "86536e536caa07f089df3dda7f1e94fb5c776ed7",
   "sha256": {
-    "_manifest.json": "c9a0b75aea7cc6f71d378005f3ab53e8f5fdf5ae3142e72eb7694131ae868060",
-    "dim_gameweek.parquet": "587aaf88cab39f70046189d05180a78c6401741ca67477e77848566d8d5b5161",
-    "dim_player.parquet": "d7d2fc2bfdfc1657b46648b21254e93e5b150f1940f8ed439444d1b59bbd382b",
-    "fct_manager_gameweek.parquet": "6a3493380e252dc168df7c7b61646953929a437bed2e0d2df8fe4eac78efaaff",
-    "fct_manager_pick.parquet": "a971d7181c56f08e35f27e6134d2174341f4a07d009b55637386c30836cd1ae1",
-    "fct_player_fixture.parquet": "20b1ae044124466622575a633eda9997ede4c054df2bcc0a75c19d959cebc18e",
-    "fct_player_gameweek.parquet": "2aa593195a8731e45ae4e7b677335d697ffcd8a7b7a0200c91ac71783d6be254"
+    "_manifest.json": "d4050cb48a61087856b6475b0497c18526f37ca7c99a72cb9d9e47fb571a0cda",
+    "dim_gameweek.parquet": "8c338c6ed7829cea9cb0145a88bda355520a224c4c2c439e7ad0b9cae66947e2",
+    "dim_player.parquet": "adf1d920dfaee0453f65289d30a3658f08735e006cb76b4b4b4b1efcfb634123",
+    "fct_manager_gameweek.parquet": "6545279ea7572828690ab470ce984003cf372859c6cc948708dbf627f0afd7fe",
+    "fct_manager_pick.parquet": "cf6912ebb9e39d1a8ba8688e8e2494f128ce3ebb7e1bac188b3779d0cb50b57a",
+    "fct_player_fixture.parquet": "0c0cfce31e4914ef9af48f67df6f921f087ec01726eabea3e7ca6d749701e9d4",
+    "fct_player_gameweek.parquet": "cc81d023e0056afad16e4fa392b3cab6e6f17b3c41c8005e32d9194ddce1c97c"
   },
   "object_versions": {
-    "dim_gameweek.parquet": "u4SH.I4YCDvUIW730jaMNV7eE3GY9xp7",
-    "fct_manager_gameweek.parquet": "y1CJo4gbI80smdWfu3nHTWzDcLZ9KntG",
-    "fct_manager_pick.parquet": "GlIEiW6KrrM3MJlW8plrr4Rg3KI45mpE"
+    "_manifest.json": "plDIPxlaSmRYh9Me9B5kjwU9uCrY.mWf",
+    "dim_gameweek.parquet": "2NIXs1AFM1gPnhIeR2NfuCcSJna0kTlo",
+    "dim_player.parquet": "uiNWNVmwl30W1Xcy39M9Wrn1fN5s0WWw",
+    "fct_manager_gameweek.parquet": "ruzXEFZHxwhdWRVPUcIhjJJ_DB2QVwgE",
+    "fct_manager_pick.parquet": "lK0HHKeLx_IXAO5Taga8hALxr1cDfU5j",
+    "fct_player_fixture.parquet": "x5vZg94GPH.6rmPxTcutKiO69nLrWrLv",
+    "fct_player_gameweek.parquet": "K9R5CZa9WWfBgOLiujsUP7iq.Lvm4LyP"
   }
 }

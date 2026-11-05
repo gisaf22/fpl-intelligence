@@ -14,8 +14,10 @@ outcomes serve only the spread.
 **The label (D-C4).** Each count in `power_lab.GAMEWEEK_SWEEP` is compared with its own level from
 the lab's committed probe (#65): the largest shock at which it stays within the false-rejection
 limit. A spread strictly beyond a count's level marks that row alone "not applicable"; a count with
-no level (the verdict procedure is invalid there) is not compared. The rough uncertainty and the
-sampling noise are printed beside the estimate and gate nothing.
+no level (the verdict procedure is invalid there) is not compared. The row for the verdict's count,
+`len(VERDICT_GAMEWEEKS)`, is always stated, so a verdict window whose length is not a swept count is
+refused (#76 AC10). The rough uncertainty and the sampling noise are printed beside the estimate and
+gate nothing.
 
 **The record (D-C5, R2).** This module writes `power_lab_results/REALISM.md` itself, from the lab's
 committed levels and the feed spread; `power_report` and the other lab modules receive nothing from
@@ -42,7 +44,7 @@ from decisions.starting_xi.verdict import COLUMNS, OUTCOMES
 STATISTIC: Final[str] = "spread_across_gameweeks_of_weekly_win_share"
 SPREAD_DDOF: Final[int] = 1  # the sample standard deviation across gameweeks
 UNIT: Final[str] = "win_share_points"
-VERDICT_GAMEWEEKS: Final[tuple[int, ...]] = tuple(range(4, 16))  # GW4-GW15 (#55 D-N3)
+VERDICT_GAMEWEEKS: Final[tuple[int, ...]] = tuple(range(4, 12))  # GW4-GW11 (#55 decision 15 as amended 2026-11-05)
 PRINTS_MEAN: Final[bool] = False  # no return field, line or file carries the weekly shares' mean
 LABEL: Final[str] = "per_gameweek_count"  # each swept count against its own level (D-C4)
 FILENAME: Final[str] = "REALISM.md"
@@ -176,6 +178,12 @@ def _verdict_cell(row: RowCheck, spread: str) -> str:
 
 def render(measurement: Measurement, levels: Iterable[ShockLevel]) -> str:
     """`REALISM.md`'s text: the scope, the statistic, the compared values and one row per swept count."""
+    verdict_count = len(VERDICT_GAMEWEEKS)
+    if verdict_count not in power_lab.GAMEWEEK_SWEEP:
+        raise RealismRefused(
+            f"the verdict's {verdict_count} gameweeks are not a swept count {list(power_lab.GAMEWEEK_SWEEP)}, "
+            "so its row cannot be stated"
+        )
     rows = label_rows(measurement.spread_points, levels)
     n = len(measurement.gameweeks)
     relative = relative_uncertainty(n)

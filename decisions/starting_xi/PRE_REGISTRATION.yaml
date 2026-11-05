@@ -138,15 +138,20 @@ realism_check:
   statistic: spread_across_gameweeks_of_weekly_win_share # realism.STATISTIC
   spread_ddof: 1 # realism.SPREAD_DDOF
   unit: win_share_points # realism.UNIT
-  gameweeks: { first_gw: 4, last_gw: 15 } # realism.VERDICT_GAMEWEEKS
+  gameweeks: { first_gw: 4, last_gw: 11 } # realism.VERDICT_GAMEWEEKS
   prints_mean: false # realism.PRINTS_MEAN
   label: per_gameweek_count # realism.LABEL
 
 # The Stage 5 descriptive look (https://github.com/gisaf22/fpl-intelligence/issues/73 D-N10): it
 # stops at GW8 however far its pin reaches, its gameweeks sit inside the verdict's, and each pin
-# serves one purpose. The look pin's run id is recorded at the re-pin
-# (https://github.com/gisaf22/fpl-intelligence/issues/76), not here.
+# serves one purpose. The look pin's run id is in `look_pin` below.
 look:
   ceiling_gw: 8 # starting_xi_stage5.LOOK_CEILING_GW
-  overlap: { look: { first_gw: 4, last_gw: 8 }, verdict: { first_gw: 4, last_gw: 15 } } # rankers.RULE_WINDOW[0], LOOK_CEILING_GW; realism.VERDICT_GAMEWEEKS
+  overlap: { look: { first_gw: 4, last_gw: 8 }, verdict: { first_gw: 4, last_gw: 11 } } # rankers.RULE_WINDOW[0], LOOK_CEILING_GW; realism.VERDICT_GAMEWEEKS
   once_per_purpose: true # starting_xi_stage5.ONCE_PER_PURPOSE
+
+# The look pin (https://github.com/gisaf22/fpl-intelligence/issues/76): data only, no code constant.
+# Its full identity is `warehouse/pin.json` at the freeze commit; the verdict pin later replaces that
+# file, so nothing checks this run id against it automatically.
+look_pin:
+  run_id: "41513262675"

@@ -9,7 +9,9 @@ for the warehouse path.
 
 A pinned snapshot of one fpl-warehouse served publish, read by `warehouse.served` (#29). The pin
 (`warehouse/pin.json`) names the publish's manifest `run_id` and each file's sha256, and the run
-manifest records both. A run whose input hashes differ from its pin is refused.
+manifest records both. A run whose input hashes differ from its pin is refused. A pin made from a
+build's manifest also names that build's `built_at` and `git_sha`; the Stage 5 runner reads only
+a pin that names both, and every other reader accepts a pin without them (#73 D-N12).
 
 ## Mapping
 

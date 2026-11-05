@@ -41,9 +41,19 @@ def squad_id(entry_id: int, gw: int) -> str:
 
 
 def real_squads(picks: pd.DataFrame) -> pd.DataFrame:
-    """The managers' 15s in the harness's squad table shape: `gw`, `squad_id`, `player_id`."""
+    """The managers' 15s as the sampler's squad table: `gw`, `squad_id`, `player_id`, with its types.
+
+    The manager frames load `int32`; the sampler's table is `int64`, so both are cast here and a
+    test holds the two tables to one shape (D-N7 on https://github.com/gisaf22/fpl-intelligence/issues/73).
+    """
     ids = [squad_id(int(e), int(g)) for e, g in zip(picks["entry_id"], picks["gw"], strict=True)]
-    return pd.DataFrame({"gw": picks["gw"].to_numpy(), "squad_id": ids, "player_id": picks["player_id"].to_numpy()})
+    return pd.DataFrame(
+        {
+            "gw": picks["gw"].to_numpy(dtype="int64"),
+            "squad_id": pd.Series(ids, dtype="str"),
+            "player_id": picks["player_id"].to_numpy(dtype="int64"),
+        }
+    )
 
 
 def chosen_eleven(picks: pd.DataFrame) -> pd.DataFrame:

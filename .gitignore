@@ -25,5 +25,7 @@ research/runs/
 
 # starting_xi results are deterministically regeneratable from PRE_REGISTRATION.yaml + a seed.
 decisions/starting_xi/results/
+# The Stage 5 verdict's feed stays local; VERDICT.md records its row count and SHA-256 (#73 D-N6).
+decisions/starting_xi/stage5_results/FEED.csv
 # The power lab's pilot timings are machine-specific (#60): they price runs on one machine and are never committed.
 decisions/starting_xi/power_lab_results/pilot_timings.json

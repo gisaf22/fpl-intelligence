@@ -504,8 +504,9 @@ def run(
     """Replay every squad-week in `window` under one ranker and every candidate ordering.
 
     Args:
-        squads: the sampler's frozen squad table -- (`gw`, `squad_id`, `player_id`), 15 rows per
-            squad, one `gw` per `squad_id`.
+        squads: the sampler's table or an adapter's table of the same shape -- (`gw`, `squad_id`,
+            `player_id`), 15 rows per squad, one `gw` per `squad_id`. Stage 5's adapter is
+            `manager_comparison.real_squads`.
         rank_fn: `rank(frames) -> RankerOutput`. Called **once**, over the whole frames, not
             once per gameweek: a per-gameweek signature would force `p_play`'s
             expanding walk-forward to re-run from the start of the season for every gameweek.

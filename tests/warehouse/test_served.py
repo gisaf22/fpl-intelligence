@@ -602,3 +602,39 @@ def test_a_held_snapshot_that_differs_raises_and_names_the_pinned_versions(
     monkeypatch.setattr(served.subprocess, "run", _fake_get_object("v1"))
     with pytest.raises(served.ServedContractError, match=r"differs.*'a': 'v0'"):
         served.refresh(source=SOURCE, snapshot_root=root, pin_path=pin_path)
+
+
+# --- #73 AC10: the pin carries the warehouse build's time and git sha, and the loader requires both ---
+
+FIXTURE_BUILT_AT = "2026-10-26T08:05:01+00:00"
+FIXTURE_GIT_SHA = "86536e536caa07f089df3dda7f1e94fb5c776ed7"
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#73 AC10")
+def test_a_pin_taken_from_a_snapshot_carries_its_manifests_build_time_and_git_sha(pin: served.Pin) -> None:
+    assert (pin.built_at, pin.git_sha) == (FIXTURE_BUILT_AT, FIXTURE_GIT_SHA)
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#73 AC10")
+def test_a_pins_build_time_and_git_sha_round_trip_through_its_file(pin: served.Pin, tmp_path: Path) -> None:
+    path = tmp_path / "pin.json"
+    served.write_pin(pin, path)
+    document = json.loads(path.read_text(encoding="utf-8"))
+    assert (document["built_at"], document["git_sha"]) == (FIXTURE_BUILT_AT, FIXTURE_GIT_SHA)
+    assert served.read_pin(path) == pin
+
+
+@pytest.mark.unit
+@pytest.mark.covers("#73 AC10")
+def test_a_pin_file_without_the_build_fields_still_reads_and_loads(pin: served.Pin, tmp_path: Path) -> None:
+    # The requirement lives on the Stage 5 runner's load path only (D-N12): today's pin lacks both.
+    path = tmp_path / "pin.json"
+    served.write_pin(pin, path)
+    document = json.loads(path.read_text(encoding="utf-8"))
+    del document["built_at"], document["git_sha"]
+    path.write_text(json.dumps(document), encoding="utf-8")
+    read = served.read_pin(path)
+    assert (read.built_at, read.git_sha) == (None, None)
+    assert not served.load(MANAGER_SEASON, pin=read, snapshot_root=FIXTURE_ROOT).gameweek.empty

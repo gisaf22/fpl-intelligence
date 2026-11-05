@@ -105,11 +105,17 @@ class Pin:
     `object_versions` names each file's S3 version, as far as it is known: `served/` is overwritten
     in place, so a pinned publish's files survive only as versions. `refresh` records every file's;
     a pin taken before it did holds the versions fetched since.
+
+    `built_at` and `git_sha` are the warehouse build's, copied from its manifest when the pin is
+    made. None means a pin made before they were recorded: this loader accepts one, and only the
+    Stage 5 runner refuses it (D-N12 on https://github.com/gisaf22/fpl-intelligence/issues/73).
     """
 
     run_id: str
     sha256: Mapping[str, str]
     object_versions: Mapping[str, str] = field(default_factory=dict)
+    built_at: str | None = None
+    git_sha: str | None = None
 
 
 @dataclass(frozen=True)
@@ -162,10 +168,20 @@ def sha256_of(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _optional_str(value: object) -> str | None:
+    return None if value is None else str(value)
+
+
 def pin_of(snapshot_dir: Path) -> Pin:
-    """The pin a snapshot directory would be read under: its manifest's run_id and file hashes."""
+    """The pin a snapshot directory would be read under: its manifest's run_id, build time, git sha
+    and file hashes."""
     manifest = json.loads((snapshot_dir / MANIFEST).read_text(encoding="utf-8"))
-    return Pin(run_id=str(manifest["run_id"]), sha256={name: sha256_of(snapshot_dir / name) for name in FILES})
+    return Pin(
+        run_id=str(manifest["run_id"]),
+        sha256={name: sha256_of(snapshot_dir / name) for name in FILES},
+        built_at=_optional_str(manifest.get("built_at")),
+        git_sha=_optional_str(manifest.get("git_sha")),
+    )
 
 
 def read_pin(path: Path = PIN_PATH) -> Pin:
@@ -174,11 +190,18 @@ def read_pin(path: Path = PIN_PATH) -> Pin:
         run_id=document["run_id"],
         sha256=dict(document["sha256"]),
         object_versions=dict(document.get("object_versions", {})),
+        built_at=_optional_str(document.get("built_at")),
+        git_sha=_optional_str(document.get("git_sha")),
     )
 
 
 def write_pin(pin: Pin, path: Path = PIN_PATH) -> None:
-    document: dict[str, object] = {"run_id": pin.run_id, "sha256": dict(sorted(pin.sha256.items()))}
+    document: dict[str, object] = {"run_id": pin.run_id}
+    if pin.built_at is not None:
+        document["built_at"] = pin.built_at
+    if pin.git_sha is not None:
+        document["git_sha"] = pin.git_sha
+    document["sha256"] = dict(sorted(pin.sha256.items()))
     if pin.object_versions:
         document["object_versions"] = dict(sorted(pin.object_versions.items()))
     path.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")

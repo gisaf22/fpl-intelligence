@@ -145,6 +145,7 @@ def test_the_verdict_writes_its_three_files_and_records_the_feed_and_realism_has
     assert _sha256(lab / "REALISM.md") in header
 
 
+@pytest.mark.integration
 @pytest.mark.covers("#73 AC3")
 def test_the_local_feed_is_git_ignored_and_the_verdict_beside_it_is_not() -> None:
     def ignored(path: str) -> bool:
@@ -207,6 +208,7 @@ def test_the_look_and_the_verdict_have_the_same_panel_and_outcomes_in_each_gamew
 HEADER_FIELDS = ("run_id", "built_at", "git_sha", "ratified_gameweeks", "managers_per_gameweek")
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC5")
 @pytest.mark.parametrize("field", HEADER_FIELDS)
 def test_a_verdict_header_missing_a_field_raises_and_names_it(tmp_path: Path, field: str) -> None:
@@ -216,6 +218,7 @@ def test_a_verdict_header_missing_a_field_raises_and_names_it(tmp_path: Path, fi
         stage5.render_verdict_header(dataclasses.replace(header, **{field: None}))
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC5")
 def test_a_verdict_whose_header_lacks_a_field_writes_no_result(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     pin, root = _publish(tmp_path, 15)
@@ -276,6 +279,7 @@ def _code_cells(notebook: Path) -> list[str]:
     return ["".join(cell["source"]) for cell in cells if cell["cell_type"] == "code"]
 
 
+@pytest.mark.integration
 @pytest.mark.covers("#73 AC6")
 def test_the_look_notebook_imports_only_the_look_function_and_its_first_cell_prints_the_header() -> None:
     cells = _code_cells(NOTEBOOK)
@@ -412,6 +416,7 @@ def test_the_verdict_header_takes_its_build_time_and_git_sha_from_the_pin(tmp_pa
     assert (header.built_at, header.git_sha) == (pin.built_at, pin.git_sha)
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC10")
 @pytest.mark.parametrize("field", ["built_at", "git_sha"])
 @pytest.mark.parametrize("mode", ["look", "verdict"])
@@ -429,6 +434,7 @@ def test_the_runner_refuses_a_pin_without_a_build_field_and_names_it(tmp_path: P
     assert list(results.iterdir()) == [] and list(lab.iterdir()) == []
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC10")
 def test_a_pin_without_the_build_fields_still_loads_outside_the_runner(tmp_path: Path) -> None:
     pin, root = _publish(tmp_path, 15, built_at=None, git_sha=None)
@@ -439,6 +445,7 @@ def test_a_pin_without_the_build_fields_still_loads_outside_the_runner(tmp_path:
 # --- AC11: the look stops at GW8 and never pads a shorter pin ---
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC11")
 def test_a_pin_ratified_past_gw8_gives_a_look_at_gw4_to_gw8_only(tmp_path: Path) -> None:
     pin, root = _publish(tmp_path, 10)
@@ -450,6 +457,7 @@ def test_a_pin_ratified_past_gw8_gives_a_look_at_gw4_to_gw8_only(tmp_path: Path)
     assert "GW8" in look.text and "ceiling" in look.text.lower()
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC11")
 def test_a_pin_ratified_to_gw6_gives_a_look_at_gw4_to_gw6_without_padding_or_error(tmp_path: Path) -> None:
     pin, root = _publish(tmp_path, 6)
@@ -464,12 +472,14 @@ def test_a_pin_ratified_to_gw6_gives_a_look_at_gw4_to_gw6_without_padding_or_err
 # --- AC12: the runner's pre-run check holds the `look` key and its constants together ---
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC12")
 def test_the_runner_code_matches_the_registered_look_key() -> None:
     registered = yaml.safe_load(stage5.PRE_REGISTRATION_PATH.read_text(encoding="utf-8"))
     assert stage5.pre_registration_mismatches(registered) == []
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC12")
 @pytest.mark.parametrize(("constant", "value"), [("LOOK_CEILING_GW", 9), ("ONCE_PER_PURPOSE", False)])
 def test_a_drifted_look_constant_is_a_named_mismatch(
@@ -480,6 +490,7 @@ def test_a_drifted_look_constant_is_a_named_mismatch(
     assert [m.split(":")[0] for m in stage5.pre_registration_mismatches(registered)] == ["look"]
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC12")
 @pytest.mark.parametrize(
     ("path", "value"),
@@ -500,6 +511,7 @@ def test_a_changed_look_value_in_the_file_is_a_named_mismatch(path: tuple[str, .
     assert [m.split(":")[0] for m in stage5.pre_registration_mismatches(registered)] == ["look"]
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC12")
 def test_a_registration_without_the_look_key_is_a_named_mismatch() -> None:
     registered = yaml.safe_load(stage5.PRE_REGISTRATION_PATH.read_text(encoding="utf-8"))
@@ -507,6 +519,7 @@ def test_a_registration_without_the_look_key_is_a_named_mismatch() -> None:
     assert [m.split(":")[0] for m in stage5.pre_registration_mismatches(registered)] == ["look"]
 
 
+@pytest.mark.unit
 @pytest.mark.covers("#73 AC12")
 @pytest.mark.parametrize("mode", ["look", "verdict"])
 def test_both_modes_refuse_to_run_off_the_registration(

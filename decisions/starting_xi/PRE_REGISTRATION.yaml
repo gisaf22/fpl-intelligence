@@ -1,6 +1,6 @@
 # decisions/starting_xi/PRE_REGISTRATION.yaml -- the Stage 3 test design, frozen 2026-10-17
 # (CARD.md §3; decisions on #30, #31, #32, #33), and the Stage 5 entries (verdict, power lab,
-# evaluation panel, realism check), each named in its own comment below.
+# evaluation panel, realism check, look), each named in its own comment below.
 #
 # Mirror-and-pin, not config: each value is owned by the code named beside it. The pre-run check
 # (operational.starting_xi.pre_registration_mismatches) compares the run and that code against
@@ -141,3 +141,12 @@ realism_check:
   gameweeks: { first_gw: 4, last_gw: 15 } # realism.VERDICT_GAMEWEEKS
   prints_mean: false # realism.PRINTS_MEAN
   label: per_gameweek_count # realism.LABEL
+
+# The Stage 5 descriptive look (https://github.com/gisaf22/fpl-intelligence/issues/73 D-N10): it
+# stops at GW8 however far its pin reaches, its gameweeks sit inside the verdict's, and each pin
+# serves one purpose. The look pin's run id is recorded at the re-pin
+# (https://github.com/gisaf22/fpl-intelligence/issues/76), not here.
+look:
+  ceiling_gw: 8 # starting_xi_stage5.LOOK_CEILING_GW
+  overlap: { look: { first_gw: 4, last_gw: 8 }, verdict: { first_gw: 4, last_gw: 15 } } # rankers.RULE_WINDOW[0], LOOK_CEILING_GW; realism.VERDICT_GAMEWEEKS
+  once_per_purpose: true # starting_xi_stage5.ONCE_PER_PURPOSE
